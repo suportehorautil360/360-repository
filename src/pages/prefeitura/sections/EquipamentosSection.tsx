@@ -1,0 +1,113 @@
+import { Link } from 'react-router-dom'
+import { useEquipamentosCadastro } from '../../../lib/hu360'
+
+interface EquipamentosSectionProps {
+  prefeituraId: string
+  labelMunicipio: string
+}
+
+/**
+ * Aba Equipamentos do portal da prefeitura.
+ *
+ * Segue a mesma lógica do Painel Locação: apenas visualização da frota
+ * cadastrada para o município. Inclusão e importação ficam no Hub
+ * administrativo (`/admin/equipamentos-locacao`).
+ */
+export function EquipamentosSection({
+  prefeituraId,
+  labelMunicipio,
+}: EquipamentosSectionProps) {
+  const equip = useEquipamentosCadastro(prefeituraId)
+
+  return (
+    <>
+      <p
+        style={{
+          fontSize: '0.82rem',
+          color: 'var(--text-gray)',
+          margin: '0 0 14px',
+          lineHeight: 1.5,
+        }}
+      >
+        <span style={{ color: '#cbd5e1' }}>Clientes</span> &nbsp;/&nbsp;{' '}
+        <strong
+          id="pf-eq-bc-cliente"
+          style={{ color: 'var(--main-orange)' }}
+        >
+          {labelMunicipio}
+        </strong>{' '}
+        &nbsp;/&nbsp; <span style={{ color: '#e2e8f0' }}>Equipamentos</span>
+      </p>
+      <h1>Equipamentos do município</h1>
+      <p
+        style={{
+          color: 'var(--text-gray)',
+          margin: '0 0 18px',
+          lineHeight: 1.5,
+          maxWidth: 880,
+        }}
+      >
+        Visualização da frota cadastrada para o município (mesma base usada na
+        abertura de O.S.). Inclusão e importação de equipamentos ficam no{' '}
+        <Link
+          to="/admin/equipamentos-locacao"
+          style={{ color: 'var(--main-orange)' }}
+        >
+          Hub administrativo
+        </Link>{' '}
+        (aba <strong>Equipamentos locação</strong>).
+      </p>
+
+      <article className="card">
+        <h3>Equipamentos cadastrados</h3>
+        <div className="table-scroll" style={{ marginTop: 12 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo / descrição</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>Chassis</th>
+                <th>Linha</th>
+                <th>Obra</th>
+              </tr>
+            </thead>
+            <tbody id="pf-eq-tbody">
+              {equip.lista.map((eq) => (
+                <tr key={eq.id}>
+                  <td>
+                    <strong>
+                      {eq.descricao || eq.modelo || 'Equipamento'}
+                    </strong>
+                  </td>
+                  <td>{eq.marca || '—'}</td>
+                  <td>{eq.modelo || '—'}</td>
+                  <td style={{ fontSize: '0.82rem' }}>
+                    <code>{eq.chassis}</code>
+                  </td>
+                  <td style={{ fontSize: '0.82rem' }}>{eq.linha || '—'}</td>
+                  <td style={{ fontSize: '0.82rem' }}>
+                    {eq.obra?.trim() ? eq.obra : '—'}
+                  </td>
+                </tr>
+              ))}
+              {equip.lista.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{
+                      textAlign: 'center',
+                      color: 'var(--text-gray)',
+                    }}
+                  >
+                    Nenhum equipamento cadastrado ainda.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </>
+  )
+}

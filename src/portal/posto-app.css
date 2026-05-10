@@ -1,0 +1,201 @@
+.posto-app {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100svh;
+  background: var(--bg, #090f1f);
+  color: var(--text, #e8ecf6);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.posto-app__aside {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.posto-app__user {
+  font-size: 0.82rem;
+  color: var(--muted, #93a4c6);
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
+
+.posto-app__main {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 24px;
+  overflow: auto;
+}
+
+.posto-app__ctx {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  color: var(--muted, #93a4c6);
+}
+
+.posto-nav-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.posto-nav-item:hover {
+  border-color: var(--border, rgba(255, 255, 255, 0.14));
+}
+
+.posto-nav-item.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border, rgba(255, 255, 255, 0.14));
+}
+
+.posto-banner {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 8px 0 16px;
+}
+
+.posto-kpis {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  margin-bottom: 20px;
+}
+
+.posto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-top: 12px;
+}
+
+.posto-table th,
+.posto-table td {
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  padding: 8px 10px;
+  word-break: break-word;
+}
+
+.posto-table th {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.posto-fat-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.cred-detalhes p {
+  margin: 6px 0;
+}
+
+.auth-select {
+  width: 100%;
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+  background: var(--bg-2, #121b30);
+  color: var(--text, #e8ecf6);
+  font: inherit;
+  margin-bottom: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 900px) {
+  .posto-app {
+    flex-direction: column;
+  }
+
+  .posto-app__aside {
+    width: 100%;
+    flex-shrink: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.14));
+    padding: 12px 14px;
+    gap: 6px 10px;
+  }
+
+  .posto-app__user {
+    width: 100%;
+    margin: 0 0 4px;
+    flex-basis: 100%;
+  }
+
+  .posto-nav-item {
+    flex: 1 1 auto;
+    min-width: min(140px, 100%);
+    text-align: center;
+    padding: 9px 10px;
+    font-size: 0.86rem;
+  }
+
+  .posto-app__main {
+    padding: 16px 14px;
+  }
+
+  .posto-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .posto-fat-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .posto-fat-toolbar button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .posto-app__aside {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .posto-nav-item {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .posto-table {
+    font-size: 0.8rem;
+  }
+
+  .posto-table th,
+  .posto-table td {
+    padding: 6px 8px;
+  }
+}

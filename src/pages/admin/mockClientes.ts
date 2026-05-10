@@ -1,0 +1,53 @@
+import type { ClienteLinha } from './VisaoGeralDashboard'
+
+export const MOCK_CLIENTES: ClienteLinha[] = [
+  {
+    id: 'pref-tres-lagoas',
+    label: 'Prefeitura de Três Lagoas',
+    tipo: 'prefeitura',
+    ativos: 142,
+    checklists: 387,
+    manutencao: 18,
+    custoLabel: 'R$ 84.520,00',
+    nCot: 7,
+    nOs: 4,
+  },
+  {
+    id: 'pref-campo-grande',
+    label: 'Prefeitura de Campo Grande',
+    tipo: 'prefeitura',
+    ativos: 268,
+    checklists: 612,
+    manutencao: 31,
+    custoLabel: 'R$ 152.890,50',
+    nCot: 12,
+    nOs: 9,
+  },
+  {
+    id: 'pref-corumba',
+    label: 'Prefeitura de Corumbá',
+    tipo: 'prefeitura',
+    ativos: 73,
+    checklists: 198,
+    manutencao: 9,
+    custoLabel: 'R$ 36.450,00',
+    nCot: 4,
+    nOs: 3,
+  },
+  {
+    id: 'loc-fleet-sul',
+    label: 'Fleet Sul Locadora',
+    tipo: 'locadora',
+    ativos: 95,
+    checklists: 240,
+    manutencao: 11,
+  },
+  {
+    id: 'loc-rota10',
+    label: 'Rota 10 Veículos',
+    tipo: 'locadora',
+    ativos: 58,
+    checklists: 154,
+    manutencao: 6,
+  },
+]
