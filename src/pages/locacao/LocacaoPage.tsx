@@ -1,5 +1,12 @@
-import { type FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import {
+  type FormEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Link } from "react-router-dom";
 import {
   type ChecklistApiRow,
   criarDadosDemo,
@@ -7,286 +14,289 @@ import {
   useEquipamentosCadastro,
   useHU360,
   useHU360Auth,
-} from '../../lib/hu360'
-import { locDesenharDashboardGraficos } from './locacaoCharts'
-import { mergePrefeituraModuloLocacao } from './locacaoMerge'
+} from "../../lib/hu360";
+import { locDesenharDashboardGraficos } from "./locacaoCharts";
+import { mergePrefeituraModuloLocacao } from "./locacaoMerge";
 import {
   limparLocacaoPrefCtxHub,
   locPrefeituraIdParaUi,
-} from './locacaoPrefCtx'
-import './locacao.css'
+} from "./locacaoPrefCtx";
+import "./locacao.css";
+import { useLogin } from "../login/hooks/use-login";
 
-type LocacaoSecao = 'dash' | 'auditoria' | 'riscos' | 'equipamentos'
+type LocacaoSecao = "dash" | "auditoria" | "riscos" | "equipamentos";
 
-const COR_INFO = '#78716c'
-const COR_ERRO = '#dc2626'
+const COR_INFO = "#78716c";
+const COR_ERRO = "#dc2626";
 
 interface AuthMsg {
-  texto: string
-  cor: string
+  texto: string;
+  cor: string;
 }
 
-const AUTH_MSG_LIMPA: AuthMsg = { texto: '', cor: COR_INFO }
+const AUTH_MSG_LIMPA: AuthMsg = { texto: "", cor: COR_INFO };
 
 function locFormatCriadoEmBr(s: string | undefined): string {
-  if (!s) return '—'
-  const t = String(s).replace('T', ' ').trim()
-  const p = t.split(/[- :]/)
+  if (!s) return "—";
+  const t = String(s).replace("T", " ").trim();
+  const p = t.split(/[- :]/);
   if (p.length >= 5) {
-    return `${p[2]}/${p[1]}/${p[0]} ${p[3]}:${p[4]}`
+    return `${p[2]}/${p[1]}/${p[0]} ${p[3]}:${p[4]}`;
   }
-  return t
+  return t;
 }
 
 type ModalChecklist =
   | {
-      kind: 'app'
-      titulo: string
-      subtitulo: string
-      checklist: ChecklistApp
-      colStatus: string
+      kind: "app";
+      titulo: string;
+      subtitulo: string;
+      checklist: ChecklistApp;
+      colStatus: string;
     }
   | {
-      kind: 'qr'
-      titulo: string
-      subtitulo: string
-      checklist: ChecklistApp
-      row: ChecklistApiRow
-    }
+      kind: "qr";
+      titulo: string;
+      subtitulo: string;
+      checklist: ChecklistApp;
+      row: ChecklistApiRow;
+    };
 
 function checklistQrSintetico(row: ChecklistApiRow): ChecklistApp {
-  const oleoOk = String(row.status_oleo || '').toLowerCase() === 'ok'
-  const filtOk = String(row.status_filtros || '').toLowerCase() === 'ok'
+  const oleoOk = String(row.status_oleo || "").toLowerCase() === "ok";
+  const filtOk = String(row.status_filtros || "").toLowerCase() === "ok";
   return {
     protocolo: `CHK-QR-${row.id}`,
-    referenciaOs: 'Inspeção registrada via QR',
+    referenciaOs: "Inspeção registrada via QR",
     sincronizadoEm: row.criado_em,
-    versaoApp: 'horautil360',
-    horimetroCampo: '—',
+    versaoApp: "horautil360",
+    horimetroCampo: "—",
     secoes: [
       {
-        titulo: 'Campos da inspeção',
+        titulo: "Campos da inspeção",
         itens: [
-          { item: 'Chassis (QR)', resposta: row.chassis_qr, conforme: true },
+          { item: "Chassis (QR)", resposta: row.chassis_qr, conforme: true },
           {
-            item: 'Óleo',
+            item: "Óleo",
             resposta: row.status_oleo,
             conforme: oleoOk,
           },
           {
-            item: 'Filtros',
+            item: "Filtros",
             resposta: row.status_filtros,
             conforme: filtOk,
           },
         ],
       },
     ],
-    observacoesCampo: row.observacoes || '',
-    fotosResumo: '',
+    observacoesCampo: row.observacoes || "",
+    fotosResumo: "",
     assinaturaDigital: `Registro ID ${row.id} · horautil360`,
-  }
+  };
 }
 
 function observacoesRodape(c: ChecklistApp): string {
-  const oc = c.observacoesCampo
+  const oc = c.observacoesCampo;
   const op = (c as ChecklistApp & { observacoesOperador?: string })
-    .observacoesOperador
-  if (oc != null && oc !== '') return oc
-  return op ?? ''
+    .observacoesOperador;
+  if (oc != null && oc !== "") return oc;
+  return op ?? "";
 }
 
 export function LocacaoPage() {
-  const { user, login, logout } = useHU360Auth()
-  const { obterDadosPrefeitura, prefeituraLabel, prefeituras } = useHU360()
-  const [prefCtxGen, setPrefCtxGen] = useState(0)
-  const bumpPrefCtx = () => setPrefCtxGen((g) => g + 1)
-  const prevUsuarioRef = useRef<string | undefined>(undefined)
-  const canvasChRef = useRef<HTMLCanvasElement>(null)
-  const canvasOpRef = useRef<HTMLCanvasElement>(null)
+  const { login, logout } = useHU360Auth();
+  const { user } = useLogin();
+  const { obterDadosPrefeitura, prefeituraLabel, prefeituras } = useHU360();
+  const [prefCtxGen, setPrefCtxGen] = useState(0);
+  const bumpPrefCtx = () => setPrefCtxGen((g) => g + 1);
+  const prevUsuarioRef = useRef<string | undefined>(undefined);
+  const canvasChRef = useRef<HTMLCanvasElement>(null);
+  const canvasOpRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!user?.usuario) {
-      prevUsuarioRef.current = undefined
-      return
+      prevUsuarioRef.current = undefined;
+      return;
     }
-    if (
-      prevUsuarioRef.current &&
-      prevUsuarioRef.current !== user.usuario
-    ) {
-      limparLocacaoPrefCtxHub()
-      bumpPrefCtx()
+    if (prevUsuarioRef.current && prevUsuarioRef.current !== user.usuario) {
+      limparLocacaoPrefCtxHub();
+      bumpPrefCtx();
     }
-    prevUsuarioRef.current = user.usuario
-  }, [user?.usuario])
+    prevUsuarioRef.current = user.usuario;
+  }, [user?.usuario]);
 
   const prefeituraIdEff = useMemo(() => {
-    if (!user) return null
-    return locPrefeituraIdParaUi(user, prefeituras)
-  }, [user, prefeituras, prefCtxGen])
+    if (!user) return null;
+    return locPrefeituraIdParaUi(user, prefeituras);
+  }, [user, prefeituras, prefCtxGen]);
 
   const dados = useMemo(
     () => (prefeituraIdEff ? obterDadosPrefeitura(prefeituraIdEff) : null),
     [prefeituraIdEff, obterDadosPrefeitura],
-  )
+  );
 
   const pmMerged = useMemo(() => {
-    if (!prefeituraIdEff) return null
+    if (!prefeituraIdEff) return null;
     return mergePrefeituraModuloLocacao(
       prefeituraIdEff,
       obterDadosPrefeitura,
       criarDadosDemo,
-    )
-  }, [prefeituraIdEff, obterDadosPrefeitura])
+    );
+  }, [prefeituraIdEff, obterDadosPrefeitura]);
 
   const checklistsCampo = useMemo(
     () => dados?.prefeituraModulo?.checklistsCampo ?? [],
     [dados],
-  )
+  );
+
+  console.log("Dados prefeitura locação:", user);
 
   const audBase = useMemo(
     () =>
-      prefeituraIdEff
-        ? criarDadosDemo(prefeituraIdEff).auditoria ?? []
-        : [],
+      prefeituraIdEff ? (criarDadosDemo(prefeituraIdEff).auditoria ?? []) : [],
     [prefeituraIdEff],
-  )
-  const audLista = dados?.auditoria?.length ? dados.auditoria : audBase
+  );
+  const audLista = dados?.auditoria?.length ? dados.auditoria : audBase;
 
   const rBase = useMemo(
-    () => (prefeituraIdEff ? criarDadosDemo(prefeituraIdEff).riscos ?? [] : []),
+    () =>
+      prefeituraIdEff ? (criarDadosDemo(prefeituraIdEff).riscos ?? []) : [],
     [prefeituraIdEff],
-  )
+  );
   const rList =
-    dados?.riscos?.length && dados.riscos.length > 0 ? dados.riscos : rBase
+    dados?.riscos?.length && dados.riscos.length > 0 ? dados.riscos : rBase;
 
-  const equip = useEquipamentosCadastro(prefeituraIdEff ?? undefined)
+  const equip = useEquipamentosCadastro(prefeituraIdEff ?? undefined);
 
   // Estado de login
-  const [usuario, setUsuario] = useState('')
-  const [senha, setSenha] = useState('')
-  const [authMsg, setAuthMsg] = useState<AuthMsg>({ texto: '', cor: COR_INFO })
+  const [usuario, setUsuario] = useState("");
+  const [senha, setSenha] = useState("");
+  const [authMsg, setAuthMsg] = useState<AuthMsg>({ texto: "", cor: COR_INFO });
 
   // Navegação
-  const [secaoAtiva, setSecaoAtiva] = useState<LocacaoSecao>('dash')
+  const [secaoAtiva, setSecaoAtiva] = useState<LocacaoSecao>("dash");
 
   const [modalChecklist, setModalChecklist] = useState<ModalChecklist | null>(
     null,
-  )
+  );
 
   useEffect(() => {
-    document.body.classList.add('locacao-root')
+    document.body.classList.add("locacao-root");
     return () => {
-      document.body.classList.remove('locacao-root')
-    }
-  }, [])
+      document.body.classList.remove("locacao-root");
+    };
+  }, []);
 
   useLayoutEffect(() => {
-    if (secaoAtiva !== 'dash' || !pmMerged?.dashboardGraficos) return
+    if (secaoAtiva !== "dash" || !pmMerged?.dashboardGraficos) return;
     const id = requestAnimationFrame(() => {
       locDesenharDashboardGraficos(
         canvasChRef.current,
         canvasOpRef.current,
         pmMerged.dashboardGraficos,
-      )
-    })
-    return () => cancelAnimationFrame(id)
-  }, [secaoAtiva, pmMerged, prefeituraIdEff])
+      );
+    });
+    return () => cancelAnimationFrame(id);
+  }, [secaoAtiva, pmMerged, prefeituraIdEff]);
 
   useEffect(() => {
-    if (secaoAtiva !== 'dash') return
+    if (secaoAtiva !== "dash") return;
     const ro = new ResizeObserver(() => {
       if (pmMerged?.dashboardGraficos) {
         locDesenharDashboardGraficos(
           canvasChRef.current,
           canvasOpRef.current,
           pmMerged.dashboardGraficos,
-        )
+        );
       }
-    })
-    const el1 = canvasChRef.current?.parentElement
-    const el2 = canvasOpRef.current?.parentElement
-    if (el1) ro.observe(el1)
-    if (el2 && el2 !== el1) ro.observe(el2)
-    return () => ro.disconnect()
-  }, [secaoAtiva, pmMerged])
+    });
+    const el1 = canvasChRef.current?.parentElement;
+    const el2 = canvasOpRef.current?.parentElement;
+    if (el1) ro.observe(el1);
+    if (el2 && el2 !== el1) ro.observe(el2);
+    return () => ro.disconnect();
+  }, [secaoAtiva, pmMerged]);
 
   function navegar(secao: LocacaoSecao) {
-    setSecaoAtiva(secao)
+    setSecaoAtiva(secao);
   }
 
   async function handleLogout() {
-    limparLocacaoPrefCtxHub()
-    bumpPrefCtx()
-    await logout()
-    setUsuario('')
-    setSenha('')
-    setAuthMsg(AUTH_MSG_LIMPA)
-    setSecaoAtiva('dash')
-    setModalChecklist(null)
+    limparLocacaoPrefCtxHub();
+    bumpPrefCtx();
+    await logout();
+    setUsuario("");
+    setSenha("");
+    setAuthMsg(AUTH_MSG_LIMPA);
+    setSecaoAtiva("dash");
+    setModalChecklist(null);
   }
 
   async function handleLogin(e: FormEvent) {
-    e.preventDefault()
-    setAuthMsg({ texto: 'Autenticando...', cor: COR_INFO })
-    const res = await login(usuario.trim(), senha)
+    e.preventDefault();
+    setAuthMsg({ texto: "Autenticando...", cor: COR_INFO });
+    const res = await login(usuario.trim(), senha);
     if (!res.ok) {
-      setAuthMsg({ texto: res.msg ?? 'Login ou senha inválidos.', cor: COR_ERRO })
-      return
+      setAuthMsg({
+        texto: res.msg ?? "Login ou senha inválidos.",
+        cor: COR_ERRO,
+      });
+      return;
     }
-    setAuthMsg(AUTH_MSG_LIMPA)
-    setSenha('')
-    bumpPrefCtx()
+    setAuthMsg(AUTH_MSG_LIMPA);
+    setSenha("");
+    bumpPrefCtx();
   }
 
   function abrirChecklistCard() {
-    setSecaoAtiva('auditoria')
+    setSecaoAtiva("auditoria");
   }
 
   function fecharChecklist() {
-    setModalChecklist(null)
+    setModalChecklist(null);
   }
 
   function abrirChecklistAuditoria(indice: number) {
-    if (!prefeituraIdEff) return
+    if (!prefeituraIdEff) return;
     const row = {
       ...audBase[indice],
       ...audLista[indice],
-    }
-    const c = row.checklistApp
+    };
+    const c = row.checklistApp;
     if (!c) {
       window.alert(
-        'Checklist do aplicativo indisponível para este registro. Atualize a página ou limpe o armazenamento local.',
-      )
-      return
+        "Checklist do aplicativo indisponível para este registro. Atualize a página ou limpe o armazenamento local.",
+      );
+      return;
     }
     setModalChecklist({
-      kind: 'app',
-      titulo: 'Checklist do aplicativo (campo)',
+      kind: "app",
+      titulo: "Checklist do aplicativo (campo)",
       subtitulo: `${row.equipamento} · ${row.operador} · ${row.hora}`,
       checklist: c,
-      colStatus: 'Indicador',
-    })
+      colStatus: "Indicador",
+    });
   }
 
   function abrirChecklistCampoQr(idx: number) {
-    const row = checklistsCampo[idx]
+    const row = checklistsCampo[idx];
     if (!row) {
-      window.alert('Registro indisponível.')
-      return
+      window.alert("Registro indisponível.");
+      return;
     }
-    const c = checklistQrSintetico(row)
+    const c = checklistQrSintetico(row);
     setModalChecklist({
-      kind: 'qr',
-      titulo: 'Inspeção QR (servidor)',
-      subtitulo: `${row.chassis_qr || '—'} · ${locFormatCriadoEmBr(row.criado_em)}`,
+      kind: "qr",
+      titulo: "Inspeção QR (servidor)",
+      subtitulo: `${row.chassis_qr || "—"} · ${locFormatCriadoEmBr(row.criado_em)}`,
       checklist: c,
       row,
-    })
+    });
   }
 
   function limparCtxHubModulo() {
-    limparLocacaoPrefCtxHub()
-    bumpPrefCtx()
+    limparLocacaoPrefCtxHub();
+    bumpPrefCtx();
   }
 
   if (!user || !dados) {
@@ -321,7 +331,7 @@ export function LocacaoPage() {
             <button
               className="btn"
               type="submit"
-              style={{ width: '100%', marginTop: 16 }}
+              style={{ width: "100%", marginTop: 16 }}
             >
               Entrar
             </button>
@@ -337,60 +347,60 @@ export function LocacaoPage() {
           <p
             style={{
               marginTop: 16,
-              fontSize: '0.8rem',
-              color: 'var(--text-gray)',
-              borderTop: '1px dashed #2d3748',
+              fontSize: "0.8rem",
+              color: "var(--text-gray)",
+              borderTop: "1px dashed #2d3748",
               paddingTop: 12,
             }}
           >
-            Demo: <strong>admin</strong>, <strong>gestor</strong>,{' '}
-            <strong>admin.bh</strong> — cada um carrega uma base de frota
-            (dados iguais ao módulo prefeitura, com rótulos de locação).
+            Demo: <strong>admin</strong>, <strong>gestor</strong>,{" "}
+            <strong>admin.bh</strong> — cada um carrega uma base de frota (dados
+            iguais ao módulo prefeitura, com rótulos de locação).
           </p>
           <Link
             to="/admin/dashboard"
             style={{
-              display: 'block',
+              display: "block",
               marginTop: 14,
-              color: 'var(--main-orange)',
-              fontSize: '0.88rem',
-              textAlign: 'center',
-              textDecoration: 'none',
+              color: "var(--main-orange)",
+              fontSize: "0.88rem",
+              textAlign: "center",
+              textDecoration: "none",
             }}
           >
             ← Voltar ao Hub
           </Link>
         </div>
       </section>
-    )
+    );
   }
 
-  const labelPrefLogin = prefeituraLabel(user.prefeituraId)
+  const labelPrefLogin = prefeituraLabel(user.prefeituraId);
   const labelEff = prefeituraIdEff
     ? prefeituraLabel(prefeituraIdEff)
-    : labelPrefLogin
-  const nomeUsuario = user.nome || user.usuario
-  const usuarioLogadoTexto = `Conectado: ${nomeUsuario} (${user.perfil || '—'}) · ${labelPrefLogin}`
+    : labelPrefLogin;
+  const nomeUsuario = user.nome || user.usuario;
+  const usuarioLogadoTexto = `Conectado: ${nomeUsuario} (${user.perfil || "—"}) · ${labelPrefLogin}`;
   const mostrarBannerCtx =
-    !!prefeituraIdEff && prefeituraIdEff !== user.prefeituraId
+    !!prefeituraIdEff && prefeituraIdEff !== user.prefeituraId;
 
-  const h = dados.hubDashboard
-  const ccDash = checklistsCampo
-  const totalChecklists = (Number(h.checklists) || 0) + ccDash.length
+  const h = dados.hubDashboard;
+  const ccDash = checklistsCampo;
+  const totalChecklists = (Number(h.checklists) || 0) + ccDash.length;
 
   return (
     <>
       <div id="appShell">
         <div id="sidebar">
           <div className="logo">
-            <h2 style={{ margin: 0, color: 'var(--main-orange)' }}>
+            <h2 style={{ margin: 0, color: "var(--main-orange)" }}>
               horautil360
             </h2>
             <p
               id="locCtxNome"
               style={{
-                fontSize: '0.75rem',
-                color: 'var(--main-orange)',
+                fontSize: "0.75rem",
+                color: "var(--main-orange)",
                 marginTop: 8,
                 fontWeight: 600,
               }}
@@ -399,8 +409,8 @@ export function LocacaoPage() {
             </p>
             <p
               style={{
-                fontSize: '0.72rem',
-                color: 'var(--text-gray)',
+                fontSize: "0.72rem",
+                color: "var(--text-gray)",
                 marginTop: 4,
               }}
             >
@@ -410,22 +420,22 @@ export function LocacaoPage() {
 
           {(
             [
-              { id: 'dash', label: '📊 Dashboard geral' },
-              { id: 'auditoria', label: '📋 Auditoria de checklists' },
-              { id: 'riscos', label: '⚠️ Triagem de risco' },
-              { id: 'equipamentos', label: '🛠️ Equipamentos' },
+              { id: "dash", label: "📊 Dashboard geral" },
+              { id: "auditoria", label: "📋 Auditoria de checklists" },
+              { id: "riscos", label: "⚠️ Triagem de risco" },
+              { id: "equipamentos", label: "🛠️ Equipamentos" },
             ] as Array<{ id: LocacaoSecao; label: string }>
           ).map((it) => (
             <div
               key={it.id}
-              className={`nav-item ${secaoAtiva === it.id ? 'active' : ''}`}
+              className={`nav-item ${secaoAtiva === it.id ? "active" : ""}`}
               onClick={() => navegar(it.id)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  navegar(it.id)
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navegar(it.id);
                 }
               }}
             >
@@ -445,9 +455,9 @@ export function LocacaoPage() {
                 type="button"
                 className="btn btn-outline loc-btn-sair"
                 style={{
-                  width: 'auto',
+                  width: "auto",
                   margin: 0,
-                  padding: '10px 16px',
+                  padding: "10px 16px",
                 }}
                 onClick={handleLogout}
               >
@@ -457,25 +467,24 @@ export function LocacaoPage() {
           </div>
           <div
             id="loc-banner-hub-ctx"
-            className={`loc-hub-ctx-banner ${mostrarBannerCtx ? '' : 'hidden'}`}
+            className={`loc-hub-ctx-banner ${mostrarBannerCtx ? "" : "hidden"}`}
             role="status"
           >
             {mostrarBannerCtx ? (
               <>
                 <span style={{ flex: 1 }}>
-                  Você está visualizando a base{' '}
-                  <strong>{labelEff}</strong> (mesmos dados da prefeitura de
-                  referência).
+                  Você está visualizando a base <strong>{labelEff}</strong>{" "}
+                  (mesmos dados da prefeitura de referência).
                 </span>
                 <button
                   type="button"
                   className="btn btn-outline"
                   style={{
-                    width: 'auto',
+                    width: "auto",
                     margin: 0,
-                    padding: '8px 14px',
-                    textTransform: 'none',
-                    fontSize: '0.82rem',
+                    padding: "8px 14px",
+                    textTransform: "none",
+                    fontSize: "0.82rem",
                   }}
                   onClick={limparCtxHubModulo}
                 >
@@ -487,7 +496,7 @@ export function LocacaoPage() {
 
           <div
             id="dash"
-            className={`tab-content ${secaoAtiva === 'dash' ? 'active' : ''}`}
+            className={`tab-content ${secaoAtiva === "dash" ? "active" : ""}`}
           >
             <h1>Dashboard geral</h1>
             <p className="loc-intro">
@@ -507,9 +516,9 @@ export function LocacaoPage() {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    abrirChecklistCard()
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    abrirChecklistCard();
                   }
                 }}
               >
@@ -518,9 +527,7 @@ export function LocacaoPage() {
               </div>
               <div className="card">
                 <h3>Em manutenção</h3>
-                <p id="loc-d-manut">
-                  {String(h.manutencao).padStart(2, '0')}
-                </p>
+                <p id="loc-d-manut">{String(h.manutencao).padStart(2, "0")}</p>
               </div>
             </div>
             <p
@@ -538,9 +545,7 @@ export function LocacaoPage() {
                 <canvas ref={canvasChRef} id="loc-chart-checklists" />
               </div>
               <div className="card chart-wrap wide">
-                <h3>
-                  Top 5 operadores — inspeções com alta confiabilidade
-                </h3>
+                <h3>Top 5 operadores — inspeções com alta confiabilidade</h3>
                 <p className="chart-sub">
                   Ranking por quantidade de checklists com qualidade alta no
                   período
@@ -552,11 +557,11 @@ export function LocacaoPage() {
 
           <div
             id="auditoria"
-            className={`tab-content ${secaoAtiva === 'auditoria' ? 'active' : ''}`}
+            className={`tab-content ${secaoAtiva === "auditoria" ? "active" : ""}`}
           >
             <h1>Auditoria de checklists</h1>
             <p className="loc-intro">
-              Avalie a qualidade dos checklists vindos do{' '}
+              Avalie a qualidade dos checklists vindos do{" "}
               <strong>aplicativo de campo</strong> e inspeções via QR
               sincronizadas. Use o índice de confiabilidade e abra o
               detalhamento quando necessário.
@@ -575,19 +580,19 @@ export function LocacaoPage() {
               </thead>
               <tbody id="loc-tbody-auditoria">
                 {audLista.map((row, idx) => {
-                  const merged = { ...audBase[idx], ...row }
+                  const merged = { ...audBase[idx], ...row };
                   const idxCell = merged.alerta ? (
-                    <td style={{ color: '#ef4444' }}>{merged.indice}</td>
+                    <td style={{ color: "#ef4444" }}>{merged.indice}</td>
                   ) : (
                     <td>{merged.indice}</td>
-                  )
+                  );
                   return (
                     <tr key={`aud-${merged.hora}-${idx}`}>
                       <td>{merged.hora}</td>
                       <td>{merged.operador}</td>
                       <td>{merged.equipamento}</td>
-                      <td style={{ fontSize: '0.82rem' }}>
-                        {merged.chassis?.trim() ? merged.chassis : '—'}
+                      <td style={{ fontSize: "0.82rem" }}>
+                        {merged.chassis?.trim() ? merged.chassis : "—"}
                       </td>
                       <td>{merged.fotos} Fotos</td>
                       {idxCell}
@@ -601,27 +606,30 @@ export function LocacaoPage() {
                         </button>
                       </td>
                     </tr>
-                  )
+                  );
                 })}
                 {checklistsCampo.map((r, ci) => {
-                  const horaDisp = locFormatCriadoEmBr(r.criado_em)
-                  const oleo = String(r.status_oleo || '').toLowerCase()
-                  const filt = String(r.status_filtros || '').toLowerCase()
-                  const alerta = oleo === 'critico' || filt === 'critico'
-                  const indice =
-                    alerta ? 'Crítico' : oleo === 'ok' && filt === 'ok' ? 'Alto' : 'Médio'
+                  const horaDisp = locFormatCriadoEmBr(r.criado_em);
+                  const oleo = String(r.status_oleo || "").toLowerCase();
+                  const filt = String(r.status_filtros || "").toLowerCase();
+                  const alerta = oleo === "critico" || filt === "critico";
+                  const indice = alerta
+                    ? "Crítico"
+                    : oleo === "ok" && filt === "ok"
+                      ? "Alto"
+                      : "Médio";
                   const idxCellC = alerta ? (
-                    <td style={{ color: '#ef4444' }}>{indice}</td>
+                    <td style={{ color: "#ef4444" }}>{indice}</td>
                   ) : (
                     <td>{indice}</td>
-                  )
+                  );
                   return (
                     <tr key={`cc-${r.id}-${ci}`}>
                       <td>{horaDisp}</td>
                       <td>QR / campo</td>
-                      <td>{r.chassis_qr || '—'}</td>
-                      <td style={{ fontSize: '0.82rem' }}>
-                        {r.chassis_qr || '—'}
+                      <td>{r.chassis_qr || "—"}</td>
+                      <td style={{ fontSize: "0.82rem" }}>
+                        {r.chassis_qr || "—"}
                       </td>
                       <td>0 Fotos</td>
                       {idxCellC}
@@ -635,13 +643,13 @@ export function LocacaoPage() {
                         </button>
                       </td>
                     </tr>
-                  )
+                  );
                 })}
                 {audLista.length === 0 && checklistsCampo.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
-                      style={{ textAlign: 'center', color: 'var(--text-gray)' }}
+                      style={{ textAlign: "center", color: "var(--text-gray)" }}
                     >
                       Nenhum checklist no período.
                     </td>
@@ -653,11 +661,11 @@ export function LocacaoPage() {
 
           <div
             id="riscos"
-            className={`tab-content ${secaoAtiva === 'riscos' ? 'active' : ''}`}
+            className={`tab-content ${secaoAtiva === "riscos" ? "active" : ""}`}
           >
             <h1>Triagem de risco</h1>
             <p className="loc-intro">
-              Priorize falhas relatadas em campo por{' '}
+              Priorize falhas relatadas em campo por{" "}
               <strong>nível de risco</strong>, equipamento e ação recomendada
               (oficina, agendar revisão ou correção simples).
             </p>
@@ -673,7 +681,7 @@ export function LocacaoPage() {
               </thead>
               <tbody id="loc-tbody-riscos">
                 {rList.map((row, idx) => {
-                  const merged = { ...rBase[idx], ...row }
+                  const merged = { ...rBase[idx], ...row };
                   return (
                     <tr key={`r-${merged.equipamento}-${idx}`}>
                       <td>{merged.nivel}</td>
@@ -682,13 +690,13 @@ export function LocacaoPage() {
                       <td>{merged.operador}</td>
                       <td>{merged.acao}</td>
                     </tr>
-                  )
+                  );
                 })}
                 {rList.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
-                      style={{ textAlign: 'center', color: 'var(--text-gray)' }}
+                      style={{ textAlign: "center", color: "var(--text-gray)" }}
                     >
                       Nenhum risco priorizado.
                     </td>
@@ -700,38 +708,38 @@ export function LocacaoPage() {
 
           <div
             id="equipamentos"
-            className={`tab-content ${secaoAtiva === 'equipamentos' ? 'active' : ''}`}
+            className={`tab-content ${secaoAtiva === "equipamentos" ? "active" : ""}`}
           >
             <p
               style={{
-                fontSize: '0.82rem',
-                color: 'var(--text-gray)',
-                margin: '0 0 14px',
+                fontSize: "0.82rem",
+                color: "var(--text-gray)",
+                margin: "0 0 14px",
                 lineHeight: 1.5,
               }}
             >
-              <span style={{ color: '#cbd5e1' }}>Clientes</span>
+              <span style={{ color: "#cbd5e1" }}>Clientes</span>
               &nbsp;/&nbsp;
               <strong
                 id="loc-eq-bc-cliente"
-                style={{ color: 'var(--main-orange)' }}
+                style={{ color: "var(--main-orange)" }}
               >
                 {labelEff}
               </strong>
               &nbsp;/&nbsp;
-              <span style={{ color: '#e2e8f0' }}>Equipamentos</span>
+              <span style={{ color: "#e2e8f0" }}>Equipamentos</span>
             </p>
             <h1>Equipamentos em locação</h1>
             <p className="loc-intro" style={{ marginTop: 0 }}>
               Visualização da frota cadastrada para o cliente (mesma base da
               prefeitura vinculada ao login). Inclusão e importação de
-              equipamentos ficam no{' '}
+              equipamentos ficam no{" "}
               <Link
                 to="/admin/equipamentos-locacao"
-                style={{ color: 'var(--main-orange)' }}
+                style={{ color: "var(--main-orange)" }}
               >
                 Hub administrativo
-              </Link>{' '}
+              </Link>{" "}
               (aba Equipamentos locação).
             </p>
 
@@ -753,15 +761,15 @@ export function LocacaoPage() {
                     <tr key={eq.id}>
                       <td>
                         <strong>
-                          {eq.descricao || eq.modelo || 'Equipamento'}
+                          {eq.descricao || eq.modelo || "Equipamento"}
                         </strong>
                       </td>
                       <td>{eq.marca}</td>
                       <td>{eq.modelo}</td>
-                      <td style={{ fontSize: '0.82rem' }}>{eq.chassis}</td>
-                      <td style={{ fontSize: '0.82rem' }}>{eq.linha || '—'}</td>
-                      <td style={{ fontSize: '0.82rem' }}>
-                        {eq.obra?.trim() ? eq.obra : '—'}
+                      <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
+                      <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
+                      <td style={{ fontSize: "0.82rem" }}>
+                        {eq.obra?.trim() ? eq.obra : "—"}
                       </td>
                     </tr>
                   ))}
@@ -770,8 +778,8 @@ export function LocacaoPage() {
                       <td
                         colSpan={6}
                         style={{
-                          textAlign: 'center',
-                          color: 'var(--text-gray)',
+                          textAlign: "center",
+                          color: "var(--text-gray)",
                         }}
                       >
                         Nenhum equipamento cadastrado ainda.
@@ -787,12 +795,12 @@ export function LocacaoPage() {
 
       <div
         id="loc-modal-checklist-overlay"
-        className={`loc-modal-overlay ${modalChecklist ? '' : 'loc-hidden'}`}
+        className={`loc-modal-overlay ${modalChecklist ? "" : "loc-hidden"}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="loc-modal-checklist-h2"
         onClick={(e) => {
-          if (e.target === e.currentTarget) fecharChecklist()
+          if (e.target === e.currentTarget) fecharChecklist();
         }}
       >
         <div
@@ -816,31 +824,28 @@ export function LocacaoPage() {
               <p id="loc-modal-checklist-sub" className="loc-modal-sub">
                 {modalChecklist.subtitulo}
               </p>
-              <div
-                id="loc-modal-checklist-meta"
-                className="loc-checklist-meta"
-              >
+              <div id="loc-modal-checklist-meta" className="loc-checklist-meta">
                 <div>
                   <span>Protocolo (aplicativo)</span>
-                  {modalChecklist.checklist.protocolo || '—'}
+                  {modalChecklist.checklist.protocolo || "—"}
                 </div>
                 <div>
                   <span>Sincronizado em</span>
-                  {modalChecklist.checklist.sincronizadoEm || '—'}
+                  {modalChecklist.checklist.sincronizadoEm || "—"}
                 </div>
                 <div>
                   <span>Versão do app</span>
-                  {modalChecklist.checklist.versaoApp || '—'}
+                  {modalChecklist.checklist.versaoApp || "—"}
                 </div>
                 <div>
                   <span>Referência O.S. / chamado</span>
-                  {modalChecklist.checklist.referenciaOs || '—'}
+                  {modalChecklist.checklist.referenciaOs || "—"}
                 </div>
                 <div>
                   <span>Horímetro / odômetro no momento</span>
-                  {modalChecklist.checklist.horimetroCampo || '—'}
+                  {modalChecklist.checklist.horimetroCampo || "—"}
                 </div>
-                {modalChecklist.kind === 'qr' ? (
+                {modalChecklist.kind === "qr" ? (
                   <>
                     <div>
                       <span>ID no servidor</span>
@@ -858,16 +863,16 @@ export function LocacaoPage() {
               <div id="loc-modal-checklist-corpo">
                 {(modalChecklist.checklist.secoes || []).map((sec, si) => (
                   <div key={si} className="loc-checklist-secao">
-                    <h4>{sec.titulo || ''}</h4>
+                    <h4>{sec.titulo || ""}</h4>
                     <table className="loc-modal-tabela">
                       <thead>
                         <tr>
                           <th>Verificação</th>
                           <th>Resposta registrada</th>
                           <th>
-                            {modalChecklist.kind === 'app'
+                            {modalChecklist.kind === "app"
                               ? modalChecklist.colStatus
-                              : 'Indicador'}
+                              : "Indicador"}
                           </th>
                         </tr>
                       </thead>
@@ -896,29 +901,29 @@ export function LocacaoPage() {
               </div>
               <p id="loc-modal-checklist-obs" className="loc-modal-obs">
                 {(() => {
-                  const o = observacoesRodape(modalChecklist.checklist)
-                  return o ? `Observações: ${o}` : ''
+                  const o = observacoesRodape(modalChecklist.checklist);
+                  return o ? `Observações: ${o}` : "";
                 })()}
               </p>
               <p id="loc-modal-checklist-fotos" className="loc-modal-obs">
                 {modalChecklist.checklist.fotosResumo
                   ? `Anexos fotográficos: ${modalChecklist.checklist.fotosResumo}`
-                  : ''}
+                  : ""}
               </p>
               <p
                 id="loc-modal-checklist-assin"
                 style={{
                   marginTop: 16,
-                  fontSize: '0.82rem',
-                  color: '#64748b',
+                  fontSize: "0.82rem",
+                  color: "#64748b",
                 }}
               >
-                {modalChecklist.checklist.assinaturaDigital || ''}
+                {modalChecklist.checklist.assinaturaDigital || ""}
               </p>
             </>
           ) : null}
         </div>
       </div>
     </>
-  )
+  );
 }

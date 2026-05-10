@@ -1,27 +1,30 @@
-import { type FormEvent, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { type FormEvent, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   clearAdminSession,
   isAdminAuthenticated,
   isAdminSecretConfigured,
   setAdminAuthenticated,
   verifyAdminSecret,
-} from '../../admin/adminSession'
-import { useHU360Auth } from '../../lib/hu360'
-import { AdminLayout } from './AdminLayout'
-import logoUrl from '../../assets/logo.jpeg'
-import './admin.css'
+} from "../../admin/adminSession";
+import { useHU360Auth } from "../../lib/hu360";
+import { AdminLayout } from "./AdminLayout";
+import logoUrl from "../../assets/logo.jpeg";
+import "./admin.css";
+import { useLogin } from "../login/hooks/use-login";
 
 /** Usuário do seed HU360 que recebe a sessão quando o admin entra via env. */
-const ADMIN_USUARIO_HU360 = 'admin'
+const ADMIN_USUARIO_HU360 = "admin";
 
 export function AdminPage() {
-  const auth = useHU360Auth()
-  const [authenticated, setAuthenticated] = useState(isAdminAuthenticated)
-  const [senha, setSenha] = useState('')
-  const [erro, setErro] = useState('')
+  const auth = useHU360Auth();
+  const [authenticated, setAuthenticated] = useState(isAdminAuthenticated);
+  const { user } = useLogin();
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
 
-  const secretOk = isAdminSecretConfigured()
+  const secretOk = isAdminSecretConfigured();
+  const sessionAuthenticated = authenticated || user?.type === "admin";
 
   /**
    * SSO defensivo: se o cookie/admin secret diz que o admin está autenticado
@@ -30,42 +33,47 @@ export function AdminPage() {
    * login do usuário `admin` do seed para que portais (Oficina, Locação,
    * Posto, Prefeitura) abram direto sem nova etapa de login.
    */
-  useEffect(() => {
-    if (!authenticated) return
-    if (auth.loading) return
-    if (auth.user) return
-    auth.loginPorUsuario(ADMIN_USUARIO_HU360)
-  }, [authenticated, auth.loading, auth.user, auth])
 
+  console.log("IS ADMIN AUTHENTICATED?", user);
+  useEffect(() => {
+    if (!sessionAuthenticated) return;
+    if (auth.loading) return;
+    if (auth.user) return;
+    auth.loginPorUsuario(ADMIN_USUARIO_HU360);
+  }, [sessionAuthenticated, auth.loading, auth.user, auth]);
+
+  if (sessionAuthenticated) {
+    return <AdminLayout onLogout={handleLogout} />;
+  }
   function handleLogin(e: FormEvent) {
-    e.preventDefault()
-    setErro('')
+    e.preventDefault();
+    setErro("");
     if (!secretOk) {
       setErro(
-        'Defina VITE_ADMIN_SECRET no arquivo .env na raiz do projeto e reinicie o servidor.',
-      )
-      return
+        "Defina VITE_ADMIN_SECRET no arquivo .env na raiz do projeto e reinicie o servidor.",
+      );
+      return;
     }
     if (!verifyAdminSecret(senha)) {
-      setErro('Senha incorreta.')
-      return
+      setErro("Senha incorreta.");
+      return;
     }
-    setAdminAuthenticated()
+    setAdminAuthenticated();
     // SSO: também marca a sessão HU360 como o usuário admin do seed,
     // para que o Portal Oficina e o Painel Locação abram direto sem nova etapa de login.
-    auth.loginPorUsuario(ADMIN_USUARIO_HU360)
-    setAuthenticated(true)
-    setSenha('')
+    auth.loginPorUsuario(ADMIN_USUARIO_HU360);
+    setAuthenticated(true);
+    setSenha("");
   }
 
   async function handleLogout() {
-    clearAdminSession()
-    await auth.logout()
-    setAuthenticated(false)
+    clearAdminSession();
+    await auth.logout();
+    setAuthenticated(false);
   }
 
   if (authenticated) {
-    return <AdminLayout onLogout={handleLogout} />
+    return <AdminLayout onLogout={handleLogout} />;
   }
 
   return (
@@ -86,15 +94,17 @@ export function AdminPage() {
             Painel administrativo
           </h1>
           <p className="admin-lead">
-            Área restrita. Informe a senha configurada em{' '}
-            <code className="admin-code">VITE_ADMIN_SECRET</code> no seu{' '}
+            Área restrita. Informe a senha configurada em{" "}
+            <code className="admin-code">VITE_ADMIN_SECRET</code> no seu{" "}
             <code className="admin-code">.env</code> local.
           </p>
           {!secretOk ? (
             <p className="admin-warn" role="alert">
-              Nenhuma senha foi configurada. Crie um arquivo{' '}
-              <code className="admin-code">.env</code> na raiz com:{' '}
-              <code className="admin-code">VITE_ADMIN_SECRET=sua_senha_forte</code>
+              Nenhuma senha foi configurada. Crie um arquivo{" "}
+              <code className="admin-code">.env</code> na raiz com:{" "}
+              <code className="admin-code">
+                VITE_ADMIN_SECRET=sua_senha_forte
+              </code>
             </p>
           ) : null}
           <form onSubmit={handleLogin} className="admin-form">
@@ -120,5 +130,5 @@ export function AdminPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }

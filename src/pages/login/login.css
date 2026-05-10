@@ -13,7 +13,7 @@
   --warning: #f59e0b;
   --radius: 16px;
 
-  min-height: min(100%, 100svh);
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21,10 +21,10 @@
   box-sizing: border-box;
   text-align: left;
   background: radial-gradient(
-      ellipse 120% 80% at 50% 0%,
-      var(--bg-2),
-      var(--bg)
-    );
+    ellipse 120% 80% at 50% 0%,
+    var(--bg-2),
+    var(--bg)
+  );
   color: var(--text);
 }
 
@@ -108,7 +108,9 @@
   cursor: pointer;
   color: #0c0f14;
   background: var(--primary);
-  transition: filter 0.2s, transform 0.15s;
+  transition:
+    filter 0.2s,
+    transform 0.15s;
 }
 
 .auth-card .btn.btn-primary:hover {
