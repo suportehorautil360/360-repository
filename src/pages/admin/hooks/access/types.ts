@@ -1,9 +1,27 @@
-type DTOAddLocacao = {
-  fullName: string;
-  userLogin: string;
-  initialPassword: string;
-  profille: "Gestor" | "Administrador";
-};
+export type VinculoUsuario = "prefeitura" | "oficina" | "posto" | "locacao";
+
+export interface DTOAddUsuario {
+  nome: string;
+  usuario: string;
+  senha: string;
+  perfil: "gestor" | "admin";
+  prefeituraId: string;
+  vinculo: VinculoUsuario;
+  postoId?: string;
+}
+
+export interface UsuarioFirestore {
+  id: string;
+  nome: string;
+  usuario: string;
+  senha: string;
+  perfil: string;
+  type: string;
+  vinculo: VinculoUsuario;
+  prefeituraId: string;
+  postoId?: string;
+  createdAt: string;
+}
 
 export interface AddLocacaoResult {
   ok: boolean;
@@ -11,5 +29,10 @@ export interface AddLocacaoResult {
 }
 
 export interface AcessoLoginProps {
-  handleAddLocacao: (data: DTOAddLocacao) => Promise<AddLocacaoResult>;
+  adicionarUsuario: (data: DTOAddUsuario) => Promise<AddLocacaoResult>;
+  listarUsuarios: (filtros?: {
+    prefeituraId?: string;
+    vinculo?: VinculoUsuario;
+  }) => Promise<UsuarioFirestore[]>;
+  removerUsuario: (id: string) => Promise<AddLocacaoResult>;
 }

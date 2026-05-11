@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import {
   type ChecklistApiRow,
   criarDadosDemo,
@@ -105,13 +105,17 @@ function observacoesRodape(c: ChecklistApp): string {
 
 export function LocacaoPage() {
   const { login, logout } = useHU360Auth();
-  const { user } = useLogin();
+  const { user, setUser } = useLogin();
+  const { id: paramId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { obterDadosPrefeitura, prefeituraLabel, prefeituras } = useHU360();
   const [prefCtxGen, setPrefCtxGen] = useState(0);
   const bumpPrefCtx = () => setPrefCtxGen((g) => g + 1);
   const prevUsuarioRef = useRef<string | undefined>(undefined);
   const canvasChRef = useRef<HTMLCanvasElement>(null);
   const canvasOpRef = useRef<HTMLCanvasElement>(null);
+
+  const isAdmin = user?.type === "admin";
 
   useEffect(() => {
     if (!user?.usuario) {
@@ -127,8 +131,9 @@ export function LocacaoPage() {
 
   const prefeituraIdEff = useMemo(() => {
     if (!user) return null;
+    if (isAdmin && paramId) return paramId;
     return locPrefeituraIdParaUi(user, prefeituras);
-  }, [user, prefeituras, prefCtxGen]);
+  }, [user, prefeituras, prefCtxGen, isAdmin, paramId]);
 
   const dados = useMemo(
     () => (prefeituraIdEff ? obterDadosPrefeitura(prefeituraIdEff) : null),
@@ -224,12 +229,13 @@ export function LocacaoPage() {
   async function handleLogout() {
     limparLocacaoPrefCtxHub();
     bumpPrefCtx();
+    if (isAdmin) {
+      navigate("/admin/portal-locacao", { replace: true });
+      return;
+    }
     await logout();
-    setUsuario("");
-    setSenha("");
-    setAuthMsg(AUTH_MSG_LIMPA);
-    setSecaoAtiva("dash");
-    setModalChecklist(null);
+    setUser({ id: "", usuario: "", type: "locacao" });
+    navigate("/login-operacional?destino=locacao", { replace: true });
   }
 
   async function handleLogin(e: FormEvent) {
@@ -300,79 +306,7 @@ export function LocacaoPage() {
   }
 
   if (!user || !dados) {
-    return (
-      <section id="authScreen" className="auth-screen">
-        <div className="auth-card">
-          <h1>Painel de locação</h1>
-          <p className="sub">
-            Mesmo usuário do Hub horautil360. Visão focada em frota locada:
-            dashboard, auditoria de checklists e triagem de riscos.
-          </p>
-          <form id="loginForm" onSubmit={handleLogin}>
-            <label htmlFor="loginUsuario">Usuário</label>
-            <input
-              id="loginUsuario"
-              required
-              placeholder="Digite seu usuário"
-              autoComplete="username"
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-            />
-            <label htmlFor="loginSenha">Senha</label>
-            <input
-              id="loginSenha"
-              type="password"
-              required
-              placeholder="Digite sua senha"
-              autoComplete="current-password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-            />
-            <button
-              className="btn"
-              type="submit"
-              style={{ width: "100%", marginTop: 16 }}
-            >
-              Entrar
-            </button>
-            <div
-              id="authMsg"
-              className="auth-msg"
-              role="alert"
-              style={{ color: authMsg.cor }}
-            >
-              {authMsg.texto}
-            </div>
-          </form>
-          <p
-            style={{
-              marginTop: 16,
-              fontSize: "0.8rem",
-              color: "var(--text-gray)",
-              borderTop: "1px dashed #2d3748",
-              paddingTop: 12,
-            }}
-          >
-            Demo: <strong>admin</strong>, <strong>gestor</strong>,{" "}
-            <strong>admin.bh</strong> — cada um carrega uma base de frota (dados
-            iguais ao módulo prefeitura, com rótulos de locação).
-          </p>
-          <Link
-            to="/admin/dashboard"
-            style={{
-              display: "block",
-              marginTop: 14,
-              color: "var(--main-orange)",
-              fontSize: "0.88rem",
-              textAlign: "center",
-              textDecoration: "none",
-            }}
-          >
-            ← Voltar ao Hub
-          </Link>
-        </div>
-      </section>
-    );
+    return <Navigate to="/login-operacional?destino=locacao" replace />;
   }
 
   const labelPrefLogin = prefeituraLabel(user.prefeituraId);

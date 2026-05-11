@@ -1,14 +1,17 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
-import logoUrl from '../../assets/logo.jpeg'
-
-interface AdminLayoutProps {
-  onLogout: () => void
-}
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import logoUrl from "../../assets/logo.jpeg";
+import { useLogin } from "../login/hooks/use-login";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `menu-item ${isActive ? 'active' : ''}`
+  `menu-item ${isActive ? "active" : ""}`;
 
-export function AdminLayout({ onLogout }: AdminLayoutProps) {
+export function AdminLayout() {
+  const { user, logout } = useLogin();
+  const navigate = useNavigate();
+
+  function onLogout() {
+    logout(navigate);
+  }
   return (
     <div className="admin-root">
       <section id="appShell" className="app-shell">
@@ -34,17 +37,17 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
             Dashboard
           </NavLink>
 
-          <Link to="/oficina" className="menu-item">
+          <NavLink to="/admin/portal-oficina" className={navLinkClass}>
             Portal Oficina
-          </Link>
+          </NavLink>
 
-          <Link to="/locacao" className="menu-item">
+          <NavLink to="/admin/portal-locacao" className={navLinkClass}>
             Painel Locação
-          </Link>
+          </NavLink>
 
-          <Link to="/posto" className="menu-item">
+          <NavLink to="/admin/portal-posto-admin" className={navLinkClass}>
             Portal Posto
-          </Link>
+          </NavLink>
 
           <NavLink
             to="/admin/oficinas-postos"
@@ -80,12 +83,12 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
               <p
                 id="ctxPrefeitura"
                 className="topbar-user"
-                style={{ margin: '6px 0 0', fontSize: '0.82rem' }}
+                style={{ margin: "6px 0 0", fontSize: "0.82rem" }}
               />
             </div>
             <div>
               <span id="usuarioLogado" className="topbar-user">
-                Conectado: Administrador Três Lagoas (admin)
+                Conectado: {user?.usuario} ({user?.type})
               </span>
               <button
                 type="button"
@@ -107,5 +110,5 @@ export function AdminLayout({ onLogout }: AdminLayoutProps) {
         </main>
       </section>
     </div>
-  )
+  );
 }

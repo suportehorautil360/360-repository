@@ -4,11 +4,14 @@ export type User = {
   id: string;
   usuario: string;
   type: "admin" | "locacao" | "oficina" | "posto" | "prefeitura";
+  prefeituraId?: string;
+  postoId?: string;
 };
 
 export interface LoginProps {
   user: User | null;
   setUser: (user: User) => void;
+  logout: (navigate: ReturnType<typeof useNavigate>) => void;
   handleLogin: (
     usuario: string,
     senha: string,

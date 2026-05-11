@@ -8,14 +8,17 @@ import { OficinasPostosSection } from "./pages/admin/sections/OficinasPostosSect
 import { CadastroClientesSection } from "./pages/admin/sections/CadastroClientesSection";
 import { AcessosLoginsSection } from "./pages/admin/sections/AcessosLoginsSection";
 import { EquipamentosLocacaoSection } from "./pages/admin/sections/EquipamentosLocacaoSection";
+import { AdminPortalOficinaPage } from "./pages/admin/sections/AdminPortalOficinaPage";
+import { AdminPortalLocacaoPage } from "./pages/admin/sections/AdminPortalLocacaoPage";
+import { AdminPortalPostoPage } from "./pages/admin/sections/AdminPortalPostoPage";
 import { OficinaPage } from "./pages/oficina/OficinaPage";
 import { LocacaoPage } from "./pages/locacao/LocacaoPage";
 import { PostoPage } from "./pages/posto/PostoPage";
 import { PrefeituraPage } from "./pages/prefeitura/PrefeituraPage";
-import { useHU360Auth } from "./lib/hu360";
+import { useLogin } from "./pages/login/hooks/use-login";
 import { OperacionalLoginPage } from "./pages/login/OperacionalLoginPage";
 
-type DestinoOperacional = "locacao" | "oficina";
+type DestinoOperacional = "locacao" | "oficina" | "posto";
 
 type RequireOperacionalAuthProps = {
   destino: DestinoOperacional;
@@ -26,9 +29,7 @@ function RequireOperacionalAuth({
   destino,
   children,
 }: RequireOperacionalAuthProps) {
-  const { user, loading } = useHU360Auth();
-
-  if (loading) return null;
+  const { user } = useLogin();
 
   if (!user) {
     return <Navigate to={`/login-operacional?destino=${destino}`} replace />;
@@ -53,18 +54,35 @@ export function AppRoutes() {
             path="equipamentos-locacao"
             element={<EquipamentosLocacaoSection />}
           />
+          <Route path="portal-oficina" element={<AdminPortalOficinaPage />} />
+          <Route path="portal-locacao" element={<AdminPortalLocacaoPage />} />
+          <Route path="portal-posto-admin" element={<AdminPortalPostoPage />} />
         </Route>
         <Route
-          path="/oficina"
+          path="/oficina/:id"
           element={
             <RequireOperacionalAuth destino="oficina">
               <OficinaPage />
             </RequireOperacionalAuth>
           }
         />
-        <Route path="/locacao" element={<LocacaoPage />} />
+        <Route
+          path="/locacao/:id"
+          element={
+            <RequireOperacionalAuth destino="locacao">
+              <LocacaoPage />
+            </RequireOperacionalAuth>
+          }
+        />
         <Route path="/login-operacional" element={<OperacionalLoginPage />} />
-        <Route path="/posto" element={<PostoPage />} />
+        <Route
+          path="/posto/:id"
+          element={
+            <RequireOperacionalAuth destino="posto">
+              <PostoPage />
+            </RequireOperacionalAuth>
+          }
+        />
         <Route path="/prefeitura" element={<PrefeituraPage />} />
         <Route path="/prefeitura/:id" element={<PrefeituraPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

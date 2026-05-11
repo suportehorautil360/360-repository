@@ -10,6 +10,10 @@ export const useLogin = create<LoginProps>()(
     (set) => ({
       user: null as User | null,
       setUser: (user: User) => set({ user }),
+      logout: (navigate) => {
+        set({ user: null });
+        navigate("/");
+      },
 
       handleLogin: async (usuario: string, senha: string, navigate) => {
         const hashPassword = await hashSenha(senha);
@@ -20,16 +24,34 @@ export const useLogin = create<LoginProps>()(
           where("senha", "==", hashPassword),
         );
         const querySnapshot = (await getDocs(q)).docs?.map((doc) => doc.data());
-        console.log("Query snapshot:", querySnapshot[0] as User);
-        const userData = querySnapshot[0] as User | undefined;
-        set({ user: userData });
+        const rawDoc = querySnapshot[0] as
+          | (User & { prefeituraId?: string; postoId?: string })
+          | undefined;
+        const userData: User | undefined = rawDoc
+          ? {
+              id: rawDoc.id,
+              usuario: rawDoc.usuario,
+              type: rawDoc.type,
+              prefeituraId: rawDoc.prefeituraId,
+              postoId: rawDoc.postoId,
+            }
+          : undefined;
+        set({ user: userData ?? null });
         if (userData) {
           if (userData.type === "locacao") {
-            navigate("/locacao");
+            navigate(`/locacao/${userData.prefeituraId}`);
             return;
           }
           if (userData.type === "oficina") {
-            navigate("/oficina");
+            navigate(`/oficina/${userData.prefeituraId}`);
+            return;
+          }
+          if (userData.type === "posto") {
+            navigate(`/posto/${userData.prefeituraId}`);
+            return;
+          }
+          if (userData.type === "prefeitura") {
+            navigate(`/prefeitura/${userData.prefeituraId}`);
             return;
           }
 

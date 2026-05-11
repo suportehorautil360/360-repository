@@ -5,16 +5,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  criarDadosDemo,
-  useHU360,
-  useHU360Auth,
-  type PostoCredenciado,
-  type Prefeitura,
-  type Usuario,
-} from "../../../lib/hu360";
+import { useHU360, type Prefeitura } from "../../../lib/hu360";
 import { useLogin } from "../../login/hooks/use-login";
 import { useAccess } from "../hooks/access/use-access";
+import { usePostos } from "../hooks/postos/use-postos";
+import type { UsuarioFirestore } from "../hooks/access/types";
+import type { PostoFirestore } from "../hooks/postos/types";
 
 /**
  * O acesso a esta seção já é gateado por `AdminPage` (senha em
@@ -23,11 +19,9 @@ import { useAccess } from "../hooks/access/use-access";
  * `gestor` se o seed/sessão local divergir).
  */
 
-function hubClientePermiteRedeMunicipal(p: Prefeitura | undefined): boolean {
+function clienteEhPrefeitura(p: Prefeitura | undefined): boolean {
   if (!p?.id) return false;
-  if (p.tipoCliente === "locacao") return false;
-  const st = p.contrato?.status || "ativo";
-  return st === "ativo";
+  return !p.tipoCliente || p.tipoCliente === "prefeitura";
 }
 
 function clienteEhLocacaoAtivo(p: Prefeitura | undefined): boolean {
@@ -37,58 +31,20 @@ function clienteEhLocacaoAtivo(p: Prefeitura | undefined): boolean {
   return st === "ativo";
 }
 
-function controleMesclado(
-  prefeituraId: string,
-  obterDadosPrefeitura: (id: string) => ReturnType<typeof criarDadosDemo>,
-): NonNullable<
-  ReturnType<typeof criarDadosDemo>["prefeituraModulo"]
->["controleAbastecimento"] {
-  const dados = obterDadosPrefeitura(prefeituraId) as ReturnType<
-    typeof criarDadosDemo
-  >;
-  const demo = criarDadosDemo(prefeituraId);
-  const pmBase = demo.prefeituraModulo;
-  const caBase = pmBase?.controleAbastecimento ?? {};
-  const caSav = dados.prefeituraModulo?.controleAbastecimento ?? {};
-  return { ...caBase, ...caSav };
-}
-
-function postosAtivosDoCliente(
-  pid: string,
-  obterDadosPrefeitura: (id: string) => ReturnType<typeof criarDadosDemo>,
-): PostoCredenciado[] {
-  const ca = controleMesclado(pid, obterDadosPrefeitura);
-  const lista = ca.postosCredenciados ?? [];
-  return lista.filter((p) => (p.status || "Ativo").toLowerCase() === "ativo");
-}
-
-function nomePostoCredenciado(
-  pid: string,
-  postoId: string,
-  obterDadosPrefeitura: (id: string) => ReturnType<typeof criarDadosDemo>,
-): string {
-  const postos = postosAtivosDoCliente(pid, obterDadosPrefeitura);
-  const p = postos.find((x) => x.id === postoId);
-  if (!p) return postoId || "—";
-  const nome =
-    (p.nomeFantasia && String(p.nomeFantasia).trim()) || p.razaoSocial;
-  return nome || postoId;
-}
-
-function vinculoPrefeitura(u: Usuario): boolean {
+function vinculoPrefeitura(u: UsuarioFirestore): boolean {
   const v = u.vinculo || "prefeitura";
   return v !== "oficina" && v !== "posto" && v !== "locacao";
 }
 
-function vinculoOficina(u: Usuario): boolean {
+function vinculoOficina(u: UsuarioFirestore): boolean {
   return u.vinculo === "oficina";
 }
 
-function vinculoPosto(u: Usuario): boolean {
+function vinculoPosto(u: UsuarioFirestore): boolean {
   return u.vinculo === "posto";
 }
 
-function vinculoLocacao(u: Usuario): boolean {
+function vinculoLocacao(u: UsuarioFirestore): boolean {
   return u.vinculo === "locacao";
 }
 
@@ -100,66 +56,28 @@ function msgClass(tone: MsgTone): string {
   return `status status--${tone === "ok" ? "ok" : "err"}`;
 }
 
-function criarLocadoraFake(id: string, nome: string, uf: string): Prefeitura {
-  return {
-    id,
-    nome,
-    uf,
-    tipoCliente: "locacao",
-    contrato: {
-      numero: `LC-${id}`,
-      processo: "DEMO",
-      modalidade: "contrato_direto",
-      dataAssinatura: "2025-01-01",
-      vigenciaInicio: "2025-01-01",
-      vigenciaFim: "2027-12-31",
-      objeto: "Cliente de locacao de demonstracao",
-      valorMensal: "R$ 0,00",
-      valorTotal: "R$ 0,00",
-      indiceReajuste: "IPCA",
-      periodicidadeFaturamento: "mensal",
-      slaRespostaHoras: "24",
-      responsavelContratante: "Conta Demo",
-      cargoContratante: "Operacoes",
-      emailContratante: `contato+${id}@demo.local`,
-      telefoneContratante: "(00) 0000-0000",
-      observacoes: "Registro fake para facilitar cadastro em ambiente local.",
-      status: "ativo",
-    },
-  };
-}
-
-const LOCADORAS_FAKES: Prefeitura[] = [
-  criarLocadoraFake("locadora-premium", "Locadora Premium", "SP"),
-  criarLocadoraFake("locadora-expresso", "Locadora Expresso", "MG"),
-  criarLocadoraFake("locadora-rapida", "Locadora Rapida", "RJ"),
-  criarLocadoraFake("locadora-elite", "Locadora Elite", "DF"),
-  criarLocadoraFake("locadora-master", "Locadora Master", "BA"),
-];
-
 export function AcessosLoginsSection() {
-  const {
-    prefeituras,
-    usuarios,
-    salvarUsuarios,
-    prefeituraLabel,
-    obterDadosPrefeitura,
-  } = useHU360();
+  const { prefeituras, prefeituraLabel } = useHU360();
   const { user } = useLogin();
-  const { handleAddLocacao } = useAccess();
+  const {
+    adicionarUsuario,
+    listarUsuarios,
+    removerUsuario: removerUsuarioFirestore,
+  } = useAccess();
+  const { listarPostosAtivos } = usePostos();
 
-  const prefsRede = useMemo(
-    () => prefeituras.filter(hubClientePermiteRedeMunicipal),
+  const [usuarios, setUsuarios] = useState<UsuarioFirestore[]>([]);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false);
+  const [postosDoMun, setPostosDoMun] = useState<PostoFirestore[]>([]);
+
+  // Todos os clientes tipo prefeitura — para os forms de oficina, posto e prefeitura
+  const prefsMunicipio = useMemo(
+    () => prefeituras.filter(clienteEhPrefeitura),
     [prefeituras],
   );
 
   const locadoras = useMemo(() => {
-    const reais = prefeituras.filter(clienteEhLocacaoAtivo);
-    const porId = new Map<string, Prefeitura>();
-    for (const p of [...LOCADORAS_FAKES, ...reais]) {
-      porId.set(p.id, p);
-    }
-    return Array.from(porId.values());
+    return prefeituras.filter(clienteEhLocacaoAtivo);
   }, [prefeituras]);
 
   const labelLocadora = useCallback(
@@ -170,6 +88,17 @@ export function AcessosLoginsSection() {
     },
     [locadoras, prefeituraLabel],
   );
+
+  const carregarUsuarios = useCallback(async () => {
+    setLoadingUsuarios(true);
+    const lista = await listarUsuarios();
+    setUsuarios(lista);
+    setLoadingUsuarios(false);
+  }, [listarUsuarios]);
+
+  useEffect(() => {
+    void carregarUsuarios();
+  }, [carregarUsuarios]);
 
   const [selMunPref, setSelMunPref] = useState("");
   const [selMunOfi, setSelMunOfi] = useState("");
@@ -206,28 +135,25 @@ export function AcessosLoginsSection() {
   const [msgLoc, setMsgLoc] = useState({ tone: "none" as MsgTone, text: "" });
 
   useEffect(() => {
-    if (!selMunPref && prefeituras[0]) setSelMunPref(prefeituras[0].id);
-  }, [prefeituras, selMunPref]);
+    if (!selMunPref && prefsMunicipio[0]) setSelMunPref(prefsMunicipio[0].id);
+  }, [prefsMunicipio, selMunPref]);
 
   useEffect(() => {
-    if (!selMunOfi && prefsRede[0]) setSelMunOfi(prefsRede[0].id);
-  }, [prefsRede, selMunOfi]);
+    if (!selMunOfi && prefsMunicipio[0]) setSelMunOfi(prefsMunicipio[0].id);
+  }, [prefsMunicipio, selMunOfi]);
 
   useEffect(() => {
-    if (!selMunPosto && prefsRede[0]) setSelMunPosto(prefsRede[0].id);
-  }, [prefsRede, selMunPosto]);
+    if (!selMunPosto && prefsMunicipio[0]) setSelMunPosto(prefsMunicipio[0].id);
+  }, [prefsMunicipio, selMunPosto]);
 
   useEffect(() => {
     if (!selLocacao && locadoras[0]) setSelLocacao(locadoras[0].id);
   }, [locadoras, selLocacao]);
 
-  const postosDoMun = useMemo(
-    () =>
-      selMunPosto
-        ? postosAtivosDoCliente(selMunPosto, obterDadosPrefeitura)
-        : [],
-    [selMunPosto, obterDadosPrefeitura],
-  );
+  useEffect(() => {
+    if (!selMunPosto) return;
+    void listarPostosAtivos(selMunPosto).then(setPostosDoMun);
+  }, [selMunPosto, listarPostosAtivos]);
 
   useEffect(() => {
     if (selPostoCred && !postosDoMun.some((p) => p.id === selPostoCred)) {
@@ -279,17 +205,17 @@ export function AcessosLoginsSection() {
     setMsgLoc({ tone, text });
   }, []);
 
-  function tentarIncluirUsuario(opts: {
+  async function tentarIncluirUsuario(opts: {
     nome: string;
     usuario: string;
     senha: string;
     perfil: "gestor" | "admin";
     prefeituraId: string;
-    vinculo: Usuario["vinculo"];
+    vinculo: UsuarioFirestore["vinculo"];
     postoId?: string;
     setMsg: (tone: MsgTone, text: string) => void;
     msgSucesso: string;
-  }): boolean {
+  }): Promise<boolean> {
     const nome = opts.nome.trim();
     const usuario = opts.usuario.trim();
     const senha = opts.senha.trim();
@@ -297,13 +223,7 @@ export function AcessosLoginsSection() {
       opts.setMsg("err", "A senha deve ter no mínimo 4 caracteres.");
       return false;
     }
-    if (
-      usuarios.some((u) => u.usuario.toLowerCase() === usuario.toLowerCase())
-    ) {
-      opts.setMsg("err", "Já existe um usuário com esse login.");
-      return false;
-    }
-    const novo: Usuario = {
+    const result = await adicionarUsuario({
       nome,
       usuario,
       senha,
@@ -311,20 +231,24 @@ export function AcessosLoginsSection() {
       prefeituraId: opts.prefeituraId,
       vinculo: opts.vinculo,
       ...(opts.postoId ? { postoId: opts.postoId } : {}),
-    };
-    salvarUsuarios([...usuarios, novo]);
-    opts.setMsg("ok", opts.msgSucesso);
-    return true;
+    });
+    if (result.ok) {
+      opts.setMsg("ok", opts.msgSucesso);
+      await carregarUsuarios();
+      return true;
+    }
+    opts.setMsg("err", result.message);
+    return false;
   }
 
-  function handlePrefSubmit(e: FormEvent) {
+  async function handlePrefSubmit(e: FormEvent) {
     e.preventDefault();
     setMsgPrefCb("none", "");
     if (!selMunPref) {
       setMsgPrefCb("err", "Selecione o município.");
       return;
     }
-    const ok = tentarIncluirUsuario({
+    const ok = await tentarIncluirUsuario({
       nome: prefNome,
       usuario: prefLogin,
       senha: prefSenha,
@@ -342,14 +266,14 @@ export function AcessosLoginsSection() {
     }
   }
 
-  function handleOfiSubmit(e: FormEvent) {
+  async function handleOfiSubmit(e: FormEvent) {
     e.preventDefault();
     setMsgOfiCb("none", "");
     if (!selMunOfi) {
       setMsgOfiCb("err", "Selecione o município.");
       return;
     }
-    const ok = tentarIncluirUsuario({
+    const ok = await tentarIncluirUsuario({
       nome: ofiNome,
       usuario: ofiLogin,
       senha: ofiSenha,
@@ -374,13 +298,17 @@ export function AcessosLoginsSection() {
       setMsgLocCb("err", "Selecione a empresa de locação.");
       return;
     }
-    const result = await handleAddLocacao({
-      fullName: locNome,
-      initialPassword: locSenha,
-      profille: locPerfil === "admin" ? "Administrador" : "Gestor",
-      userLogin: locLogin,
+    const ok = await tentarIncluirUsuario({
+      nome: locNome,
+      usuario: locLogin,
+      senha: locSenha,
+      perfil: locPerfil,
+      prefeituraId: selLocacao,
+      vinculo: "locacao",
+      setMsg: setMsgLocCb,
+      msgSucesso: "Usuário de locação cadastrado.",
     });
-    if (result.ok) {
+    if (ok) {
       setLocNome("");
       setLocLogin("");
       setLocSenha("");
@@ -388,7 +316,7 @@ export function AcessosLoginsSection() {
     }
   }
 
-  function handlePostoSubmit(e: FormEvent) {
+  async function handlePostoSubmit(e: FormEvent) {
     e.preventDefault();
     setMsgPostoCb("none", "");
     if (!selMunPosto) {
@@ -402,7 +330,7 @@ export function AcessosLoginsSection() {
       );
       return;
     }
-    const ok = tentarIncluirUsuario({
+    const ok = await tentarIncluirUsuario({
       nome: postoNome,
       usuario: postoLogin,
       senha: postoSenha,
@@ -424,7 +352,7 @@ export function AcessosLoginsSection() {
   function removerUsuario(
     login: string,
     setMsg: (tone: MsgTone, text: string) => void,
-    filtro: (u: Usuario) => boolean,
+    filtro: (u: UsuarioFirestore) => boolean,
   ) {
     if (login === user?.usuario) {
       setMsg("err", "Você não pode remover a sua própria conta.");
@@ -435,8 +363,14 @@ export function AcessosLoginsSection() {
       setMsg("err", "Usuário não encontrado neste bloco e município.");
       return;
     }
-    salvarUsuarios(usuarios.filter((u) => u.usuario !== login));
-    setMsg("ok", "Usuário removido.");
+    void removerUsuarioFirestore(alvo.id).then(async (result) => {
+      if (result.ok) {
+        setMsg("ok", "Usuário removido.");
+        await carregarUsuarios();
+      } else {
+        setMsg("err", result.message);
+      }
+    });
   }
 
   return (
@@ -452,8 +386,7 @@ export function AcessosLoginsSection() {
         <strong>oficina credenciada</strong> e{" "}
         <strong>pessoal do posto de combustível</strong> vinculado ao convênio
         do cliente (postos cadastrados em{" "}
-        <strong>Gestão → Oficinas e postos</strong>). A senha fica neste
-        navegador (demonstração).
+        <strong>Gestão → Oficinas e postos</strong>).
       </p>
 
       <article className="card">
@@ -474,11 +407,15 @@ export function AcessosLoginsSection() {
                 value={selMunPref}
                 onChange={(e) => setSelMunPref(e.target.value)}
               >
-                {prefeituras.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {prefeituraLabel(p.id)}
-                  </option>
-                ))}
+                {prefsMunicipio.length === 0 ? (
+                  <option value="">— Nenhuma prefeitura cadastrada —</option>
+                ) : (
+                  prefsMunicipio.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {prefeituraLabel(p.id)}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             <div />
@@ -495,6 +432,7 @@ export function AcessosLoginsSection() {
                 onChange={(e) => setPrefNome(e.target.value)}
               />
             </div>
+
             <div>
               <label htmlFor="prefLogin">Usuário de login</label>
               <input
@@ -561,7 +499,13 @@ export function AcessosLoginsSection() {
               </tr>
             </thead>
             <tbody id="tabelaUsuariosPrefeitura">
-              {usersPref.length === 0 ? (
+              {loadingUsuarios ? (
+                <tr>
+                  <td colSpan={5} className="topbar-user">
+                    Carregando...
+                  </td>
+                </tr>
+              ) : usersPref.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="topbar-user">
                     Nenhum usuário para este município.
@@ -720,7 +664,13 @@ export function AcessosLoginsSection() {
               </tr>
             </thead>
             <tbody id="tabelaUsuariosLocacao">
-              {usersLoc.length === 0 ? (
+              {loadingUsuarios ? (
+                <tr>
+                  <td colSpan={5} className="topbar-user">
+                    Carregando...
+                  </td>
+                </tr>
+              ) : usersLoc.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="topbar-user">
                     Nenhum usuário para esta locadora.
@@ -787,10 +737,10 @@ export function AcessosLoginsSection() {
                 value={selMunOfi}
                 onChange={(e) => setSelMunOfi(e.target.value)}
               >
-                {prefsRede.length === 0 ? (
+                {prefsMunicipio.length === 0 ? (
                   <option value="">— Nenhum cliente municipal ativo —</option>
                 ) : (
-                  prefsRede.map((p) => (
+                  prefsMunicipio.map((p) => (
                     <option key={p.id} value={p.id}>
                       {prefeituraLabel(p.id)}
                     </option>
@@ -878,7 +828,13 @@ export function AcessosLoginsSection() {
               </tr>
             </thead>
             <tbody id="tabelaUsuariosOficina">
-              {usersOfi.length === 0 ? (
+              {loadingUsuarios ? (
+                <tr>
+                  <td colSpan={5} className="topbar-user">
+                    Carregando...
+                  </td>
+                </tr>
+              ) : usersOfi.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="topbar-user">
                     Nenhum usuário para este município.
@@ -948,10 +904,10 @@ export function AcessosLoginsSection() {
                   setSelPostoCred("");
                 }}
               >
-                {prefsRede.length === 0 ? (
+                {prefsMunicipio.length === 0 ? (
                   <option value="">— Nenhum cliente municipal ativo —</option>
                 ) : (
-                  prefsRede.map((p) => (
+                  prefsMunicipio.map((p) => (
                     <option key={p.id} value={p.id}>
                       {prefeituraLabel(p.id)}
                     </option>
@@ -1058,7 +1014,13 @@ export function AcessosLoginsSection() {
               </tr>
             </thead>
             <tbody id="tabelaUsuariosPosto">
-              {usersPosto.length === 0 ? (
+              {loadingUsuarios ? (
+                <tr>
+                  <td colSpan={6} className="topbar-user">
+                    Carregando...
+                  </td>
+                </tr>
+              ) : usersPosto.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="topbar-user">
                     Nenhum usuário para este município.
@@ -1071,11 +1033,18 @@ export function AcessosLoginsSection() {
                     <td>{u.usuario}</td>
                     <td>{prefeituraLabel(u.prefeituraId)}</td>
                     <td>
-                      {nomePostoCredenciado(
-                        u.prefeituraId,
-                        u.postoId ?? "",
-                        obterDadosPrefeitura,
-                      )}
+                      {(() => {
+                        const p = postosDoMun.find(
+                          (x) => x.id === (u.postoId ?? ""),
+                        );
+                        if (!p) return u.postoId || "—";
+                        return (
+                          (p.nomeFantasia && String(p.nomeFantasia).trim()) ||
+                          p.razaoSocial ||
+                          u.postoId ||
+                          "—"
+                        );
+                      })()}
                     </td>
                     <td>
                       <span

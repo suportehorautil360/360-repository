@@ -3,37 +3,32 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import "./login.css";
 import { useLogin } from "./hooks/use-login";
 
-type DestinoOperacional = "locacao" | "oficina";
+type DestinoOperacional = "locacao" | "oficina" | "posto";
 
 type DestinoConfig = {
-  path: string;
   titulo: string;
   subtitulo: string;
-  alternarLabel: string;
-  alternarHref: string;
 };
 
 const DESTINOS: Record<DestinoOperacional, DestinoConfig> = {
   locacao: {
-    path: "/locacao",
     titulo: "Login da Locadora",
-    subtitulo:
-      "Acesse com o mesmo usuário do Hub para abrir o dashboard de locação.",
-    alternarLabel: "Entrar no dashboard da Oficina",
-    alternarHref: "/login-operacional?destino=oficina",
+    subtitulo: "Acesse com o seu usuário para abrir o dashboard de locação.",
   },
   oficina: {
-    path: "/oficina",
     titulo: "Login da Oficina",
-    subtitulo:
-      "Acesse com o mesmo usuário do Hub para abrir o dashboard da oficina.",
-    alternarLabel: "Entrar no dashboard da Locadora",
-    alternarHref: "/login-operacional?destino=locacao",
+    subtitulo: "Acesse com o seu usuário para abrir o dashboard da oficina.",
+  },
+  posto: {
+    titulo: "Login do Posto",
+    subtitulo: "Acesse com o seu usuário para abrir o dashboard do posto.",
   },
 };
 
 function parseDestino(raw: string | null): DestinoOperacional {
-  return raw === "oficina" ? "oficina" : "locacao";
+  if (raw === "oficina") return "oficina";
+  if (raw === "posto") return "posto";
+  return "locacao";
 }
 
 export function OperacionalLoginPage() {
@@ -65,12 +60,19 @@ export function OperacionalLoginPage() {
     setLoading(false);
     setMensagem("");
     setSenha("");
-    navigate(cfg.path, { replace: true });
+    // Não navega aqui — handleLogin já navegou para a rota correta com o id
   }
 
   if (user?.id) {
-    console.log("USER ALREADY LOGGED IN:", user);
-    return <Navigate to={cfg.path} replace />;
+    const destPath =
+      user.type === "oficina"
+        ? `/oficina/${user.prefeituraId}`
+        : user.type === "posto"
+          ? `/posto/${user.prefeituraId}`
+          : user.type === "locacao"
+            ? `/locacao/${user.prefeituraId}`
+            : "/";
+    return <Navigate to={destPath} replace />;
   }
 
   return (
@@ -113,12 +115,11 @@ export function OperacionalLoginPage() {
         </form>
 
         <p className="quick-access">
-          {destino === "locacao" ? "Locadora" : "Oficina"}: use o mesmo usuário
-          do Hub.
-        </p>
-
-        <p className="quick-access">
-          <Link to={cfg.alternarHref}>{cfg.alternarLabel}</Link>
+          <Link to="/login-operacional?destino=locacao">Locadora</Link>
+          {" · "}
+          <Link to="/login-operacional?destino=oficina">Oficina</Link>
+          {" · "}
+          <Link to="/login-operacional?destino=posto">Posto</Link>
           {" · "}
           <Link to="/">Voltar ao portal inicial</Link>
         </p>

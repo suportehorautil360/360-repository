@@ -6,568 +6,512 @@ import {
   useMemo,
   useRef,
   useState,
-} from 'react'
-import { Link } from 'react-router-dom'
-import {
-  criarDadosDemo,
-  useHU360,
-  useHU360Auth,
-  type DadosPrefeitura,
-  type Parceiro,
-  type PostoCredenciado,
-} from '../../../lib/hu360'
-import { HUB_CTX_KEY } from '../../../portal/postoPortalCore'
-import {
-  CRED_KEYS,
-  CRED_TOTAL,
-} from './oficinasPostosCredData'
+} from "react";
+import { useHU360 } from "../../../lib/hu360";
+import { HUB_CTX_KEY } from "../../../portal/postoPortalCore";
+import { CRED_KEYS, CRED_TOTAL } from "./oficinasPostosCredData";
 import {
   CRED_OCR_MAX_PAGES_POR_PDF,
   processarExtracaoCredAposAnexos,
-} from './credOcr'
+} from "./credOcr";
+import { useOficinas } from "../hooks/oficinas/use-oficinas";
+import { usePostos } from "../hooks/postos/use-postos";
+import type { OficinaFirestore } from "../hooks/oficinas/types";
+import type { PostoFirestore } from "../hooks/postos/types";
 
-type ModoCadastro = 'oficina' | 'posto'
-
-function cloneDados(d: DadosPrefeitura): DadosPrefeitura {
-  return JSON.parse(JSON.stringify(d)) as DadosPrefeitura
-}
+type ModoCadastro = "oficina" | "posto";
 
 function credEmpty(): Record<string, boolean> {
   return Object.fromEntries(CRED_KEYS.map((k) => [k, false])) as Record<
     string,
     boolean
-  >
-}
-
-function controleMesclado(
-  prefeituraId: string,
-  obterDadosPrefeitura: (id: string) => DadosPrefeitura,
-): NonNullable<DadosPrefeitura['prefeituraModulo']>['controleAbastecimento'] {
-  const dados = obterDadosPrefeitura(prefeituraId)
-  const demo = criarDadosDemo(prefeituraId)
-  const pmBase = demo.prefeituraModulo
-  const caBase = pmBase?.controleAbastecimento ?? {}
-  const caSav = dados.prefeituraModulo?.controleAbastecimento ?? {}
-  return { ...caBase, ...caSav }
+  >;
 }
 
 const CRED_BLOCKS: {
-  title: string
-  items: { key: string; strong: string; text: string }[]
+  title: string;
+  items: { key: string; strong: string; text: string }[];
 }[] = [
   {
-    title: '1. Documentos de identificação (sócios e empresa)',
+    title: "1. Documentos de identificação (sócios e empresa)",
     items: [
       {
-        key: 'id_cnpj',
-        strong: 'Cartão CNPJ',
-        text: ' — Atualizado (emitido no site da Receita Federal).',
+        key: "id_cnpj",
+        strong: "Cartão CNPJ",
+        text: " — Atualizado (emitido no site da Receita Federal).",
       },
       {
-        key: 'id_contrato',
-        strong: 'Contrato social ou estatuto',
-        text: ' — Consolidação original e alterações, registradas na Junta Comercial.',
+        key: "id_contrato",
+        strong: "Contrato social ou estatuto",
+        text: " — Consolidação original e alterações, registradas na Junta Comercial.",
       },
       {
-        key: 'id_socios',
-        strong: 'Documentos dos sócios',
-        text: ' — RG e CPF (ou CNH) de todos os proprietários que assinam pela empresa.',
+        key: "id_socios",
+        strong: "Documentos dos sócios",
+        text: " — RG e CPF (ou CNH) de todos os proprietários que assinam pela empresa.",
       },
       {
-        key: 'id_endereco',
-        strong: 'Comprovante de endereço',
-        text: ' — Da sede da oficina.',
+        key: "id_endereco",
+        strong: "Comprovante de endereço",
+        text: " — Da sede da oficina.",
       },
     ],
   },
   {
-    title: '2. Regularidade fiscal (certidões negativas)',
+    title: "2. Regularidade fiscal (certidões negativas)",
     items: [
       {
-        key: 'fisc_federal',
-        strong: 'Débitos federais e dívida ativa da União',
-        text: ' — Certidão (tributos federais e INSS).',
+        key: "fisc_federal",
+        strong: "Débitos federais e dívida ativa da União",
+        text: " — Certidão (tributos federais e INSS).",
       },
       {
-        key: 'fisc_estadual',
-        strong: 'Certidão negativa estadual',
-        text: ' — Secretaria da Fazenda (ICMS).',
+        key: "fisc_estadual",
+        strong: "Certidão negativa estadual",
+        text: " — Secretaria da Fazenda (ICMS).",
       },
       {
-        key: 'fisc_municipal',
-        strong: 'Certidão negativa municipal',
-        text: ' — Prefeitura (ISS e taxas mobiliárias).',
+        key: "fisc_municipal",
+        strong: "Certidão negativa municipal",
+        text: " — Prefeitura (ISS e taxas mobiliárias).",
       },
       {
-        key: 'fisc_fgts',
-        strong: 'CRF (FGTS)',
-        text: ' — Caixa Econômica Federal.',
+        key: "fisc_fgts",
+        strong: "CRF (FGTS)",
+        text: " — Caixa Econômica Federal.",
       },
       {
-        key: 'fisc_cndt',
-        strong: 'CNDT',
-        text: ' — Débitos trabalhistas (TST).',
+        key: "fisc_cndt",
+        strong: "CNDT",
+        text: " — Débitos trabalhistas (TST).",
       },
     ],
   },
   {
-    title: '3. Habilitação jurídica e econômica',
+    title: "3. Habilitação jurídica e econômica",
     items: [
       {
-        key: 'hab_falencia',
-        strong: 'Falência ou recuperação judicial',
-        text: ' — Certidão negativa (Tribunal de Justiça).',
+        key: "hab_falencia",
+        strong: "Falência ou recuperação judicial",
+        text: " — Certidão negativa (Tribunal de Justiça).",
       },
       {
-        key: 'hab_balanco',
-        strong: 'Balanço patrimonial',
-        text: ' — Último exercício social.',
+        key: "hab_balanco",
+        strong: "Balanço patrimonial",
+        text: " — Último exercício social.",
       },
     ],
   },
   {
-    title: '4. Qualificação técnica e licenciamento',
+    title: "4. Qualificação técnica e licenciamento",
     items: [
       {
-        key: 'tec_alvara',
-        strong: 'Alvará de funcionamento e localização',
-        text: ' — Prefeitura.',
+        key: "tec_alvara",
+        strong: "Alvará de funcionamento e localização",
+        text: " — Prefeitura.",
       },
       {
-        key: 'tec_avcb',
-        strong: 'AVCB',
-        text: ' — Corpo de Bombeiros.',
+        key: "tec_avcb",
+        strong: "AVCB",
+        text: " — Corpo de Bombeiros.",
       },
       {
-        key: 'tec_ambiental',
-        strong: 'Licença ambiental ou dispensa',
-        text: ' — Órgão ambiental competente.',
+        key: "tec_ambiental",
+        strong: "Licença ambiental ou dispensa",
+        text: " — Órgão ambiental competente.",
       },
       {
-        key: 'tec_atestado',
-        strong: 'Atestado de capacidade técnica',
-        text: ' — Cliente / serviços prestados.',
+        key: "tec_atestado",
+        strong: "Atestado de capacidade técnica",
+        text: " — Cliente / serviços prestados.",
       },
     ],
   },
-]
+];
 
 export function OficinasPostosSection() {
+  const { prefeituras, prefeituraLabel } = useHU360();
   const {
-    prefeituras,
-    obterDadosPrefeitura,
-    salvarDadosPrefeitura,
-    prefeituraLabel,
-    normalizarIdsParceiros,
-    refresh,
-  } = useHU360()
-  const { user } = useHU360Auth()
-  const podeGerenciarParceiros =
-    !!user && (user.perfil === 'admin' || user.perfil === 'gestor')
+    listarOficinas,
+    adicionarOficina,
+    atualizarCredOficina,
+    removerOficina,
+  } = useOficinas();
+  const { listarPostos, adicionarPosto, removerPosto } = usePostos();
+
+  const podeGerenciarParceiros = true;
 
   const [focoPrefId, setFocoPrefId] = useState<string>(() => {
-    if (!prefeituras.length) return ''
+    if (!prefeituras.length) return "";
     try {
-      const s = sessionStorage.getItem(HUB_CTX_KEY)
-      if (s && prefeituras.some((p) => p.id === s)) return s
+      const s = sessionStorage.getItem(HUB_CTX_KEY);
+      if (s && prefeituras.some((p) => p.id === s)) return s;
     } catch {
       /* ignore */
     }
-    return prefeituras[0].id
-  })
+    return prefeituras[0].id;
+  });
 
   const [postoMunicipioId, setPostoMunicipioId] = useState<string>(() => {
-    if (!prefeituras.length) return ''
+    if (!prefeituras.length) return "";
     try {
-      const s = sessionStorage.getItem(HUB_CTX_KEY)
-      if (s && prefeituras.some((p) => p.id === s)) return s
+      const s = sessionStorage.getItem(HUB_CTX_KEY);
+      if (s && prefeituras.some((p) => p.id === s)) return s;
     } catch {
       /* ignore */
     }
-    return prefeituras[0].id
-  })
+    return prefeituras[0].id;
+  });
 
-  const [modoCadastro, setModoCadastro] = useState<ModoCadastro>('oficina')
-  const [novaOficinaNome, setNovaOficinaNome] = useState('')
-  const [novaOficinaEsp, setNovaOficinaEsp] = useState('')
-  const [novaOficinaStatus, setNovaOficinaStatus] = useState('Ativa')
+  const [modoCadastro, setModoCadastro] = useState<ModoCadastro>("oficina");
+  const [novaOficinaNome, setNovaOficinaNome] = useState("");
+  const [novaOficinaEsp, setNovaOficinaEsp] = useState("");
+  const [novaOficinaStatus, setNovaOficinaStatus] = useState("Ativa");
   const [credChecklist, setCredChecklist] = useState<Record<string, boolean>>(
     () => credEmpty(),
-  )
-  const [credObs, setCredObs] = useState('')
-  const [credAnexosNomes, setCredAnexosNomes] = useState<string[]>([])
-  const [credExtractStatus, setCredExtractStatus] = useState('')
-  const [credCnpjAuto, setCredCnpjAuto] = useState('')
-  const [credRazaoAuto, setCredRazaoAuto] = useState('')
-  const [selOficinaDocId, setSelOficinaDocId] = useState('')
-  const [msgParceiros, setMsgParceiros] = useState('')
+  );
+  const [credObs, setCredObs] = useState("");
+  const [credAnexosNomes, setCredAnexosNomes] = useState<string[]>([]);
+  const [credExtractStatus, setCredExtractStatus] = useState("");
+  const [credCnpjAuto, setCredCnpjAuto] = useState("");
+  const [credRazaoAuto, setCredRazaoAuto] = useState("");
+  const [selOficinaDocId, setSelOficinaDocId] = useState("");
+  const [msgParceiros, setMsgParceiros] = useState("");
   const [msgParceirosTone, setMsgParceirosTone] = useState<
-    'none' | 'ok' | 'err'
-  >('none')
-  const [hubMsgPosto, setHubMsgPosto] = useState('')
+    "none" | "ok" | "err"
+  >("none");
+  const [hubMsgPosto, setHubMsgPosto] = useState("");
+  const [loadingOficinas, setLoadingOficinas] = useState(false);
+  const [loadingPostos, setLoadingPostos] = useState(false);
+  const [oficinasLista, setOficinasLista] = useState<OficinaFirestore[]>([]);
+  const [postosLista, setPostosLista] = useState<PostoFirestore[]>([]);
 
-  const [postoRazao, setPostoRazao] = useState('')
-  const [postoFantasia, setPostoFantasia] = useState('')
-  const [postoCnpj, setPostoCnpj] = useState('')
-  const [postoBandeira, setPostoBandeira] = useState('')
-  const [postoEndereco, setPostoEndereco] = useState('')
-  const [postoComb, setPostoComb] = useState('')
-  const [postoLimite, setPostoLimite] = useState('')
-  const [postoContrato, setPostoContrato] = useState('')
-  const [postoValidade, setPostoValidade] = useState('')
-  const [credProgressWrapVisible, setCredProgressWrapVisible] = useState(false)
-  const [credProgressPct, setCredProgressPct] = useState(0)
-  const [credProgressLabel, setCredProgressLabel] = useState('Progresso')
-  const ocrTokenRef = useRef(0)
+  const [postoRazao, setPostoRazao] = useState("");
+  const [postoFantasia, setPostoFantasia] = useState("");
+  const [postoCnpj, setPostoCnpj] = useState("");
+  const [postoBandeira, setPostoBandeira] = useState("");
+  const [postoEndereco, setPostoEndereco] = useState("");
+  const [postoComb, setPostoComb] = useState("");
+  const [postoLimite, setPostoLimite] = useState("");
+  const [postoContrato, setPostoContrato] = useState("");
+  const [postoValidade, setPostoValidade] = useState("");
+  const [credProgressWrapVisible, setCredProgressWrapVisible] = useState(false);
+  const [credProgressPct, setCredProgressPct] = useState(0);
+  const [credProgressLabel, setCredProgressLabel] = useState("Progresso");
+  const ocrTokenRef = useRef(0);
 
   useEffect(() => {
     if (!focoPrefId && prefeituras[0]) {
-      setFocoPrefId(prefeituras[0].id)
+      setFocoPrefId(prefeituras[0].id);
     }
     if (!postoMunicipioId && prefeituras[0]) {
-      setPostoMunicipioId(prefeituras[0].id)
+      setPostoMunicipioId(prefeituras[0].id);
     }
-  }, [prefeituras, focoPrefId, postoMunicipioId])
+  }, [prefeituras, focoPrefId, postoMunicipioId]);
 
-  const dadosFoco = useMemo(
-    () => (focoPrefId ? obterDadosPrefeitura(focoPrefId) : null),
-    [focoPrefId, obterDadosPrefeitura],
-  )
+  const carregarOficinas = useCallback(
+    async (prefId: string) => {
+      if (!prefId) return;
+      setLoadingOficinas(true);
+      const lista = await listarOficinas(prefId);
+      setOficinasLista(lista);
+      setLoadingOficinas(false);
+    },
+    [listarOficinas],
+  );
 
-  const dadosPostoCliente = useMemo(
-    () =>
-      postoMunicipioId ? obterDadosPrefeitura(postoMunicipioId) : null,
-    [postoMunicipioId, obterDadosPrefeitura],
-  )
+  const carregarPostos = useCallback(
+    async (prefId: string) => {
+      if (!prefId) return;
+      setLoadingPostos(true);
+      const lista = await listarPostos(prefId);
+      setPostosLista(lista);
+      setLoadingPostos(false);
+    },
+    [listarPostos],
+  );
 
-  const oficinasLista = useMemo(() => {
-    if (!dadosFoco?.parceiros) return []
-    return dadosFoco.parceiros.filter((p) =>
-      String(p.tipo).toLowerCase().includes('oficina'),
-    )
-  }, [dadosFoco])
-
-  const postosLista = useMemo(() => {
-    const ca = dadosPostoCliente?.prefeituraModulo?.controleAbastecimento
-    return ca?.postosCredenciados ?? []
-  }, [dadosPostoCliente])
+  useEffect(() => {
+    void carregarOficinas(focoPrefId);
+  }, [focoPrefId, carregarOficinas]);
+  useEffect(() => {
+    void carregarPostos(postoMunicipioId);
+  }, [postoMunicipioId, carregarPostos]);
 
   const credMarcados = useMemo(
     () => CRED_KEYS.filter((k) => credChecklist[k]).length,
     [credChecklist],
-  )
+  );
 
   useEffect(() => {
-    const el = document.getElementById('ctxPrefeitura')
+    const el = document.getElementById("ctxPrefeitura");
     if (el && focoPrefId) {
-      el.textContent = `Cliente em foco: ${prefeituraLabel(focoPrefId)}`
+      el.textContent = `Cliente em foco: ${prefeituraLabel(focoPrefId)}`;
     }
-  }, [focoPrefId, prefeituraLabel])
+  }, [focoPrefId, prefeituraLabel]);
 
   useEffect(() => {
-    if (!selOficinaDocId || !dadosFoco) {
-      setCredChecklist(credEmpty())
-      setCredObs('')
-      setCredAnexosNomes([])
-      setCredExtractStatus('')
-      setCredCnpjAuto('')
-      setCredRazaoAuto('')
-      setCredProgressWrapVisible(false)
-      setCredProgressPct(0)
-      setCredProgressLabel('Progresso')
-      return
+    if (!selOficinaDocId) {
+      setCredChecklist(credEmpty());
+      setCredObs("");
+      setCredAnexosNomes([]);
+      setCredExtractStatus("");
+      setCredCnpjAuto("");
+      setCredRazaoAuto("");
+      setCredProgressWrapVisible(false);
+      setCredProgressPct(0);
+      setCredProgressLabel("Progresso");
+      return;
     }
-    const p = dadosFoco.parceiros.find((x) => x.id === selOficinaDocId)
-    if (!p) return
-    const next = credEmpty()
+    const p = oficinasLista.find((x) => x.id === selOficinaDocId);
+    if (!p) return;
+    const next = credEmpty();
     for (const k of CRED_KEYS) {
-      next[k] = Boolean(p.credChecklist?.[k])
+      next[k] = Boolean(p.credChecklist?.[k]);
     }
-    setCredChecklist(next)
-    setCredObs(p.credObservacoes ?? '')
+    setCredChecklist(next);
+    setCredObs(p.credObservacoes ?? "");
     const nomes =
-      p.credAnexosNomes && p.credAnexosNomes.length
-        ? p.credAnexosNomes
-        : p.credAnexosResumo
-          ? p.credAnexosResumo
-              .split(',')
-              .map((x) => x.trim())
-              .filter(Boolean)
-          : []
-    setCredAnexosNomes(nomes)
-    setCredCnpjAuto(p.credCnpjExtraido ?? '')
-    setCredRazaoAuto(p.credRazaoSocialExtraida ?? '')
-    setCredExtractStatus('')
-    setCredProgressWrapVisible(false)
-    setCredProgressPct(0)
-    setCredProgressLabel('Progresso')
-  }, [selOficinaDocId, dadosFoco])
+      p.credAnexosNomes && p.credAnexosNomes.length ? p.credAnexosNomes : [];
+    setCredAnexosNomes(nomes);
+    setCredCnpjAuto(p.credCnpjExtraido ?? "");
+    setCredRazaoAuto(p.credRazaoSocialExtraida ?? "");
+    setCredExtractStatus("");
+    setCredProgressWrapVisible(false);
+    setCredProgressPct(0);
+    setCredProgressLabel("Progresso");
+  }, [selOficinaDocId, oficinasLista]);
 
-  const setFocoAndStorage = useCallback(
-    (id: string) => {
-      setFocoPrefId(id)
-      try {
-        sessionStorage.setItem(HUB_CTX_KEY, id)
-      } catch {
-        /* ignore */
-      }
-    },
-    [],
-  )
+  const setFocoAndStorage = useCallback((id: string) => {
+    setFocoPrefId(id);
+    try {
+      sessionStorage.setItem(HUB_CTX_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
-  function setMsg(tone: 'none' | 'ok' | 'err', texto: string) {
-    setMsgParceirosTone(tone)
-    setMsgParceiros(texto)
+  function setMsg(tone: "none" | "ok" | "err", texto: string) {
+    setMsgParceirosTone(tone);
+    setMsgParceiros(texto);
   }
 
-  /** Persiste o estado atual do credenciamento na oficina selecionada. */
+  /** Persiste o estado atual do credenciamento na oficina selecionada (Firestore). */
   const persistCredOnSelected = useCallback(
-    (override?: Partial<Parceiro>) => {
-      if (!selOficinaDocId || !focoPrefId || !podeGerenciarParceiros) return
-      const d = cloneDados(obterDadosPrefeitura(focoPrefId))
-      const lista = d.parceiros ?? []
-      const idx = lista.findIndex((p) => p.id === selOficinaDocId)
-      if (idx < 0) return
-      const atual = lista[idx]
-      const next: Parceiro = {
-        ...atual,
-        credChecklist: { ...credChecklist },
-        credObservacoes: credObs.trim() || undefined,
-        credAnexosNomes: credAnexosNomes.length ? credAnexosNomes : undefined,
-        credAnexosResumo: credAnexosNomes.length
-          ? credAnexosNomes.join(', ')
-          : undefined,
-        credCnpjExtraido: credCnpjAuto.trim() || undefined,
-        credRazaoSocialExtraida: credRazaoAuto.trim() || undefined,
-        ...(override ?? {}),
-      }
-      lista[idx] = next
-      d.parceiros = lista
-      salvarDadosPrefeitura(focoPrefId, d)
-      refresh()
+    (override?: Partial<OficinaFirestore>) => {
+      if (!selOficinaDocId || !podeGerenciarParceiros) return;
+      void atualizarCredOficina(selOficinaDocId, {
+        credChecklist: override?.credChecklist ?? { ...credChecklist },
+        credObservacoes:
+          override?.credObservacoes ?? (credObs.trim() || undefined),
+        credAnexosNomes:
+          override?.credAnexosNomes ??
+          (credAnexosNomes.length ? credAnexosNomes : undefined),
+        credCnpjExtraido:
+          override?.credCnpjExtraido ?? (credCnpjAuto.trim() || undefined),
+        credRazaoSocialExtraida:
+          override?.credRazaoSocialExtraida ??
+          (credRazaoAuto.trim() || undefined),
+      }).then(() => carregarOficinas(focoPrefId));
     },
     [
       selOficinaDocId,
       focoPrefId,
       podeGerenciarParceiros,
-      obterDadosPrefeitura,
-      salvarDadosPrefeitura,
-      refresh,
+      atualizarCredOficina,
+      carregarOficinas,
       credChecklist,
       credObs,
       credAnexosNomes,
       credCnpjAuto,
       credRazaoAuto,
     ],
-  )
+  );
 
   function toggleCred(key: string) {
-    if (!podeGerenciarParceiros) return
+    if (!podeGerenciarParceiros) return;
     setCredChecklist((prev) => {
-      const next = { ...prev, [key]: !prev[key] }
-      if (selOficinaDocId && focoPrefId) {
-        const d = cloneDados(obterDadosPrefeitura(focoPrefId))
-        const lista = d.parceiros ?? []
-        const idx = lista.findIndex((p) => p.id === selOficinaDocId)
-        if (idx >= 0) {
-          lista[idx] = { ...lista[idx], credChecklist: next }
-          d.parceiros = lista
-          salvarDadosPrefeitura(focoPrefId, d)
-          refresh()
-        }
+      const next = { ...prev, [key]: !prev[key] };
+      if (selOficinaDocId) {
+        void atualizarCredOficina(selOficinaDocId, {
+          credChecklist: next,
+        }).then(() => carregarOficinas(focoPrefId));
       }
-      return next
-    })
+      return next;
+    });
   }
 
   async function handleCredFiles(e: ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
+    const files = e.target.files;
     if (!files?.length) {
-      setCredAnexosNomes([])
-      setCredExtractStatus('')
-      setCredProgressWrapVisible(false)
-      setCredProgressPct(0)
-      return
+      setCredAnexosNomes([]);
+      setCredExtractStatus("");
+      setCredProgressWrapVisible(false);
+      setCredProgressPct(0);
+      return;
     }
-    const names = Array.from(files).map((f) => f.name)
-    setCredAnexosNomes(names)
+    const names = Array.from(files).map((f) => f.name);
+    setCredAnexosNomes(names);
     setCredExtractStatus(
       `${names.length} arquivo(s) selecionado(s). Extraindo texto…`,
-    )
-    setCredProgressWrapVisible(true)
-    setCredProgressPct(0)
-    setCredProgressLabel('Iniciando…')
+    );
+    setCredProgressWrapVisible(true);
+    setCredProgressPct(0);
+    setCredProgressLabel("Iniciando…");
 
-    const token = ++ocrTokenRef.current
-    const fileList = files
+    const token = ++ocrTokenRef.current;
+    const fileList = files;
 
     persistCredOnSelected({
       credAnexosNomes: names,
-      credAnexosResumo: names.join(', '),
-    })
+      credAnexosResumo: names.join(", "),
+    });
 
     try {
       const r = await processarExtracaoCredAposAnexos({
         files: fileList,
         onProgresso: ({ pct, rotulo }) => {
-          if (token !== ocrTokenRef.current) return
-          setCredProgressPct(Math.round(pct))
-          if (rotulo) setCredProgressLabel(rotulo)
+          if (token !== ocrTokenRef.current) return;
+          setCredProgressPct(Math.round(pct));
+          if (rotulo) setCredProgressLabel(rotulo);
         },
-      })
-      if (token !== ocrTokenRef.current) return
-      setCredExtractStatus(r.status)
-      if (r.cnpj) setCredCnpjAuto(r.cnpj)
-      if (r.razaoSocial) setCredRazaoAuto(r.razaoSocial)
+      });
+      if (token !== ocrTokenRef.current) return;
+      setCredExtractStatus(r.status);
+      if (r.cnpj) setCredCnpjAuto(r.cnpj);
+      if (r.razaoSocial) setCredRazaoAuto(r.razaoSocial);
       const proximoChecklist = r.cnpj
         ? { ...credChecklist, id_cnpj: true }
-        : credChecklist
-      if (r.cnpj) setCredChecklist(proximoChecklist)
+        : credChecklist;
+      if (r.cnpj) setCredChecklist(proximoChecklist);
       persistCredOnSelected({
         credChecklist: proximoChecklist,
         credCnpjExtraido: r.cnpj || undefined,
         credRazaoSocialExtraida: r.razaoSocial || undefined,
         credAnexosNomes: names,
-        credAnexosResumo: names.join(', '),
-      })
+      });
       window.setTimeout(() => {
-        if (token !== ocrTokenRef.current) return
-        setCredProgressWrapVisible(false)
-        setCredProgressPct(0)
-        setCredProgressLabel('Progresso')
-      }, 900)
+        if (token !== ocrTokenRef.current) return;
+        setCredProgressWrapVisible(false);
+        setCredProgressPct(0);
+        setCredProgressLabel("Progresso");
+      }, 900);
     } catch {
-      if (token !== ocrTokenRef.current) return
+      if (token !== ocrTokenRef.current) return;
       setCredExtractStatus(
-        'Falha ao processar os arquivos. Tente novamente ou preencha manualmente.',
-      )
-      setCredProgressWrapVisible(false)
+        "Falha ao processar os arquivos. Tente novamente ou preencha manualmente.",
+      );
+      setCredProgressWrapVisible(false);
     }
   }
 
-  function handleSalvarOficina(e: FormEvent) {
-    e.preventDefault()
+  async function handleSalvarOficina(e: FormEvent) {
+    e.preventDefault();
     if (!focoPrefId) {
-      setMsg('err', 'Selecione o cliente em foco.')
-      return
+      setMsg("err", "Selecione o cliente em foco.");
+      return;
     }
-    const nome = novaOficinaNome.trim()
-    const esp = novaOficinaEsp.trim()
+    const nome = novaOficinaNome.trim();
+    const esp = novaOficinaEsp.trim();
     if (!nome || !esp) {
-      setMsg('err', 'Preencha nome e especialidade.')
-      return
+      setMsg("err", "Preencha nome e especialidade.");
+      return;
     }
     if (!podeGerenciarParceiros) {
-      setMsg('err', 'Sem permissão para cadastrar parceiros.')
-      return
+      setMsg("err", "Sem permissão para cadastrar parceiros.");
+      return;
     }
-    const d = cloneDados(obterDadosPrefeitura(focoPrefId))
-    const id = `of-${focoPrefId}-${Date.now()}`
-    const novo: Parceiro = {
-      id,
+    const resultado = await adicionarOficina({
+      prefeituraId: focoPrefId,
       nome,
       especialidade: esp,
-      tipo: 'Oficina',
-      status: novaOficinaStatus,
+      status: novaOficinaStatus as "Ativa" | "Suspensa",
       credChecklist: { ...credChecklist },
       credObservacoes: credObs.trim() || undefined,
       credAnexosNomes: credAnexosNomes.length ? credAnexosNomes : undefined,
-      credAnexosResumo: credAnexosNomes.length
-        ? credAnexosNomes.join(', ')
-        : undefined,
       credCnpjExtraido: credCnpjAuto.trim() || undefined,
       credRazaoSocialExtraida: credRazaoAuto.trim() || undefined,
+    });
+    if (!resultado.ok) {
+      setMsg("err", resultado.message);
+      return;
     }
-    d.parceiros = [...(d.parceiros ?? []), novo]
-    normalizarIdsParceiros(focoPrefId, d)
-    salvarDadosPrefeitura(focoPrefId, d)
-    refresh()
-    setNovaOficinaNome('')
-    setNovaOficinaEsp('')
-    setNovaOficinaStatus('Ativa')
-    setCredChecklist(credEmpty())
-    setCredObs('')
-    setCredAnexosNomes([])
-    setCredExtractStatus('')
-    setCredCnpjAuto('')
-    setCredRazaoAuto('')
-    setSelOficinaDocId(id)
-    setMsg('ok', 'Oficina salva com checklist e anexos (metadados) neste cliente.')
+    await carregarOficinas(focoPrefId);
+    setNovaOficinaNome("");
+    setNovaOficinaEsp("");
+    setNovaOficinaStatus("Ativa");
+    setCredChecklist(credEmpty());
+    setCredObs("");
+    setCredAnexosNomes([]);
+    setCredExtractStatus("");
+    setCredCnpjAuto("");
+    setCredRazaoAuto("");
+    if (resultado.id) setSelOficinaDocId(resultado.id);
+    setMsg(
+      "ok",
+      "Oficina salva com checklist e anexos (metadados) neste cliente.",
+    );
   }
 
-  function handleRemoverOficina(id: string) {
-    if (!focoPrefId) return
-    if (!window.confirm('Remover esta oficina da lista?')) return
-    const d = cloneDados(obterDadosPrefeitura(focoPrefId))
-    d.parceiros = (d.parceiros ?? []).filter((p) => p.id !== id)
-    salvarDadosPrefeitura(focoPrefId, d)
-    refresh()
-    if (selOficinaDocId === id) setSelOficinaDocId('')
+  async function handleRemoverOficina(id: string) {
+    if (!window.confirm("Remover esta oficina da lista?")) return;
+    await removerOficina(id);
+    await carregarOficinas(focoPrefId);
+    if (selOficinaDocId === id) setSelOficinaDocId("");
   }
 
-  function handleSalvarPosto() {
+  async function handleSalvarPosto() {
     if (!postoMunicipioId) {
-      setHubMsgPosto('Selecione o cliente (contrato).')
-      return
+      setHubMsgPosto("Selecione o cliente (contrato).");
+      return;
     }
-    const razao = postoRazao.trim()
+    const razao = postoRazao.trim();
     if (!razao) {
-      setHubMsgPosto('Preencha a razão social.')
-      return
+      setHubMsgPosto("Preencha a razão social.");
+      return;
     }
-    const d = cloneDados(obterDadosPrefeitura(postoMunicipioId))
-    const pm = { ...(d.prefeituraModulo ?? criarDadosDemo(postoMunicipioId).prefeituraModulo) }
-    const ca = { ...controleMesclado(postoMunicipioId, obterDadosPrefeitura) }
-    const lim = Number(postoLimite.replace(/\D/g, '')) || 0
-    const novo: PostoCredenciado = {
-      id: `posto-${postoMunicipioId}-${Date.now()}`,
+    const lim = Number(postoLimite.replace(/\D/g, "")) || 0;
+    const resultado = await adicionarPosto({
+      prefeituraId: postoMunicipioId,
       razaoSocial: razao,
-      nomeFantasia: postoFantasia.trim(),
-      cnpj: postoCnpj.trim(),
-      bandeira: postoBandeira.trim(),
-      endereco: postoEndereco.trim(),
-      combustiveis: postoComb.trim(),
-      limiteLitrosMes: lim,
-      contrato: postoContrato.trim(),
-      validadeAte: postoValidade.trim(),
-      status: 'Ativa',
+      nomeFantasia: postoFantasia.trim() || undefined,
+      cnpj: postoCnpj.trim() || undefined,
+      bandeira: postoBandeira.trim() || undefined,
+      endereco: postoEndereco.trim() || undefined,
+      combustiveis: postoComb.trim() || undefined,
+      limiteLitrosMes: lim || undefined,
+      contrato: postoContrato.trim() || undefined,
+      validadeAte: postoValidade.trim() || undefined,
+      status: "Ativa",
+    });
+    if (!resultado.ok) {
+      setHubMsgPosto(resultado.message);
+      return;
     }
-    ca.postosCredenciados = [...(ca.postosCredenciados ?? []), novo]
-    pm.controleAbastecimento = ca
-    d.prefeituraModulo = pm
-    salvarDadosPrefeitura(postoMunicipioId, d)
-    refresh()
-    setPostoRazao('')
-    setPostoFantasia('')
-    setPostoCnpj('')
-    setPostoBandeira('')
-    setPostoEndereco('')
-    setPostoComb('')
-    setPostoLimite('')
-    setPostoContrato('')
-    setPostoValidade('')
-    setHubMsgPosto('Posto salvo.')
-    window.setTimeout(() => setHubMsgPosto(''), 4000)
+    await carregarPostos(postoMunicipioId);
+    setPostoRazao("");
+    setPostoFantasia("");
+    setPostoCnpj("");
+    setPostoBandeira("");
+    setPostoEndereco("");
+    setPostoComb("");
+    setPostoLimite("");
+    setPostoContrato("");
+    setPostoValidade("");
+    setHubMsgPosto("Posto salvo.");
+    window.setTimeout(() => setHubMsgPosto(""), 4000);
   }
 
-  function handleRemoverPosto(pid: string, postoId: string) {
-    if (!window.confirm('Remover este posto credenciado?')) return
-    const d = cloneDados(obterDadosPrefeitura(pid))
-    const pm = { ...(d.prefeituraModulo ?? criarDadosDemo(pid).prefeituraModulo) }
-    const ca = { ...controleMesclado(pid, obterDadosPrefeitura) }
-    ca.postosCredenciados = (ca.postosCredenciados ?? []).filter(
-      (p) => p.id !== postoId,
-    )
-    pm.controleAbastecimento = ca
-    d.prefeituraModulo = pm
-    salvarDadosPrefeitura(pid, d)
-    refresh()
+  async function handleRemoverPosto(postoId: string) {
+    if (!window.confirm("Remover este posto credenciado?")) return;
+    await removerPosto(postoId);
+    await carregarPostos(postoMunicipioId);
   }
 
   const msgClass =
-    msgParceirosTone === 'none'
-      ? 'status'
-      : `status status--${msgParceirosTone === 'ok' ? 'ok' : 'err'}`
+    msgParceirosTone === "none"
+      ? "status"
+      : `status status--${msgParceirosTone === "ok" ? "ok" : "err"}`;
 
   return (
     <section id="hub-oficinas-postos" className="aba-conteudo ativa">
@@ -578,20 +522,28 @@ export function OficinasPostosSection() {
       >
         Escolha se vai cadastrar uma <strong>oficina</strong> (com checklist de
         documentos) ou um <strong>posto</strong> para abastecimento da frota. As
-        listas ficam <strong>separadas</strong> abaixo. Respeita o{' '}
-        <strong>cliente em foco</strong> na gestão (barra superior). Para{' '}
-        <strong>logins</strong>, use{' '}
+        listas ficam <strong>separadas</strong> abaixo. Respeita o{" "}
+        <strong>cliente em foco</strong> na gestão (barra superior). Para{" "}
+        <strong>logins</strong>, use{" "}
         <strong>Controle → Acessos e logins</strong>.
       </p>
 
       <article className="card" style={{ marginBottom: 18 }}>
         <h3>Cliente em foco (cadastro de oficinas)</h3>
-        <p id="msgParceirosEscopo" className="topbar-user" style={{ marginBottom: 12 }}>
+        <p
+          id="msgParceirosEscopo"
+          className="topbar-user"
+          style={{ marginBottom: 12 }}
+        >
           {focoPrefId
             ? `Cadastro de oficinas e checklist vão para: ${prefeituraLabel(focoPrefId)}.`
-            : '—'}
+            : "—"}
         </p>
-        <label htmlFor="hub-sel-foco-pref" className="topbar-user" style={{ display: 'block', marginBottom: 6 }}>
+        <label
+          htmlFor="hub-sel-foco-pref"
+          className="topbar-user"
+          style={{ display: "block", marginBottom: 6 }}
+        >
           Prefeitura / contratante
         </label>
         <select
@@ -619,8 +571,8 @@ export function OficinasPostosSection() {
               type="radio"
               name="hubModoCadastroRede"
               value="oficina"
-              checked={modoCadastro === 'oficina'}
-              onChange={() => setModoCadastro('oficina')}
+              checked={modoCadastro === "oficina"}
+              onChange={() => setModoCadastro("oficina")}
             />
             Oficina
           </label>
@@ -629,8 +581,8 @@ export function OficinasPostosSection() {
               type="radio"
               name="hubModoCadastroRede"
               value="posto"
-              checked={modoCadastro === 'posto'}
-              onChange={() => setModoCadastro('posto')}
+              checked={modoCadastro === "posto"}
+              onChange={() => setModoCadastro("posto")}
             />
             Posto de combustível
           </label>
@@ -638,12 +590,14 @@ export function OficinasPostosSection() {
 
         <div
           id="hub-bloco-cadastro-oficina"
-          className={modoCadastro === 'posto' ? 'hub-parceiros-hidden' : ''}
+          className={modoCadastro === "posto" ? "hub-parceiros-hidden" : ""}
         >
           <form id="formParceiro" onSubmit={handleSalvarOficina}>
             <div className="row-2">
               <div>
-                <label htmlFor="novaParceiroNome">Nome do estabelecimento</label>
+                <label htmlFor="novaParceiroNome">
+                  Nome do estabelecimento
+                </label>
                 <input
                   id="novaParceiroNome"
                   required
@@ -688,9 +642,9 @@ export function OficinasPostosSection() {
             </button>
             <p
               className="topbar-user"
-              style={{ margin: '10px 0 0', fontSize: '0.82rem' }}
+              style={{ margin: "10px 0 0", fontSize: "0.82rem" }}
             >
-              O checklist de credenciamento abaixo é gravado{' '}
+              O checklist de credenciamento abaixo é gravado{" "}
               <strong>junto</strong> a esta oficina ao salvar.
             </p>
             <div id="msgParceiros" className={msgClass} role="status">
@@ -706,18 +660,18 @@ export function OficinasPostosSection() {
             <h3>Credenciamento de oficina — documentos</h3>
             <p
               className="topbar-user"
-              style={{ margin: '0 0 14px', lineHeight: 1.5, maxWidth: 960 }}
+              style={{ margin: "0 0 14px", lineHeight: 1.5, maxWidth: 960 }}
             >
-              Tudo em uma única tela: vá marcando no fluxo natural e,{' '}
+              Tudo em uma única tela: vá marcando no fluxo natural e,{" "}
               <strong>no final</strong>, anexe os arquivos (PDF, imagens etc.).
-              Os dados são por <strong>oficina</strong>. Esta lista não substitui
-              edital ou processo oficial do município.
+              Os dados são por <strong>oficina</strong>. Esta lista não
+              substitui edital ou processo oficial do município.
             </p>
             <div className="hub-cred-head">
               <label htmlFor="hub-sel-oficina-doc">
                 <span
                   className="topbar-user"
-                  style={{ display: 'block', marginBottom: 4 }}
+                  style={{ display: "block", marginBottom: 4 }}
                 >
                   Acompanhar documentos de:
                 </span>
@@ -742,9 +696,9 @@ export function OficinasPostosSection() {
             </p>
             <p
               className="topbar-user"
-              style={{ margin: '-8px 0 12px', fontSize: '0.82rem' }}
+              style={{ margin: "-8px 0 12px", fontSize: "0.82rem" }}
             >
-              O filtro acima carrega o checklist da oficina selecionada. Ao{' '}
+              O filtro acima carrega o checklist da oficina selecionada. Ao{" "}
               <strong>salvar oficina nova</strong>, o estado atual do checklist,
               observações e resumo de anexos entram no novo cadastro.
             </p>
@@ -775,7 +729,9 @@ export function OficinasPostosSection() {
                 </div>
               ))}
               <div className="hub-cred-anexos-fim">
-                <label htmlFor="hub-cred-obs">Observações do processo (opcional)</label>
+                <label htmlFor="hub-cred-obs">
+                  Observações do processo (opcional)
+                </label>
                 <textarea
                   id="hub-cred-obs"
                   className="cred-obs"
@@ -799,13 +755,15 @@ export function OficinasPostosSection() {
                 <div
                   id="hub-cred-progress-wrap"
                   className={
-                    'hub-cred-progress-wrap' +
-                    (credProgressWrapVisible ? '' : ' hub-parceiros-hidden')
+                    "hub-cred-progress-wrap" +
+                    (credProgressWrapVisible ? "" : " hub-parceiros-hidden")
                   }
                   aria-live="polite"
                 >
                   <div className="hub-cred-progress-meta">
-                    <span id="hub-cred-progress-label">{credProgressLabel}</span>
+                    <span id="hub-cred-progress-label">
+                      {credProgressLabel}
+                    </span>
                     <span id="hub-cred-progress-pct">{credProgressPct}%</span>
                   </div>
                   <div
@@ -825,12 +783,12 @@ export function OficinasPostosSection() {
                   </div>
                   <p
                     className="topbar-user"
-                    style={{ margin: '8px 0 0', fontSize: '0.76rem' }}
+                    style={{ margin: "8px 0 0", fontSize: "0.76rem" }}
                   >
-                    OCR analisa no máximo{' '}
+                    OCR analisa no máximo{" "}
                     <strong id="hub-cred-max-pages-label">
                       {CRED_OCR_MAX_PAGES_POR_PDF}
-                    </strong>{' '}
+                    </strong>{" "}
                     páginas por PDF (configurável no código).
                   </p>
                 </div>
@@ -839,8 +797,8 @@ export function OficinasPostosSection() {
                   className="topbar-user"
                   style={{
                     marginTop: 10,
-                    minHeight: '1.3em',
-                    fontSize: '0.84rem',
+                    minHeight: "1.3em",
+                    fontSize: "0.84rem",
                   }}
                 >
                   {credExtractStatus}
@@ -881,18 +839,18 @@ export function OficinasPostosSection() {
                   style={{ marginTop: 12 }}
                 >
                   {credAnexosNomes.length
-                    ? `Arquivos selecionados ou já registrados: ${credAnexosNomes.join(', ')}`
-                    : ''}
+                    ? `Arquivos selecionados ou já registrados: ${credAnexosNomes.join(", ")}`
+                    : ""}
                 </p>
                 <p
                   className="topbar-user"
-                  style={{ margin: '10px 0 0', fontSize: '0.78rem' }}
+                  style={{ margin: "10px 0 0", fontSize: "0.78rem" }}
                 >
-                  <strong>PDF com texto</strong>: leitura direta.{' '}
+                  <strong>PDF com texto</strong>: leitura direta.{" "}
                   <strong>PDF escaneado ou JPG/PNG</strong>: OCR em português no
-                  navegador (pode demorar na primeira vez). Os arquivos não sobem
-                  para servidor nesta demonstração — só nomes e dados extraídos
-                  ficam salvos localmente.
+                  navegador (pode demorar na primeira vez). Os arquivos não
+                  sobem para servidor nesta demonstração — só nomes e dados
+                  extraídos ficam salvos localmente.
                 </p>
               </div>
             </div>
@@ -901,16 +859,19 @@ export function OficinasPostosSection() {
 
         <div
           id="hub-bloco-cadastro-posto"
-          className={modoCadastro === 'oficina' ? 'hub-parceiros-hidden' : ''}
+          className={modoCadastro === "oficina" ? "hub-parceiros-hidden" : ""}
         >
-          <h4 className="topbar-user" style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>
+          <h4
+            className="topbar-user"
+            style={{ margin: "0 0 8px", fontSize: "0.95rem" }}
+          >
             Posto para abastecimento da frota
           </h4>
           <p
             className="topbar-user"
             style={{
               marginBottom: 12,
-              fontSize: '0.86rem',
+              fontSize: "0.86rem",
               lineHeight: 1.5,
             }}
           >
@@ -921,14 +882,14 @@ export function OficinasPostosSection() {
           <form
             id="formPostoCredenciadoHub"
             onSubmit={(e) => {
-              e.preventDefault()
-              handleSalvarPosto()
+              e.preventDefault();
+              handleSalvarPosto();
             }}
           >
             <div className="row-2">
               <div>
                 <label htmlFor="hub-posto-municipio">
-                  Cliente (contrato) <span style={{ color: '#f87171' }}>*</span>
+                  Cliente (contrato) <span style={{ color: "#f87171" }}>*</span>
                 </label>
                 <select
                   id="hub-posto-municipio"
@@ -948,7 +909,7 @@ export function OficinasPostosSection() {
             <div className="row-2" style={{ marginTop: 10 }}>
               <div>
                 <label htmlFor="hub-posto-razao">
-                  Razão social <span style={{ color: '#f87171' }}>*</span>
+                  Razão social <span style={{ color: "#f87171" }}>*</span>
                 </label>
                 <input
                   id="hub-posto-razao"
@@ -1070,8 +1031,8 @@ export function OficinasPostosSection() {
               id="hub-msg-posto"
               style={{
                 marginLeft: 12,
-                fontSize: '0.88rem',
-                color: 'var(--muted)',
+                fontSize: "0.88rem",
+                color: "var(--muted)",
               }}
             >
               {hubMsgPosto}
@@ -1124,7 +1085,7 @@ export function OficinasPostosSection() {
       <article className="card">
         <h3>Postos credenciados</h3>
         <p className="topbar-user" style={{ marginBottom: 12 }}>
-          Lista do <strong>cliente (contrato)</strong> escolhido no cadastro de{' '}
+          Lista do <strong>cliente (contrato)</strong> escolhido no cadastro de{" "}
           <strong>posto</strong> acima.
         </p>
         <div className="hub-table-scroll">
@@ -1148,24 +1109,20 @@ export function OficinasPostosSection() {
               {postosLista.map((p) => (
                 <tr key={p.id}>
                   <td>{p.razaoSocial}</td>
-                  <td>{p.nomeFantasia || '—'}</td>
-                  <td>{p.cnpj || '—'}</td>
-                  <td>{p.bandeira || '—'}</td>
-                  <td>{p.endereco || '—'}</td>
-                  <td>{p.combustiveis || '—'}</td>
-                  <td>{p.limiteLitrosMes ?? '—'}</td>
-                  <td>{p.contrato || '—'}</td>
-                  <td>{p.validadeAte || '—'}</td>
-                  <td>{p.status || '—'}</td>
+                  <td>{p.nomeFantasia || "—"}</td>
+                  <td>{p.cnpj || "—"}</td>
+                  <td>{p.bandeira || "—"}</td>
+                  <td>{p.endereco || "—"}</td>
+                  <td>{p.combustiveis || "—"}</td>
+                  <td>{p.limiteLitrosMes ?? "—"}</td>
+                  <td>{p.contrato || "—"}</td>
+                  <td>{p.validadeAte || "—"}</td>
+                  <td>{p.status || "—"}</td>
                   <td>
-                    <Link to="/posto">Abrir</Link>
-                    {' · '}
                     <button
                       type="button"
                       className="btn-text"
-                      onClick={() =>
-                        handleRemoverPosto(postoMunicipioId, p.id)
-                      }
+                      onClick={() => handleRemoverPosto(p.id)}
                     >
                       Remover
                     </button>
@@ -1185,5 +1142,5 @@ export function OficinasPostosSection() {
         </div>
       </article>
     </section>
-  )
+  );
 }
