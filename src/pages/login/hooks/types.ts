@@ -6,6 +6,7 @@ export type User = {
   type: "admin" | "locacao" | "oficina" | "posto" | "prefeitura";
   prefeituraId?: string;
   postoId?: string;
+  officinaId?: string;
 };
 
 export interface LoginProps {
@@ -16,5 +17,5 @@ export interface LoginProps {
     usuario: string,
     senha: string,
     navigate: ReturnType<typeof useNavigate>,
-  ) => Promise<void>;
+  ) => Promise<{ error?: string }>;
 }

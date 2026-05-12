@@ -35,6 +35,8 @@ export function LoginView({
 }: LoginViewProps) {
   const navigate = useNavigate();
   const { handleLogin } = useLogin();
+  const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const statusClass =
     mensagemTone !== "none" ? `status status--${mensagemTone}` : "status";
@@ -54,9 +56,13 @@ export function LoginView({
         </p>
         <form
           id="loginForm"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            handleLogin(usuario, senha, navigate);
+            setLoginError("");
+            setLoading(true);
+            const result = await handleLogin(usuario, senha, navigate);
+            setLoading(false);
+            if (result?.error) setLoginError(result.error);
           }}
           className="auth-form"
         >
@@ -79,10 +85,24 @@ export function LoginView({
             autoComplete="current-password"
             placeholder="Digite sua senha"
             value={senha}
-            onChange={(e) => onSenhaChange(e.target.value)}
+            onChange={(e) => {
+              onSenhaChange(e.target.value);
+              setLoginError("");
+            }}
           />
-          <button className="btn btn-primary" type="submit">
-            Entrar no painel
+          {loginError && (
+            <span
+              style={{
+                color: "var(--danger, #ef4444)",
+                fontSize: "0.82rem",
+                marginTop: "-6px",
+              }}
+            >
+              {loginError}
+            </span>
+          )}
+          <button className="btn btn-primary" type="submit" disabled={loading}>
+            {loading ? "Autenticando..." : "Entrar no painel"}
           </button>
           <div id="authMsg" className={statusClass} role="status">
             {mensagemAuth}
@@ -90,16 +110,17 @@ export function LoginView({
         </form>
         <p className="quick-access">
           <Link
-            to="/checklist-controle"
+            to="/checklist-login"
             style={{ color: "var(--secondary, #3b82f6)", fontWeight: 600 }}
           >
             Controle checklist operacional (operador)
           </Link>
           {" · "}
-          Contas demo (cada uma vê só sua prefeitura): <strong>admin</strong> /{" "}
-          <strong>admin123</strong> (Três Lagoas-MS) · <strong>gestor</strong> /{" "}
-          <strong>gestor123</strong> (Curitiba-PR) · <strong>admin.bh</strong> /{" "}
-          <strong>bh123456</strong> (BH-MG)
+          Contas demo (cada uma vê só sua prefeitura): <strong>
+            admin
+          </strong> / <strong>admin123</strong> (Três Lagoas-MS) ·{" "}
+          <strong>gestor</strong> / <strong>gestor123</strong> (Curitiba-PR) ·{" "}
+          <strong>admin.bh</strong> / <strong>bh123456</strong> (BH-MG)
         </p>
       </div>
     </section>

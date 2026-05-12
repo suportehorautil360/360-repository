@@ -34,29 +34,31 @@ export const useLogin = create<LoginProps>()(
               type: rawDoc.type,
               prefeituraId: rawDoc.prefeituraId,
               postoId: rawDoc.postoId,
+              officinaId: (rawDoc as User & { officinaId?: string }).officinaId,
             }
           : undefined;
         set({ user: userData ?? null });
-        if (userData) {
-          if (userData.type === "locacao") {
-            navigate(`/locacao/${userData.prefeituraId}`);
-            return;
-          }
-          if (userData.type === "oficina") {
-            navigate(`/oficina/${userData.prefeituraId}`);
-            return;
-          }
-          if (userData.type === "posto") {
-            navigate(`/posto/${userData.prefeituraId}`);
-            return;
-          }
-          if (userData.type === "prefeitura") {
-            navigate(`/prefeitura/${userData.prefeituraId}`);
-            return;
-          }
-
-          navigate("/admin");
+        if (!userData) {
+          return { error: "Usuário ou senha inválidos." };
         }
+        if (userData.type === "locacao") {
+          navigate(`/locacao/${userData.prefeituraId}`);
+          return {};
+        }
+        if (userData.type === "oficina") {
+          navigate(`/oficina/${userData.prefeituraId}`);
+          return {};
+        }
+        if (userData.type === "posto") {
+          navigate(`/posto/${userData.prefeituraId}`);
+          return {};
+        }
+        if (userData.type === "prefeitura") {
+          navigate(`/prefeitura/${userData.prefeituraId}`);
+          return {};
+        }
+        navigate("/admin");
+        return {};
       },
     }),
     {

@@ -181,7 +181,9 @@ export function OficinasPostosSection() {
     "none" | "ok" | "err"
   >("none");
   const [hubMsgPosto, setHubMsgPosto] = useState("");
+  //@ts-ignore
   const [loadingOficinas, setLoadingOficinas] = useState(false);
+  //@ts-ignore
   const [loadingPostos, setLoadingPostos] = useState(false);
   const [oficinasLista, setOficinasLista] = useState<OficinaFirestore[]>([]);
   const [postosLista, setPostosLista] = useState<PostoFirestore[]>([]);

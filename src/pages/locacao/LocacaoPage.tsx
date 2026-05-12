@@ -174,8 +174,10 @@ export function LocacaoPage() {
   const equip = useEquipamentosCadastro(prefeituraIdEff ?? undefined);
 
   // Estado de login
+  //@ts-ignore
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
+  //@ts-ignore
   const [authMsg, setAuthMsg] = useState<AuthMsg>({ texto: "", cor: COR_INFO });
 
   // Navegação
@@ -238,6 +240,7 @@ export function LocacaoPage() {
     navigate("/login-operacional?destino=locacao", { replace: true });
   }
 
+  //@ts-ignore
   async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setAuthMsg({ texto: "Autenticando...", cor: COR_INFO });
@@ -309,12 +312,11 @@ export function LocacaoPage() {
     return <Navigate to="/login-operacional?destino=locacao" replace />;
   }
 
-  const labelPrefLogin = prefeituraLabel(user.prefeituraId);
+  const labelPrefLogin = prefeituraLabel(user.prefeituraId ?? "");
   const labelEff = prefeituraIdEff
     ? prefeituraLabel(prefeituraIdEff)
     : labelPrefLogin;
-  const nomeUsuario = user.nome || user.usuario;
-  const usuarioLogadoTexto = `Conectado: ${nomeUsuario} (${user.perfil || "—"}) · ${labelPrefLogin}`;
+  const usuarioLogadoTexto = `Conectado: ${user.usuario} · ${labelPrefLogin}`;
   const mostrarBannerCtx =
     !!prefeituraIdEff && prefeituraIdEff !== user.prefeituraId;
 

@@ -1,7 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  clearAdminSession,
   isAdminAuthenticated,
   isAdminSecretConfigured,
   setAdminAuthenticated,
@@ -43,7 +42,7 @@ export function AdminPage() {
   }, [sessionAuthenticated, auth.loading, auth.user, auth]);
 
   if (sessionAuthenticated) {
-    return <AdminLayout onLogout={handleLogout} />;
+    return <AdminLayout />;
   }
   function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -66,14 +65,8 @@ export function AdminPage() {
     setSenha("");
   }
 
-  async function handleLogout() {
-    clearAdminSession();
-    await auth.logout();
-    setAuthenticated(false);
-  }
-
   if (authenticated) {
-    return <AdminLayout onLogout={handleLogout} />;
+    return <AdminLayout />;
   }
 
   return (

@@ -8,6 +8,7 @@ export interface DTOAddUsuario {
   prefeituraId: string;
   vinculo: VinculoUsuario;
   postoId?: string;
+  officinaId?: string;
 }
 
 export interface UsuarioFirestore {
@@ -20,6 +21,7 @@ export interface UsuarioFirestore {
   vinculo: VinculoUsuario;
   prefeituraId: string;
   postoId?: string;
+  officinaId?: string;
   createdAt: string;
 }
 

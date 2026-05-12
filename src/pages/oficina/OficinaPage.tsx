@@ -1,8 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from "@firebase/firestore";
+import { db } from "../../lib/firebase/firebase";
 import { useHU360 } from "../../lib/hu360";
 import { useLogin } from "../login/hooks/use-login";
 import "./oficina.css";
+
+function gerarProtocolo(): string {
+  const ano = new Date().getFullYear();
+  const seq = String(Math.floor(Date.now() / 1000) % 1000).padStart(3, "0");
+  return `${ano}-${seq}`;
+}
+
+interface SolicitacaoOS {
+  id: string;
+  protocolo: string;
+  prefeituraId: string;
+  equipamento: string;
+  linha: string;
+  operador: string;
+  horimetro: string;
+  relato: string;
+  oficinas: string[];
+  oficinasIds?: string[];
+  status: string;
+  criadoEm: { seconds: number } | null;
+}
 
 type OficinaSecao = "novas-os" | "orcamentos" | "checklist-dev" | "faturamento";
 
@@ -27,9 +58,50 @@ export function OficinaPage() {
     : (user?.prefeituraId ?? "");
 
   const [secaoAtiva, setSecaoAtiva] = useState<OficinaSecao>("novas-os");
+  const [protocolo, setProtocolo] = useState(() => gerarProtocolo());
   const [itensOrcamento, setItensOrcamento] = useState<ItemOrcamento[]>(() => [
     novoItemOrcamento(),
   ]);
+  const [osErro, setOsErro] = useState("");
+  const [osSaving, setOsSaving] = useState(false);
+  const [osSucesso, setOsSucesso] = useState("");
+
+  // Solicitações de O.S. abertas pela prefeitura
+  const [osList, setOsList] = useState<SolicitacaoOS[]>([]);
+  const [osListLoading, setOsListLoading] = useState(false);
+  const [osExpandidaId, setOsExpandidaId] = useState<string | null>(null);
+
+  const loadOsList = useCallback(async () => {
+    if (!efetivoPrefeituraId) return;
+    setOsListLoading(true);
+    try {
+      const snap = await getDocs(
+        query(
+          collection(db, "solicitacoesOS"),
+          where("prefeituraId", "==", efetivoPrefeituraId),
+          where("status", "==", "aguardando_orcamento"),
+          orderBy("criadoEm", "desc"),
+        ),
+      );
+      const allDocs = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<SolicitacaoOS, "id">),
+      }));
+      // If the logged-in user has an officinaId, show only O.S. targeting that oficina
+      const userOficinaId = user?.officinaId;
+      const filtered =
+        userOficinaId && !isAdmin
+          ? allDocs.filter(
+              (os) => !os.oficinasIds || os.oficinasIds.includes(userOficinaId),
+            )
+          : allDocs;
+      setOsList(filtered);
+    } catch {
+      // silently fail — list stays empty
+    } finally {
+      setOsListLoading(false);
+    }
+  }, [efetivoPrefeituraId]);
 
   useEffect(() => {
     document.body.classList.add("oficina-root");
@@ -37,6 +109,10 @@ export function OficinaPage() {
       document.body.classList.remove("oficina-root");
     };
   }, []);
+
+  useEffect(() => {
+    void loadOsList();
+  }, [loadOsList]);
 
   const dados = useMemo(
     () =>
@@ -66,6 +142,65 @@ export function OficinaPage() {
     setItensOrcamento((prev) =>
       prev.map((item, i) => (i === idx ? { ...item, [campo]: valor } : item)),
     );
+  }
+
+  async function handleEnviarOrcamento() {
+    setOsErro("");
+    setOsSucesso("");
+
+    const osSel = osList.find((o) => o.id === osExpandidaId);
+
+    if (!protocolo.trim()) {
+      setOsErro("Informe o protocolo da O.S.");
+      return;
+    }
+
+    const itensSemDescricao = itensOrcamento.filter(
+      (it) => !it.descricao.trim(),
+    );
+    const itensSemValor = itensOrcamento.filter((it) => !it.valor.trim());
+
+    if (itensSemDescricao.length > 0 || itensSemValor.length > 0) {
+      const msgs: string[] = [];
+      if (itensSemDescricao.length > 0)
+        msgs.push(`${itensSemDescricao.length} item(ns) sem descrição`);
+      if (itensSemValor.length > 0)
+        msgs.push(`${itensSemValor.length} item(ns) sem valor`);
+      setOsErro(`Para salvar, preencha todos os campos: ${msgs.join(" e ")}.`);
+      return;
+    }
+
+    setOsSaving(true);
+    try {
+      await addDoc(collection(db, "ordensServico"), {
+        protocolo: protocolo.trim(),
+        prefeituraId: efetivoPrefeituraId,
+        solicitacaoOsId: osExpandidaId ?? null,
+        operador: user?.usuario ?? "",
+        equipamento: osSel?.equipamento ?? om.equipLabel,
+        defeito: osSel?.relato ?? om.defeito,
+        itens: itensOrcamento.map((it) => ({
+          descricao: it.descricao.trim(),
+          valor: parseFloat(it.valor.replace(",", ".")) || 0,
+        })),
+        valorTotal: itensOrcamento.reduce(
+          (acc, it) => acc + (parseFloat(it.valor.replace(",", ".")) || 0),
+          0,
+        ),
+        status: "aguardando_aprovacao",
+        criadoEm: serverTimestamp(),
+      });
+      setOsSucesso(
+        `Orçamento enviado com sucesso! Protocolo: ${protocolo.trim()}`,
+      );
+      setItensOrcamento([novoItemOrcamento()]);
+      setProtocolo(gerarProtocolo());
+      setOsExpandidaId(null);
+    } catch {
+      setOsErro("Erro ao enviar orçamento. Tente novamente.");
+    } finally {
+      setOsSaving(false);
+    }
   }
 
   async function handleLogout() {
@@ -219,98 +354,342 @@ export function OficinaPage() {
             equipamento e cotação. Aqui você lança seu orçamento; na prefeitura
             o gestor compara as três propostas e aprova uma.
           </p>
-          <div className="card">
-            <h3 id="of-h-os">Requisição: {om.osReq}</h3>
-            <p>
-              <strong>Equipamento:</strong>{" "}
-              <span id="of-txt-equip">{om.equipLabel}</span>
-            </p>
-            <p>
-              <strong>Defeito Relatado:</strong>{" "}
-              <span id="of-txt-defeito">{om.defeito}</span>
-            </p>
-            <hr />
-            <h4>Lançar Orçamento para esta O.S.</h4>
-            <div style={{ display: "grid", gap: 10 }}>
-              {itensOrcamento.map((item, idx) => {
-                const podeRemover = itensOrcamento.length > 1;
-                return (
+
+          {/* Lista de O.S. abertas pela prefeitura */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ width: "auto", padding: "8px 16px", margin: 0 }}
+              onClick={() => {
+                void loadOsList();
+              }}
+              disabled={osListLoading}
+            >
+              {osListLoading ? "Carregando..." : "↻ Recarregar"}
+            </button>
+            <span style={{ fontSize: "0.85rem", color: "#888" }}>
+              {osList.length} O.S. aguardando orçamento
+            </span>
+          </div>
+
+          {osListLoading ? (
+            <p style={{ color: "#888" }}>Buscando ordens de serviço...</p>
+          ) : osList.length === 0 ? (
+            <div
+              className="card"
+              style={{ color: "#888", textAlign: "center", padding: 32 }}
+            >
+              Nenhuma O.S. aguardando orçamento no momento.
+            </div>
+          ) : (
+            osList.map((os) => {
+              const isExpanded = osExpandidaId === os.id;
+              const dataStr = os.criadoEm
+                ? new Date(os.criadoEm.seconds * 1000).toLocaleDateString(
+                    "pt-BR",
+                  )
+                : "—";
+              return (
+                <div
+                  key={os.id}
+                  className="card"
+                  style={{
+                    marginBottom: 16,
+                    borderLeftColor: isExpanded
+                      ? "var(--main-orange)"
+                      : undefined,
+                  }}
+                >
                   <div
-                    key={idx}
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "2fr 1fr 40px",
-                      gap: 12,
+                      display: "flex",
+                      justifyContent: "space-between",
                       alignItems: "flex-start",
+                      flexWrap: "wrap",
+                      gap: 8,
                     }}
                   >
-                    <input
-                      type="text"
-                      placeholder={`Descrição da Peça / Serviço${
-                        itensOrcamento.length > 1 ? ` (${idx + 1})` : ""
-                      }`}
-                      value={item.descricao}
-                      onChange={(e) =>
-                        atualizarItemOrcamento(idx, "descricao", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      placeholder="Valor R$"
-                      value={item.valor}
-                      onChange={(e) =>
-                        atualizarItemOrcamento(idx, "valor", e.target.value)
-                      }
-                    />
+                    <div>
+                      <h3 style={{ margin: "0 0 6px" }}>
+                        {os.protocolo}
+                        <span
+                          style={{
+                            marginLeft: 10,
+                            fontSize: "0.75rem",
+                            fontWeight: 400,
+                            background: "#fef3c7",
+                            color: "#92400e",
+                            padding: "2px 8px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          AGUARDANDO ORÇAMENTO
+                        </span>
+                      </h3>
+                      <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
+                        <strong>Equipamento:</strong> {os.equipamento}
+                      </p>
+                      <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
+                        <strong>Linha:</strong> {os.linha} &nbsp;·&nbsp;{" "}
+                        <strong>Operador:</strong> {os.operador} &nbsp;·&nbsp;{" "}
+                        <strong>Data:</strong> {dataStr}
+                      </p>
+                      <p
+                        style={{
+                          margin: "6px 0 0",
+                          fontSize: "0.88rem",
+                          color: "#555",
+                        }}
+                      >
+                        <strong>Relato:</strong> {os.relato}
+                      </p>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => removerItemOrcamento(idx)}
-                      disabled={!podeRemover}
-                      aria-label="Remover item"
-                      title={
-                        podeRemover
-                          ? "Remover item"
-                          : "É necessário ao menos 1 item"
-                      }
-                      style={{
-                        marginTop: 6,
-                        padding: "10px 0",
-                        background: "transparent",
-                        border: "1px solid #d1d5db",
-                        borderRadius: 5,
-                        color: podeRemover ? "#dc2626" : "#cbd5e1",
-                        cursor: podeRemover ? "pointer" : "not-allowed",
-                        fontWeight: 700,
-                        fontSize: "1.15rem",
-                        lineHeight: 1,
+                      className="btn btn-orange"
+                      style={{ width: "auto", padding: "10px 18px", margin: 0 }}
+                      onClick={() => {
+                        if (isExpanded) {
+                          setOsExpandidaId(null);
+                        } else {
+                          setOsExpandidaId(os.id);
+                          setProtocolo(gerarProtocolo());
+                          setItensOrcamento([novoItemOrcamento()]);
+                          setOsErro("");
+                          setOsSucesso("");
+                        }
                       }}
                     >
-                      ×
+                      {isExpanded ? "Fechar" : "Responder com Orçamento"}
                     </button>
                   </div>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              className="btn btn-orange"
-              style={{ marginTop: 15 }}
-              onClick={adicionarItemOrcamento}
-            >
-              ADICIONAR ITEM
-            </button>
-            <button
-              type="button"
-              className="btn btn-orange"
-              style={{
-                width: "100%",
-                marginTop: 20,
-                background: "var(--primary-black)",
-              }}
-            >
-              ENVIAR ORÇAMENTO PARA PREFEITURA
-            </button>
-          </div>
+
+                  {isExpanded ? (
+                    <div
+                      style={{
+                        marginTop: 20,
+                        borderTop: "1px solid #e5e7eb",
+                        paddingTop: 16,
+                      }}
+                    >
+                      <h4 style={{ marginTop: 0 }}>
+                        Lançar Orçamento — {os.protocolo}
+                      </h4>
+                      <div style={{ marginBottom: 16 }}>
+                        <label
+                          htmlFor="of-protocolo"
+                          style={{
+                            display: "block",
+                            marginBottom: 4,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Protocolo do Orçamento
+                        </label>
+                        <input
+                          id="of-protocolo"
+                          type="text"
+                          value={protocolo}
+                          onChange={(e) => setProtocolo(e.target.value)}
+                          placeholder="Ex: 2026-048"
+                          style={{ maxWidth: 200 }}
+                        />
+                        <p
+                          style={{
+                            margin: "4px 0 0",
+                            fontSize: "0.8rem",
+                            color: "#888",
+                          }}
+                        >
+                          Formato: AAAA-NNN. Gerado automaticamente, mas pode
+                          ser editado.
+                        </p>
+                      </div>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {itensOrcamento.map((item, idx) => {
+                          const podeRemover = itensOrcamento.length > 1;
+                          const semDescricao =
+                            !!osErro && !item.descricao.trim();
+                          const semValor = !!osErro && !item.valor.trim();
+                          return (
+                            <div key={idx} style={{ display: "grid", gap: 4 }}>
+                              <div
+                                style={{
+                                  display: "grid",
+                                  gridTemplateColumns: "2fr 1fr 40px",
+                                  gap: 12,
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <div>
+                                  <input
+                                    type="text"
+                                    placeholder={`Descrição da Peça / Serviço${
+                                      itensOrcamento.length > 1
+                                        ? ` (${idx + 1})`
+                                        : ""
+                                    }`}
+                                    value={item.descricao}
+                                    style={
+                                      semDescricao
+                                        ? { borderColor: "#dc2626" }
+                                        : undefined
+                                    }
+                                    onChange={(e) => {
+                                      atualizarItemOrcamento(
+                                        idx,
+                                        "descricao",
+                                        e.target.value,
+                                      );
+                                      setOsErro("");
+                                    }}
+                                  />
+                                  {semDescricao ? (
+                                    <span
+                                      style={{
+                                        color: "#dc2626",
+                                        fontSize: "0.78rem",
+                                      }}
+                                    >
+                                      Descrição obrigatória
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div>
+                                  <input
+                                    type="number"
+                                    placeholder="Valor R$"
+                                    value={item.valor}
+                                    style={
+                                      semValor
+                                        ? { borderColor: "#dc2626" }
+                                        : undefined
+                                    }
+                                    onChange={(e) => {
+                                      atualizarItemOrcamento(
+                                        idx,
+                                        "valor",
+                                        e.target.value,
+                                      );
+                                      setOsErro("");
+                                    }}
+                                  />
+                                  {semValor ? (
+                                    <span
+                                      style={{
+                                        color: "#dc2626",
+                                        fontSize: "0.78rem",
+                                      }}
+                                    >
+                                      Valor obrigatório
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removerItemOrcamento(idx)}
+                                  disabled={!podeRemover}
+                                  aria-label="Remover item"
+                                  title={
+                                    podeRemover
+                                      ? "Remover item"
+                                      : "É necessário ao menos 1 item"
+                                  }
+                                  style={{
+                                    marginTop: 6,
+                                    padding: "10px 0",
+                                    background: "transparent",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: 5,
+                                    color: podeRemover ? "#dc2626" : "#cbd5e1",
+                                    cursor: podeRemover
+                                      ? "pointer"
+                                      : "not-allowed",
+                                    fontWeight: 700,
+                                    fontSize: "1.15rem",
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-orange"
+                        style={{ marginTop: 15 }}
+                        onClick={adicionarItemOrcamento}
+                      >
+                        ADICIONAR ITEM
+                      </button>
+                      {osErro ? (
+                        <p
+                          style={{
+                            color: "#dc2626",
+                            fontWeight: 600,
+                            marginTop: 14,
+                            fontSize: "0.9rem",
+                            border: "1px solid #fca5a5",
+                            background: "#fef2f2",
+                            padding: "10px 14px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          {osErro}
+                        </p>
+                      ) : null}
+                      {osSucesso ? (
+                        <p
+                          style={{
+                            color: "#15803d",
+                            fontWeight: 600,
+                            marginTop: 14,
+                            fontSize: "0.9rem",
+                            border: "1px solid #86efac",
+                            background: "#f0fdf4",
+                            padding: "10px 14px",
+                            borderRadius: 6,
+                          }}
+                        >
+                          {osSucesso}
+                        </p>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn btn-orange"
+                        style={{
+                          width: "100%",
+                          marginTop: 20,
+                          background: "var(--primary-black)",
+                          opacity: osSaving ? 0.7 : 1,
+                          cursor: osSaving ? "not-allowed" : "pointer",
+                        }}
+                        onClick={() => {
+                          void handleEnviarOrcamento();
+                        }}
+                        disabled={osSaving}
+                      >
+                        {osSaving
+                          ? "ENVIANDO..."
+                          : "ENVIAR ORÇAMENTO PARA PREFEITURA"}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })
+          )}
         </div>
 
         <div

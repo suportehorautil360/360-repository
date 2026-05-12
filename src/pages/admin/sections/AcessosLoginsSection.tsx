@@ -9,8 +9,10 @@ import { useHU360, type Prefeitura } from "../../../lib/hu360";
 import { useLogin } from "../../login/hooks/use-login";
 import { useAccess } from "../hooks/access/use-access";
 import { usePostos } from "../hooks/postos/use-postos";
+import { useOficinas } from "../hooks/oficinas/use-oficinas";
 import type { UsuarioFirestore } from "../hooks/access/types";
 import type { PostoFirestore } from "../hooks/postos/types";
+import type { OficinaFirestore } from "../hooks/oficinas/types";
 
 /**
  * O acesso a esta seção já é gateado por `AdminPage` (senha em
@@ -65,10 +67,13 @@ export function AcessosLoginsSection() {
     removerUsuario: removerUsuarioFirestore,
   } = useAccess();
   const { listarPostosAtivos } = usePostos();
+  const { listarOficinas } = useOficinas();
 
   const [usuarios, setUsuarios] = useState<UsuarioFirestore[]>([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
   const [postosDoMun, setPostosDoMun] = useState<PostoFirestore[]>([]);
+  const [oficinasDoMun, setOficinasDoMun] = useState<OficinaFirestore[]>([]);
+  const [selOfiId, setSelOfiId] = useState<string>("");
 
   // Todos os clientes tipo prefeitura — para os forms de oficina, posto e prefeitura
   const prefsMunicipio = useMemo(
@@ -156,6 +161,17 @@ export function AcessosLoginsSection() {
   }, [selMunPosto, listarPostosAtivos]);
 
   useEffect(() => {
+    if (!selMunOfi) return;
+    setOficinasDoMun([]);
+    setSelOfiId("");
+    void listarOficinas(selMunOfi).then((lista) => {
+      const ativas = lista.filter((o) => o.status === "Ativa");
+      setOficinasDoMun(ativas);
+      if (ativas[0]) setSelOfiId(ativas[0].id);
+    });
+  }, [selMunOfi, listarOficinas]);
+
+  useEffect(() => {
     if (selPostoCred && !postosDoMun.some((p) => p.id === selPostoCred)) {
       setSelPostoCred("");
     }
@@ -213,6 +229,7 @@ export function AcessosLoginsSection() {
     prefeituraId: string;
     vinculo: UsuarioFirestore["vinculo"];
     postoId?: string;
+    officinaId?: string;
     setMsg: (tone: MsgTone, text: string) => void;
     msgSucesso: string;
   }): Promise<boolean> {
@@ -231,6 +248,7 @@ export function AcessosLoginsSection() {
       prefeituraId: opts.prefeituraId,
       vinculo: opts.vinculo,
       ...(opts.postoId ? { postoId: opts.postoId } : {}),
+      ...(opts.officinaId ? { officinaId: opts.officinaId } : {}),
     });
     if (result.ok) {
       opts.setMsg("ok", opts.msgSucesso);
@@ -273,6 +291,13 @@ export function AcessosLoginsSection() {
       setMsgOfiCb("err", "Selecione o município.");
       return;
     }
+    if (!selOfiId) {
+      setMsgOfiCb(
+        "err",
+        "Selecione a oficina credenciada para vincular o usuário.",
+      );
+      return;
+    }
     const ok = await tentarIncluirUsuario({
       nome: ofiNome,
       usuario: ofiLogin,
@@ -280,6 +305,7 @@ export function AcessosLoginsSection() {
       perfil: ofiPerfil,
       prefeituraId: selMunOfi,
       vinculo: "oficina",
+      officinaId: selOfiId,
       setMsg: setMsgOfiCb,
       msgSucesso: "Usuário da oficina cadastrado.",
     });
@@ -748,7 +774,40 @@ export function AcessosLoginsSection() {
                 )}
               </select>
             </div>
-            <div />
+            <div>
+              <label htmlFor="cadastroSelOficina">Oficina credenciada</label>
+              <select
+                id="cadastroSelOficina"
+                required
+                value={selOfiId}
+                onChange={(e) => setSelOfiId(e.target.value)}
+              >
+                {oficinasDoMun.length === 0 ? (
+                  <option value="">
+                    — Nenhuma oficina Ativa neste município —
+                  </option>
+                ) : (
+                  oficinasDoMun.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.nome} — {o.especialidade}
+                    </option>
+                  ))
+                )}
+              </select>
+              {oficinasDoMun.length === 0 ? (
+                <p
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "var(--main-orange)",
+                    marginTop: 4,
+                  }}
+                >
+                  Cadastre a oficina em{" "}
+                  <strong>Gestão → Oficinas e postos</strong> antes de criar o
+                  usuário.
+                </p>
+              ) : null}
+            </div>
           </div>
           <div className="row-2">
             <div>

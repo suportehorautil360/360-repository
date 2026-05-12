@@ -48,6 +48,7 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
       vinculo: data.vinculo,
       prefeituraId: data.prefeituraId,
       ...(data.postoId ? { postoId: data.postoId } : {}),
+      ...(data.officinaId ? { officinaId: data.officinaId } : {}),
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     });

@@ -57,6 +57,12 @@ export function EquipamentosLocacaoSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefId]);
 
+  // Carrega todos os equipamentos do banco na montagem
+  useEffect(() => {
+    void equip.carregarTodos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const pmMerged = useMemo(() => {
     if (!prefId) return null;
     return mergePrefeituraModuloLocacao(
@@ -393,40 +399,16 @@ export function EquipamentosLocacaoSection() {
               </tr>
             </thead>
             <tbody>
-              {equip.lista.map((eq) => (
-                <tr key={eq.id}>
-                  <td>
-                    <strong>
-                      {eq.descricao || eq.modelo || "Equipamento"}
-                    </strong>
-                  </td>
-                  <td>{eq.marca}</td>
-                  <td>{eq.modelo}</td>
-                  <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
-                  <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
-                  <td style={{ fontSize: "0.82rem" }}>
-                    {eq.obra?.trim() ? eq.obra : "—"}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-outline"
-                      style={{
-                        padding: "6px 12px",
-                        margin: 0,
-                        width: "auto",
-                        color: "#fca5a5",
-                        borderColor: "rgba(248, 113, 113, 0.35)",
-                      }}
-                      onClick={() => void equip.remover(eq.id)}
-                      aria-label="Remover equipamento"
-                    >
-                      Remover
-                    </button>
+              {equip.loadingTodos ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{ textAlign: "center", color: "var(--muted)" }}
+                  >
+                    Carregando...
                   </td>
                 </tr>
-              ))}
-              {equip.lista.length === 0 ? (
+              ) : equip.listaTodos.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
@@ -435,10 +417,44 @@ export function EquipamentosLocacaoSection() {
                       color: "var(--muted)",
                     }}
                   >
-                    Nenhum equipamento cadastrado para este cliente.
+                    Nenhum equipamento cadastrado.
                   </td>
                 </tr>
-              ) : null}
+              ) : (
+                equip.listaTodos.map((eq) => (
+                  <tr key={eq.id}>
+                    <td>
+                      <strong>
+                        {eq.descricao || eq.modelo || "Equipamento"}
+                      </strong>
+                    </td>
+                    <td>{eq.marca}</td>
+                    <td>{eq.modelo}</td>
+                    <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
+                    <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
+                    <td style={{ fontSize: "0.82rem" }}>
+                      {eq.obra?.trim() ? eq.obra : "—"}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        style={{
+                          padding: "6px 12px",
+                          margin: 0,
+                          width: "auto",
+                          color: "#fca5a5",
+                          borderColor: "rgba(248, 113, 113, 0.35)",
+                        }}
+                        onClick={() => void equip.remover(eq.id)}
+                        aria-label="Remover equipamento"
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

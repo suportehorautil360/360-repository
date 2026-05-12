@@ -40,8 +40,11 @@ export interface DTOAddEquipamento {
 
 export interface UseEquipamentosLocacao {
   lista: EquipamentoDoc[];
+  listaTodos: EquipamentoDoc[];
   loading: boolean;
+  loadingTodos: boolean;
   carregar: (prefeituraId: string) => Promise<void>;
+  carregarTodos: () => Promise<void>;
   adicionar: (
     data: DTOAddEquipamento,
   ) => Promise<{ ok: boolean; message: string }>;
@@ -62,7 +65,9 @@ export interface UseEquipamentosLocacao {
 
 export function useEquipamentosLocacao(): UseEquipamentosLocacao {
   const [lista, setLista] = useState<EquipamentoDoc[]>([]);
+  const [listaTodos, setListaTodos] = useState<EquipamentoDoc[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingTodos, setLoadingTodos] = useState(false);
 
   const carregar = useCallback(async (prefeituraId: string) => {
     if (!prefeituraId) return;
@@ -76,6 +81,15 @@ export function useEquipamentosLocacao(): UseEquipamentosLocacao {
       snap.docs.map((d) => ({ id: d.id, ...d.data() }) as EquipamentoDoc),
     );
     setLoading(false);
+  }, []);
+
+  const carregarTodos = useCallback(async () => {
+    setLoadingTodos(true);
+    const snap = await getDocs(collection(db, "equipamentos"));
+    setListaTodos(
+      snap.docs.map((d) => ({ id: d.id, ...d.data() }) as EquipamentoDoc),
+    );
+    setLoadingTodos(false);
   }, []);
 
   const adicionar = useCallback(
@@ -118,6 +132,7 @@ export function useEquipamentosLocacao(): UseEquipamentosLocacao {
         criadoEm: new Date().toISOString(),
       };
       setLista((prev) => [...prev, novo]);
+      setListaTodos((prev) => [...prev, novo]);
       return { ok: true, message: "Equipamento adicionado." };
     },
     [lista],
@@ -162,7 +177,10 @@ export function useEquipamentosLocacao(): UseEquipamentosLocacao {
         });
         adicionados++;
       }
-      if (novos.length > 0) setLista((prev) => [...prev, ...novos]);
+      if (novos.length > 0) {
+        setLista((prev) => [...prev, ...novos]);
+        setListaTodos((prev) => [...prev, ...novos]);
+      }
       return { adicionados, duplicados };
     },
     [lista],
@@ -187,12 +205,16 @@ export function useEquipamentosLocacao(): UseEquipamentosLocacao {
   const remover = useCallback(async (id: string) => {
     await deleteDoc(doc(db, "equipamentos", id));
     setLista((prev) => prev.filter((e) => e.id !== id));
+    setListaTodos((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
   return {
     lista,
+    listaTodos,
     loading,
+    loadingTodos,
     carregar,
+    carregarTodos,
     adicionar,
     adicionarLote,
     importarTexto,

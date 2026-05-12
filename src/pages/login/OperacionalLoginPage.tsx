@@ -55,11 +55,15 @@ export function OperacionalLoginPage() {
     setLoading(true);
     setMensagem("Autenticando...");
 
-    await handleLogin(loginUsuario, senha, navigate);
+    const result = await handleLogin(loginUsuario, senha, navigate);
 
     setLoading(false);
-    setMensagem("");
-    setSenha("");
+    if (result?.error) {
+      setMensagem(result.error);
+    } else {
+      setMensagem("");
+      setSenha("");
+    }
     // Não navega aqui — handleLogin já navegou para a rota correta com o id
   }
 

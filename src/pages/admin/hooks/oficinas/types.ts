@@ -7,6 +7,7 @@ export interface OficinaFirestore {
   credChecklist?: Record<string, boolean>;
   credObservacoes?: string;
   credAnexosNomes?: string[];
+  credAnexosResumo?: string;
   credCnpjExtraido?: string;
   credRazaoSocialExtraida?: string;
   createdAt: string;

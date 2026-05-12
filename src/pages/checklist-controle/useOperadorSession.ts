@@ -7,6 +7,7 @@ export type OperadorSession = {
   idMaquina: string;
   idCliente: string;
   empresa: string;
+  chassis?: string;
 };
 
 function isValidSession(s: unknown): s is OperadorSession {
