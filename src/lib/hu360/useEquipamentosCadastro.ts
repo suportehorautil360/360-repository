@@ -31,12 +31,21 @@ export interface UseEquipamentosCadastro {
   remover: (equipId: string) => void
   /** Substitui a lista por uma versão limpa (pode ser usado para resetar). */
   substituir: (nova: EquipamentoCadastro[]) => void
+  /** Vincula o equipamento a uma empresa terceira (tomador) ou remove o vínculo. */
+  definirEmpresaTerceira: (
+    equipId: string,
+    empresaTerceiraId: string | undefined,
+  ) => void
+  /** Remove o vínculo de todos os equipamentos que apontavam para essa empresa. */
+  limparReferenciasEmpresa: (empresaTerceiraId: string) => void
 }
 
 export function useEquipamentosCadastro(
   prefeituraId: string | undefined,
+  moduloRefreshKey?: number,
 ): UseEquipamentosCadastro {
   const { obterDadosPrefeitura, salvarDadosPrefeitura } = useHU360()
+  const tick = moduloRefreshKey ?? 0
 
   const [lista, setLista] = useState<EquipamentoCadastro[]>(() => {
     if (!prefeituraId) return []
@@ -52,7 +61,7 @@ export function useEquipamentosCadastro(
     }
     const dados = obterDadosPrefeitura(prefeituraId)
     setLista(dados.prefeituraModulo?.equipamentosCadastro ?? [])
-  }, [prefeituraId, obterDadosPrefeitura])
+  }, [prefeituraId, obterDadosPrefeitura, tick])
 
   const persistir = useCallback(
     (nova: EquipamentoCadastro[]) => {
@@ -123,6 +132,33 @@ export function useEquipamentosCadastro(
     [persistir],
   )
 
+  const definirEmpresaTerceira = useCallback(
+    (equipId: string, empresaTerceiraId: string | undefined) => {
+      const idx = lista.findIndex((x) => x.id === equipId)
+      if (idx < 0) return
+      const cur = lista[idx]
+      const nextId = empresaTerceiraId?.trim() || undefined
+      if (cur.empresaTerceiraId === nextId) return
+      const nova = [...lista]
+      nova[idx] = { ...cur, empresaTerceiraId: nextId }
+      persistir(nova)
+    },
+    [lista, persistir],
+  )
+
+  const limparReferenciasEmpresa = useCallback(
+    (empresaTerceiraId: string) => {
+      if (!lista.some((x) => x.empresaTerceiraId === empresaTerceiraId)) return
+      const nova = lista.map((x) =>
+        x.empresaTerceiraId === empresaTerceiraId
+          ? { ...x, empresaTerceiraId: undefined }
+          : x,
+      )
+      persistir(nova)
+    },
+    [lista, persistir],
+  )
+
   const labelsParaSelectFrota = useMemo<string[]>(
     () => lista.map(formatLabelEquipamentoCadastro),
     [lista],
@@ -136,5 +172,7 @@ export function useEquipamentosCadastro(
     importarArquivo,
     remover,
     substituir,
+    definirEmpresaTerceira,
+    limparReferenciasEmpresa,
   }
 }

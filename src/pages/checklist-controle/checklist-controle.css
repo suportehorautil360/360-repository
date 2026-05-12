@@ -228,11 +228,63 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--hu-border);
+  border-bottom: none;
 }
 
-.hu360-check-row:last-child {
+.hu360-check-block {
+  border-bottom: 1px solid var(--hu-border);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.hu360-check-block:last-child {
   border-bottom: none;
+}
+
+.hu360-check-block:last-child .hu360-check-row {
+  padding-bottom: 0;
+}
+
+.hu360-nao-problema {
+  margin-top: 4px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.hu360-nao-problema__lead {
+  margin: 0 0 12px;
+  font-size: 0.86rem;
+  color: #991b1b;
+}
+
+.hu360-nao-problema__lbl {
+  display: block;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #475569;
+  margin-top: 12px;
+}
+
+.hu360-nao-problema__hint {
+  margin: 4px 0 8px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.hu360-nao-problema__textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 4.5rem;
 }
 
 .hu360-check-num {
@@ -685,6 +737,27 @@
   font-weight: 500;
 }
 
+.hu360-dash-card--clickable {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  border: 1px solid #e2e8f0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.hu360-dash-card--clickable:hover {
+  border-color: #fdba74;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.12);
+}
+
+.hu360-dash-card--clickable:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
 .hu360-dash-secondary {
   display: flex;
   flex-direction: column;
@@ -764,8 +837,23 @@
   color: #0f172a;
 }
 
-.hu360-main--light .hu360-check-row {
+.hu360-main--light .hu360-check-block {
   border-bottom-color: #e2e8f0;
+}
+
+.hu360-main--light .hu360-nao-problema {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.hu360-main--light .hu360-nao-problema__lead {
+  color: #9f1239;
+}
+
+.hu360-main--light .hu360-nao-problema__textarea {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
 .hu360-main--light .hu360-toggle-group button {

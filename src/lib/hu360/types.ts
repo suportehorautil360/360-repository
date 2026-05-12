@@ -231,6 +231,16 @@ export interface DashboardGraficos {
   tituloPeriodo: string
 }
 
+/** Tomador / sublocatário: empresa para a qual a locadora direciona uso do equipamento. */
+export interface EmpresaTerceiraLocacao {
+  id: string
+  nome: string
+  cnpj?: string
+  contato?: string
+  observacoes?: string
+  criadoEm: string
+}
+
 export interface EquipamentoCadastro {
   id: string
   marca: string
@@ -240,6 +250,8 @@ export interface EquipamentoCadastro {
   linha: string
   /** Obra / serviço vinculado (opcional). */
   obra?: string
+  /** Empresa terceira (tomador) quando o equipamento é alugado “em direção” a ela. */
+  empresaTerceiraId?: string
   criadoEm: string
 }
 
@@ -257,6 +269,8 @@ export interface PrefeituraModulo {
   dashboardGraficos: DashboardGraficos
   cotacoesPendentes: CotacaoPendente[]
   controleAbastecimento: ControleAbastecimento
+  /** Empresas terceiras (tomadores) para direcionar equipamentos em sublocação. */
+  empresasTerceirasLocacao?: EmpresaTerceiraLocacao[]
   /** Populado pelo cadastro manual / importação de planilha. */
   equipamentosCadastro?: EquipamentoCadastro[]
   /** Populado por syncs com a API (HU360Sync). */

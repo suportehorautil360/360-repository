@@ -26,6 +26,8 @@ export interface EquipamentoDoc {
   obra: string;
   status: string;
   criadoEm: string;
+  /** Id da empresa em `empresas_terceiras_locacao` (sincronizado com HU360 local). */
+  empresaTerceiraId?: string;
 }
 
 export interface DTOAddEquipamento {

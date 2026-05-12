@@ -1,19 +1,24 @@
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 
-type Aba = "dashboard" | "checklist" | "emergencia" | "treinamentos";
+type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia" | "treinamentos";
 
 type ItemChecklist = (typeof seedData.itens_checklist)[number];
+
+/** Resposta por item: «Não» exige foto ao vivo + descrição do problema. */
+type ChecklistAnswerValue =
+  | { v: "sim" }
+  | { v: "nao"; foto: string; problema: string };
+
+function checklistRespostaCompleta(a: ChecklistAnswerValue | undefined): boolean {
+  if (!a) return false;
+  if (a.v === "sim") return true;
+  return Boolean(a.foto.startsWith("data:image") && a.problema.trim());
+}
 
 /** Senha do modo demonstração / operadores (inclui login administrativo jefferson). */
 const OPERADOR_SENHA = "1234";
@@ -276,9 +281,10 @@ function genId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 10)}`;
 }
 
-const ABAS: { id: Aba; label: string; icon: "dash" | "check" | "alert" | "play" }[] = [
+const ABAS: { id: Aba; label: string; icon: "dash" | "check" | "audit" | "alert" | "play" }[] = [
   { id: "dashboard", label: "Dashboard", icon: "dash" },
   { id: "checklist", label: "Checklist", icon: "check" },
+  { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
   { id: "emergencia", label: "Emergências", icon: "alert" },
   { id: "treinamentos", label: "Treinamentos", icon: "play" },
 ];
@@ -314,10 +320,18 @@ function parseRespostasChecklist(row: Record<string, unknown>): {
   const raw = row.Respostas_JSON;
   if (typeof raw === "string" && raw.length > 0) {
     try {
-      const o = JSON.parse(raw) as Record<string, string>;
-      const entries = Object.values(o);
-      const total = entries.length;
-      const sim = entries.filter((v) => v === "sim").length;
+      const o = JSON.parse(raw) as Record<string, unknown>;
+      let sim = 0;
+      let total = 0;
+      for (const val of Object.values(o)) {
+        total += 1;
+        if (val === "sim") {
+          sim += 1;
+        } else if (val && typeof val === "object" && "v" in val) {
+          const vv = (val as { v?: string }).v;
+          if (vv === "sim") sim += 1;
+        }
+      }
       return { total, sim };
     } catch {
       /* fall through */
@@ -333,7 +347,7 @@ function parseRespostasChecklist(row: Record<string, unknown>): {
   return { total: 0, sim: 0 };
 }
 
-function Hu360NavIcon({ kind }: { kind: "dash" | "check" | "alert" | "play" }) {
+function Hu360NavIcon({ kind }: { kind: "dash" | "check" | "audit" | "alert" | "play" }) {
   const s = {
     width: 20,
     height: 20,
@@ -372,6 +386,16 @@ function Hu360NavIcon({ kind }: { kind: "dash" | "check" | "alert" | "play" }) {
       </svg>
     );
   }
+  if (kind === "audit") {
+    return (
+      <svg {...s} aria-hidden>
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" />
+        <path d="M9 5a2 2 0 0 1 2-2h2" />
+        <circle cx="17.5" cy="17.5" r="3.5" />
+        <path d="m21 21-2.3-2.3" />
+      </svg>
+    );
+  }
   return (
     <svg {...s} aria-hidden>
       <circle cx="12" cy="12" r="10" />
@@ -392,12 +416,18 @@ export function ChecklistControlePage() {
 
   const [chassisChecklistDraft, setChassisChecklistDraft] = useState("");
   const [chassisChecklistAtivo, setChassisChecklistAtivo] = useState("");
-  const [answers, setAnswers] = useState<Record<string, "sim" | "nao">>({});
+  const [answers, setAnswers] = useState<Record<string, ChecklistAnswerValue>>({});
+  const [nomeOperadorChecklist, setNomeOperadorChecklist] = useState("");
   const [horimetro, setHorimetro] = useState("");
   const [fotoHorimetroDataUrl, setFotoHorimetroDataUrl] = useState("");
   const [horimetroCameraUi, setHorimetroCameraUi] = useState(false);
   const [obsChecklist, setObsChecklist] = useState("");
   const [checkMsg, setCheckMsg] = useState("");
+  const [painelChecklistsHojeAberto, setPainelChecklistsHojeAberto] = useState(false);
+  const [painelChecklistExpandidoId, setPainelChecklistExpandidoId] = useState<string | null>(null);
+  const [auditoriaChecklistExpandidoId, setAuditoriaChecklistExpandidoId] = useState<string | null>(
+    null,
+  );
 
   const [tipoFalhaCategoria, setTipoFalhaCategoria] = useState("");
   const [tipoFalhaOutros, setTipoFalhaOutros] = useState("");
@@ -416,6 +446,17 @@ export function ChecklistControlePage() {
   const horimetroStreamRef = useRef<MediaStream | null>(null);
   const emergVideoRef = useRef<HTMLVideoElement>(null);
   const emergStreamRef = useRef<MediaStream | null>(null);
+  const itemNaoVideoRef = useRef<HTMLVideoElement>(null);
+  const itemNaoStreamRef = useRef<MediaStream | null>(null);
+  const [itemNaoCameraKey, setItemNaoCameraKey] = useState<string | null>(null);
+
+  const stopItemNaoCamera = useCallback(() => {
+    itemNaoStreamRef.current?.getTracks().forEach((t) => t.stop());
+    itemNaoStreamRef.current = null;
+    const v = itemNaoVideoRef.current;
+    if (v) v.srcObject = null;
+    setItemNaoCameraKey(null);
+  }, []);
 
   const stopHorimetroCamera = useCallback(() => {
     horimetroStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -427,6 +468,7 @@ export function ChecklistControlePage() {
 
   const abrirCameraHorimetro = useCallback(async () => {
     setCheckMsg("");
+    stopItemNaoCamera();
     stopHorimetroCamera();
     if (!navigator.mediaDevices?.getUserMedia) {
       setCheckMsg(
@@ -458,7 +500,7 @@ export function ChecklistControlePage() {
       );
       stopHorimetroCamera();
     }
-  }, [stopHorimetroCamera]);
+  }, [stopHorimetroCamera, stopItemNaoCamera]);
 
   const capturarFotoHorimetroAoVivo = useCallback(() => {
     const v = horimetroVideoRef.current;
@@ -513,6 +555,8 @@ export function ChecklistControlePage() {
   const abrirCameraEmergencia = useCallback(
     async (slot: number) => {
       setEmergMsg("");
+      stopItemNaoCamera();
+      stopHorimetroCamera();
       stopEmergenciaCamera();
       if (!navigator.mediaDevices?.getUserMedia) {
         setEmergMsg(
@@ -545,7 +589,7 @@ export function ChecklistControlePage() {
         stopEmergenciaCamera();
       }
     },
-    [stopEmergenciaCamera],
+    [stopEmergenciaCamera, stopHorimetroCamera, stopItemNaoCamera],
   );
 
   const capturarFotoEmergenciaAoVivo = useCallback(() => {
@@ -568,7 +612,69 @@ export function ChecklistControlePage() {
     stopEmergenciaCamera();
   }, [emergCameraSlot, stopEmergenciaCamera]);
 
+  const abrirCameraItemNao = useCallback(
+    async (itemKey: string) => {
+      setCheckMsg("");
+      stopItemNaoCamera();
+      stopHorimetroCamera();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCheckMsg(
+          "Não foi possível acessar a câmera neste navegador. Use HTTPS e um navegador atualizado (Chrome ou Safari).",
+        );
+        return;
+      }
+      try {
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+        itemNaoStreamRef.current = stream;
+        setItemNaoCameraKey(itemKey);
+      } catch (e) {
+        const denied = e instanceof DOMException && e.name === "NotAllowedError";
+        setCheckMsg(
+          denied
+            ? "Permissão da câmera negada. Autorize para fotografar o problema."
+            : "Não foi possível iniciar a câmera. Tente de novo.",
+        );
+        stopItemNaoCamera();
+      }
+    },
+    [stopItemNaoCamera, stopHorimetroCamera],
+  );
+
+  const capturarFotoItemNao = useCallback(() => {
+    const k = itemNaoCameraKey;
+    if (!k) return;
+    const v = itemNaoVideoRef.current;
+    const dataUrl = v ? jpegDataUrlFromVideoEmergencia(v) : null;
+    if (!dataUrl) {
+      setCheckMsg(
+        "Não foi possível capturar a foto do problema. Aguarde o vídeo ou melhore a luz e tente de novo.",
+      );
+      return;
+    }
+    setAnswers((prev) => {
+      const cur = prev[k];
+      if (!cur || cur.v !== "nao") return prev;
+      return { ...prev, [k]: { ...cur, foto: dataUrl } };
+    });
+    setCheckMsg("");
+    stopItemNaoCamera();
+  }, [itemNaoCameraKey, stopItemNaoCamera]);
+
   const dashMetrics = useMemo(() => {
+    if (!session) {
+      return { checklistsHoje: 0, itensHoje: 0, emAberto: 0, aproveitamento: 0 };
+    }
     const today = startOfLocalDayIso(new Date());
     const hist = loadChecklistHistory();
     let checklistsHoje = 0;
@@ -577,6 +683,8 @@ export function ChecklistControlePage() {
     for (const row of hist) {
       const dh = String(row.Data_Hora ?? "");
       if (!isSameLocalDay(dh, today)) continue;
+      if (String(row.ID_Cliente ?? "") !== session.idCliente) continue;
+      if (String(row.ID_Maquina ?? "") !== session.idMaquina) continue;
       checklistsHoje += 1;
       const { total, sim } = parseRespostasChecklist(row);
       itensHoje += total;
@@ -588,7 +696,33 @@ export function ChecklistControlePage() {
     const aproveitamento =
       itensHoje > 0 ? Math.round((simHoje / itensHoje) * 100) : 0;
     return { checklistsHoje, itensHoje, emAberto, aproveitamento };
-  }, [emergRows, checkMsg]);
+  }, [session, emergRows, checkMsg]);
+
+  const checklistsHojeFiltrados = useMemo(() => {
+    if (!session) return [];
+    const today = startOfLocalDayIso(new Date());
+    const hist = loadChecklistHistory();
+    const rows = hist.filter((row) => {
+      if (!isSameLocalDay(String(row.Data_Hora ?? ""), today)) return false;
+      if (String(row.ID_Cliente ?? "") !== session.idCliente) return false;
+      if (String(row.ID_Maquina ?? "") !== session.idMaquina) return false;
+      return true;
+    });
+    rows.sort((a, b) => String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")));
+    return rows;
+  }, [session, emergRows, checkMsg]);
+
+  const checklistsAuditoriaFiltrados = useMemo(() => {
+    if (!session) return [];
+    const hist = loadChecklistHistory();
+    const rows = hist.filter((row) => {
+      if (String(row.ID_Cliente ?? "") !== session.idCliente) return false;
+      if (String(row.ID_Maquina ?? "") !== session.idMaquina) return false;
+      return true;
+    });
+    rows.sort((a, b) => String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")));
+    return rows;
+  }, [session, emergRows, checkMsg]);
 
   useEffect(() => {
     document.body.classList.add("hu360-root");
@@ -596,6 +730,16 @@ export function ChecklistControlePage() {
       document.body.classList.remove("hu360-root");
     };
   }, []);
+
+  useEffect(() => {
+    if (aba !== "dashboard") {
+      setPainelChecklistsHojeAberto(false);
+      setPainelChecklistExpandidoId(null);
+    }
+    if (aba !== "auditoria") {
+      setAuditoriaChecklistExpandidoId(null);
+    }
+  }, [aba]);
 
   useEffect(() => {
     if (!horimetroCameraUi) return;
@@ -616,18 +760,32 @@ export function ChecklistControlePage() {
   }, [emergCameraSlot]);
 
   useEffect(() => {
+    if (itemNaoCameraKey === null) return;
+    const v = itemNaoVideoRef.current;
+    const stream = itemNaoStreamRef.current;
+    if (!v || !stream) return;
+    v.srcObject = stream;
+    void v.play().catch(() => undefined);
+  }, [itemNaoCameraKey]);
+
+  useEffect(() => {
     return () => {
       horimetroStreamRef.current?.getTracks().forEach((t) => t.stop());
       horimetroStreamRef.current = null;
       emergStreamRef.current?.getTracks().forEach((t) => t.stop());
       emergStreamRef.current = null;
+      itemNaoStreamRef.current?.getTracks().forEach((t) => t.stop());
+      itemNaoStreamRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (aba !== "checklist") stopHorimetroCamera();
+    if (aba !== "checklist") {
+      stopHorimetroCamera();
+      stopItemNaoCamera();
+    }
     if (aba !== "emergencia") stopEmergenciaCamera();
-  }, [aba, stopHorimetroCamera, stopEmergenciaCamera]);
+  }, [aba, stopHorimetroCamera, stopEmergenciaCamera, stopItemNaoCamera]);
 
   useEffect(() => {
     if (!session?.idMaquina) return;
@@ -640,15 +798,22 @@ export function ChecklistControlePage() {
     if (normalizeChassis(chassisChecklistDraft) !== chassisChecklistAtivo) {
       setChassisChecklistAtivo("");
       setAnswers({});
+      setNomeOperadorChecklist("");
       setHorimetro("");
       setFotoHorimetroDataUrl("");
       stopHorimetroCamera();
+      stopItemNaoCamera();
     }
-  }, [chassisChecklistDraft, chassisChecklistAtivo, stopHorimetroCamera]);
+  }, [chassisChecklistDraft, chassisChecklistAtivo, stopHorimetroCamera, stopItemNaoCamera]);
 
   const checklistItensLiberados = useMemo(
-    () => Boolean(horimetro.trim() && fotoHorimetroDataUrl.length > 0),
-    [horimetro, fotoHorimetroDataUrl],
+    () =>
+      Boolean(
+        nomeOperadorChecklist.trim() &&
+          horimetro.trim() &&
+          fotoHorimetroDataUrl.length > 0,
+      ),
+    [nomeOperadorChecklist, horimetro, fotoHorimetroDataUrl],
   );
 
   useEffect(() => {
@@ -723,9 +888,11 @@ export function ChecklistControlePage() {
     setChassisChecklistDraft(m0?.Chassis != null ? String(m0.Chassis) : "");
     setChassisChecklistAtivo("");
     setAnswers({});
+    setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
+    stopItemNaoCamera();
     setLoginMsg({
       tone: "ok",
       text: saved
@@ -734,6 +901,8 @@ export function ChecklistControlePage() {
     });
     setSenha("");
     setAba("dashboard");
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
   }
 
   function handleLogout() {
@@ -743,15 +912,19 @@ export function ChecklistControlePage() {
     setAnswers({});
     setChassisChecklistDraft("");
     setChassisChecklistAtivo("");
+    setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
+    stopItemNaoCamera();
     setTipoFalhaCategoria("");
     setTipoFalhaOutros("");
     setDescEmerg("");
     setGpsEmerg("");
     setFotosEmergencia(Array.from({ length: EMERG_NUM_FOTOS }, () => ""));
     stopEmergenciaCamera();
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
     setAba("dashboard");
   }
 
@@ -772,18 +945,32 @@ export function ChecklistControlePage() {
     }
     setChassisChecklistAtivo(normalizeChassis(chassisChecklistDraft));
     setAnswers({});
+    setNomeOperadorChecklist(session?.nome ?? "");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
+    stopItemNaoCamera();
     setCheckMsg("Lista de verificação aberta para este chassi.");
   }
 
   const setAnswer = useCallback(
     (numKey: string, v: "sim" | "nao") => {
-      if (!horimetro.trim() || !fotoHorimetroDataUrl) return;
-      setAnswers((prev) => ({ ...prev, [numKey]: v }));
+      if (!nomeOperadorChecklist.trim() || !horimetro.trim() || !fotoHorimetroDataUrl) return;
+      if (v === "sim") {
+        if (itemNaoCameraKey === numKey) stopItemNaoCamera();
+        setAnswers((prev) => ({ ...prev, [numKey]: { v: "sim" } }));
+        return;
+      }
+      stopItemNaoCamera();
+      setAnswers((prev) => ({ ...prev, [numKey]: { v: "nao", foto: "", problema: "" } }));
     },
-    [horimetro, fotoHorimetroDataUrl],
+    [
+      nomeOperadorChecklist,
+      horimetro,
+      fotoHorimetroDataUrl,
+      itemNaoCameraKey,
+      stopItemNaoCamera,
+    ],
   );
 
   function handleSalvarChecklist(e: FormEvent) {
@@ -799,6 +986,10 @@ export function ChecklistControlePage() {
       );
       return;
     }
+    if (!nomeOperadorChecklist.trim()) {
+      setCheckMsg("Informe o nome do operador antes de salvar.");
+      return;
+    }
     if (!horimetro.trim()) {
       setCheckMsg("Informe o horímetro antes de salvar.");
       return;
@@ -810,19 +1001,26 @@ export function ChecklistControlePage() {
       return;
     }
     const keys = itensFiltrados.map((it) => String(it["Nº"]));
-    const falta = keys.filter((k) => answers[k] == null);
-    if (falta.length > 0) {
-      setCheckMsg(`Responda Sim/Não em todos os itens (${falta.length} pendente(s)).`);
+    const incompleto = keys.find((k) => !checklistRespostaCompleta(answers[k]));
+    if (incompleto !== undefined) {
+      const a = answers[incompleto];
+      if (a?.v === "nao") {
+        setCheckMsg(
+          `No item ${incompleto}: em «Não» use a câmera para fotografar o problema e descreva o que foi encontrado.`,
+        );
+      } else {
+        setCheckMsg(`Responda Sim/Não em todos os itens (pendente: ${incompleto}).`);
+      }
       return;
     }
 
-    const numSim = keys.filter((k) => answers[k] === "sim").length;
+    const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
     const pontos = numSim * 2;
 
     const reg = {
       ID_Registro: genId("CHK"),
       Data_Hora: new Date().toISOString(),
-      Operador: session.nome,
+      Operador: nomeOperadorChecklist.trim(),
       Chassis: String(maquinaAtual.Chassis ?? chassisChecklistAtivo),
       ID_Maquina: maquinaAtual.ID,
       Categoria: maquinaAtual.Categoria,
@@ -843,9 +1041,11 @@ export function ChecklistControlePage() {
     saveChecklistHistory(hist);
     setCheckMsg("Checklist registrado localmente (demonstração).");
     setAnswers({});
+    setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
+    stopItemNaoCamera();
     setObsChecklist("");
   }
 
@@ -1023,7 +1223,16 @@ export function ChecklistControlePage() {
         {aba === "dashboard" ? (
           <section className="hu360-dash">
             <div className="hu360-dash-kpis">
-              <article className="hu360-dash-card">
+              <button
+                type="button"
+                className="hu360-dash-card hu360-dash-card--clickable"
+                title="Ver checklists concluídos hoje nesta máquina"
+                onClick={() => {
+                  setPainelChecklistsHojeAberto(true);
+                  setPainelChecklistExpandidoId(null);
+                }}
+                aria-expanded={painelChecklistsHojeAberto}
+              >
                 <div
                   className="hu360-dash-card__icon hu360-dash-card__icon--orange"
                   aria-hidden
@@ -1039,7 +1248,7 @@ export function ChecklistControlePage() {
                   <div className="hu360-dash-card__val">{dashMetrics.checklistsHoje}</div>
                   <div className="hu360-dash-card__lbl">Checklists Hoje</div>
                 </div>
-              </article>
+              </button>
               <article className="hu360-dash-card">
                 <div
                   className="hu360-dash-card__icon hu360-dash-card__icon--green"
@@ -1085,6 +1294,31 @@ export function ChecklistControlePage() {
                 </div>
               </article>
             </div>
+
+            {painelChecklistsHojeAberto ? (
+              <div className="hu360-card hu360-dash-checklists-panel">
+                <div className="hu360-dash-checklists-panel__head">
+                  <h3 className="hu360-dash-checklists-panel__title">Checklists concluídos hoje</h3>
+                  <button
+                    type="button"
+                    className="hu360-btn hu360-btn-ghost"
+                    style={{ width: "auto", padding: "8px 14px" }}
+                    onClick={() => {
+                      setPainelChecklistsHojeAberto(false);
+                      setPainelChecklistExpandidoId(null);
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <ListaChecklistHistoricoLocal
+                  rows={checklistsHojeFiltrados}
+                  expandidoId={painelChecklistExpandidoId}
+                  setExpandidoId={setPainelChecklistExpandidoId}
+                  mensagemVazia="Nenhum checklist registrado hoje nesta máquina e locação."
+                />
+              </div>
+            ) : null}
 
           </section>
         ) : null}
@@ -1150,6 +1384,18 @@ export function ChecklistControlePage() {
 
               {maquinaAtual && itensFiltrados.length > 0 ? (
                 <form onSubmit={handleSalvarChecklist} style={{ marginTop: 16 }}>
+                  <label htmlFor="hu360-nome-operador-chk">
+                    Nome do operador <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <input
+                    id="hu360-nome-operador-chk"
+                    autoComplete="name"
+                    required
+                    value={nomeOperadorChecklist}
+                    onChange={(ev) => setNomeOperadorChecklist(ev.target.value)}
+                    placeholder="Nome completo de quem está fazendo a verificação"
+                  />
+
                   <label htmlFor="hu360-horimetro">
                     Horímetro <span style={{ color: "#dc2626" }}>*</span>
                   </label>
@@ -1247,8 +1493,9 @@ export function ChecklistControlePage() {
                         fontSize: "0.88rem",
                       }}
                     >
-                      Preencha o <strong>horímetro</strong> e use a <strong>câmera</strong> para fotografar
-                      o horímetro na hora; depois disso os itens da lista (Sim/Não) são liberados.
+                      Preencha o <strong>nome do operador</strong>, o <strong>horímetro</strong> e use a{" "}
+                      <strong>câmera</strong> para fotografar o horímetro na hora; depois disso os itens da
+                      lista (Sim/Não) são liberados.
                     </p>
                   ) : null}
 
@@ -1262,33 +1509,127 @@ export function ChecklistControlePage() {
                       const key = String(it["Nº"]);
                       const cur = answers[key];
                       const bloq = !checklistItensLiberados;
+                      const isSim = cur?.v === "sim";
+                      const isNao = cur?.v === "nao";
                       return (
-                        <div key={key} className="hu360-check-row">
-                          <span className="hu360-check-num">{key}</span>
-                          <div style={{ flex: "1 1 220px" }}>
-                            {it["Item de Verificação"]}
-                            <div style={{ fontSize: "0.78rem", color: "var(--hu-muted)" }}>
-                              {it.Tipo}
+                        <div key={key} className="hu360-check-block">
+                          <div className="hu360-check-row">
+                            <span className="hu360-check-num">{key}</span>
+                            <div style={{ flex: "1 1 220px" }}>
+                              {it["Item de Verificação"]}
+                              <div style={{ fontSize: "0.78rem", color: "var(--hu-muted)" }}>
+                                {it.Tipo}
+                              </div>
+                            </div>
+                            <div className="hu360-toggle-group">
+                              <button
+                                type="button"
+                                className={isSim ? "active-sim" : ""}
+                                disabled={bloq}
+                                onClick={() => setAnswer(key, "sim")}
+                              >
+                                Sim
+                              </button>
+                              <button
+                                type="button"
+                                className={isNao ? "active-nao" : ""}
+                                disabled={bloq}
+                                onClick={() => setAnswer(key, "nao")}
+                              >
+                                Não
+                              </button>
                             </div>
                           </div>
-                          <div className="hu360-toggle-group">
-                            <button
-                              type="button"
-                              className={cur === "sim" ? "active-sim" : ""}
-                              disabled={bloq}
-                              onClick={() => setAnswer(key, "sim")}
-                            >
-                              Sim
-                            </button>
-                            <button
-                              type="button"
-                              className={cur === "nao" ? "active-nao" : ""}
-                              disabled={bloq}
-                              onClick={() => setAnswer(key, "nao")}
-                            >
-                              Não
-                            </button>
-                          </div>
+                          {isNao && !bloq ? (
+                            <div className="hu360-nao-problema">
+                              <p className="hu360-nao-problema__lead">
+                                Este item está como <strong>Não</strong>. Registre evidência e o problema.
+                              </p>
+                              <span className="hu360-nao-problema__lbl">
+                                Foto do problema <span style={{ color: "#dc2626" }}>*</span> (na hora)
+                              </span>
+                              <p className="hu360-nao-problema__hint">
+                                Só câmera ao vivo, como no horímetro.
+                              </p>
+                              {itemNaoCameraKey === key ? (
+                                <div className="hu360-horimetro-camera-wrap">
+                                  <video
+                                    ref={itemNaoVideoRef}
+                                    className="hu360-horimetro-camera"
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                  />
+                                  <div className="hu360-horimetro-camera-actions">
+                                    <button
+                                      type="button"
+                                      className="hu360-btn"
+                                      style={{ width: "auto", padding: "10px 18px" }}
+                                      onClick={capturarFotoItemNao}
+                                    >
+                                      Capturar foto
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="hu360-btn hu360-btn-ghost"
+                                      style={{ width: "auto", padding: "10px 18px" }}
+                                      onClick={stopItemNaoCamera}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : null}
+                              {isNao && cur.foto ? (
+                                <div className="hu360-foto-preview">
+                                  <img src={cur.foto} alt="" />
+                                  <button
+                                    type="button"
+                                    className="hu360-btn hu360-btn-ghost"
+                                    style={{ width: "auto", marginTop: 8, padding: "6px 12px" }}
+                                    onClick={() => {
+                                      setAnswers((prev) => {
+                                        const c = prev[key];
+                                        if (!c || c.v !== "nao") return prev;
+                                        return { ...prev, [key]: { ...c, foto: "" } };
+                                      });
+                                      setCheckMsg("");
+                                    }}
+                                  >
+                                    Remover foto
+                                  </button>
+                                </div>
+                              ) : null}
+                              {isNao && !cur.foto && itemNaoCameraKey !== key ? (
+                                <button
+                                  type="button"
+                                  className="hu360-btn"
+                                  style={{ width: "auto", padding: "10px 18px" }}
+                                  onClick={() => abrirCameraItemNao(key)}
+                                >
+                                  Abrir câmera — foto do problema
+                                </button>
+                              ) : null}
+                              <label className="hu360-nao-problema__lbl" htmlFor={`hu360-nao-txt-${key}`}>
+                                Descreva o problema <span style={{ color: "#dc2626" }}>*</span>
+                              </label>
+                              <textarea
+                                id={`hu360-nao-txt-${key}`}
+                                className="hu360-nao-problema__textarea"
+                                rows={3}
+                                value={cur.problema}
+                                onChange={(ev) => {
+                                  const t = ev.target.value;
+                                  setAnswers((prev) => {
+                                    const c = prev[key];
+                                    if (!c || c.v !== "nao") return prev;
+                                    return { ...prev, [key]: { ...c, problema: t } };
+                                  });
+                                }}
+                                placeholder="O que foi encontrado neste item?"
+                              />
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -1323,6 +1664,27 @@ export function ChecklistControlePage() {
                   {checkMsg}
                 </div>
               ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {aba === "auditoria" ? (
+          <section className="hu360-page">
+            <p className="hu360-page__lead">
+              Histórico de checklists salvos neste dispositivo para a sua locação e máquina. A
+              mesma visualização do painel <strong>Checklists concluídos hoje</strong>: expanda
+              cada registro para ver horímetro, fotos e itens (Sim/Não).
+            </p>
+            <div className="hu360-card hu360-dash-checklists-panel">
+              <div className="hu360-dash-checklists-panel__head">
+                <h3 className="hu360-dash-checklists-panel__title">Auditoria de checklists</h3>
+              </div>
+              <ListaChecklistHistoricoLocal
+                rows={checklistsAuditoriaFiltrados}
+                expandidoId={auditoriaChecklistExpandidoId}
+                setExpandidoId={setAuditoriaChecklistExpandidoId}
+                mensagemVazia="Nenhum checklist registrado nesta máquina e locação."
+              />
             </div>
           </section>
         ) : null}

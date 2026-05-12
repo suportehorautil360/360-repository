@@ -31,9 +31,20 @@ export type {
   AddBatchResult,
 } from './equipamentos'
 export {
+  useEmpresasTerceirasLocacao,
+  type UseEmpresasTerceirasLocacao,
+  type EmpresaTerceiraEntrada,
+} from './useEmpresasTerceirasLocacao'
+export {
   useEquipamentosCadastro,
   type UseEquipamentosCadastro,
 } from './useEquipamentosCadastro'
+export {
+  sincronizarLocacaoComFirestore,
+  pushLocacaoModuloParaFirestore,
+  pullLocacaoModuloDoFirestore,
+  normChassisLocacaoSync,
+} from './locacaoFirestoreSync'
 
 /* ============== API HTTP — funções diretas ============== */
 export {
