@@ -17,6 +17,7 @@ import { PostoPage } from "./pages/posto/PostoPage";
 import { PrefeituraPage } from "./pages/prefeitura/PrefeituraPage";
 import { useLogin } from "./pages/login/hooks/use-login";
 import { OperacionalLoginPage } from "./pages/login/OperacionalLoginPage";
+import { ChecklistControlePage } from "./pages/checklist-controle/ChecklistControlePage";
 
 type DestinoOperacional = "locacao" | "oficina" | "posto";
 
@@ -75,6 +76,10 @@ export function AppRoutes() {
           }
         />
         <Route path="/login-operacional" element={<OperacionalLoginPage />} />
+        <Route
+          path="/checklist-controle"
+          element={<ChecklistControlePage />}
+        />
         <Route
           path="/posto/:id"
           element={

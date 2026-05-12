@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { setAdminAuthenticated } from "../../admin/adminSession";
 import {
   type AuthMessageTone,
@@ -89,6 +89,13 @@ export function LoginView({
           </div>
         </form>
         <p className="quick-access">
+          <Link
+            to="/checklist-controle"
+            style={{ color: "var(--secondary, #3b82f6)", fontWeight: 600 }}
+          >
+            Controle checklist operacional (operador)
+          </Link>
+          {" · "}
           Contas demo (cada uma vê só sua prefeitura): <strong>admin</strong> /{" "}
           <strong>admin123</strong> (Três Lagoas-MS) · <strong>gestor</strong> /{" "}
           <strong>gestor123</strong> (Curitiba-PR) · <strong>admin.bh</strong> /{" "}

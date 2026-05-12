@@ -1,0 +1,585 @@
+{
+  "itens_checklist": [
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão, tandem e hidráulico",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar círculo de giro, articulações e pinos",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos e integridade das hastes",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.5,
+      "Item de Verificação": "PNEUS: Verificar calibragem, cortes, bolhas e aperto de porcas",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar trincas no chassi e suporte da lâmina",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas em pinos e travas de segurança",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar facas da lâmina, parafusos e escarificador",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Motoniveladora",
+      "Nº": 1.9,
+      "Item de Verificação": "SEGURANÇA: Testar luzes, freio, buzina e sinal sonoro de ré",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, hidráulico e comandos finais",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar separador de água do combustível",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar pinos da lança, braço, caçamba e giro",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar limpeza de hastes e vazamentos",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.5,
+      "Item de Verificação": "PARTE RODANTE: Verificar tensão da esteira, roletes e guias",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassi inferior e proteção da cabine",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas nos pinos de articulação e travas",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar dentes, unhas e pinos de trava da caçamba",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Escavadeira",
+      "Nº": 2.9,
+      "Item de Verificação": "SEGURANÇA: Testar buzina, luzes de trabalho e alarme de ré",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar filtros de combustível",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulações da lâmina e do ripper",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos nos cilindros de lâmina",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.5,
+      "Item de Verificação": "PARTE RODANTE: Verificar sapatas e dentes da roda motriz",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassis e pinos mestres",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de segurança e pinos de fixação",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar ponteiras do ripper e bordas da lâmina",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Trator de Esteira",
+      "Nº": 3.9,
+      "Item de Verificação": "SEGURANÇA: Testar freio de estacionamento, luzes e alarme sonoro",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulação central e braços da caçamba",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos e hastes de levante",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.5,
+      "Item de Verificação": "PNEUS: Verificar calibragem, cortes e aperto de porcas",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar trincas na articulação central",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas em pinos e travas de segurança",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar lâminas de corte e dentes da caçamba",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Pá Carregadeira",
+      "Nº": 4.9,
+      "Item de Verificação": "SEGURANÇA: Testar freio, buzina, luzes e sinal sonoro de ré",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar filtros de combustível (Racor)",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar caçamba frontal e braço traseiro",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar estabilizadores e mangueiras do braço",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.5,
+      "Item de Verificação": "PNEUS: Verificar pressão e estado das carcaças",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassis e suportes dos estabilizadores",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de transporte do braço traseiro",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar dentes da retro e sapatas das patolas",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Retroescavadeira",
+      "Nº": 5.9,
+      "Item de Verificação": "SEGURANÇA: Testar freio, buzina, luzes e alarme de ré",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, direção e arrefecimento",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar filtros separadores de diesel",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulações, quinta roda ou pinos de mola",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar sistema de basculamento/munk/pipa",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.5,
+      "Item de Verificação": "PNEUS: Verificar calibragem, sulcos e estado geral",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar grampos de fixação e chassis",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de carroceria e pinos de suporte",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar estado do tanque, caçamba ou braço munk",
+      "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhões",
+      "Nº": 6.9,
+      "Item de Verificação": "SEGURANÇA: Testar todas as luzes, buzina e alarme de ré",
+      "Tipo": "Sim/Não"
+    }
+  ],
+  "treinamentos_video": [
+    {
+      "ID_Treino": "TR-01",
+      "Categoria": "Escavadeira",
+      "Titulo_Video_IA": "Inspeção de Material Rodante",
+      "Link_Video_URL": "https://youtube.com/exemplo1",
+      "Descricao_CapCut": "Vídeo editado com voz de IA sobre esteiras."
+    },
+    {
+      "ID_Treino": "TR-02",
+      "Categoria": "Motoniveladora",
+      "Titulo_Video_IA": "Nível de Óleo do Tandem",
+      "Link_Video_URL": "https://youtube.com/exemplo2",
+      "Descricao_CapCut": "Instruções para verificação diária."
+    }
+  ],
+  "log_emergencias": [],
+  "ranking_pontuacao": [
+    {
+      "Operador": "Jefferson Lima",
+      "Empresa": "VIVO INFRAESTRUTURA",
+      "Total_Pontos": 128,
+      "Semanas_Sem_Falha": 6
+    },
+    {
+      "Operador": "Antonio Silva",
+      "Empresa": "CONSTRUTORA MARQUISE S.A.",
+      "Total_Pontos": 115,
+      "Semanas_Sem_Falha": 4
+    },
+    {
+      "Operador": "Fabio Junior",
+      "Empresa": "AGRO MS",
+      "Total_Pontos": 98,
+      "Semanas_Sem_Falha": 3
+    }
+  ],
+  "cadastro_frota": [
+    {
+      "ID": "MOT-01",
+      "Categoria": "Motoniveladora",
+      "Marca": "John Deere",
+      "Modelo": "620G",
+      "Chassis": "BRMOT01000000000"
+    },
+    {
+      "ID": "MOT-02",
+      "Categoria": "Motoniveladora",
+      "Marca": "Caterpillar",
+      "Modelo": "120 / 140K",
+      "Chassis": "BRMOT02000000000"
+    },
+    {
+      "ID": "MOT-03",
+      "Categoria": "Motoniveladora",
+      "Marca": "Case",
+      "Modelo": "845B VHP",
+      "Chassis": "BRMOT03000000000"
+    },
+    {
+      "ID": "MOT-04",
+      "Categoria": "Motoniveladora",
+      "Marca": "New Holland",
+      "Modelo": "RG170.B",
+      "Chassis": "BRMOT04000000000"
+    },
+    {
+      "ID": "ESC-01",
+      "Categoria": "Escavadeira",
+      "Marca": "Caterpillar",
+      "Modelo": "320 Next Gen",
+      "Chassis": "BRESC01000000000"
+    },
+    {
+      "ID": "ESC-02",
+      "Categoria": "Escavadeira",
+      "Marca": "John Deere",
+      "Modelo": "210G / 350G",
+      "Chassis": "BRESC02000000000"
+    },
+    {
+      "ID": "ESC-03",
+      "Categoria": "Escavadeira",
+      "Marca": "Volvo",
+      "Modelo": "EC210D",
+      "Chassis": "BRESC03000000000"
+    },
+    {
+      "ID": "ESC-04",
+      "Categoria": "Escavadeira",
+      "Marca": "Komatsu",
+      "Modelo": "PC200",
+      "Chassis": "BRESC04000000000"
+    },
+    {
+      "ID": "ESC-05",
+      "Categoria": "Escavadeira",
+      "Marca": "Sany",
+      "Modelo": "SY215C",
+      "Chassis": "BRESC05000000000"
+    },
+    {
+      "ID": "TRT-01",
+      "Categoria": "Trator de Esteira",
+      "Marca": "Case",
+      "Modelo": "1150M / 1650M",
+      "Chassis": "BRTRT01000000000"
+    },
+    {
+      "ID": "TRT-02",
+      "Categoria": "Trator de Esteira",
+      "Marca": "Caterpillar",
+      "Modelo": "D6 / D8T",
+      "Chassis": "BRTRT02000000000"
+    },
+    {
+      "ID": "TRT-03",
+      "Categoria": "Trator de Esteira",
+      "Marca": "John Deere",
+      "Modelo": "750J-II",
+      "Chassis": "BRTRT03000000000"
+    },
+    {
+      "ID": "RET-01",
+      "Categoria": "Retroescavadeira",
+      "Marca": "John Deere",
+      "Modelo": "310L",
+      "Chassis": "BRRET01000000000"
+    },
+    {
+      "ID": "RET-02",
+      "Categoria": "Retroescavadeira",
+      "Marca": "Caterpillar",
+      "Modelo": "416F2",
+      "Chassis": "BRRET02000000000"
+    },
+    {
+      "ID": "RET-03",
+      "Categoria": "Retroescavadeira",
+      "Marca": "JCB",
+      "Modelo": "3CX",
+      "Chassis": "BRRET03000000000"
+    },
+    {
+      "ID": "RET-04",
+      "Categoria": "Retroescavadeira",
+      "Marca": "Case",
+      "Modelo": "580N",
+      "Chassis": "BRRET04000000000"
+    },
+    {
+      "ID": "PAC-01",
+      "Categoria": "Pá Carregadeira",
+      "Marca": "Caterpillar",
+      "Modelo": "924K / 938K",
+      "Chassis": "BRPAC01000000000"
+    },
+    {
+      "ID": "PAC-02",
+      "Categoria": "Pá Carregadeira",
+      "Marca": "John Deere",
+      "Modelo": "524P / 624P",
+      "Chassis": "BRPAC02000000000"
+    },
+    {
+      "ID": "PAC-03",
+      "Categoria": "Pá Carregadeira",
+      "Marca": "Volvo",
+      "Modelo": "L60H",
+      "Chassis": "BRPAC03000000000"
+    },
+    {
+      "ID": "CAM-BAS-01",
+      "Categoria": "Caminhão Basculante",
+      "Marca": "Mercedes-Benz",
+      "Modelo": "Atego 2730",
+      "Chassis": "BRCAMBAS010000000"
+    },
+    {
+      "ID": "CAM-BAS-02",
+      "Categoria": "Caminhão Basculante",
+      "Marca": "Volkswagen",
+      "Modelo": "Constellation 26.280",
+      "Chassis": "BRCAMBAS020000000"
+    },
+    {
+      "ID": "CAM-MUN-01",
+      "Categoria": "Caminhão Munk",
+      "Marca": "Ford",
+      "Modelo": "Cargo 2429",
+      "Chassis": "BRCAMMUN010000000"
+    },
+    {
+      "ID": "CAM-PIP-01",
+      "Categoria": "Caminhão Pipa",
+      "Marca": "Scania",
+      "Modelo": "P310",
+      "Chassis": "BRCAMPIP010000000"
+    }
+  ],
+  "locacoes_ativas": [
+    {
+      "ID_Maquina": "MOT-01",
+      "ID_Cliente": "CL-MARQUISE",
+      "Nome_Empresa": "CONSTRUTORA MARQUISE S.A.",
+      "Lista_Operadores": "Antonio Silva, Benedito Souza, Carlos Magno, Jose Ferreira, Ze do Trecho"
+    },
+    {
+      "ID_Maquina": "ESC-01",
+      "ID_Cliente": "CL-VIVO",
+      "Nome_Empresa": "VIVO INFRAESTRUTURA",
+      "Lista_Operadores": "Jefferson Lima, Ricardo Oliveira, Marcos Santos, Paulo Vieira, Andre Luiz"
+    },
+    {
+      "ID_Maquina": "RET-03",
+      "ID_Cliente": "CL-AGRO",
+      "Nome_Empresa": "AGRO MS",
+      "Lista_Operadores": "Fabio Junior, Samuel Costa, Ze Roberto, Adriano Neves"
+    }
+  ],
+  "cadastro_clientes": [
+    {
+      "ID_Cliente": "CL-MARQUISE",
+      "Nome_Empresa": "CONSTRUTORA MARQUISE S.A.",
+      "Logo": "https://logodownload.org/wp-content/uploads/2019/08/marquise-logo.png"
+    },
+    {
+      "ID_Cliente": "CL-VIVO",
+      "Nome_Empresa": "VIVO INFRAESTRUTURA",
+      "Logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Vivo_logo.svg/1200px-Vivo_logo.svg.png"
+    },
+    {
+      "ID_Cliente": "CL-AGRO",
+      "Nome_Empresa": "AGRO MS",
+      "Logo": "https://img.freepik.com/vetores-premium/logotipo-da-fazenda-agro_25327-210.jpg"
+    }
+  ],
+  "log_respostas": [
+    {
+      "ID_Registro": "b986eb93",
+      "Data_Hora": "2026-04-13T23:54:30",
+      "Operador": null,
+      "ID_Maquina": null,
+      "Categoria": null,
+      "Marca": null,
+      "Modelo": null,
+      "Item_Verificado": null,
+      "Status_Ok_Nao": null,
+      "Foto_Irregularidade": null,
+      "Horimetro_Final": null,
+      "Foto_Horimetro": null,
+      "Obs": null,
+      "Assinatura": null,
+      "Pontuacao": null,
+      "ID_Cliente": null
+    }
+  ]
+}
