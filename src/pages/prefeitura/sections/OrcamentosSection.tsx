@@ -3,9 +3,7 @@ import {
   collection,
   doc,
   getDocs,
-  orderBy,
   query,
-  updateDoc,
   where,
   writeBatch,
 } from "@firebase/firestore";
@@ -66,6 +64,7 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoOS[]>([]);
   const [ordens, setOrdens] = useState<OrdemServico[]>([]);
   const [loading, setLoading] = useState(false);
+  const [erroCarregar, setErroCarregar] = useState<string | null>(null);
   const [aprovando, setAprovando] = useState<string | null>(null);
   const [msgAcao, setMsgAcao] = useState<{
     id: string;
@@ -79,39 +78,58 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
     setLoading(true);
+    setErroCarregar(null);
     try {
-      const [snapSol, snapOrd] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "solicitacoesOS"),
-            where("prefeituraId", "==", prefeituraId),
-            orderBy("criadoEm", "desc"),
-          ),
+      // 1. Busca todas as solicitações do município
+      const snapSol = await getDocs(
+        query(
+          collection(db, "solicitacoesOS"),
+          where("prefeituraId", "==", prefeituraId),
         ),
-        getDocs(
-          query(
-            collection(db, "ordensServico"),
-            where("prefeituraId", "==", prefeituraId),
-            orderBy("criadoEm", "desc"),
-          ),
-        ),
-      ]);
-
-      setSolicitacoes(
-        snapSol.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<SolicitacaoOS, "id">),
-        })),
       );
 
-      setOrdens(
-        snapOrd.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<OrdemServico, "id">),
-        })),
+      const sols = snapSol.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<SolicitacaoOS, "id">) }))
+        .sort(
+          (a, b) => (b.criadoEm?.seconds ?? 0) - (a.criadoEm?.seconds ?? 0),
+        );
+      setSolicitacoes(sols);
+
+      // 2. Busca ordensServico pelo solicitacaoOsId (relacionamento direto)
+      if (sols.length === 0) {
+        setOrdens([]);
+        return;
+      }
+
+      const ids = sols.map((s) => s.id);
+      // Firestore "in" suporta até 30 valores por chamada
+      const chunks: string[][] = [];
+      for (let i = 0; i < ids.length; i += 30) {
+        chunks.push(ids.slice(i, i + 30));
+      }
+
+      const ordensAll: OrdemServico[] = [];
+      await Promise.all(
+        chunks.map(async (chunk) => {
+          const snap = await getDocs(
+            query(
+              collection(db, "ordensServico"),
+              where("solicitacaoOsId", "in", chunk),
+            ),
+          );
+          snap.docs.forEach((d) => {
+            ordensAll.push({
+              id: d.id,
+              ...(d.data() as Omit<OrdemServico, "id">),
+            });
+          });
+        }),
       );
-    } catch {
-      // silently fail
+      setOrdens(ordensAll);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[OrcamentosSection] erro ao carregar:", msg, err);
+      setErroCarregar(msg);
     } finally {
       setLoading(false);
     }
@@ -166,12 +184,8 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
     }
   }
 
-  // Filtra apenas OS que têm orçamentos recebidos ou que já foram aprovadas
-  const solicitacoesVisiveis = solicitacoes.filter(
-    (s) =>
-      s.status !== "aguardando_orcamento" ||
-      ordens.some((o) => o.solicitacaoOsId === s.id),
-  );
+  // Mostra todas as OS abertas (incluindo as que ainda aguardam orçamento)
+  const solicitacoesVisiveis = solicitacoes;
 
   return (
     <>
@@ -204,9 +218,29 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
         <span
           style={{ fontSize: "0.85rem", color: "#888", alignSelf: "center" }}
         >
-          {solicitacoesVisiveis.length} O.S. com orçamentos
+          {solicitacoesVisiveis.length} O.S. abertas
         </span>
       </div>
+
+      {erroCarregar ? (
+        <div
+          className="card"
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fca5a5",
+            color: "#dc2626",
+            padding: 16,
+            marginBottom: 16,
+            fontSize: "0.88rem",
+          }}
+        >
+          <strong>Erro ao carregar dados:</strong> {erroCarregar}
+          <br />
+          <small style={{ color: "#555" }}>
+            prefeituraId recebido: <code>{prefeituraId || "(vazio)"}</code>
+          </small>
+        </div>
+      ) : null}
 
       {loading ? (
         <p style={{ color: "#888" }}>Buscando dados...</p>
@@ -215,7 +249,7 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
           className="card"
           style={{ color: "#888", textAlign: "center", padding: 32 }}
         >
-          Nenhuma O.S. com orçamentos recebidos no momento.
+          Nenhuma O.S. aberta no momento.
         </div>
       ) : (
         solicitacoesVisiveis.map((sol) => {

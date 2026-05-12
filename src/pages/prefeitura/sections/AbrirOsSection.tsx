@@ -58,7 +58,12 @@ export function AbrirOsSection({ dados, prefeituraId }: AbrirOsSectionProps) {
   const [operadores, setOperadores] = useState(demoOperadores);
 
   useEffect(() => {
-    if (!prefeituraId) return;
+    if (!prefeituraId) {
+      console.log(
+        "Nenhuma prefeituraId fornecida, usando dados de demonstração para equipamentos e operadores.",
+      );
+      return;
+    }
     getDocs(
       query(
         collection(db, "equipamentos"),
@@ -66,6 +71,9 @@ export function AbrirOsSection({ dados, prefeituraId }: AbrirOsSectionProps) {
       ),
     )
       .then((snap) => {
+        console.log(
+          `Equipamentos carregados do Firestore: ${snap.size} documentos encontrados.`,
+        );
         if (snap.empty) return; // keep demo data
         setEquips(
           snap.docs.map((d) => ({

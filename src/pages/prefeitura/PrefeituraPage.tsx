@@ -323,7 +323,7 @@ export function PrefeituraPage() {
             id="auditoria"
             className={`tab-content ${aba === "auditoria" ? "active" : ""}`}
           >
-            <AuditoriaSection dados={dados} />
+            <AuditoriaSection prefeituraId={prefeituraId} />
           </div>
 
           <div

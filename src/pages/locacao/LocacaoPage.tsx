@@ -7,12 +7,24 @@ import {
   useState,
 } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from "@firebase/firestore";
+import { db } from "../../lib/firebase/firebase";
 import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
 import { checklistAppToHistoricoRow } from "../../components/checklistHistorico/checklistAppToHistoricoRow";
 import {
   type ChecklistApiRow,
   criarDadosDemo,
   type ChecklistApp,
+  type DashboardGraficos,
+  type TopOperador,
   sincronizarLocacaoComFirestore,
   useEmpresasTerceirasLocacao,
   useEquipamentosCadastro,
@@ -28,7 +40,12 @@ import {
 import "./locacao.css";
 import { useLogin } from "../login/hooks/use-login";
 
-type LocacaoSecao = "dash" | "auditoria" | "riscos" | "equipamentos" | "terceiros";
+type LocacaoSecao =
+  | "dash"
+  | "auditoria"
+  | "riscos"
+  | "equipamentos"
+  | "terceiros";
 
 const COR_INFO = "#78716c";
 const COR_ERRO = "#dc2626";
@@ -73,10 +90,46 @@ function checklistQrSintetico(row: ChecklistApiRow): ChecklistApp {
   };
 }
 
+function firestoreDocToHistRow(
+  docId: string,
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const respostasJson =
+    data.respostas &&
+    typeof data.respostas === "object" &&
+    !Array.isArray(data.respostas)
+      ? JSON.stringify(data.respostas)
+      : typeof data.respostas === "string"
+        ? data.respostas
+        : "{}";
+  return {
+    ID_Registro: data.id ?? docId,
+    Data_Hora: data.dataHoraIso ?? "",
+    Operador: data.operador ?? "",
+    Chassis: data.chassis ?? "",
+    Categoria: data.categoria ?? "",
+    Modelo: data.modelo ?? "",
+    Linha: data.linha ?? "",
+    Item_Verificado: `Checklist ${data.totalItens ?? "?"} itens`,
+    Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
+    Respostas_JSON: respostasJson,
+    Horimetro_Final: data.horimetro ?? "",
+    Pontuacao: data.pontuacao ?? 0,
+    ID_Cliente: data.idOperadorSession ?? "",
+    prefeituraId: data.prefeituraId ?? "",
+    Obs: data.obs ?? null,
+  };
+}
+
+function normalizeChassis(s: string): string {
+  return s.toUpperCase().replace(/[\s\-]/g, "");
+}
+
 export function LocacaoPage() {
   const { login, logout } = useHU360Auth();
   const { user, setUser } = useLogin();
   const { id: paramId } = useParams<{ id: string }>();
+
   const navigate = useNavigate();
   const { obterDadosPrefeitura, prefeituraLabel, prefeituras } = useHU360();
   const [prefCtxGen, setPrefCtxGen] = useState(0);
@@ -101,9 +154,9 @@ export function LocacaoPage() {
 
   const prefeituraIdEff = useMemo(() => {
     if (!user) return null;
-    if (isAdmin && paramId) return paramId;
+    if (paramId) return paramId;
     return locPrefeituraIdParaUi(user, prefeituras);
-  }, [user, prefeituras, prefCtxGen, isAdmin, paramId]);
+  }, [user, prefeituras, prefCtxGen, paramId]);
 
   const dados = useMemo(
     () => (prefeituraIdEff ? obterDadosPrefeitura(prefeituraIdEff) : null),
@@ -133,6 +186,7 @@ export function LocacaoPage() {
   );
   const audLista = dados?.auditoria?.length ? dados.auditoria : audBase;
 
+  //@ts-ignore
   const auditoriaHistoricoRows = useMemo(() => {
     const out: Record<string, unknown>[] = [];
     audLista.forEach((row, idx) => {
@@ -173,9 +227,13 @@ export function LocacaoPage() {
       );
     });
     out.sort((a, b) =>
-      String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? ""), undefined, {
-        numeric: true,
-      }),
+      String(b.Data_Hora ?? "").localeCompare(
+        String(a.Data_Hora ?? ""),
+        undefined,
+        {
+          numeric: true,
+        },
+      ),
     );
     return out;
   }, [audLista, audBase, checklistsCampo]);
@@ -192,16 +250,28 @@ export function LocacaoPage() {
   const [syncLocacaoLoading, setSyncLocacaoLoading] = useState(false);
   const [syncLocacaoMsg, setSyncLocacaoMsg] = useState<string | null>(null);
 
-  const equip = useEquipamentosCadastro(prefeituraIdEff ?? undefined, locModuloRefresh);
-  const terceiras = useEmpresasTerceirasLocacao(prefeituraIdEff ?? undefined, locModuloRefresh);
+  //@ts-ignore
+  const [dashCarregando, setDashCarregando] = useState(false);
+  //@ts-ignore
+  const [dashTick, setDashTick] = useState(0);
+  const [dashEquipCount, setDashEquipCount] = useState<number | null>(null);
+  const [dashChecklistTotal, setDashChecklistTotal] = useState<number | null>(
+    null,
+  );
+  const [dashManuCount, setDashManuCount] = useState<number | null>(null);
+  const [dashGraficos, setDashGraficos] = useState<DashboardGraficos | null>(
+    null,
+  );
 
-  const empresaLabelById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const e of terceiras.lista) {
-      m.set(e.id, e.nome);
-    }
-    return m;
-  }, [terceiras.lista]);
+  const equip = useEquipamentosCadastro(
+    prefeituraIdEff ?? undefined,
+    locModuloRefresh,
+  );
+  //@ts-ignore
+  const terceiras = useEmpresasTerceirasLocacao(
+    prefeituraIdEff ?? undefined,
+    locModuloRefresh,
+  );
 
   // Estado de login
   //@ts-ignore
@@ -213,13 +283,56 @@ export function LocacaoPage() {
   // Navegação
   const [secaoAtiva, setSecaoAtiva] = useState<LocacaoSecao>("dash");
 
-  const [auditoriaExpandidoId, setAuditoriaExpandidoId] = useState<string | null>(null);
+  const [auditoriaExpandidoId, setAuditoriaExpandidoId] = useState<
+    string | null
+  >(null);
+  const [audFirestoreRows, setAudFirestoreRows] = useState<
+    Record<string, unknown>[]
+  >([]);
+  const [audCarregando, setAudCarregando] = useState(false);
+  const [audTick, setAudTick] = useState(0);
+  const [audFiltroData, setAudFiltroData] = useState("");
+  const [audFiltroChassis, setAudFiltroChassis] = useState("");
+  const [audFiltroOperador, setAudFiltroOperador] = useState("");
+
+  const [equipFirestoreRows, setEquipFirestoreRows] = useState<
+    Record<string, unknown>[]
+  >([]);
+  const [equipCarregando, setEquipCarregando] = useState(false);
+  //@ts-ignore
+  const [equipTick, setEquipTick] = useState(0);
+
+  interface TercRow {
+    id: string;
+    nome: string;
+    cnpj?: string;
+    contato?: string;
+    observacoes?: string;
+    criadoEm: string;
+  }
+  const [tercFirestoreRows, setTercFirestoreRows] = useState<TercRow[]>([]);
+  const [tercCarregando, setTercCarregando] = useState(false);
+  const [tercTick, setTercTick] = useState(0);
+  //@ts-ignore
+  const [tercSalvando, setTercSalvando] = useState(false);
+
+  //@ts-ignore
+  const empresaLabelById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of tercFirestoreRows) {
+      m.set(e.id, e.nome);
+    }
+    return m;
+  }, [tercFirestoreRows]);
 
   const [tercNome, setTercNome] = useState("");
   const [tercCnpj, setTercCnpj] = useState("");
   const [tercContato, setTercContato] = useState("");
   const [tercObs, setTercObs] = useState("");
-  const [tercMsg, setTercMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [tercMsg, setTercMsg] = useState<{
+    tone: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     document.body.classList.add("locacao-root");
@@ -234,11 +347,11 @@ export function LocacaoPage() {
       locDesenharDashboardGraficos(
         canvasChRef.current,
         canvasOpRef.current,
-        pmMerged.dashboardGraficos,
+        dashGraficos ?? pmMerged?.dashboardGraficos,
       );
     });
     return () => cancelAnimationFrame(id);
-  }, [secaoAtiva, pmMerged, prefeituraIdEff]);
+  }, [secaoAtiva, pmMerged, prefeituraIdEff, dashGraficos]);
 
   useEffect(() => {
     if (secaoAtiva !== "dash") return;
@@ -247,7 +360,7 @@ export function LocacaoPage() {
         locDesenharDashboardGraficos(
           canvasChRef.current,
           canvasOpRef.current,
-          pmMerged.dashboardGraficos,
+          dashGraficos ?? pmMerged?.dashboardGraficos,
         );
       }
     });
@@ -265,6 +378,196 @@ export function LocacaoPage() {
   useEffect(() => {
     if (secaoAtiva !== "auditoria") setAuditoriaExpandidoId(null);
   }, [secaoAtiva]);
+
+  useEffect(() => {
+    if (secaoAtiva !== "dash" || !prefeituraIdEff) return;
+    setDashCarregando(true);
+    const now = new Date();
+    const mesAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    Promise.all([
+      getDocs(
+        query(
+          collection(db, "equipamentos"),
+          where("prefeituraId", "==", prefeituraIdEff),
+        ),
+      ),
+      getDocs(
+        query(
+          collection(db, "checklistsRegistros"),
+          where("prefeituraId", "==", prefeituraIdEff),
+        ),
+      ),
+      getDocs(
+        query(
+          collection(db, "emergenciasRegistros"),
+          where("prefeituraId", "==", prefeituraIdEff),
+          where("statusAtendimento", "==", "aberto"),
+        ),
+      ),
+    ])
+      .then(([snapEquip, snapChk, snapEmerg]) => {
+        setDashEquipCount(snapEquip.size);
+        setDashManuCount(snapEmerg.size);
+        const chkRows = snapChk.docs.map(
+          (d) => d.data() as Record<string, unknown>,
+        );
+        setDashChecklistTotal(chkRows.length);
+        // Agrupamento por semana do mês atual
+        const semanas = [0, 0, 0, 0];
+        chkRows.forEach((r) => {
+          const dataStr = String(r.dataHoraIso ?? "");
+          if (!dataStr.startsWith(mesAtual)) return;
+          const dia = parseInt(dataStr.slice(8, 10), 10);
+          const sem = dia <= 7 ? 0 : dia <= 14 ? 1 : dia <= 21 ? 2 : 3;
+          semanas[sem]++;
+        });
+        // Top 5 operadores por quantidade de checklists
+        const opCount = new Map<string, number>();
+        chkRows.forEach((r) => {
+          const op = String(r.operador ?? "").trim();
+          if (op) opCount.set(op, (opCount.get(op) ?? 0) + 1);
+        });
+        const topOps: TopOperador[] = [...opCount.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([nome, count]) => ({
+            nome,
+            bemFeitos: count,
+            indice: `${count} insp.`,
+          }));
+        const mesLabel = now.toLocaleString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+        setDashGraficos({
+          gastosLabels: [],
+          gastosReais: [],
+          checklistLabels: ["Sem 1", "Sem 2", "Sem 3", "Sem 4"],
+          checklistRecebidos: semanas,
+          topOperadores: topOps,
+          tituloPeriodo: `${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)} — ${prefeituraLabel(prefeituraIdEff)}`,
+        });
+      })
+      .catch((err) => {
+        console.error("[Loc Dash] Erro ao carregar dashboard:", err);
+      })
+      .finally(() => setDashCarregando(false));
+  }, [secaoAtiva, prefeituraIdEff, dashTick]);
+
+  useEffect(() => {
+    if (secaoAtiva !== "auditoria" || !prefeituraIdEff) return;
+    setAudCarregando(true);
+    getDocs(
+      query(
+        collection(db, "checklistsRegistros"),
+        where("prefeituraId", "==", "50742e47-07d5-4aab-bf2d-08fa9dfcc2ba"),
+      ),
+    )
+      .then((snap) => {
+        const rows = snap.docs.map((d) =>
+          firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
+        );
+        rows.sort((a, b) =>
+          String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
+        );
+
+        console.log(
+          "Locação - checklists para auditoria:",
+          snap?.docs?.map((d) => d.data()),
+        );
+        setAudFirestoreRows(rows);
+      })
+      .catch((err) => {
+        console.error("[Loc Auditoria] Erro ao carregar checklists:", err);
+      })
+      .finally(() => setAudCarregando(false));
+  }, [secaoAtiva, prefeituraIdEff, audTick]);
+
+  useEffect(() => {
+    if (secaoAtiva !== "equipamentos" || !prefeituraIdEff) return;
+    setEquipCarregando(true);
+    getDocs(
+      query(
+        collection(db, "equipamentos"),
+        where("prefeituraId", "==", prefeituraIdEff),
+      ),
+    )
+      .then((snap) => {
+        const rows = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Record<string, unknown>),
+        }));
+        rows.sort((a, b) =>
+          //@ts-ignore
+          String(a.label ?? a.modelo ?? "").localeCompare(
+            //@ts-ignore
+            String(b.label ?? b.modelo ?? ""),
+          ),
+        );
+        setEquipFirestoreRows(rows);
+      })
+      .catch((err) => {
+        console.error("[Loc Equipamentos] Erro ao carregar equipamentos:", err);
+      })
+      .finally(() => setEquipCarregando(false));
+  }, [secaoAtiva, prefeituraIdEff, equipTick]);
+
+  useEffect(() => {
+    if (secaoAtiva !== "terceiros" || !prefeituraIdEff) return;
+    setTercCarregando(true);
+    getDocs(
+      query(
+        collection(db, "empresas_terceiras_locacao"),
+        where("prefeituraId", "==", prefeituraIdEff),
+      ),
+    )
+      .then((snap) => {
+        const rows: TercRow[] = snap.docs.map((d) => {
+          const data = d.data() as Record<string, unknown>;
+          return {
+            id: d.id,
+            nome: String(data.nome ?? ""),
+            cnpj: data.cnpj ? String(data.cnpj) : undefined,
+            contato: data.contato ? String(data.contato) : undefined,
+            observacoes: data.observacoes
+              ? String(data.observacoes)
+              : undefined,
+            criadoEm: String(data.criadoEm ?? ""),
+          };
+        });
+        rows.sort((a, b) => a.nome.localeCompare(b.nome));
+        setTercFirestoreRows(rows);
+      })
+      .catch((err) => {
+        console.error("[Loc Terceiras] Erro ao carregar empresas:", err);
+      })
+      .finally(() => setTercCarregando(false));
+  }, [secaoAtiva, prefeituraIdEff, tercTick]);
+
+  const audFiltrados = useMemo(() => {
+    return audFirestoreRows.filter((row) => {
+      if (
+        audFiltroData &&
+        !String(row.Data_Hora ?? "").startsWith(audFiltroData)
+      )
+        return false;
+      if (
+        audFiltroChassis.trim() &&
+        !normalizeChassis(String(row.Chassis ?? "")).includes(
+          normalizeChassis(audFiltroChassis),
+        )
+      )
+        return false;
+      if (
+        audFiltroOperador.trim() &&
+        !String(row.Operador ?? "")
+          .toLowerCase()
+          .includes(audFiltroOperador.trim().toLowerCase())
+      )
+        return false;
+      return true;
+    });
+  }, [audFirestoreRows, audFiltroData, audFiltroChassis, audFiltroOperador]);
 
   function abrirChecklistCard() {
     setSecaoAtiva("auditoria");
@@ -304,25 +607,52 @@ export function LocacaoPage() {
     bumpPrefCtx();
   }
 
-  function handleCadastroEmpresaTerceira(e: FormEvent) {
+  async function handleCadastroEmpresaTerceira(e: FormEvent) {
     e.preventDefault();
     setTercMsg(null);
-    const r = terceiras.adicionar({
-      nome: tercNome,
-      cnpj: tercCnpj,
-      contato: tercContato,
-      observacoes: tercObs,
-    });
-    setTercMsg({ tone: r.ok ? "ok" : "err", text: r.msg });
-    if (r.ok) {
+    if (!prefeituraIdEff) {
+      setTercMsg({ tone: "err", text: "Cliente não selecionado." });
+      return;
+    }
+    const nome = tercNome.trim();
+    if (!nome) {
+      setTercMsg({ tone: "err", text: "Informe o nome da empresa." });
+      return;
+    }
+    const dupe = tercFirestoreRows.some(
+      (x) => x.nome.trim().toLowerCase() === nome.toLowerCase(),
+    );
+    if (dupe) {
+      setTercMsg({ tone: "err", text: "Já existe uma empresa com esse nome." });
+      return;
+    }
+    setTercSalvando(true);
+    try {
+      const id = crypto.randomUUID();
+      const criadoEm = new Date().toISOString().slice(0, 16).replace("T", " ");
+      await setDoc(doc(db, "empresas_terceiras_locacao", id), {
+        prefeituraId: prefeituraIdEff,
+        nome,
+        cnpj: tercCnpj.trim() || "",
+        contato: tercContato.trim() || "",
+        observacoes: tercObs.trim() || "",
+        criadoEm,
+      });
+      setTercMsg({ tone: "ok", text: "Empresa cadastrada." });
       setTercNome("");
       setTercCnpj("");
       setTercContato("");
       setTercObs("");
+      setTercTick((t) => t + 1);
+    } catch (err) {
+      console.error("[Loc Terceiras] Erro ao salvar empresa:", err);
+      setTercMsg({ tone: "err", text: "Erro ao salvar. Tente novamente." });
+    } finally {
+      setTercSalvando(false);
     }
   }
 
-  function handleRemoverEmpresaTerceira(id: string) {
+  async function handleRemoverEmpresaTerceira(id: string) {
     if (
       !window.confirm(
         "Remover esta empresa? Os equipamentos direcionados a ela voltarão para «Locadora».",
@@ -330,8 +660,13 @@ export function LocacaoPage() {
     ) {
       return;
     }
-    equip.limparReferenciasEmpresa(id);
-    terceiras.remover(id);
+    try {
+      await deleteDoc(doc(db, "empresas_terceiras_locacao", id));
+      setTercTick((t) => t + 1);
+    } catch (err) {
+      console.error("[Loc Terceiras] Erro ao remover empresa:", err);
+      alert("Erro ao remover empresa. Tente novamente.");
+    }
   }
 
   async function handleSincronizarLocacaoFirestore() {
@@ -481,7 +816,7 @@ export function LocacaoPage() {
             <div className="card-grid">
               <div className="card">
                 <h3>Equipamentos na base</h3>
-                <p id="loc-d-ativos">{h.ativos} und.</p>
+                <p id="loc-d-ativos">{dashEquipCount ?? h.ativos} und.</p>
               </div>
               <div
                 className="card card-clickable"
@@ -496,11 +831,15 @@ export function LocacaoPage() {
                 }}
               >
                 <h3>Checklists / inspeções (período)</h3>
-                <p id="loc-d-checklists">{totalChecklists}</p>
+                <p id="loc-d-checklists">
+                  {dashChecklistTotal ?? totalChecklists}
+                </p>
               </div>
               <div className="card">
                 <h3>Em manutenção</h3>
-                <p id="loc-d-manut">{String(h.manutencao).padStart(2, "0")}</p>
+                <p id="loc-d-manut">
+                  {String(dashManuCount ?? h.manutencao).padStart(2, "0")}
+                </p>
               </div>
             </div>
             <p
@@ -508,7 +847,7 @@ export function LocacaoPage() {
               className="loc-intro"
               style={{ marginTop: 0 }}
             >
-              {pmMerged?.dashboardGraficos?.tituloPeriodo ??
+              {(dashGraficos ?? pmMerged?.dashboardGraficos)?.tituloPeriodo ??
                 `Período corrente — ${labelEff}`}
             </p>
             <div className="dash-graficos-grid">
@@ -534,25 +873,142 @@ export function LocacaoPage() {
           >
             <h1>Auditoria de checklists</h1>
             <p className="loc-intro">
-              Avalie a qualidade dos checklists vindos do{" "}
-              <strong>aplicativo de campo</strong> e inspeções via QR sincronizadas. Use a lista
-              abaixo: expanda cada registro para ver horímetro, observações e itens (Sim/Não), no
-              mesmo modelo do painel operacional.
+              Checklists registrados no servidor para este cliente, filtrados
+              por <strong>prefeituraId</strong>. Expanda cada registro para ver
+              horímetro, observações e itens Sim/Não.
             </p>
-            <div className="card" style={{ marginTop: 16 }}>
+
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                  gap: "12px",
+                  alignItems: "end",
+                }}
+              >
+                <div>
+                  <label
+                    htmlFor="loc-aud-filtro-data"
+                    style={{
+                      display: "block",
+                      marginBottom: 4,
+                      fontSize: "0.82rem",
+                      color: "var(--text-gray)",
+                    }}
+                  >
+                    Data
+                  </label>
+                  <input
+                    id="loc-aud-filtro-data"
+                    type="date"
+                    value={audFiltroData}
+                    onChange={(e) => setAudFiltroData(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="loc-aud-filtro-chassis"
+                    style={{
+                      display: "block",
+                      marginBottom: 4,
+                      fontSize: "0.82rem",
+                      color: "var(--text-gray)",
+                    }}
+                  >
+                    Chassi
+                  </label>
+                  <input
+                    id="loc-aud-filtro-chassis"
+                    type="text"
+                    placeholder="Filtrar por chassi..."
+                    value={audFiltroChassis}
+                    onChange={(e) => setAudFiltroChassis(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="loc-aud-filtro-operador"
+                    style={{
+                      display: "block",
+                      marginBottom: 4,
+                      fontSize: "0.82rem",
+                      color: "var(--text-gray)",
+                    }}
+                  >
+                    Operador
+                  </label>
+                  <input
+                    id="loc-aud-filtro-operador"
+                    type="text"
+                    placeholder="Filtrar por operador..."
+                    value={audFiltroOperador}
+                    onChange={(e) => setAudFiltroOperador(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: 8, paddingBottom: 1 }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ flex: 1, margin: 0 }}
+                    disabled={audCarregando}
+                    onClick={() => setAudTick((t) => t + 1)}
+                  >
+                    {audCarregando ? "Carregando..." : "Atualizar"}
+                  </button>
+                  {(audFiltroData || audFiltroChassis || audFiltroOperador) && (
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{ flex: 1, margin: 0 }}
+                      onClick={() => {
+                        setAudFiltroData("");
+                        setAudFiltroChassis("");
+                        setAudFiltroOperador("");
+                      }}
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ marginTop: 0 }}>
               <div
                 className="hu360-dash-checklists-panel"
                 style={{ marginTop: 0, maxWidth: "100%" }}
               >
                 <div className="hu360-dash-checklists-panel__head">
-                  <h3 className="hu360-dash-checklists-panel__title">Registros</h3>
+                  <h3 className="hu360-dash-checklists-panel__title">
+                    {audCarregando
+                      ? "Carregando..."
+                      : `${audFiltrados.length} registro${
+                          audFiltrados.length !== 1 ? "s" : ""
+                        }${audFiltroData || audFiltroChassis || audFiltroOperador ? " (filtrado)" : ""}`}
+                  </h3>
                 </div>
-                <ListaChecklistHistoricoLocal
-                  rows={auditoriaHistoricoRows}
-                  expandidoId={auditoriaExpandidoId}
-                  setExpandidoId={setAuditoriaExpandidoId}
-                  mensagemVazia="Nenhum checklist no período."
-                />
+                {audCarregando ? (
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "var(--text-gray)",
+                      fontSize: "0.92rem",
+                    }}
+                  >
+                    Buscando registros no servidor...
+                  </p>
+                ) : (
+                  <ListaChecklistHistoricoLocal
+                    rows={audFiltrados}
+                    expandidoId={auditoriaExpandidoId}
+                    setExpandidoId={setAuditoriaExpandidoId}
+                    mensagemVazia="Nenhum checklist encontrado para os filtros aplicados."
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -630,8 +1086,9 @@ export function LocacaoPage() {
             <h1>Equipamentos em locação</h1>
             <p className="loc-intro" style={{ marginTop: 0 }}>
               Visualização da frota cadastrada para o cliente (mesma base da
-              prefeitura vinculada ao login). O <strong>tomador / empresa terceira</strong>{" "}
-              por equipamento é definido na aba <strong>Empresas terceiras</strong>. Inclusão e
+              prefeitura vinculada ao login). O{" "}
+              <strong>tomador / empresa terceira</strong> por equipamento é
+              definido na aba <strong>Empresas terceiras</strong>. Inclusão e
               importação de equipamentos ficam no{" "}
               <Link
                 to="/admin/equipamentos-locacao"
@@ -657,28 +1114,42 @@ export function LocacaoPage() {
                   </tr>
                 </thead>
                 <tbody id="loc-eq-tbody">
-                  {equip.lista.map((eq) => (
-                    <tr key={eq.id}>
+                  {equipFirestoreRows.map((eq) => (
+                    <tr key={String(eq.id ?? "")}>
                       <td>
                         <strong>
-                          {eq.descricao || eq.modelo || "Equipamento"}
+                          {String(eq.label || eq.modelo || "Equipamento")}
                         </strong>
                       </td>
-                      <td>{eq.marca}</td>
-                      <td>{eq.modelo}</td>
-                      <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
-                      <td style={{ fontSize: "0.82rem", maxWidth: 200 }}>
-                        {eq.empresaTerceiraId
-                          ? empresaLabelById.get(eq.empresaTerceiraId) ?? "—"
-                          : "Locadora"}
-                      </td>
-                      <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
+                      <td>{String(eq.marca ?? "—")}</td>
+                      <td>{String(eq.modelo ?? "—")}</td>
                       <td style={{ fontSize: "0.82rem" }}>
-                        {eq.obra?.trim() ? eq.obra : "—"}
+                        {String(eq.chassis ?? "—")}
+                      </td>
+                      <td style={{ fontSize: "0.82rem", maxWidth: 200 }}>
+                        {String(eq.empresaTerceiraId ?? "Locadora")}
+                      </td>
+                      <td style={{ fontSize: "0.82rem" }}>
+                        {String(eq.linha || "—")}
+                      </td>
+                      <td style={{ fontSize: "0.82rem" }}>
+                        {String(eq.obra ?? "").trim() ? String(eq.obra) : "—"}
                       </td>
                     </tr>
                   ))}
-                  {equip.lista.length === 0 ? (
+                  {equipCarregando ? (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        style={{
+                          textAlign: "center",
+                          color: "var(--text-gray)",
+                        }}
+                      >
+                        Carregando...
+                      </td>
+                    </tr>
+                  ) : equipFirestoreRows.length === 0 ? (
                     <tr>
                       <td
                         colSpan={7}
@@ -710,16 +1181,18 @@ export function LocacaoPage() {
             >
               <span style={{ color: "#cbd5e1" }}>Clientes</span>
               &nbsp;/&nbsp;
-              <strong style={{ color: "var(--main-orange)" }}>{labelEff}</strong>
+              <strong style={{ color: "var(--main-orange)" }}>
+                {labelEff}
+              </strong>
               &nbsp;/&nbsp;
               <span style={{ color: "#e2e8f0" }}>Empresas terceiras</span>
             </p>
             <h1>Empresas terceiras (tomadores)</h1>
             <p className="loc-intro" style={{ marginTop: 0 }}>
-              Cadastre <strong>empresas às quais a locadora direciona</strong> o uso do
-              equipamento (sublocação / obra de terceiro). Depois associe cada máquina pelo
-              chassi na tabela abaixo. Equipamentos sem associação permanecem como{" "}
-              <strong>Locadora</strong>.
+              Cadastre <strong>empresas às quais a locadora direciona</strong> o
+              uso do equipamento (sublocação / obra de terceiro). Depois associe
+              cada máquina pelo chassi na tabela abaixo. Equipamentos sem
+              associação permanecem como <strong>Locadora</strong>.
             </p>
 
             <div
@@ -734,10 +1207,18 @@ export function LocacaoPage() {
               }}
             >
               <div style={{ flex: "1 1 220px" }}>
-                <h3 style={{ margin: "0 0 6px" }}>Sincronizar com o servidor</h3>
-                <p style={{ margin: 0, fontSize: "0.86rem", color: "var(--text-gray)" }}>
-                  Envia empresas terceiras e vínculos por chassi ao Firestore e reimporta a
-                  base (inclui equipamentos cadastrados só no Hub).
+                <h3 style={{ margin: "0 0 6px" }}>
+                  Sincronizar com o servidor
+                </h3>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "0.86rem",
+                    color: "var(--text-gray)",
+                  }}
+                >
+                  Envia empresas terceiras e vínculos por chassi ao Firestore e
+                  reimporta a base (inclui equipamentos cadastrados só no Hub).
                 </p>
               </div>
               <button
@@ -755,7 +1236,9 @@ export function LocacaoPage() {
                     width: "100%",
                     margin: 0,
                     fontSize: "0.86rem",
-                    color: syncLocacaoMsg.includes("Falha") ? "#fca5a5" : "#86efac",
+                    color: syncLocacaoMsg.includes("Falha")
+                      ? "#fca5a5"
+                      : "#86efac",
                   }}
                 >
                   {syncLocacaoMsg}
@@ -808,7 +1291,11 @@ export function LocacaoPage() {
                   placeholder="Obra, contrato, período da sublocação…"
                 />
                 <div style={{ marginTop: 16 }}>
-                  <button type="submit" className="btn btn-outline" style={{ margin: 0 }}>
+                  <button
+                    type="submit"
+                    className="btn btn-outline"
+                    style={{ margin: 0 }}
+                  >
                     Salvar empresa
                   </button>
                 </div>
@@ -829,10 +1316,26 @@ export function LocacaoPage() {
 
             <div className="card" style={{ marginTop: 16 }}>
               <h3>Empresas cadastradas</h3>
-              {terceiras.lista.length === 0 ? (
-                <p style={{ color: "var(--text-gray)", marginTop: 12, marginBottom: 0 }}>
-                  Nenhuma empresa terceira ainda. Cadastre acima para poder direcionar
-                  equipamentos.
+              {tercCarregando ? (
+                <p
+                  style={{
+                    color: "var(--text-gray)",
+                    marginTop: 12,
+                    marginBottom: 0,
+                  }}
+                >
+                  Carregando...
+                </p>
+              ) : tercFirestoreRows.length === 0 ? (
+                <p
+                  style={{
+                    color: "var(--text-gray)",
+                    marginTop: 12,
+                    marginBottom: 0,
+                  }}
+                >
+                  Nenhuma empresa terceira ainda. Cadastre acima para poder
+                  direcionar equipamentos.
                 </p>
               ) : (
                 <table style={{ marginTop: 12 }}>
@@ -846,7 +1349,7 @@ export function LocacaoPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {terceiras.lista.map((em) => (
+                    {tercFirestoreRows.map((em) => (
                       <tr key={em.id}>
                         <td>
                           <strong>{em.nome}</strong>
@@ -863,7 +1366,9 @@ export function LocacaoPage() {
                             </div>
                           ) : null}
                         </td>
-                        <td style={{ fontSize: "0.82rem" }}>{em.cnpj?.trim() ? em.cnpj : "—"}</td>
+                        <td style={{ fontSize: "0.82rem" }}>
+                          {em.cnpj?.trim() ? em.cnpj : "—"}
+                        </td>
                         <td style={{ fontSize: "0.82rem" }}>
                           {em.contato?.trim() ? em.contato : "—"}
                         </td>
@@ -872,7 +1377,11 @@ export function LocacaoPage() {
                           <button
                             type="button"
                             className="btn btn-outline"
-                            style={{ margin: 0, padding: "6px 12px", fontSize: "0.82rem" }}
+                            style={{
+                              margin: 0,
+                              padding: "6px 12px",
+                              fontSize: "0.82rem",
+                            }}
                             onClick={() => handleRemoverEmpresaTerceira(em.id)}
                           >
                             Remover
@@ -887,12 +1396,20 @@ export function LocacaoPage() {
 
             <div className="card" style={{ marginTop: 16 }}>
               <h3>Direcionar máquinas (por chassi)</h3>
-              <p style={{ color: "var(--text-gray)", fontSize: "0.88rem", marginTop: 0 }}>
-                Escolha o tomador de cada equipamento já cadastrado na base deste cliente.
+              <p
+                style={{
+                  color: "var(--text-gray)",
+                  fontSize: "0.88rem",
+                  marginTop: 0,
+                }}
+              >
+                Escolha o tomador de cada equipamento já cadastrado na base
+                deste cliente.
               </p>
               {equip.lista.length === 0 ? (
                 <p style={{ color: "var(--text-gray)", marginBottom: 0 }}>
-                  Não há equipamentos na base. Cadastre frota no Hub administrativo.
+                  Não há equipamentos na base. Cadastre frota no Hub
+                  administrativo.
                 </p>
               ) : (
                 <div style={{ overflowX: "auto" }}>
@@ -908,12 +1425,24 @@ export function LocacaoPage() {
                       {equip.lista.map((eq) => (
                         <tr key={eq.id}>
                           <td>
-                            <strong>{eq.descricao || eq.modelo || "Equipamento"}</strong>
-                            <div style={{ fontSize: "0.78rem", color: "var(--text-gray)" }}>
+                            <strong>
+                              {eq.descricao || eq.modelo || "Equipamento"}
+                            </strong>
+                            <div
+                              style={{
+                                fontSize: "0.78rem",
+                                color: "var(--text-gray)",
+                              }}
+                            >
                               {eq.marca} {eq.modelo}
                             </div>
                           </td>
-                          <td style={{ fontSize: "0.82rem", whiteSpace: "nowrap" }}>
+                          <td
+                            style={{
+                              fontSize: "0.82rem",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
                             {eq.chassis}
                           </td>
                           <td>
@@ -934,7 +1463,7 @@ export function LocacaoPage() {
                               }}
                             >
                               <option value="">Locadora (sem terceiro)</option>
-                              {terceiras.lista.map((em) => (
+                              {tercFirestoreRows.map((em) => (
                                 <option key={em.id} value={em.id}>
                                   {em.nome}
                                 </option>

@@ -70,10 +70,12 @@ export function HU360Provider({ children }: HU360ProviderProps) {
   }, []);
 
   const adicionarCliente = useCallback((): OperationResult => {
+    //@ts-ignore
     return { ok: false, message: "Use useClientes().adicionarCliente" };
   }, []);
 
   const removerPrefeitura = useCallback((): OperationResult => {
+    //@ts-ignore
     return { ok: false, message: "Use useClientes().removerCliente" };
   }, []);
 

@@ -538,6 +538,53 @@
   border-radius: 8px;
 }
 
+/* ── Overrides do componente checklist-histórico para tema escuro ── */
+.locacao-root .hu360-dash-checklists-panel__title {
+  color: #ffffff;
+}
+
+.locacao-root .hu360-dash-chk-list__item {
+  background: #0f1a2e;
+  border-color: #2d3748;
+}
+
+.locacao-root .hu360-dash-chk-list .hu360-btn.hu360-btn-ghost {
+  color: var(--text-gray);
+  border-color: #374151;
+}
+
+.locacao-root .hu360-dash-chk-list .hu360-btn.hu360-btn-ghost:hover {
+  color: #ffffff;
+  border-color: var(--main-orange);
+}
+
+.locacao-root .hu360-dash-chk-detail {
+  border-top-color: #2d3748;
+}
+
+.locacao-root .hu360-dash-chk-itens__li {
+  border-bottom-color: #2d3748;
+}
+
+.locacao-root .hu360-dash-chk-itens__lbl {
+  color: #cbd5e1;
+}
+
+.locacao-root .hu360-dash-chk-itens__nao {
+  background: #1a2233;
+  border-color: #7f1d1d;
+}
+
+.locacao-root .hu360-dash-chk-itens__tag.is-sim {
+  background: #14532d;
+  color: #86efac;
+}
+
+.locacao-root .hu360-dash-chk-itens__tag.is-nao {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
 .locacao-root .dash-graficos-grid .chart-wrap.wide {
   grid-column: 1 / -1;
 }

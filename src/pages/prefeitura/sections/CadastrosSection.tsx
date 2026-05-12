@@ -41,6 +41,7 @@ const CARGOS = ["Operador de Máquinas", "Motorista", "Mecânico", "Outro"];
 
 export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
   // --- Equipamentos ---
+  //@ts-ignore
   const [equipamentos, setEquipamentos] = useState<EquipamentoDoc[]>([]);
   const [eLabel, setELabel] = useState("");
   const [eChassis, setEChassis] = useState("");
@@ -51,12 +52,14 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
   const [eMsg, setEMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   // --- Operadores ---
+  //@ts-ignore
   const [operadores, setOperadores] = useState<OperadorDoc[]>([]);
   const [oNome, setONome] = useState("");
   const [oCargo, setOCargo] = useState(CARGOS[0]);
   const [oSaving, setOSaving] = useState(false);
   const [oMsg, setOMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  //@ts-ignore
   const [loading, setLoading] = useState(false);
 
   const carregar = useCallback(async () => {
@@ -168,11 +171,12 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
     }
   }
 
+  //@ts-ignore
   async function removerEquipamento(id: string) {
     await deleteDoc(doc(db, "equipamentos", id));
     setEquipamentos((prev) => prev.filter((e) => e.id !== id));
   }
-
+  //@ts-ignore
   async function removerOperador(id: string) {
     await deleteDoc(doc(db, "operadores", id));
     setOperadores((prev) => prev.filter((o) => o.id !== id));
@@ -310,7 +314,7 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
       </div>
 
       {/* Listas */}
-      <div className="grid" style={{ marginTop: 28 }}>
+      {/* <div className="grid" style={{ marginTop: 28 }}>
         <article className="card">
           <div
             style={{
@@ -458,7 +462,7 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
             </ul>
           )}
         </article>
-      </div>
+      </div> */}
     </>
   );
 }
