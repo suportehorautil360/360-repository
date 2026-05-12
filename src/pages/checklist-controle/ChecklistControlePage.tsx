@@ -1,39 +1,27 @@
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Link, Navigate } from "react-router-dom";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  where,
-} from "@firebase/firestore";
-import { db } from "../../lib/firebase/firebase";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
-import { useOperadorSession } from "./useOperadorSession";
+import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 
-type Aba = "dashboard" | "checklist" | "emergencia" | "treinamentos";
+type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia" | "treinamentos";
 
 type ItemChecklist = (typeof seedData.itens_checklist)[number];
 
-interface MaquinaChecklistInfo {
-  ID: string;
-  Marca: string;
-  Modelo: string;
-  Chassis: string;
-  Categoria: string;
+/** Resposta por item: «Não» exige foto ao vivo + descrição do problema. */
+type ChecklistAnswerValue =
+  | { v: "sim" }
+  | { v: "nao"; foto: string; problema: string };
+
+function checklistRespostaCompleta(a: ChecklistAnswerValue | undefined): boolean {
+  if (!a) return false;
+  if (a.v === "sim") return true;
+  return Boolean(a.foto.startsWith("data:image") && a.problema.trim());
 }
 
+/** Senha do modo demonstração / operadores (inclui login administrativo jefferson). */
+const OPERADOR_SENHA = "1234";
 const EMERG_STORAGE_KEY = "hu360-emergencias-local";
 const CHECKLIST_HIST_KEY = "hu360-checklist-history-local";
 
@@ -48,10 +36,7 @@ const TIPOS_FALHA_EMERGENCIA = [
   { value: "outros", label: "Outros" },
 ] as const;
 
-function montarTipoFalhaParaRegistro(
-  categoria: string,
-  outrosDetalhe: string,
-): string {
+function montarTipoFalhaParaRegistro(categoria: string, outrosDetalhe: string): string {
   const det = outrosDetalhe.trim();
   if (categoria === "outros") return det ? `Outros: ${det}` : "";
   const hit = TIPOS_FALHA_EMERGENCIA.find((t) => t.value === categoria);
@@ -63,9 +48,7 @@ const EMERG_NUM_FOTOS = 6;
 
 const MAX_JPEG_DATA_URL_LEN_EMERG = 2_800_000;
 
-function jpegDataUrlFromVideoEmergencia(
-  video: HTMLVideoElement,
-): string | null {
+function jpegDataUrlFromVideoEmergencia(video: HTMLVideoElement): string | null {
   if (!video || video.readyState < 2) return null;
   const w0 = video.videoWidth;
   const h0 = video.videoHeight;
@@ -98,57 +81,55 @@ function contarFotosEmergenciaRow(row: Record<string, unknown>): number {
     try {
       const a = JSON.parse(j) as unknown;
       if (Array.isArray(a)) {
-        return a.filter(
-          (x) => typeof x === "string" && x.startsWith("data:image"),
-        ).length;
+        return a.filter((x) => typeof x === "string" && x.startsWith("data:image")).length;
       }
     } catch {
       /* ignore */
     }
   }
-  if (
-    typeof row.Foto_Evidencia === "string" &&
-    String(row.Foto_Evidencia).trim().length > 0
-  ) {
+  if (typeof row.Foto_Evidencia === "string" && String(row.Foto_Evidencia).trim().length > 0) {
     return 1;
   }
   return 0;
 }
 
-/**
- * Comprime uma data URL de imagem para armazenamento no Firestore.
- * Reduz para max 480px e qualidade 0.45, produzindo ~40-100 KB por foto.
- */
-function compressPhotoForFirestore(dataUrl: string): Promise<string> {
-  return new Promise((resolve) => {
-    if (!dataUrl.startsWith("data:image")) {
-      resolve(dataUrl);
-      return;
+function parseOperadores(lista: string): string[] {
+  return lista
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function resolveSessionForUsuario(usuario: string): OperadorSession | null {
+  const u = usuario.trim().toLowerCase();
+  if (!u) return null;
+  for (const loc of seedData.locacoes_ativas) {
+    const names = parseOperadores(loc.Lista_Operadores);
+    const hit =
+      names.find((n) => n.toLowerCase() === u) ??
+      names.find((n) => {
+        const first = n.toLowerCase().split(/\s+/)[0] ?? "";
+        return first === u && first.length > 0;
+      });
+    if (hit) {
+      return {
+        nome: hit,
+        idMaquina: loc.ID_Maquina,
+        idCliente: loc.ID_Cliente,
+        empresa: loc.Nome_Empresa,
+      };
     }
-    const img = new Image();
-    img.onload = () => {
-      const maxSide = 480;
-      let w = img.width;
-      let h = img.height;
-      if (Math.max(w, h) > maxSide) {
-        const r = maxSide / Math.max(w, h);
-        w = Math.round(w * r);
-        h = Math.round(h * r);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(dataUrl);
-        return;
-      }
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", 0.45));
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
+  }
+  return null;
+}
+
+/** Login curto do gestor → mesmo vínculo do operador na planilha (Jefferson Lima / VIVO). */
+function resolveLoginToSession(usuarioRaw: string): OperadorSession | null {
+  const u = usuarioRaw.trim().toLowerCase();
+  if (u === "jefferson" || u === "jeff") {
+    return resolveSessionForUsuario("Jefferson Lima");
+  }
+  return resolveSessionForUsuario(usuarioRaw);
 }
 
 function checklistCategoriaFromMaquina(catMaquina: string): string {
@@ -186,25 +167,16 @@ type TreinoVideoExtra = TreinoVideoRow & {
   Modelo?: unknown;
 };
 
-function parChassisModeloIgualMaquina(
-  maquina: FrotaRow,
-  chassis: string,
-  modelo: string,
-): boolean {
+function parChassisModeloIgualMaquina(maquina: FrotaRow, chassis: string, modelo: string): boolean {
   return (
-    normalizeChassis(String(maquina.Chassis ?? "")) ===
-      normalizeChassis(chassis) &&
+    normalizeChassis(String(maquina.Chassis ?? "")) === normalizeChassis(chassis) &&
     normalizeModelo(String(maquina.Modelo ?? "")) === normalizeModelo(modelo)
   );
 }
 
-function paresImplicitosFrotaPorCategoriaTreino(
-  categoriaTreino: string,
-): { ch: string; mod: string }[] {
+function paresImplicitosFrotaPorCategoriaTreino(categoriaTreino: string): { ch: string; mod: string }[] {
   return seedData.cadastro_frota
-    .filter(
-      (m) => checklistCategoriaFromMaquina(m.Categoria) === categoriaTreino,
-    )
+    .filter((m) => checklistCategoriaFromMaquina(m.Categoria) === categoriaTreino)
     .map((m) => ({
       ch: normalizeChassis(String(m.Chassis ?? "")),
       mod: normalizeModelo(String(m.Modelo ?? "")),
@@ -248,29 +220,21 @@ function treinoAplicaAMaquina(t: TreinoVideoRow, maquina: FrotaRow): boolean {
   const hasMl = Array.isArray(ml) && ml.length > 0;
   if (hasCl && hasMl) {
     const chOk = cl.some(
-      (c) =>
-        normalizeChassis(String(c)) ===
-        normalizeChassis(String(maquina.Chassis ?? "")),
+      (c) => normalizeChassis(String(c)) === normalizeChassis(String(maquina.Chassis ?? "")),
     );
     const moOk = ml.some(
-      (m) =>
-        normalizeModelo(String(m)) ===
-        normalizeModelo(String(maquina.Modelo ?? "")),
+      (m) => normalizeModelo(String(m)) === normalizeModelo(String(maquina.Modelo ?? "")),
     );
     return chOk && moOk;
   }
   if (hasCl && !hasMl) {
     return cl.some(
-      (c) =>
-        normalizeChassis(String(c)) ===
-        normalizeChassis(String(maquina.Chassis ?? "")),
+      (c) => normalizeChassis(String(c)) === normalizeChassis(String(maquina.Chassis ?? "")),
     );
   }
   if (!hasCl && hasMl) {
     return ml.some(
-      (m) =>
-        normalizeModelo(String(m)) ===
-        normalizeModelo(String(maquina.Modelo ?? "")),
+      (m) => normalizeModelo(String(m)) === normalizeModelo(String(maquina.Modelo ?? "")),
     );
   }
 
@@ -317,13 +281,10 @@ function genId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 10)}`;
 }
 
-const ABAS: {
-  id: Aba;
-  label: string;
-  icon: "dash" | "check" | "alert" | "play";
-}[] = [
+const ABAS: { id: Aba; label: string; icon: "dash" | "check" | "audit" | "alert" | "play" }[] = [
   { id: "dashboard", label: "Dashboard", icon: "dash" },
   { id: "checklist", label: "Checklist", icon: "check" },
+  { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
   { id: "emergencia", label: "Emergências", icon: "alert" },
   { id: "treinamentos", label: "Treinamentos", icon: "play" },
 ];
@@ -359,10 +320,18 @@ function parseRespostasChecklist(row: Record<string, unknown>): {
   const raw = row.Respostas_JSON;
   if (typeof raw === "string" && raw.length > 0) {
     try {
-      const o = JSON.parse(raw) as Record<string, string>;
-      const entries = Object.values(o);
-      const total = entries.length;
-      const sim = entries.filter((v) => v === "sim").length;
+      const o = JSON.parse(raw) as Record<string, unknown>;
+      let sim = 0;
+      let total = 0;
+      for (const val of Object.values(o)) {
+        total += 1;
+        if (val === "sim") {
+          sim += 1;
+        } else if (val && typeof val === "object" && "v" in val) {
+          const vv = (val as { v?: string }).v;
+          if (vv === "sim") sim += 1;
+        }
+      }
       return { total, sim };
     } catch {
       /* fall through */
@@ -378,7 +347,7 @@ function parseRespostasChecklist(row: Record<string, unknown>): {
   return { total: 0, sim: 0 };
 }
 
-function Hu360NavIcon({ kind }: { kind: "dash" | "check" | "alert" | "play" }) {
+function Hu360NavIcon({ kind }: { kind: "dash" | "check" | "audit" | "alert" | "play" }) {
   const s = {
     width: 20,
     height: 20,
@@ -417,14 +386,20 @@ function Hu360NavIcon({ kind }: { kind: "dash" | "check" | "alert" | "play" }) {
       </svg>
     );
   }
+  if (kind === "audit") {
+    return (
+      <svg {...s} aria-hidden>
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" />
+        <path d="M9 5a2 2 0 0 1 2-2h2" />
+        <circle cx="17.5" cy="17.5" r="3.5" />
+        <path d="m21 21-2.3-2.3" />
+      </svg>
+    );
+  }
   return (
     <svg {...s} aria-hidden>
       <circle cx="12" cy="12" r="10" />
-      <polygon
-        points="10 8 16 12 10 16 10 8"
-        fill="currentColor"
-        stroke="none"
-      />
+      <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -433,18 +408,26 @@ export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
   const [aba, setAba] = useState<Aba>("dashboard");
 
+  const [usuario, setUsuario] = useState("");
+  const [senha, setSenha] = useState("");
+  const [loginMsg, setLoginMsg] = useState<{ tone: "ok" | "err"; text: string }>(
+    { tone: "ok", text: "" },
+  );
+
   const [chassisChecklistDraft, setChassisChecklistDraft] = useState("");
   const [chassisChecklistAtivo, setChassisChecklistAtivo] = useState("");
-  const [answers, setAnswers] = useState<Record<string, "sim" | "nao">>({});
+  const [answers, setAnswers] = useState<Record<string, ChecklistAnswerValue>>({});
+  const [nomeOperadorChecklist, setNomeOperadorChecklist] = useState("");
   const [horimetro, setHorimetro] = useState("");
   const [fotoHorimetroDataUrl, setFotoHorimetroDataUrl] = useState("");
   const [horimetroCameraUi, setHorimetroCameraUi] = useState(false);
   const [obsChecklist, setObsChecklist] = useState("");
   const [checkMsg, setCheckMsg] = useState("");
-  const [maquinaAtual, setMaquinaAtual] = useState<MaquinaChecklistInfo | null>(
+  const [painelChecklistsHojeAberto, setPainelChecklistsHojeAberto] = useState(false);
+  const [painelChecklistExpandidoId, setPainelChecklistExpandidoId] = useState<string | null>(null);
+  const [auditoriaChecklistExpandidoId, setAuditoriaChecklistExpandidoId] = useState<string | null>(
     null,
   );
-  const [loadingChassis, setLoadingChassis] = useState(false);
 
   const [tipoFalhaCategoria, setTipoFalhaCategoria] = useState("");
   const [tipoFalhaOutros, setTipoFalhaOutros] = useState("");
@@ -455,19 +438,25 @@ export function ChecklistControlePage() {
   );
   const [emergCameraSlot, setEmergCameraSlot] = useState<number | null>(null);
   const [emergMsg, setEmergMsg] = useState("");
-  const [emergSaving, setEmergSaving] = useState(false);
   const [emergRows, setEmergRows] = useState<Record<string, unknown>[]>(() =>
     loadEmergencias(),
   );
-  const [geoStatus, setGeoStatus] = useState<
-    "idle" | "loading" | "granted" | "denied" | "unavailable"
-  >("idle");
-  const [geoCoords, setGeoCoords] = useState("");
 
   const horimetroVideoRef = useRef<HTMLVideoElement>(null);
   const horimetroStreamRef = useRef<MediaStream | null>(null);
   const emergVideoRef = useRef<HTMLVideoElement>(null);
   const emergStreamRef = useRef<MediaStream | null>(null);
+  const itemNaoVideoRef = useRef<HTMLVideoElement>(null);
+  const itemNaoStreamRef = useRef<MediaStream | null>(null);
+  const [itemNaoCameraKey, setItemNaoCameraKey] = useState<string | null>(null);
+
+  const stopItemNaoCamera = useCallback(() => {
+    itemNaoStreamRef.current?.getTracks().forEach((t) => t.stop());
+    itemNaoStreamRef.current = null;
+    const v = itemNaoVideoRef.current;
+    if (v) v.srcObject = null;
+    setItemNaoCameraKey(null);
+  }, []);
 
   const stopHorimetroCamera = useCallback(() => {
     horimetroStreamRef.current?.getTracks().forEach((t) => t.stop());
@@ -479,6 +468,7 @@ export function ChecklistControlePage() {
 
   const abrirCameraHorimetro = useCallback(async () => {
     setCheckMsg("");
+    stopItemNaoCamera();
     stopHorimetroCamera();
     if (!navigator.mediaDevices?.getUserMedia) {
       setCheckMsg(
@@ -510,14 +500,12 @@ export function ChecklistControlePage() {
       );
       stopHorimetroCamera();
     }
-  }, [stopHorimetroCamera]);
+  }, [stopHorimetroCamera, stopItemNaoCamera]);
 
   const capturarFotoHorimetroAoVivo = useCallback(() => {
     const v = horimetroVideoRef.current;
     if (!v || v.readyState < 2) {
-      setCheckMsg(
-        "Aguarde a imagem da câmera aparecer e toque em Capturar de novo.",
-      );
+      setCheckMsg("Aguarde a imagem da câmera aparecer e toque em Capturar de novo.");
       return;
     }
     const w0 = v.videoWidth;
@@ -548,9 +536,7 @@ export function ChecklistControlePage() {
       dataUrl = canvas.toDataURL("image/jpeg", 0.65);
     }
     if (dataUrl.length > 3_400_000) {
-      setCheckMsg(
-        "Imagem muito grande. Aproxime o horímetro ou melhore a luz e capture de novo.",
-      );
+      setCheckMsg("Imagem muito grande. Aproxime o horímetro ou melhore a luz e capture de novo.");
       return;
     }
     setFotoHorimetroDataUrl(dataUrl);
@@ -569,6 +555,8 @@ export function ChecklistControlePage() {
   const abrirCameraEmergencia = useCallback(
     async (slot: number) => {
       setEmergMsg("");
+      stopItemNaoCamera();
+      stopHorimetroCamera();
       stopEmergenciaCamera();
       if (!navigator.mediaDevices?.getUserMedia) {
         setEmergMsg(
@@ -592,8 +580,7 @@ export function ChecklistControlePage() {
         emergStreamRef.current = stream;
         setEmergCameraSlot(slot);
       } catch (e) {
-        const denied =
-          e instanceof DOMException && e.name === "NotAllowedError";
+        const denied = e instanceof DOMException && e.name === "NotAllowedError";
         setEmergMsg(
           denied
             ? "Permissão da câmera negada. Autorize o acesso para tirar as fotos na hora."
@@ -602,68 +589,8 @@ export function ChecklistControlePage() {
         stopEmergenciaCamera();
       }
     },
-    [stopEmergenciaCamera],
+    [stopEmergenciaCamera, stopHorimetroCamera, stopItemNaoCamera],
   );
-
-  const requestGeo = useCallback(() => {
-    if (!navigator.geolocation) {
-      setGeoStatus("unavailable");
-      return;
-    }
-    setGeoStatus("loading");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lon = pos.coords.longitude.toFixed(6);
-        setGeoCoords(`${lat}, ${lon}`);
-        setGeoStatus("granted");
-      },
-      (err) => {
-        if (err.code === err.PERMISSION_DENIED) {
-          setGeoStatus("denied");
-        } else {
-          setGeoStatus("unavailable");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-    );
-  }, []);
-
-  const loadEmergenciasFromFirestore = useCallback(async () => {
-    if (!session?.idCliente) return;
-    try {
-      const q = query(
-        collection(db, "emergencias"),
-        where("prefeituraId", "==", session.idCliente),
-        orderBy("dataHora", "desc"),
-        limit(30),
-      );
-      const snap = await getDocs(q);
-      const rows = snap.docs.map((d) => {
-        const data = d.data();
-        const fotos: string[] = Array.isArray(data.fotos) ? data.fotos : [];
-        return {
-          ID_Emergencia: d.id,
-          Data_Hora:
-            data.dataHora?.toDate?.()?.toISOString() ??
-            new Date().toISOString(),
-          ID_Maquina: String(data.idMaquina ?? ""),
-          Chassis: String(data.chassis ?? ""),
-          Operador: String(data.operador ?? ""),
-          ID_Cliente: String(data.prefeituraId ?? ""),
-          Tipo_Falha: String(data.tipoFalha ?? ""),
-          Descricao_Curta: String(data.descricaoCurta ?? ""),
-          Localizacao_GPS: data.localizacaoGps ?? null,
-          Status_Atendimento: String(data.statusAtendimento ?? "Aberto"),
-          Fotos_Evidencia_JSON: JSON.stringify(fotos),
-          Qtd_Fotos_Evidencia: fotos.length,
-        } as Record<string, unknown>;
-      });
-      if (rows.length > 0) setEmergRows(rows);
-    } catch {
-      /* mantém dados do localStorage em caso de erro */
-    }
-  }, [session?.idCliente]);
 
   const capturarFotoEmergenciaAoVivo = useCallback(() => {
     const slot = emergCameraSlot;
@@ -685,7 +612,69 @@ export function ChecklistControlePage() {
     stopEmergenciaCamera();
   }, [emergCameraSlot, stopEmergenciaCamera]);
 
+  const abrirCameraItemNao = useCallback(
+    async (itemKey: string) => {
+      setCheckMsg("");
+      stopItemNaoCamera();
+      stopHorimetroCamera();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCheckMsg(
+          "Não foi possível acessar a câmera neste navegador. Use HTTPS e um navegador atualizado (Chrome ou Safari).",
+        );
+        return;
+      }
+      try {
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
+        itemNaoStreamRef.current = stream;
+        setItemNaoCameraKey(itemKey);
+      } catch (e) {
+        const denied = e instanceof DOMException && e.name === "NotAllowedError";
+        setCheckMsg(
+          denied
+            ? "Permissão da câmera negada. Autorize para fotografar o problema."
+            : "Não foi possível iniciar a câmera. Tente de novo.",
+        );
+        stopItemNaoCamera();
+      }
+    },
+    [stopItemNaoCamera, stopHorimetroCamera],
+  );
+
+  const capturarFotoItemNao = useCallback(() => {
+    const k = itemNaoCameraKey;
+    if (!k) return;
+    const v = itemNaoVideoRef.current;
+    const dataUrl = v ? jpegDataUrlFromVideoEmergencia(v) : null;
+    if (!dataUrl) {
+      setCheckMsg(
+        "Não foi possível capturar a foto do problema. Aguarde o vídeo ou melhore a luz e tente de novo.",
+      );
+      return;
+    }
+    setAnswers((prev) => {
+      const cur = prev[k];
+      if (!cur || cur.v !== "nao") return prev;
+      return { ...prev, [k]: { ...cur, foto: dataUrl } };
+    });
+    setCheckMsg("");
+    stopItemNaoCamera();
+  }, [itemNaoCameraKey, stopItemNaoCamera]);
+
   const dashMetrics = useMemo(() => {
+    if (!session) {
+      return { checklistsHoje: 0, itensHoje: 0, emAberto: 0, aproveitamento: 0 };
+    }
     const today = startOfLocalDayIso(new Date());
     const hist = loadChecklistHistory();
     let checklistsHoje = 0;
@@ -694,21 +683,46 @@ export function ChecklistControlePage() {
     for (const row of hist) {
       const dh = String(row.Data_Hora ?? "");
       if (!isSameLocalDay(dh, today)) continue;
+      if (String(row.ID_Cliente ?? "") !== session.idCliente) continue;
+      if (String(row.ID_Maquina ?? "") !== session.idMaquina) continue;
       checklistsHoje += 1;
       const { total, sim } = parseRespostasChecklist(row);
       itensHoje += total;
       simHoje += sim;
     }
     const emAberto = emergRows.filter(
-      (r) =>
-        String(r.Status_Atendimento ?? "").toLowerCase() === "aberto" &&
-        (!session?.idCliente ||
-          String(r.ID_Cliente ?? "") === session.idCliente),
+      (r) => String(r.Status_Atendimento ?? "").toLowerCase() === "aberto",
     ).length;
     const aproveitamento =
       itensHoje > 0 ? Math.round((simHoje / itensHoje) * 100) : 0;
     return { checklistsHoje, itensHoje, emAberto, aproveitamento };
-  }, [emergRows, checkMsg, session?.idCliente]);
+  }, [session, emergRows, checkMsg]);
+
+  const checklistsHojeFiltrados = useMemo(() => {
+    if (!session) return [];
+    const today = startOfLocalDayIso(new Date());
+    const hist = loadChecklistHistory();
+    const rows = hist.filter((row) => {
+      if (!isSameLocalDay(String(row.Data_Hora ?? ""), today)) return false;
+      if (String(row.ID_Cliente ?? "") !== session.idCliente) return false;
+      if (String(row.ID_Maquina ?? "") !== session.idMaquina) return false;
+      return true;
+    });
+    rows.sort((a, b) => String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")));
+    return rows;
+  }, [session, emergRows, checkMsg]);
+
+  const checklistsAuditoriaFiltrados = useMemo(() => {
+    if (!session) return [];
+    const hist = loadChecklistHistory();
+    const rows = hist.filter((row) => {
+      if (String(row.ID_Cliente ?? "") !== session.idCliente) return false;
+      if (String(row.ID_Maquina ?? "") !== session.idMaquina) return false;
+      return true;
+    });
+    rows.sort((a, b) => String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")));
+    return rows;
+  }, [session, emergRows, checkMsg]);
 
   useEffect(() => {
     document.body.classList.add("hu360-root");
@@ -716,6 +730,16 @@ export function ChecklistControlePage() {
       document.body.classList.remove("hu360-root");
     };
   }, []);
+
+  useEffect(() => {
+    if (aba !== "dashboard") {
+      setPainelChecklistsHojeAberto(false);
+      setPainelChecklistExpandidoId(null);
+    }
+    if (aba !== "auditoria") {
+      setAuditoriaChecklistExpandidoId(null);
+    }
+  }, [aba]);
 
   useEffect(() => {
     if (!horimetroCameraUi) return;
@@ -736,34 +760,32 @@ export function ChecklistControlePage() {
   }, [emergCameraSlot]);
 
   useEffect(() => {
+    if (itemNaoCameraKey === null) return;
+    const v = itemNaoVideoRef.current;
+    const stream = itemNaoStreamRef.current;
+    if (!v || !stream) return;
+    v.srcObject = stream;
+    void v.play().catch(() => undefined);
+  }, [itemNaoCameraKey]);
+
+  useEffect(() => {
     return () => {
       horimetroStreamRef.current?.getTracks().forEach((t) => t.stop());
       horimetroStreamRef.current = null;
       emergStreamRef.current?.getTracks().forEach((t) => t.stop());
       emergStreamRef.current = null;
+      itemNaoStreamRef.current?.getTracks().forEach((t) => t.stop());
+      itemNaoStreamRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    requestGeo();
-  }, [requestGeo]);
-
-  useEffect(() => {
-    void loadEmergenciasFromFirestore();
-  }, [loadEmergenciasFromFirestore]);
-
-  useEffect(() => {
-    if (aba === "emergencia") void loadEmergenciasFromFirestore();
-  }, [aba, loadEmergenciasFromFirestore]);
-
-  useEffect(() => {
-    if (geoCoords) setGpsEmerg(geoCoords);
-  }, [geoCoords]);
-
-  useEffect(() => {
-    if (aba !== "checklist") stopHorimetroCamera();
+    if (aba !== "checklist") {
+      stopHorimetroCamera();
+      stopItemNaoCamera();
+    }
     if (aba !== "emergencia") stopEmergenciaCamera();
-  }, [aba, stopHorimetroCamera, stopEmergenciaCamera]);
+  }, [aba, stopHorimetroCamera, stopEmergenciaCamera, stopItemNaoCamera]);
 
   useEffect(() => {
     if (!session?.idMaquina) return;
@@ -775,17 +797,23 @@ export function ChecklistControlePage() {
     if (!chassisChecklistAtivo) return;
     if (normalizeChassis(chassisChecklistDraft) !== chassisChecklistAtivo) {
       setChassisChecklistAtivo("");
-      setMaquinaAtual(null);
       setAnswers({});
+      setNomeOperadorChecklist("");
       setHorimetro("");
       setFotoHorimetroDataUrl("");
       stopHorimetroCamera();
+      stopItemNaoCamera();
     }
-  }, [chassisChecklistDraft, chassisChecklistAtivo, stopHorimetroCamera]);
+  }, [chassisChecklistDraft, chassisChecklistAtivo, stopHorimetroCamera, stopItemNaoCamera]);
 
   const checklistItensLiberados = useMemo(
-    () => Boolean(chassisChecklistAtivo && maquinaAtual),
-    [chassisChecklistAtivo, maquinaAtual],
+    () =>
+      Boolean(
+        nomeOperadorChecklist.trim() &&
+          horimetro.trim() &&
+          fotoHorimetroDataUrl.length > 0,
+      ),
+    [nomeOperadorChecklist, horimetro, fotoHorimetroDataUrl],
   );
 
   useEffect(() => {
@@ -794,18 +822,19 @@ export function ChecklistControlePage() {
     }
   }, [checklistItensLiberados]);
 
+  const maquinaAtual = useMemo(() => {
+    if (!chassisChecklistAtivo) return null;
+    return findMaquinaPorChassis(chassisChecklistAtivo);
+  }, [chassisChecklistAtivo]);
+
   const maquinaDaSessao = useMemo(() => {
     if (!session?.idMaquina) return null;
-    return (
-      seedData.cadastro_frota.find((m) => m.ID === session.idMaquina) ?? null
-    );
+    return seedData.cadastro_frota.find((m) => m.ID === session.idMaquina) ?? null;
   }, [session?.idMaquina]);
 
   const treinamentosDaLocacao = useMemo(() => {
     if (!maquinaDaSessao) return [];
-    return seedData.treinamentos_video.filter((t) =>
-      treinoAplicaAMaquina(t, maquinaDaSessao),
-    );
+    return seedData.treinamentos_video.filter((t) => treinoAplicaAMaquina(t, maquinaDaSessao));
   }, [maquinaDaSessao]);
 
   const itensFiltrados: ItemChecklist[] = useMemo(() => {
@@ -814,85 +843,134 @@ export function ChecklistControlePage() {
     return seedData.itens_checklist.filter((it) => it.Categoria === cat);
   }, [maquinaAtual]);
 
-  function handleLogout() {
-    setSession(null);
-    setAnswers({});
-    setChassisChecklistDraft("");
+  function handleLogin(e: FormEvent) {
+    e.preventDefault();
+    setLoginMsg({ tone: "ok", text: "" });
+    const u = usuario.trim();
+    const pass = senha.trim();
+    if (!u || !pass) {
+      setLoginMsg({ tone: "err", text: "Preencha usuário e senha." });
+      return;
+    }
+    if (pass !== OPERADOR_SENHA) {
+      setLoginMsg({
+        tone: "err",
+        text: `Senha incorreta. Use: ${OPERADOR_SENHA}`,
+      });
+      return;
+    }
+
+    let sess: OperadorSession | null = resolveLoginToSession(u);
+    if (!sess && u.toLowerCase() === "admin") {
+      const loc = seedData.locacoes_ativas[0];
+      if (loc) {
+        const primeiro = parseOperadores(loc.Lista_Operadores)[0];
+        sess = {
+          nome: primeiro ?? "Admin",
+          idMaquina: loc.ID_Maquina,
+          idCliente: loc.ID_Cliente,
+          empresa: loc.Nome_Empresa,
+        };
+      }
+    }
+
+    if (!sess) {
+      setLoginMsg({
+        tone: "err",
+        text:
+          "Usuário não encontrado. Use jefferson, admin ou o nome completo de um operador da planilha.",
+      });
+      return;
+    }
+
+    const saved = setSession(sess);
+    const m0 = seedData.cadastro_frota.find((x) => x.ID === sess.idMaquina);
+    setChassisChecklistDraft(m0?.Chassis != null ? String(m0.Chassis) : "");
     setChassisChecklistAtivo("");
-    setMaquinaAtual(null);
+    setAnswers({});
+    setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
+    stopItemNaoCamera();
+    setLoginMsg({
+      tone: "ok",
+      text: saved
+        ? "Sessão iniciada."
+        : "Sessão iniciada. Se ao atualizar a página pedir login de novo, verifique se o armazenamento do navegador não está bloqueado para este site.",
+    });
+    setSenha("");
+    setAba("dashboard");
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
+  }
+
+  function handleLogout() {
+    setSession(null);
+    setUsuario("");
+    setSenha("");
+    setAnswers({});
+    setChassisChecklistDraft("");
+    setChassisChecklistAtivo("");
+    setNomeOperadorChecklist("");
+    setHorimetro("");
+    setFotoHorimetroDataUrl("");
+    stopHorimetroCamera();
+    stopItemNaoCamera();
     setTipoFalhaCategoria("");
     setTipoFalhaOutros("");
     setDescEmerg("");
     setGpsEmerg("");
     setFotosEmergencia(Array.from({ length: EMERG_NUM_FOTOS }, () => ""));
     stopEmergenciaCamera();
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
     setAba("dashboard");
   }
 
-  async function handleAbrirListaPorChassi() {
+  function handleAbrirListaPorChassi() {
     setCheckMsg("");
-    const chassisTrimmed = chassisChecklistDraft.trim();
-    if (!chassisTrimmed) {
-      setCheckMsg("Informe o chassi.");
+    const m = findMaquinaPorChassis(chassisChecklistDraft);
+    if (!m) {
+      setCheckMsg("Chassi não encontrado no cadastro da frota.");
+      setChassisChecklistAtivo("");
       return;
     }
-    setLoadingChassis(true);
-    try {
-      const q = query(
-        collection(db, "equipamentos"),
-        where("chassis", "==", chassisTrimmed),
+    if (session && m.ID !== session.idMaquina) {
+      setCheckMsg(
+        "Este chassi não corresponde à máquina da sua locação. Use o chassi do equipamento vinculado ao seu acesso.",
       );
-      const snap = await getDocs(q);
-      if (snap.empty) {
-        setCheckMsg("Chassi não encontrado no cadastro de equipamentos.");
-        setChassisChecklistAtivo("");
-        setMaquinaAtual(null);
-        return;
-      }
-      const docSnap = snap.docs[0];
-      const data = docSnap.data();
-      if (session && docSnap.id !== session.idMaquina) {
-        setCheckMsg(
-          "Este chassi não corresponde à máquina da sua locação. Use o chassi do equipamento vinculado ao seu acesso.",
-        );
-        setChassisChecklistAtivo("");
-        setMaquinaAtual(null);
-        return;
-      }
-      // Tenta obter a categoria do seed (para filtrar itens do checklist)
-      const seedRow = findMaquinaPorChassis(chassisTrimmed);
-      const categoria =
-        seedRow?.Categoria ?? String(data.linha ?? data.descricao ?? "");
-      const maquina: MaquinaChecklistInfo = {
-        ID: docSnap.id,
-        Marca: String(data.marca ?? ""),
-        Modelo: String(data.modelo ?? ""),
-        Chassis: chassisTrimmed,
-        Categoria: categoria,
-      };
-      setMaquinaAtual(maquina);
-      setChassisChecklistAtivo(normalizeChassis(chassisTrimmed));
-      setAnswers({});
-      setHorimetro("");
-      setFotoHorimetroDataUrl("");
-      stopHorimetroCamera();
-      setCheckMsg("Lista de verificação aberta para este chassi.");
-    } catch {
-      setCheckMsg("Erro ao consultar o banco de dados. Tente novamente.");
-      setMaquinaAtual(null);
-    } finally {
-      setLoadingChassis(false);
+      setChassisChecklistAtivo("");
+      return;
     }
+    setChassisChecklistAtivo(normalizeChassis(chassisChecklistDraft));
+    setAnswers({});
+    setNomeOperadorChecklist(session?.nome ?? "");
+    setHorimetro("");
+    setFotoHorimetroDataUrl("");
+    stopHorimetroCamera();
+    stopItemNaoCamera();
+    setCheckMsg("Lista de verificação aberta para este chassi.");
   }
 
   const setAnswer = useCallback(
     (numKey: string, v: "sim" | "nao") => {
-      setAnswers((prev) => ({ ...prev, [numKey]: v }));
+      if (!nomeOperadorChecklist.trim() || !horimetro.trim() || !fotoHorimetroDataUrl) return;
+      if (v === "sim") {
+        if (itemNaoCameraKey === numKey) stopItemNaoCamera();
+        setAnswers((prev) => ({ ...prev, [numKey]: { v: "sim" } }));
+        return;
+      }
+      stopItemNaoCamera();
+      setAnswers((prev) => ({ ...prev, [numKey]: { v: "nao", foto: "", problema: "" } }));
     },
-    [],
+    [
+      nomeOperadorChecklist,
+      horimetro,
+      fotoHorimetroDataUrl,
+      itemNaoCameraKey,
+      stopItemNaoCamera,
+    ],
   );
 
   function handleSalvarChecklist(e: FormEvent) {
@@ -908,6 +986,10 @@ export function ChecklistControlePage() {
       );
       return;
     }
+    if (!nomeOperadorChecklist.trim()) {
+      setCheckMsg("Informe o nome do operador antes de salvar.");
+      return;
+    }
     if (!horimetro.trim()) {
       setCheckMsg("Informe o horímetro antes de salvar.");
       return;
@@ -919,21 +1001,26 @@ export function ChecklistControlePage() {
       return;
     }
     const keys = itensFiltrados.map((it) => String(it["Nº"]));
-    const falta = keys.filter((k) => answers[k] == null);
-    if (falta.length > 0) {
-      setCheckMsg(
-        `Responda Sim/Não em todos os itens (${falta.length} pendente(s)).`,
-      );
+    const incompleto = keys.find((k) => !checklistRespostaCompleta(answers[k]));
+    if (incompleto !== undefined) {
+      const a = answers[incompleto];
+      if (a?.v === "nao") {
+        setCheckMsg(
+          `No item ${incompleto}: em «Não» use a câmera para fotografar o problema e descreva o que foi encontrado.`,
+        );
+      } else {
+        setCheckMsg(`Responda Sim/Não em todos os itens (pendente: ${incompleto}).`);
+      }
       return;
     }
 
-    const numSim = keys.filter((k) => answers[k] === "sim").length;
+    const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
     const pontos = numSim * 2;
 
     const reg = {
       ID_Registro: genId("CHK"),
       Data_Hora: new Date().toISOString(),
-      Operador: session.nome,
+      Operador: nomeOperadorChecklist.trim(),
       Chassis: String(maquinaAtual.Chassis ?? chassisChecklistAtivo),
       ID_Maquina: maquinaAtual.ID,
       Categoria: maquinaAtual.Categoria,
@@ -954,23 +1041,22 @@ export function ChecklistControlePage() {
     saveChecklistHistory(hist);
     setCheckMsg("Checklist registrado localmente (demonstração).");
     setAnswers({});
+    setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
+    stopItemNaoCamera();
     setObsChecklist("");
   }
 
-  async function handleEmergencia(e: FormEvent) {
+  function handleEmergencia(e: FormEvent) {
     e.preventDefault();
     setEmergMsg("");
     if (!session) {
       setEmergMsg("Faça login para registrar emergência.");
       return;
     }
-    const tipoResolvido = montarTipoFalhaParaRegistro(
-      tipoFalhaCategoria,
-      tipoFalhaOutros,
-    );
+    const tipoResolvido = montarTipoFalhaParaRegistro(tipoFalhaCategoria, tipoFalhaOutros);
     if (!tipoFalhaCategoria) {
       setEmergMsg("Selecione o tipo de falha na lista.");
       return;
@@ -984,83 +1070,97 @@ export function ChecklistControlePage() {
       return;
     }
 
-    const faltaFotoIdx = fotosEmergencia.findIndex(
-      (u) => !u || !u.startsWith("data:image"),
-    );
+    const faltaFotoIdx = fotosEmergencia.findIndex((u) => !u || !u.startsWith("data:image"));
     if (faltaFotoIdx !== -1) {
-      setEmergMsg(
-        `Tire as ${EMERG_NUM_FOTOS} fotos na hora com a câmera (falta a foto ${faltaFotoIdx + 1}).`,
-      );
+      setEmergMsg(`Tire as ${EMERG_NUM_FOTOS} fotos na hora com a câmera (falta a foto ${faltaFotoIdx + 1}).`);
       return;
     }
 
-    setEmergSaving(true);
+    const mid = session.idMaquina;
+    const row = {
+      ID_Emergencia: genId("EM"),
+      Data_Hora: new Date().toISOString(),
+      ID_Maquina: mid,
+      Operador: session.nome,
+      ID_Cliente: session.idCliente,
+      Tipo_Falha: tipoResolvido,
+      Descricao_Curta: descEmerg.trim(),
+      Localizacao_GPS: gpsEmerg.trim() || null,
+      Status_Atendimento: "Aberto",
+      Foto_Evidencia: null,
+      Fotos_Evidencia_JSON: JSON.stringify(fotosEmergencia),
+      Qtd_Fotos_Evidencia: EMERG_NUM_FOTOS,
+    };
+
+    const next = [row, ...emergRows];
     try {
-      // Comprime cada foto para caber dentro do limite do Firestore
-      const fotosComprimidas = await Promise.all(
-        fotosEmergencia.map(compressPhotoForFirestore),
-      );
-
-      const chassis =
-        session.chassis ?? maquinaAtual?.Chassis ?? "";
-      const dataHoraLocal = new Date().toISOString();
-
-      const docData = {
-        prefeituraId: session.idCliente,
-        dataHora: serverTimestamp(),
-        chassis,
-        idMaquina: session.idMaquina,
-        operador: session.nome,
-        tipoFalha: tipoResolvido,
-        descricaoCurta: descEmerg.trim(),
-        localizacaoGps: gpsEmerg.trim() || null,
-        statusAtendimento: "Aberto",
-        fotos: fotosComprimidas,
-        qtdFotos: fotosComprimidas.length,
-      };
-
-      const docRef = await addDoc(collection(db, "emergencias"), docData);
-
-      const row: Record<string, unknown> = {
-        ID_Emergencia: docRef.id,
-        Data_Hora: dataHoraLocal,
-        ID_Maquina: session.idMaquina,
-        Chassis: chassis,
-        Operador: session.nome,
-        ID_Cliente: session.idCliente,
-        Tipo_Falha: tipoResolvido,
-        Descricao_Curta: descEmerg.trim(),
-        Localizacao_GPS: gpsEmerg.trim() || null,
-        Status_Atendimento: "Aberto",
-        Fotos_Evidencia_JSON: JSON.stringify(fotosComprimidas),
-        Qtd_Fotos_Evidencia: fotosComprimidas.length,
-      };
-
-      const next = [row, ...emergRows];
-      try {
-        saveEmergencias(next);
-      } catch {
-        /* ignora erro de localStorage cheio — Firestore já salvou */
-      }
-      setEmergRows(next);
-      setEmergMsg("Emergência registrada com sucesso.");
-      setTipoFalhaCategoria("");
-      setTipoFalhaOutros("");
-      setDescEmerg("");
-      setGpsEmerg(geoCoords);
-      setFotosEmergencia(Array.from({ length: EMERG_NUM_FOTOS }, () => ""));
-      stopEmergenciaCamera();
+      saveEmergencias(next);
     } catch {
       setEmergMsg(
-        "Erro ao salvar emergência no banco de dados. Tente novamente.",
+        "Não foi possível salvar (armazenamento cheio ou bloqueado). Tente fechar outras abas ou reduzir o zoom na câmera e capture de novo.",
       );
-    } finally {
-      setEmergSaving(false);
+      return;
     }
+    setEmergRows(next);
+    setEmergMsg("Emergência registrada. Equipe acionada (simulação).");
+    setTipoFalhaCategoria("");
+    setTipoFalhaOutros("");
+    setDescEmerg("");
+    setGpsEmerg("");
+    setFotosEmergencia(Array.from({ length: EMERG_NUM_FOTOS }, () => ""));
+    stopEmergenciaCamera();
   }
 
   if (!session) {
-    return <Navigate to="/checklist-login" replace />;
+    return (
+      <div className="hu360-auth-screen">
+        <div className="hu360-auth-card hu360-card hu360-form">
+          <h3 style={{ marginTop: 0 }}>Entrar</h3>
+          <p style={{ margin: "0 0 12px", color: "var(--hu-muted)", fontSize: "0.9rem" }}>
+            <strong>Administrador:</strong> usuário{" "}
+            <code style={{ color: "var(--hu-accent)" }}>jefferson</code>, senha{" "}
+            <code style={{ color: "var(--hu-accent)" }}>{OPERADOR_SENHA}</code>. Outros
+            operadores: nome completo como na planilha (locações ativas), mesma senha.{" "}
+            <strong>admin</strong> usa a primeira locação (demonstração).
+          </p>
+          <form onSubmit={handleLogin}>
+            <label htmlFor="hu360-usuario">Usuário</label>
+            <input
+              id="hu360-usuario"
+              autoComplete="username"
+              value={usuario}
+              onChange={(ev) => setUsuario(ev.target.value)}
+              placeholder="jefferson"
+            />
+            <label htmlFor="hu360-senha">Senha</label>
+            <input
+              id="hu360-senha"
+              type="password"
+              autoComplete="current-password"
+              value={senha}
+              onChange={(ev) => setSenha(ev.target.value)}
+            />
+            <div style={{ marginTop: 16 }}>
+              <button type="submit" className="hu360-btn">
+                Entrar
+              </button>
+            </div>
+            {loginMsg.text ? (
+              <div
+                className={`hu360-msg ${loginMsg.tone === "ok" ? "ok" : "err"}`}
+              >
+                {loginMsg.text}
+              </div>
+            ) : null}
+          </form>
+          <p style={{ marginTop: 20, marginBottom: 0 }}>
+            <Link to="/" style={{ color: "var(--hu-accent)", fontWeight: 600 }}>
+              ← Portal inicial
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1123,19 +1223,21 @@ export function ChecklistControlePage() {
         {aba === "dashboard" ? (
           <section className="hu360-dash">
             <div className="hu360-dash-kpis">
-              <article className="hu360-dash-card">
+              <button
+                type="button"
+                className="hu360-dash-card hu360-dash-card--clickable"
+                title="Ver checklists concluídos hoje nesta máquina"
+                onClick={() => {
+                  setPainelChecklistsHojeAberto(true);
+                  setPainelChecklistExpandidoId(null);
+                }}
+                aria-expanded={painelChecklistsHojeAberto}
+              >
                 <div
                   className="hu360-dash-card__icon hu360-dash-card__icon--orange"
                   aria-hidden
                 >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
                     <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
                     <path d="M9 12h6" />
@@ -1143,32 +1245,21 @@ export function ChecklistControlePage() {
                   </svg>
                 </div>
                 <div className="hu360-dash-card__body">
-                  <div className="hu360-dash-card__val">
-                    {dashMetrics.checklistsHoje}
-                  </div>
+                  <div className="hu360-dash-card__val">{dashMetrics.checklistsHoje}</div>
                   <div className="hu360-dash-card__lbl">Checklists Hoje</div>
                 </div>
-              </article>
+              </button>
               <article className="hu360-dash-card">
                 <div
                   className="hu360-dash-card__icon hu360-dash-card__icon--green"
                   aria-hidden
                 >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 </div>
                 <div className="hu360-dash-card__body">
-                  <div className="hu360-dash-card__val">
-                    {dashMetrics.itensHoje}
-                  </div>
+                  <div className="hu360-dash-card__val">{dashMetrics.itensHoje}</div>
                   <div className="hu360-dash-card__lbl">Itens Verificados</div>
                 </div>
               </article>
@@ -1177,26 +1268,15 @@ export function ChecklistControlePage() {
                   className="hu360-dash-card__icon hu360-dash-card__icon--red"
                   aria-hidden
                 >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                     <path d="M12 9v4" />
                     <path d="M12 17h.01" />
                   </svg>
                 </div>
                 <div className="hu360-dash-card__body">
-                  <div className="hu360-dash-card__val">
-                    {dashMetrics.emAberto}
-                  </div>
-                  <div className="hu360-dash-card__lbl">
-                    Emergências Abertas
-                  </div>
+                  <div className="hu360-dash-card__val">{dashMetrics.emAberto}</div>
+                  <div className="hu360-dash-card__lbl">Emergências Abertas</div>
                 </div>
               </article>
               <article className="hu360-dash-card">
@@ -1204,34 +1284,50 @@ export function ChecklistControlePage() {
                   className="hu360-dash-card__icon hu360-dash-card__icon--orange"
                   aria-hidden
                 >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                   </svg>
                 </div>
                 <div className="hu360-dash-card__body">
-                  <div className="hu360-dash-card__val">
-                    {dashMetrics.aproveitamento}%
-                  </div>
+                  <div className="hu360-dash-card__val">{dashMetrics.aproveitamento}%</div>
                   <div className="hu360-dash-card__lbl">Aproveitamento</div>
                 </div>
               </article>
             </div>
+
+            {painelChecklistsHojeAberto ? (
+              <div className="hu360-card hu360-dash-checklists-panel">
+                <div className="hu360-dash-checklists-panel__head">
+                  <h3 className="hu360-dash-checklists-panel__title">Checklists concluídos hoje</h3>
+                  <button
+                    type="button"
+                    className="hu360-btn hu360-btn-ghost"
+                    style={{ width: "auto", padding: "8px 14px" }}
+                    onClick={() => {
+                      setPainelChecklistsHojeAberto(false);
+                      setPainelChecklistExpandidoId(null);
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+                <ListaChecklistHistoricoLocal
+                  rows={checklistsHojeFiltrados}
+                  expandidoId={painelChecklistExpandidoId}
+                  setExpandidoId={setPainelChecklistExpandidoId}
+                  mensagemVazia="Nenhum checklist registrado hoje nesta máquina e locação."
+                />
+              </div>
+            ) : null}
+
           </section>
         ) : null}
 
         {aba === "checklist" ? (
           <section className="hu360-page">
             <p className="hu360-page__lead">
-              O checklist só abre após validar o{" "}
-              <strong>número do chassi</strong> cadastrado na frota. Ele deve
-              ser o da máquina vinculada à sua locação.
+              O checklist só abre após validar o <strong>número do chassi</strong> cadastrado na
+              frota. Ele deve ser o da máquina vinculada à sua locação.
             </p>
 
             <div className="hu360-card hu360-form">
@@ -1247,25 +1343,14 @@ export function ChecklistControlePage() {
                 <button
                   type="button"
                   className="hu360-btn"
-                  onClick={() => {
-                    void handleAbrirListaPorChassi();
-                  }}
-                  disabled={loadingChassis}
+                  onClick={handleAbrirListaPorChassi}
                 >
-                  {loadingChassis
-                    ? "Buscando..."
-                    : "Abrir lista de verificação"}
+                  Abrir lista de verificação
                 </button>
               </div>
 
               {!chassisChecklistAtivo ? (
-                <p
-                  style={{
-                    color: "var(--hu-muted)",
-                    marginTop: 14,
-                    marginBottom: 0,
-                  }}
-                >
+                <p style={{ color: "var(--hu-muted)", marginTop: 14, marginBottom: 0 }}>
                   Nenhum checklist carregado. Informe o chassi e confirme acima.
                 </p>
               ) : null}
@@ -1279,9 +1364,8 @@ export function ChecklistControlePage() {
                     color: "var(--hu-muted)",
                   }}
                 >
-                  <strong>{maquinaAtual.ID}</strong> · {maquinaAtual.Marca}{" "}
-                  {maquinaAtual.Modelo} · Chassi{" "}
-                  <strong>{maquinaAtual.Chassis}</strong>
+                  <strong>{maquinaAtual.ID}</strong> · {maquinaAtual.Marca} {maquinaAtual.Modelo}{" "}
+                  · Chassi <strong>{maquinaAtual.Chassis}</strong>
                 </p>
               ) : null}
 
@@ -1294,16 +1378,24 @@ export function ChecklistControlePage() {
               {maquinaAtual && itensFiltrados.length === 0 ? (
                 <p style={{ color: "#f87171", marginTop: 12 }}>
                   Sem itens de checklist para a categoria &quot;
-                  {checklistCategoriaFromMaquina(maquinaAtual.Categoria)}&quot;
-                  na planilha.
+                  {checklistCategoriaFromMaquina(maquinaAtual.Categoria)}&quot; na planilha.
                 </p>
               ) : null}
 
-              {maquinaAtual ? (
-                <form
-                  onSubmit={handleSalvarChecklist}
-                  style={{ marginTop: 16 }}
-                >
+              {maquinaAtual && itensFiltrados.length > 0 ? (
+                <form onSubmit={handleSalvarChecklist} style={{ marginTop: 16 }}>
+                  <label htmlFor="hu360-nome-operador-chk">
+                    Nome do operador <span style={{ color: "#dc2626" }}>*</span>
+                  </label>
+                  <input
+                    id="hu360-nome-operador-chk"
+                    autoComplete="name"
+                    required
+                    value={nomeOperadorChecklist}
+                    onChange={(ev) => setNomeOperadorChecklist(ev.target.value)}
+                    placeholder="Nome completo de quem está fazendo a verificação"
+                  />
+
                   <label htmlFor="hu360-horimetro">
                     Horímetro <span style={{ color: "#dc2626" }}>*</span>
                   </label>
@@ -1317,12 +1409,8 @@ export function ChecklistControlePage() {
                   />
 
                   <div className="hu360-foto-horimetro-block">
-                    <span
-                      id="hu360-foto-horimetro-title"
-                      className="hu360-inline-label"
-                    >
-                      Foto do horímetro{" "}
-                      <span style={{ color: "#dc2626" }}>*</span>
+                    <span id="hu360-foto-horimetro-title" className="hu360-inline-label">
+                      Foto do horímetro <span style={{ color: "#dc2626" }}>*</span>
                     </span>
                     <p
                       style={{
@@ -1331,8 +1419,8 @@ export function ChecklistControlePage() {
                         color: "#64748b",
                       }}
                     >
-                      A foto precisa ser tirada na hora com a câmera do
-                      aparelho; não é possível enviar imagem da galeria.
+                      A foto precisa ser tirada na hora com a câmera do aparelho; não é possível enviar
+                      imagem da galeria.
                     </p>
                     {!fotoHorimetroDataUrl && horimetroCameraUi ? (
                       <div className="hu360-horimetro-camera-wrap">
@@ -1367,11 +1455,7 @@ export function ChecklistControlePage() {
                       <button
                         type="button"
                         className="hu360-btn"
-                        style={{
-                          width: "auto",
-                          marginTop: 4,
-                          padding: "10px 18px",
-                        }}
+                        style={{ width: "auto", marginTop: 4, padding: "10px 18px" }}
                         onClick={abrirCameraHorimetro}
                       >
                         Abrir câmera e fotografar horímetro
@@ -1379,18 +1463,11 @@ export function ChecklistControlePage() {
                     ) : null}
                     {fotoHorimetroDataUrl ? (
                       <div className="hu360-foto-preview">
-                        <img
-                          src={fotoHorimetroDataUrl}
-                          alt="Foto capturada do horímetro"
-                        />
+                        <img src={fotoHorimetroDataUrl} alt="Foto capturada do horímetro" />
                         <button
                           type="button"
                           className="hu360-btn hu360-btn-ghost"
-                          style={{
-                            width: "auto",
-                            marginTop: 8,
-                            padding: "6px 12px",
-                          }}
+                          style={{ width: "auto", marginTop: 8, padding: "6px 12px" }}
                           onClick={() => {
                             setFotoHorimetroDataUrl("");
                             setCheckMsg("");
@@ -1403,7 +1480,7 @@ export function ChecklistControlePage() {
                     ) : null}
                   </div>
 
-                  {!horimetro.trim() || !fotoHorimetroDataUrl ? (
+                  {!checklistItensLiberados ? (
                     <p
                       className="hu360-checklist-bloqueio"
                       style={{
@@ -1416,17 +1493,15 @@ export function ChecklistControlePage() {
                         fontSize: "0.88rem",
                       }}
                     >
-                      Preencha o <strong>horímetro</strong> e use a{" "}
-                      <strong>câmera</strong> para fotografar o horímetro na
-                      hora antes de salvar.
+                      Preencha o <strong>nome do operador</strong>, o <strong>horímetro</strong> e use a{" "}
+                      <strong>câmera</strong> para fotografar o horímetro na hora; depois disso os itens da
+                      lista (Sim/Não) são liberados.
                     </p>
                   ) : null}
 
                   <div
                     className={
-                      checklistItensLiberados
-                        ? ""
-                        : "hu360-checklist-itens--bloqueado"
+                      checklistItensLiberados ? "" : "hu360-checklist-itens--bloqueado"
                     }
                     style={{ marginTop: 18 }}
                   >
@@ -1434,38 +1509,127 @@ export function ChecklistControlePage() {
                       const key = String(it["Nº"]);
                       const cur = answers[key];
                       const bloq = !checklistItensLiberados;
+                      const isSim = cur?.v === "sim";
+                      const isNao = cur?.v === "nao";
                       return (
-                        <div key={key} className="hu360-check-row">
-                          <span className="hu360-check-num">{key}</span>
-                          <div style={{ flex: "1 1 220px" }}>
-                            {it["Item de Verificação"]}
-                            <div
-                              style={{
-                                fontSize: "0.78rem",
-                                color: "var(--hu-muted)",
-                              }}
-                            >
-                              {it.Tipo}
+                        <div key={key} className="hu360-check-block">
+                          <div className="hu360-check-row">
+                            <span className="hu360-check-num">{key}</span>
+                            <div style={{ flex: "1 1 220px" }}>
+                              {it["Item de Verificação"]}
+                              <div style={{ fontSize: "0.78rem", color: "var(--hu-muted)" }}>
+                                {it.Tipo}
+                              </div>
+                            </div>
+                            <div className="hu360-toggle-group">
+                              <button
+                                type="button"
+                                className={isSim ? "active-sim" : ""}
+                                disabled={bloq}
+                                onClick={() => setAnswer(key, "sim")}
+                              >
+                                Sim
+                              </button>
+                              <button
+                                type="button"
+                                className={isNao ? "active-nao" : ""}
+                                disabled={bloq}
+                                onClick={() => setAnswer(key, "nao")}
+                              >
+                                Não
+                              </button>
                             </div>
                           </div>
-                          <div className="hu360-toggle-group">
-                            <button
-                              type="button"
-                              className={cur === "sim" ? "active-sim" : ""}
-                              disabled={bloq}
-                              onClick={() => setAnswer(key, "sim")}
-                            >
-                              Sim
-                            </button>
-                            <button
-                              type="button"
-                              className={cur === "nao" ? "active-nao" : ""}
-                              disabled={bloq}
-                              onClick={() => setAnswer(key, "nao")}
-                            >
-                              Não
-                            </button>
-                          </div>
+                          {isNao && !bloq ? (
+                            <div className="hu360-nao-problema">
+                              <p className="hu360-nao-problema__lead">
+                                Este item está como <strong>Não</strong>. Registre evidência e o problema.
+                              </p>
+                              <span className="hu360-nao-problema__lbl">
+                                Foto do problema <span style={{ color: "#dc2626" }}>*</span> (na hora)
+                              </span>
+                              <p className="hu360-nao-problema__hint">
+                                Só câmera ao vivo, como no horímetro.
+                              </p>
+                              {itemNaoCameraKey === key ? (
+                                <div className="hu360-horimetro-camera-wrap">
+                                  <video
+                                    ref={itemNaoVideoRef}
+                                    className="hu360-horimetro-camera"
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                  />
+                                  <div className="hu360-horimetro-camera-actions">
+                                    <button
+                                      type="button"
+                                      className="hu360-btn"
+                                      style={{ width: "auto", padding: "10px 18px" }}
+                                      onClick={capturarFotoItemNao}
+                                    >
+                                      Capturar foto
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="hu360-btn hu360-btn-ghost"
+                                      style={{ width: "auto", padding: "10px 18px" }}
+                                      onClick={stopItemNaoCamera}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : null}
+                              {isNao && cur.foto ? (
+                                <div className="hu360-foto-preview">
+                                  <img src={cur.foto} alt="" />
+                                  <button
+                                    type="button"
+                                    className="hu360-btn hu360-btn-ghost"
+                                    style={{ width: "auto", marginTop: 8, padding: "6px 12px" }}
+                                    onClick={() => {
+                                      setAnswers((prev) => {
+                                        const c = prev[key];
+                                        if (!c || c.v !== "nao") return prev;
+                                        return { ...prev, [key]: { ...c, foto: "" } };
+                                      });
+                                      setCheckMsg("");
+                                    }}
+                                  >
+                                    Remover foto
+                                  </button>
+                                </div>
+                              ) : null}
+                              {isNao && !cur.foto && itemNaoCameraKey !== key ? (
+                                <button
+                                  type="button"
+                                  className="hu360-btn"
+                                  style={{ width: "auto", padding: "10px 18px" }}
+                                  onClick={() => abrirCameraItemNao(key)}
+                                >
+                                  Abrir câmera — foto do problema
+                                </button>
+                              ) : null}
+                              <label className="hu360-nao-problema__lbl" htmlFor={`hu360-nao-txt-${key}`}>
+                                Descreva o problema <span style={{ color: "#dc2626" }}>*</span>
+                              </label>
+                              <textarea
+                                id={`hu360-nao-txt-${key}`}
+                                className="hu360-nao-problema__textarea"
+                                rows={3}
+                                value={cur.problema}
+                                onChange={(ev) => {
+                                  const t = ev.target.value;
+                                  setAnswers((prev) => {
+                                    const c = prev[key];
+                                    if (!c || c.v !== "nao") return prev;
+                                    return { ...prev, [key]: { ...c, problema: t } };
+                                  });
+                                }}
+                                placeholder="O que foi encontrado neste item?"
+                              />
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -1504,39 +1668,47 @@ export function ChecklistControlePage() {
           </section>
         ) : null}
 
+        {aba === "auditoria" ? (
+          <section className="hu360-page">
+            <p className="hu360-page__lead">
+              Histórico de checklists salvos neste dispositivo para a sua locação e máquina. A
+              mesma visualização do painel <strong>Checklists concluídos hoje</strong>: expanda
+              cada registro para ver horímetro, fotos e itens (Sim/Não).
+            </p>
+            <div className="hu360-card hu360-dash-checklists-panel">
+              <div className="hu360-dash-checklists-panel__head">
+                <h3 className="hu360-dash-checklists-panel__title">Auditoria de checklists</h3>
+              </div>
+              <ListaChecklistHistoricoLocal
+                rows={checklistsAuditoriaFiltrados}
+                expandidoId={auditoriaChecklistExpandidoId}
+                setExpandidoId={setAuditoriaChecklistExpandidoId}
+                mensagemVazia="Nenhum checklist registrado nesta máquina e locação."
+              />
+            </div>
+          </section>
+        ) : null}
+
         {aba === "emergencia" ? (
           <section className="hu360-page">
             <p className="hu360-page__lead">
-              Registro local conforme a planilha{" "}
-              <strong>LOG_EMERGENCIAS</strong>.
+              Registro local conforme a planilha <strong>LOG_EMERGENCIAS</strong>.
             </p>
 
             <div className="hu360-card hu360-form">
               <form onSubmit={handleEmergencia}>
                 <div className="hu360-emerg-maquina-readonly">
                   <label>Máquina (sua locação)</label>
-                  <p
-                    style={{
-                      margin: "8px 0 0",
-                      fontSize: "0.95rem",
-                      color: "#334155",
-                    }}
-                  >
+                  <p style={{ margin: "8px 0 0", fontSize: "0.95rem", color: "#334155" }}>
                     {maquinaDaSessao ? (
                       <>
-                        <strong>
-                          {maquinaDaSessao.Marca} {maquinaDaSessao.Modelo}
-                        </strong>
+                        <strong>{maquinaDaSessao.ID}</strong> · {maquinaDaSessao.Marca}{" "}
+                        {maquinaDaSessao.Modelo}
                         <br />
                         <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                          Chassi:{" "}
-                          <strong>
-                            {String(maquinaDaSessao.Chassis ?? "—")}
-                          </strong>
+                          Chassi: <strong>{String(maquinaDaSessao.Chassis ?? "—")}</strong>
                         </span>
                       </>
-                    ) : session ? (
-                      <strong>{session.nome}</strong>
                     ) : (
                       "—"
                     )}
@@ -1563,9 +1735,7 @@ export function ChecklistControlePage() {
 
                 {tipoFalhaCategoria === "outros" ? (
                   <>
-                    <label htmlFor="hu360-tipo-falha-outros">
-                      Especifique o tipo (outros)
-                    </label>
+                    <label htmlFor="hu360-tipo-falha-outros">Especifique o tipo (outros)</label>
                     <input
                       id="hu360-tipo-falha-outros"
                       value={tipoFalhaOutros}
@@ -1583,83 +1753,29 @@ export function ChecklistControlePage() {
                   placeholder="O que aconteceu e contexto imediato."
                 />
 
-                <label htmlFor="hu360-gps-emerg">
-                  Localização (GPS ou referência)
-                </label>
-                {geoStatus === "denied" || geoStatus === "unavailable" ? (
-                  <div
-                    style={{
-                      marginBottom: 8,
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      background: "#fff7ed",
-                      border: "1px solid #fed7aa",
-                      color: "#9a3412",
-                      fontSize: "0.84rem",
-                    }}
-                  >
-                    {geoStatus === "denied"
-                      ? "Permissão de localização negada. Ative nas configurações do navegador ou toque no botão abaixo para tentar novamente."
-                      : "Localização não disponível neste dispositivo/navegador."}
-                    {geoStatus === "denied" ? (
-                      <div style={{ marginTop: 8 }}>
-                        <button
-                          type="button"
-                          className="hu360-btn"
-                          style={{
-                            width: "auto",
-                            padding: "7px 14px",
-                            fontSize: "0.85rem",
-                          }}
-                          onClick={requestGeo}
-                        >
-                          Ativar localização
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
+                <label htmlFor="hu360-gps-emerg">Localização (GPS ou referência)</label>
                 <input
                   id="hu360-gps-emerg"
                   value={gpsEmerg}
                   onChange={(ev) => setGpsEmerg(ev.target.value)}
-                  placeholder={
-                    geoStatus === "loading"
-                      ? "Obtendo localização…"
-                      : "-20.xxx, -54.xxx ou trecho da obra"
-                  }
-                  readOnly={geoStatus === "loading"}
+                  placeholder="-20.xxx, -54.xxx ou trecho da obra"
                 />
 
                 <div className="hu360-inline-label" style={{ marginTop: 16 }}>
-                  Fotos da emergência{" "}
-                  <span style={{ color: "#dc2626" }}>*</span> ({EMERG_NUM_FOTOS}{" "}
+                  Fotos da emergência <span style={{ color: "#dc2626" }}>*</span> ({EMERG_NUM_FOTOS}{" "}
                   na hora)
                 </div>
-                <p
-                  style={{
-                    margin: "6px 0 12px",
-                    fontSize: "0.84rem",
-                    color: "#64748b",
-                  }}
-                >
-                  Obrigatórias {EMERG_NUM_FOTOS} fotos com a câmera do aparelho,
-                  ao vivo (sem galeria). Toque em «Tirar foto» em cada quadro,
-                  capture e repita até completar as seis.
+                <p style={{ margin: "6px 0 12px", fontSize: "0.84rem", color: "#64748b" }}>
+                  Obrigatórias {EMERG_NUM_FOTOS} fotos com a câmera do aparelho, ao vivo (sem galeria).
+                  Toque em «Tirar foto» em cada quadro, capture e repita até completar as seis.
                 </p>
 
                 <div className="hu360-emerg-fotos-grid">
                   {fotosEmergencia.map((src, i) => (
                     <div key={i} className="hu360-emerg-foto-slot">
-                      <span className="hu360-emerg-foto-slot__n">
-                        Foto {i + 1}
-                      </span>
+                      <span className="hu360-emerg-foto-slot__n">Foto {i + 1}</span>
                       {src ? (
-                        <img
-                          src={src}
-                          alt=""
-                          className="hu360-emerg-foto-slot__thumb"
-                        />
+                        <img src={src} alt="" className="hu360-emerg-foto-slot__thumb" />
                       ) : (
                         <div className="hu360-emerg-foto-slot__ph" aria-hidden>
                           —
@@ -1669,11 +1785,7 @@ export function ChecklistControlePage() {
                         <button
                           type="button"
                           className="hu360-btn"
-                          style={{
-                            width: "100%",
-                            padding: "8px 10px",
-                            fontSize: "0.85rem",
-                          }}
+                          style={{ width: "100%", padding: "8px 10px", fontSize: "0.85rem" }}
                           onClick={() => abrirCameraEmergencia(i)}
                         >
                           {src ? "Refazer" : "Tirar foto"}
@@ -1682,11 +1794,7 @@ export function ChecklistControlePage() {
                           <button
                             type="button"
                             className="hu360-btn hu360-btn-ghost"
-                            style={{
-                              width: "100%",
-                              padding: "8px 10px",
-                              fontSize: "0.85rem",
-                            }}
+                            style={{ width: "100%", padding: "8px 10px", fontSize: "0.85rem" }}
                             onClick={() => {
                               setFotosEmergencia((prev) => {
                                 const n = [...prev];
@@ -1705,13 +1813,7 @@ export function ChecklistControlePage() {
 
                 {emergCameraSlot !== null ? (
                   <div className="hu360-emerg-camera-panel">
-                    <p
-                      style={{
-                        margin: "14px 0 8px",
-                        fontWeight: 600,
-                        color: "#334155",
-                      }}
-                    >
+                    <p style={{ margin: "14px 0 8px", fontWeight: 600, color: "#334155" }}>
                       Câmera — foto {emergCameraSlot + 1} de {EMERG_NUM_FOTOS}
                     </p>
                     <video
@@ -1742,16 +1844,12 @@ export function ChecklistControlePage() {
                   </div>
                 ) : null}
 
-                <button
-                  type="submit"
-                  className="hu360-btn hu360-btn-danger"
-                  disabled={emergSaving}
-                >
-                  {emergSaving ? "Salvando..." : "Acionar emergência"}
+                <button type="submit" className="hu360-btn hu360-btn-danger">
+                  Acionar emergência
                 </button>
                 {emergMsg ? (
                   <div
-                    className={`hu360-msg ${emergMsg.includes("registrada") ? "ok" : "err"}`}
+                    className={`hu360-msg ${emergMsg.includes("Emergência registrada") ? "ok" : "err"}`}
                   >
                     {emergMsg}
                   </div>
@@ -1760,13 +1858,13 @@ export function ChecklistControlePage() {
             </div>
 
             <div className="hu360-card">
-              <h3>Últimos registros</h3>
+              <h3>Últimos registros (navegador)</h3>
               <div className="hu360-table-wrap hu360-table-wrap--light">
                 <table>
                   <thead>
                     <tr>
                       <th>Data</th>
-                      <th>Chassi</th>
+                      <th>Máquina</th>
                       <th>Operador</th>
                       <th>Tipo</th>
                       <th>Fotos</th>
@@ -1774,14 +1872,12 @@ export function ChecklistControlePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {emergRows.slice(0, 20).map((row) => (
+                    {emergRows.slice(0, 12).map((row) => (
                       <tr key={String(row.ID_Emergencia)}>
                         <td style={{ whiteSpace: "nowrap" }}>
-                          {String(row.Data_Hora ?? "")
-                            .slice(0, 19)
-                            .replace("T", " ")}
+                          {String(row.Data_Hora ?? "").slice(0, 19).replace("T", " ")}
                         </td>
-                        <td>{String(row.Chassis ?? row.ID_Maquina ?? "")}</td>
+                        <td>{String(row.ID_Maquina ?? "")}</td>
                         <td>{String(row.Operador ?? "")}</td>
                         <td>{String(row.Tipo_Falha ?? "")}</td>
                         <td>{contarFotosEmergenciaRow(row)}</td>
@@ -1793,7 +1889,7 @@ export function ChecklistControlePage() {
               </div>
               {emergRows.length === 0 ? (
                 <p style={{ color: "var(--hu-muted)", margin: 0 }}>
-                  Nenhuma emergência registrada.
+                  Nenhuma emergência registrada neste dispositivo.
                 </p>
               ) : null}
             </div>
@@ -1808,52 +1904,32 @@ export function ChecklistControlePage() {
               {maquinaDaSessao ? (
                 <>
                   : <strong>{maquinaDaSessao.ID}</strong>, chassi{" "}
-                  <strong>{String(maquinaDaSessao.Chassis ?? "—")}</strong>,
-                  modelo{" "}
+                  <strong>{String(maquinaDaSessao.Chassis ?? "—")}</strong>, modelo{" "}
                   <strong>{String(maquinaDaSessao.Modelo ?? "—")}</strong>
                 </>
               ) : (
                 " (vínculo de máquina não encontrado)"
               )}
-              . O filtro usa <strong>chassi e modelo</strong> ao mesmo tempo. No
-              cadastro do vídeo dá para informar pares (chassi + modelo), listas
-              de chassis e de modelos, ou só a categoria — neste último caso,
-              aparecem vídeos da categoria para a qual sua máquina (chassi e
-              modelo) está cadastrada na frota.
+              . O filtro usa <strong>chassi e modelo</strong> ao mesmo tempo. No cadastro do vídeo
+              dá para informar pares (chassi + modelo), listas de chassis e de modelos, ou só a
+              categoria — neste último caso, aparecem vídeos da categoria para a qual sua máquina
+              (chassi e modelo) está cadastrada na frota.
             </p>
             {treinamentosDaLocacao.length === 0 ? (
-              <p
-                style={{
-                  color: "#64748b",
-                  fontSize: "0.95rem",
-                  marginBottom: 16,
-                }}
-              >
+              <p style={{ color: "#64748b", fontSize: "0.95rem", marginBottom: 16 }}>
                 Nenhum vídeo cadastrado para este chassi e modelo.
               </p>
             ) : null}
             <div className="hu360-train-grid">
               {treinamentosDaLocacao.map((t) => (
                 <article key={t.ID_Treino} className="hu360-train-card">
-                  <div
-                    style={{
-                      fontSize: "0.78rem",
-                      color: "var(--hu-accent)",
-                      fontWeight: 700,
-                    }}
-                  >
+                  <div style={{ fontSize: "0.78rem", color: "var(--hu-accent)", fontWeight: 700 }}>
                     {t.ID_Treino} · {t.Categoria}
                   </div>
                   <h3 style={{ margin: "8px 0 10px", fontSize: "1.05rem" }}>
                     {t.Titulo_Video_IA}
                   </h3>
-                  <p
-                    style={{
-                      margin: "0 0 10px",
-                      fontSize: "0.88rem",
-                      color: "var(--hu-muted)",
-                    }}
-                  >
+                  <p style={{ margin: "0 0 10px", fontSize: "0.88rem", color: "var(--hu-muted)" }}>
                     {t.Descricao_CapCut}
                   </p>
                   <a href={t.Link_Video_URL} target="_blank" rel="noreferrer">

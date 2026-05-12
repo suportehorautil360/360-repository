@@ -7,10 +7,14 @@ import {
   useState,
 } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
+import { checklistAppToHistoricoRow } from "../../components/checklistHistorico/checklistAppToHistoricoRow";
 import {
   type ChecklistApiRow,
   criarDadosDemo,
   type ChecklistApp,
+  sincronizarLocacaoComFirestore,
+  useEmpresasTerceirasLocacao,
   useEquipamentosCadastro,
   useHU360,
   useHU360Auth,
@@ -24,7 +28,7 @@ import {
 import "./locacao.css";
 import { useLogin } from "../login/hooks/use-login";
 
-type LocacaoSecao = "dash" | "auditoria" | "riscos" | "equipamentos";
+type LocacaoSecao = "dash" | "auditoria" | "riscos" | "equipamentos" | "terceiros";
 
 const COR_INFO = "#78716c";
 const COR_ERRO = "#dc2626";
@@ -35,32 +39,6 @@ interface AuthMsg {
 }
 
 const AUTH_MSG_LIMPA: AuthMsg = { texto: "", cor: COR_INFO };
-
-function locFormatCriadoEmBr(s: string | undefined): string {
-  if (!s) return "—";
-  const t = String(s).replace("T", " ").trim();
-  const p = t.split(/[- :]/);
-  if (p.length >= 5) {
-    return `${p[2]}/${p[1]}/${p[0]} ${p[3]}:${p[4]}`;
-  }
-  return t;
-}
-
-type ModalChecklist =
-  | {
-      kind: "app";
-      titulo: string;
-      subtitulo: string;
-      checklist: ChecklistApp;
-      colStatus: string;
-    }
-  | {
-      kind: "qr";
-      titulo: string;
-      subtitulo: string;
-      checklist: ChecklistApp;
-      row: ChecklistApiRow;
-    };
 
 function checklistQrSintetico(row: ChecklistApiRow): ChecklistApp {
   const oleoOk = String(row.status_oleo || "").toLowerCase() === "ok";
@@ -93,14 +71,6 @@ function checklistQrSintetico(row: ChecklistApiRow): ChecklistApp {
     fotosResumo: "",
     assinaturaDigital: `Registro ID ${row.id} · horautil360`,
   };
-}
-
-function observacoesRodape(c: ChecklistApp): string {
-  const oc = c.observacoesCampo;
-  const op = (c as ChecklistApp & { observacoesOperador?: string })
-    .observacoesOperador;
-  if (oc != null && oc !== "") return oc;
-  return op ?? "";
 }
 
 export function LocacaoPage() {
@@ -163,6 +133,53 @@ export function LocacaoPage() {
   );
   const audLista = dados?.auditoria?.length ? dados.auditoria : audBase;
 
+  const auditoriaHistoricoRows = useMemo(() => {
+    const out: Record<string, unknown>[] = [];
+    audLista.forEach((row, idx) => {
+      const merged = { ...audBase[idx], ...row };
+      const c = merged.checklistApp;
+      if (!c) return;
+      const id = `loc-aud-app-${idx}`;
+      const statusResumo = `${merged.indice} · ${merged.fotos} fotos${merged.alerta ? " · alerta" : ""}`;
+      out.push(
+        checklistAppToHistoricoRow(id, c, {
+          dataHora: merged.hora,
+          operador: merged.operador,
+          equipamento: merged.equipamento,
+          chassis: merged.chassis?.trim() || undefined,
+          statusResumo,
+        }),
+      );
+    });
+    checklistsCampo.forEach((r) => {
+      const c = checklistQrSintetico(r);
+      const oleo = String(r.status_oleo || "").toLowerCase();
+      const filt = String(r.status_filtros || "").toLowerCase();
+      const alerta = oleo === "critico" || filt === "critico";
+      const indice = alerta
+        ? "Crítico"
+        : oleo === "ok" && filt === "ok"
+          ? "Alto"
+          : "Médio";
+      const id = `loc-aud-qr-${r.id}`;
+      out.push(
+        checklistAppToHistoricoRow(id, c, {
+          dataHora: r.criado_em,
+          operador: "QR / campo",
+          equipamento: r.chassis_qr || "—",
+          chassis: r.chassis_qr || "—",
+          statusResumo: `${indice} · inspeção servidor`,
+        }),
+      );
+    });
+    out.sort((a, b) =>
+      String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? ""), undefined, {
+        numeric: true,
+      }),
+    );
+    return out;
+  }, [audLista, audBase, checklistsCampo]);
+
   const rBase = useMemo(
     () =>
       prefeituraIdEff ? (criarDadosDemo(prefeituraIdEff).riscos ?? []) : [],
@@ -171,7 +188,20 @@ export function LocacaoPage() {
   const rList =
     dados?.riscos?.length && dados.riscos.length > 0 ? dados.riscos : rBase;
 
-  const equip = useEquipamentosCadastro(prefeituraIdEff ?? undefined);
+  const [locModuloRefresh, setLocModuloRefresh] = useState(0);
+  const [syncLocacaoLoading, setSyncLocacaoLoading] = useState(false);
+  const [syncLocacaoMsg, setSyncLocacaoMsg] = useState<string | null>(null);
+
+  const equip = useEquipamentosCadastro(prefeituraIdEff ?? undefined, locModuloRefresh);
+  const terceiras = useEmpresasTerceirasLocacao(prefeituraIdEff ?? undefined, locModuloRefresh);
+
+  const empresaLabelById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const e of terceiras.lista) {
+      m.set(e.id, e.nome);
+    }
+    return m;
+  }, [terceiras.lista]);
 
   // Estado de login
   //@ts-ignore
@@ -183,9 +213,13 @@ export function LocacaoPage() {
   // Navegação
   const [secaoAtiva, setSecaoAtiva] = useState<LocacaoSecao>("dash");
 
-  const [modalChecklist, setModalChecklist] = useState<ModalChecklist | null>(
-    null,
-  );
+  const [auditoriaExpandidoId, setAuditoriaExpandidoId] = useState<string | null>(null);
+
+  const [tercNome, setTercNome] = useState("");
+  const [tercCnpj, setTercCnpj] = useState("");
+  const [tercContato, setTercContato] = useState("");
+  const [tercObs, setTercObs] = useState("");
+  const [tercMsg, setTercMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     document.body.classList.add("locacao-root");
@@ -228,6 +262,14 @@ export function LocacaoPage() {
     setSecaoAtiva(secao);
   }
 
+  useEffect(() => {
+    if (secaoAtiva !== "auditoria") setAuditoriaExpandidoId(null);
+  }, [secaoAtiva]);
+
+  function abrirChecklistCard() {
+    setSecaoAtiva("auditoria");
+  }
+
   async function handleLogout() {
     limparLocacaoPrefCtxHub();
     bumpPrefCtx();
@@ -257,55 +299,49 @@ export function LocacaoPage() {
     bumpPrefCtx();
   }
 
-  function abrirChecklistCard() {
-    setSecaoAtiva("auditoria");
-  }
-
-  function fecharChecklist() {
-    setModalChecklist(null);
-  }
-
-  function abrirChecklistAuditoria(indice: number) {
-    if (!prefeituraIdEff) return;
-    const row = {
-      ...audBase[indice],
-      ...audLista[indice],
-    };
-    const c = row.checklistApp;
-    if (!c) {
-      window.alert(
-        "Checklist do aplicativo indisponível para este registro. Atualize a página ou limpe o armazenamento local.",
-      );
-      return;
-    }
-    setModalChecklist({
-      kind: "app",
-      titulo: "Checklist do aplicativo (campo)",
-      subtitulo: `${row.equipamento} · ${row.operador} · ${row.hora}`,
-      checklist: c,
-      colStatus: "Indicador",
-    });
-  }
-
-  function abrirChecklistCampoQr(idx: number) {
-    const row = checklistsCampo[idx];
-    if (!row) {
-      window.alert("Registro indisponível.");
-      return;
-    }
-    const c = checklistQrSintetico(row);
-    setModalChecklist({
-      kind: "qr",
-      titulo: "Inspeção QR (servidor)",
-      subtitulo: `${row.chassis_qr || "—"} · ${locFormatCriadoEmBr(row.criado_em)}`,
-      checklist: c,
-      row,
-    });
-  }
-
   function limparCtxHubModulo() {
     limparLocacaoPrefCtxHub();
     bumpPrefCtx();
+  }
+
+  function handleCadastroEmpresaTerceira(e: FormEvent) {
+    e.preventDefault();
+    setTercMsg(null);
+    const r = terceiras.adicionar({
+      nome: tercNome,
+      cnpj: tercCnpj,
+      contato: tercContato,
+      observacoes: tercObs,
+    });
+    setTercMsg({ tone: r.ok ? "ok" : "err", text: r.msg });
+    if (r.ok) {
+      setTercNome("");
+      setTercCnpj("");
+      setTercContato("");
+      setTercObs("");
+    }
+  }
+
+  function handleRemoverEmpresaTerceira(id: string) {
+    if (
+      !window.confirm(
+        "Remover esta empresa? Os equipamentos direcionados a ela voltarão para «Locadora».",
+      )
+    ) {
+      return;
+    }
+    equip.limparReferenciasEmpresa(id);
+    terceiras.remover(id);
+  }
+
+  async function handleSincronizarLocacaoFirestore() {
+    if (!prefeituraIdEff) return;
+    setSyncLocacaoLoading(true);
+    setSyncLocacaoMsg(null);
+    const r = await sincronizarLocacaoComFirestore(prefeituraIdEff);
+    setSyncLocacaoLoading(false);
+    setSyncLocacaoMsg(r.msg);
+    if (r.ok) setLocModuloRefresh((x) => x + 1);
   }
 
   if (!user || !dados) {
@@ -360,6 +396,7 @@ export function LocacaoPage() {
               { id: "auditoria", label: "📋 Auditoria de checklists" },
               { id: "riscos", label: "⚠️ Triagem de risco" },
               { id: "equipamentos", label: "🛠️ Equipamentos" },
+              { id: "terceiros", label: "🏢 Empresas terceiras" },
             ] as Array<{ id: LocacaoSecao; label: string }>
           ).map((it) => (
             <div
@@ -498,101 +535,26 @@ export function LocacaoPage() {
             <h1>Auditoria de checklists</h1>
             <p className="loc-intro">
               Avalie a qualidade dos checklists vindos do{" "}
-              <strong>aplicativo de campo</strong> e inspeções via QR
-              sincronizadas. Use o índice de confiabilidade e abra o
-              detalhamento quando necessário.
+              <strong>aplicativo de campo</strong> e inspeções via QR sincronizadas. Use a lista
+              abaixo: expanda cada registro para ver horímetro, observações e itens (Sim/Não), no
+              mesmo modelo do painel operacional.
             </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Data/Hora</th>
-                  <th>Operador</th>
-                  <th>Equipamento</th>
-                  <th>Chassis</th>
-                  <th>Fotos anexas</th>
-                  <th>Índice confiabilidade</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody id="loc-tbody-auditoria">
-                {audLista.map((row, idx) => {
-                  const merged = { ...audBase[idx], ...row };
-                  const idxCell = merged.alerta ? (
-                    <td style={{ color: "#ef4444" }}>{merged.indice}</td>
-                  ) : (
-                    <td>{merged.indice}</td>
-                  );
-                  return (
-                    <tr key={`aud-${merged.hora}-${idx}`}>
-                      <td>{merged.hora}</td>
-                      <td>{merged.operador}</td>
-                      <td>{merged.equipamento}</td>
-                      <td style={{ fontSize: "0.82rem" }}>
-                        {merged.chassis?.trim() ? merged.chassis : "—"}
-                      </td>
-                      <td>{merged.fotos} Fotos</td>
-                      {idxCell}
-                      <td>
-                        <button
-                          type="button"
-                          className="btn-ver-checklist"
-                          onClick={() => abrirChecklistAuditoria(idx)}
-                        >
-                          Ver checklist do app
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {checklistsCampo.map((r, ci) => {
-                  const horaDisp = locFormatCriadoEmBr(r.criado_em);
-                  const oleo = String(r.status_oleo || "").toLowerCase();
-                  const filt = String(r.status_filtros || "").toLowerCase();
-                  const alerta = oleo === "critico" || filt === "critico";
-                  const indice = alerta
-                    ? "Crítico"
-                    : oleo === "ok" && filt === "ok"
-                      ? "Alto"
-                      : "Médio";
-                  const idxCellC = alerta ? (
-                    <td style={{ color: "#ef4444" }}>{indice}</td>
-                  ) : (
-                    <td>{indice}</td>
-                  );
-                  return (
-                    <tr key={`cc-${r.id}-${ci}`}>
-                      <td>{horaDisp}</td>
-                      <td>QR / campo</td>
-                      <td>{r.chassis_qr || "—"}</td>
-                      <td style={{ fontSize: "0.82rem" }}>
-                        {r.chassis_qr || "—"}
-                      </td>
-                      <td>0 Fotos</td>
-                      {idxCellC}
-                      <td>
-                        <button
-                          type="button"
-                          className="btn-ver-checklist"
-                          onClick={() => abrirChecklistCampoQr(ci)}
-                        >
-                          Ver inspeção QR
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {audLista.length === 0 && checklistsCampo.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      style={{ textAlign: "center", color: "var(--text-gray)" }}
-                    >
-                      Nenhum checklist no período.
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
+            <div className="card" style={{ marginTop: 16 }}>
+              <div
+                className="hu360-dash-checklists-panel"
+                style={{ marginTop: 0, maxWidth: "100%" }}
+              >
+                <div className="hu360-dash-checklists-panel__head">
+                  <h3 className="hu360-dash-checklists-panel__title">Registros</h3>
+                </div>
+                <ListaChecklistHistoricoLocal
+                  rows={auditoriaHistoricoRows}
+                  expandidoId={auditoriaExpandidoId}
+                  setExpandidoId={setAuditoriaExpandidoId}
+                  mensagemVazia="Nenhum checklist no período."
+                />
+              </div>
+            </div>
           </div>
 
           <div
@@ -668,8 +630,9 @@ export function LocacaoPage() {
             <h1>Equipamentos em locação</h1>
             <p className="loc-intro" style={{ marginTop: 0 }}>
               Visualização da frota cadastrada para o cliente (mesma base da
-              prefeitura vinculada ao login). Inclusão e importação de
-              equipamentos ficam no{" "}
+              prefeitura vinculada ao login). O <strong>tomador / empresa terceira</strong>{" "}
+              por equipamento é definido na aba <strong>Empresas terceiras</strong>. Inclusão e
+              importação de equipamentos ficam no{" "}
               <Link
                 to="/admin/equipamentos-locacao"
                 style={{ color: "var(--main-orange)" }}
@@ -688,6 +651,7 @@ export function LocacaoPage() {
                     <th>Marca</th>
                     <th>Modelo</th>
                     <th>Chassis</th>
+                    <th>Tomador / terceiro</th>
                     <th>Linha</th>
                     <th>Obra</th>
                   </tr>
@@ -703,6 +667,11 @@ export function LocacaoPage() {
                       <td>{eq.marca}</td>
                       <td>{eq.modelo}</td>
                       <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
+                      <td style={{ fontSize: "0.82rem", maxWidth: 200 }}>
+                        {eq.empresaTerceiraId
+                          ? empresaLabelById.get(eq.empresaTerceiraId) ?? "—"
+                          : "Locadora"}
+                      </td>
                       <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
                       <td style={{ fontSize: "0.82rem" }}>
                         {eq.obra?.trim() ? eq.obra : "—"}
@@ -712,7 +681,7 @@ export function LocacaoPage() {
                   {equip.lista.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         style={{
                           textAlign: "center",
                           color: "var(--text-gray)",
@@ -726,138 +695,260 @@ export function LocacaoPage() {
               </table>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div
-        id="loc-modal-checklist-overlay"
-        className={`loc-modal-overlay ${modalChecklist ? "" : "loc-hidden"}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="loc-modal-checklist-h2"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) fecharChecklist();
-        }}
-      >
-        <div
-          className="loc-modal-box"
-          onClick={(e) => e.stopPropagation()}
-          role="document"
-        >
-          <button
-            type="button"
-            className="loc-modal-fechar"
-            onClick={fecharChecklist}
-            aria-label="Fechar"
+          <div
+            id="terceiros"
+            className={`tab-content ${secaoAtiva === "terceiros" ? "active" : ""}`}
           >
-            ×
-          </button>
-          {modalChecklist ? (
-            <>
-              <h2 id="loc-modal-checklist-h2" className="loc-modal-titulo">
-                {modalChecklist.titulo}
-              </h2>
-              <p id="loc-modal-checklist-sub" className="loc-modal-sub">
-                {modalChecklist.subtitulo}
-              </p>
-              <div id="loc-modal-checklist-meta" className="loc-checklist-meta">
-                <div>
-                  <span>Protocolo (aplicativo)</span>
-                  {modalChecklist.checklist.protocolo || "—"}
-                </div>
-                <div>
-                  <span>Sincronizado em</span>
-                  {modalChecklist.checklist.sincronizadoEm || "—"}
-                </div>
-                <div>
-                  <span>Versão do app</span>
-                  {modalChecklist.checklist.versaoApp || "—"}
-                </div>
-                <div>
-                  <span>Referência O.S. / chamado</span>
-                  {modalChecklist.checklist.referenciaOs || "—"}
-                </div>
-                <div>
-                  <span>Horímetro / odômetro no momento</span>
-                  {modalChecklist.checklist.horimetroCampo || "—"}
-                </div>
-                {modalChecklist.kind === "qr" ? (
-                  <>
-                    <div>
-                      <span>ID no servidor</span>
-                      {String(modalChecklist.row.id)}
-                    </div>
-                    {modalChecklist.row.veiculo_id != null ? (
-                      <div>
-                        <span>Veículo vinculado (ID)</span>
-                        {String(modalChecklist.row.veiculo_id)}
-                      </div>
-                    ) : null}
-                  </>
-                ) : null}
+            <p
+              style={{
+                fontSize: "0.82rem",
+                color: "var(--text-gray)",
+                margin: "0 0 14px",
+                lineHeight: 1.5,
+              }}
+            >
+              <span style={{ color: "#cbd5e1" }}>Clientes</span>
+              &nbsp;/&nbsp;
+              <strong style={{ color: "var(--main-orange)" }}>{labelEff}</strong>
+              &nbsp;/&nbsp;
+              <span style={{ color: "#e2e8f0" }}>Empresas terceiras</span>
+            </p>
+            <h1>Empresas terceiras (tomadores)</h1>
+            <p className="loc-intro" style={{ marginTop: 0 }}>
+              Cadastre <strong>empresas às quais a locadora direciona</strong> o uso do
+              equipamento (sublocação / obra de terceiro). Depois associe cada máquina pelo
+              chassi na tabela abaixo. Equipamentos sem associação permanecem como{" "}
+              <strong>Locadora</strong>.
+            </p>
+
+            <div
+              className="card"
+              style={{
+                marginBottom: 16,
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 12,
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ flex: "1 1 220px" }}>
+                <h3 style={{ margin: "0 0 6px" }}>Sincronizar com o servidor</h3>
+                <p style={{ margin: 0, fontSize: "0.86rem", color: "var(--text-gray)" }}>
+                  Envia empresas terceiras e vínculos por chassi ao Firestore e reimporta a
+                  base (inclui equipamentos cadastrados só no Hub).
+                </p>
               </div>
-              <div id="loc-modal-checklist-corpo">
-                {(modalChecklist.checklist.secoes || []).map((sec, si) => (
-                  <div key={si} className="loc-checklist-secao">
-                    <h4>{sec.titulo || ""}</h4>
-                    <table className="loc-modal-tabela">
-                      <thead>
-                        <tr>
-                          <th>Verificação</th>
-                          <th>Resposta registrada</th>
-                          <th>
-                            {modalChecklist.kind === "app"
-                              ? modalChecklist.colStatus
-                              : "Indicador"}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(sec.itens || []).map((it, ii) => (
-                          <tr key={ii}>
-                            <td>{it.item}</td>
-                            <td>{it.resposta}</td>
-                            <td>
-                              {it.conforme ? (
-                                <span className="loc-badge-conf sim">
-                                  Conforme
-                                </span>
-                              ) : (
-                                <span className="loc-badge-conf nao">
-                                  Atenção
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-              <p id="loc-modal-checklist-obs" className="loc-modal-obs">
-                {(() => {
-                  const o = observacoesRodape(modalChecklist.checklist);
-                  return o ? `Observações: ${o}` : "";
-                })()}
-              </p>
-              <p id="loc-modal-checklist-fotos" className="loc-modal-obs">
-                {modalChecklist.checklist.fotosResumo
-                  ? `Anexos fotográficos: ${modalChecklist.checklist.fotosResumo}`
-                  : ""}
-              </p>
-              <p
-                id="loc-modal-checklist-assin"
-                style={{
-                  marginTop: 16,
-                  fontSize: "0.82rem",
-                  color: "#64748b",
-                }}
+              <button
+                type="button"
+                className="btn btn-outline"
+                style={{ margin: 0, flexShrink: 0 }}
+                disabled={syncLocacaoLoading || !prefeituraIdEff}
+                onClick={() => void handleSincronizarLocacaoFirestore()}
               >
-                {modalChecklist.checklist.assinaturaDigital || ""}
+                {syncLocacaoLoading ? "Sincronizando…" : "Sincronizar agora"}
+              </button>
+              {syncLocacaoMsg ? (
+                <p
+                  style={{
+                    width: "100%",
+                    margin: 0,
+                    fontSize: "0.86rem",
+                    color: syncLocacaoMsg.includes("Falha") ? "#fca5a5" : "#86efac",
+                  }}
+                >
+                  {syncLocacaoMsg}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="card">
+              <h3>Nova empresa terceira</h3>
+              <form
+                onSubmit={handleCadastroEmpresaTerceira}
+                style={{ marginTop: 12, maxWidth: 480 }}
+              >
+                <label htmlFor="loc-terc-nome">Nome da empresa</label>
+                <input
+                  id="loc-terc-nome"
+                  value={tercNome}
+                  onChange={(e) => setTercNome(e.target.value)}
+                  placeholder="Ex.: Construtora Horizonte Ltda."
+                  autoComplete="organization"
+                />
+                <label htmlFor="loc-terc-cnpj" style={{ marginTop: 12 }}>
+                  CNPJ (opcional)
+                </label>
+                <input
+                  id="loc-terc-cnpj"
+                  value={tercCnpj}
+                  onChange={(e) => setTercCnpj(e.target.value)}
+                  placeholder="00.000.000/0001-00"
+                  autoComplete="off"
+                />
+                <label htmlFor="loc-terc-contato" style={{ marginTop: 12 }}>
+                  Contato (opcional)
+                </label>
+                <input
+                  id="loc-terc-contato"
+                  value={tercContato}
+                  onChange={(e) => setTercContato(e.target.value)}
+                  placeholder="E-mail ou telefone"
+                  autoComplete="off"
+                />
+                <label htmlFor="loc-terc-obs" style={{ marginTop: 12 }}>
+                  Observações (opcional)
+                </label>
+                <textarea
+                  id="loc-terc-obs"
+                  value={tercObs}
+                  onChange={(e) => setTercObs(e.target.value)}
+                  rows={2}
+                  placeholder="Obra, contrato, período da sublocação…"
+                />
+                <div style={{ marginTop: 16 }}>
+                  <button type="submit" className="btn btn-outline" style={{ margin: 0 }}>
+                    Salvar empresa
+                  </button>
+                </div>
+                {tercMsg ? (
+                  <p
+                    style={{
+                      marginTop: 12,
+                      marginBottom: 0,
+                      fontSize: "0.88rem",
+                      color: tercMsg.tone === "ok" ? "#86efac" : "#fca5a5",
+                    }}
+                  >
+                    {tercMsg.text}
+                  </p>
+                ) : null}
+              </form>
+            </div>
+
+            <div className="card" style={{ marginTop: 16 }}>
+              <h3>Empresas cadastradas</h3>
+              {terceiras.lista.length === 0 ? (
+                <p style={{ color: "var(--text-gray)", marginTop: 12, marginBottom: 0 }}>
+                  Nenhuma empresa terceira ainda. Cadastre acima para poder direcionar
+                  equipamentos.
+                </p>
+              ) : (
+                <table style={{ marginTop: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>CNPJ</th>
+                      <th>Contato</th>
+                      <th>Cadastro</th>
+                      <th>Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {terceiras.lista.map((em) => (
+                      <tr key={em.id}>
+                        <td>
+                          <strong>{em.nome}</strong>
+                          {em.observacoes ? (
+                            <div
+                              style={{
+                                fontSize: "0.78rem",
+                                color: "var(--text-gray)",
+                                marginTop: 4,
+                                maxWidth: 280,
+                              }}
+                            >
+                              {em.observacoes}
+                            </div>
+                          ) : null}
+                        </td>
+                        <td style={{ fontSize: "0.82rem" }}>{em.cnpj?.trim() ? em.cnpj : "—"}</td>
+                        <td style={{ fontSize: "0.82rem" }}>
+                          {em.contato?.trim() ? em.contato : "—"}
+                        </td>
+                        <td style={{ fontSize: "0.82rem" }}>{em.criadoEm}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ margin: 0, padding: "6px 12px", fontSize: "0.82rem" }}
+                            onClick={() => handleRemoverEmpresaTerceira(em.id)}
+                          >
+                            Remover
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="card" style={{ marginTop: 16 }}>
+              <h3>Direcionar máquinas (por chassi)</h3>
+              <p style={{ color: "var(--text-gray)", fontSize: "0.88rem", marginTop: 0 }}>
+                Escolha o tomador de cada equipamento já cadastrado na base deste cliente.
               </p>
-            </>
-          ) : null}
+              {equip.lista.length === 0 ? (
+                <p style={{ color: "var(--text-gray)", marginBottom: 0 }}>
+                  Não há equipamentos na base. Cadastre frota no Hub administrativo.
+                </p>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ marginTop: 12, minWidth: 560 }}>
+                    <thead>
+                      <tr>
+                        <th>Equipamento</th>
+                        <th>Chassis</th>
+                        <th>Tomador</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {equip.lista.map((eq) => (
+                        <tr key={eq.id}>
+                          <td>
+                            <strong>{eq.descricao || eq.modelo || "Equipamento"}</strong>
+                            <div style={{ fontSize: "0.78rem", color: "var(--text-gray)" }}>
+                              {eq.marca} {eq.modelo}
+                            </div>
+                          </td>
+                          <td style={{ fontSize: "0.82rem", whiteSpace: "nowrap" }}>
+                            {eq.chassis}
+                          </td>
+                          <td>
+                            <select
+                              aria-label={`Tomador para ${eq.chassis}`}
+                              value={eq.empresaTerceiraId ?? ""}
+                              onChange={(e) =>
+                                equip.definirEmpresaTerceira(
+                                  eq.id,
+                                  e.target.value || undefined,
+                                )
+                              }
+                              style={{
+                                maxWidth: 260,
+                                fontSize: "0.86rem",
+                                padding: "8px 10px",
+                                borderRadius: 8,
+                              }}
+                            >
+                              <option value="">Locadora (sem terceiro)</option>
+                              {terceiras.lista.map((em) => (
+                                <option key={em.id} value={em.id}>
+                                  {em.nome}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </>

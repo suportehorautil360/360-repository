@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { criarDadosDemo, useHU360 } from "../../../lib/hu360";
+import { criarDadosDemo, sincronizarLocacaoComFirestore, useHU360 } from "../../../lib/hu360";
 import { mergePrefeituraModuloLocacao } from "../../locacao/locacaoMerge";
 import { useEquipamentosLocacao } from "../hooks/equipamentos/use-equipamentos-locacao";
 
@@ -45,6 +45,20 @@ export function EquipamentosLocacaoSection() {
   const [prefId, setPrefId] = useState(() => prefeituras[0]?.id ?? "");
   const equip = useEquipamentosLocacao();
 
+  const [hubSyncLoading, setHubSyncLoading] = useState(false);
+  const [hubSyncMsg, setHubSyncMsg] = useState("");
+  const [hubModuloTick, setHubModuloTick] = useState(0);
+
+  const empresaNomePorId = useMemo(() => {
+    const m = new Map<string, string>();
+    if (!prefId) return m;
+    const d = obterDadosPrefeitura(prefId);
+    for (const e of d.prefeituraModulo?.empresasTerceirasLocacao ?? []) {
+      m.set(e.id, e.nome);
+    }
+    return m;
+  }, [prefId, obterDadosPrefeitura, hubModuloTick]);
+
   useEffect(() => {
     if (!prefId && prefeituras[0]?.id) {
       setPrefId(prefeituras[0].id);
@@ -56,12 +70,6 @@ export function EquipamentosLocacaoSection() {
     if (prefId) void equip.carregar(prefId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefId]);
-
-  // Carrega todos os equipamentos do banco na montagem
-  useEffect(() => {
-    void equip.carregarTodos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const pmMerged = useMemo(() => {
     if (!prefId) return null;
@@ -183,6 +191,22 @@ export function EquipamentosLocacaoSection() {
     }
   }
 
+  async function handleHubSincronizarLocacao() {
+    if (!prefId) {
+      setHubSyncMsg("Selecione o cliente.");
+      return;
+    }
+    setHubSyncLoading(true);
+    setHubSyncMsg("");
+    const r = await sincronizarLocacaoComFirestore(prefId);
+    setHubSyncLoading(false);
+    setHubSyncMsg(r.msg);
+    if (r.ok) {
+      setHubModuloTick((t) => t + 1);
+      void equip.carregar(prefId);
+    }
+  }
+
   const labelCliente = prefId ? prefeituraLabel(prefId) : "—";
 
   return (
@@ -223,6 +247,35 @@ export function EquipamentosLocacaoSection() {
           Em foco:{" "}
           <strong style={{ color: "var(--primary)" }}>{labelCliente}</strong>
         </p>
+      </article>
+
+      <article className="card" style={{ marginBottom: 16 }}>
+        <h3>Sincronizar tomadores (Firestore ↔ armazenamento local)</h3>
+        <p
+          style={{
+            fontSize: "0.82rem",
+            color: "var(--muted)",
+            margin: "0 0 12px",
+            lineHeight: 1.5,
+          }}
+        >
+          Alinha empresas terceiras e o campo <code>empresaTerceiraId</code> nos equipamentos
+          deste cliente entre o painel Locação (localStorage) e o Firestore.
+        </p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ margin: 0 }}
+          disabled={hubSyncLoading || !prefId}
+          onClick={() => void handleHubSincronizarLocacao()}
+        >
+          {hubSyncLoading ? "Sincronizando…" : "Sincronizar agora"}
+        </button>
+        {hubSyncMsg ? (
+          <p style={{ fontSize: "0.85rem", marginTop: 10, marginBottom: 0, color: "var(--muted)" }}>
+            {hubSyncMsg}
+          </p>
+        ) : null}
       </article>
 
       <article className="card" style={{ marginBottom: 16 }}>
@@ -393,68 +446,64 @@ export function EquipamentosLocacaoSection() {
                 <th>Marca</th>
                 <th>Modelo</th>
                 <th>Chassis</th>
+                <th>Tomador (sync)</th>
                 <th>Linha</th>
                 <th>Obra</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {equip.loadingTodos ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    style={{ textAlign: "center", color: "var(--muted)" }}
-                  >
-                    Carregando...
+              {equip.lista.map((eq) => (
+                <tr key={eq.id}>
+                  <td>
+                    <strong>
+                      {eq.descricao || eq.modelo || "Equipamento"}
+                    </strong>
+                  </td>
+                  <td>{eq.marca}</td>
+                  <td>{eq.modelo}</td>
+                  <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
+                  <td style={{ fontSize: "0.82rem", maxWidth: 200 }}>
+                    {eq.empresaTerceiraId
+                      ? empresaNomePorId.get(eq.empresaTerceiraId) ?? eq.empresaTerceiraId
+                      : "—"}
+                  </td>
+                  <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
+                  <td style={{ fontSize: "0.82rem" }}>
+                    {eq.obra?.trim() ? eq.obra : "—"}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      style={{
+                        padding: "6px 12px",
+                        margin: 0,
+                        width: "auto",
+                        color: "#fca5a5",
+                        borderColor: "rgba(248, 113, 113, 0.35)",
+                      }}
+                      onClick={() => void equip.remover(eq.id)}
+                      aria-label="Remover equipamento"
+                    >
+                      Remover
+                    </button>
                   </td>
                 </tr>
-              ) : equip.listaTodos.length === 0 ? (
+              ))}
+              {equip.lista.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     style={{
                       textAlign: "center",
                       color: "var(--muted)",
                     }}
                   >
-                    Nenhum equipamento cadastrado.
+                    Nenhum equipamento cadastrado para este cliente.
                   </td>
                 </tr>
-              ) : (
-                equip.listaTodos.map((eq) => (
-                  <tr key={eq.id}>
-                    <td>
-                      <strong>
-                        {eq.descricao || eq.modelo || "Equipamento"}
-                      </strong>
-                    </td>
-                    <td>{eq.marca}</td>
-                    <td>{eq.modelo}</td>
-                    <td style={{ fontSize: "0.82rem" }}>{eq.chassis}</td>
-                    <td style={{ fontSize: "0.82rem" }}>{eq.linha || "—"}</td>
-                    <td style={{ fontSize: "0.82rem" }}>
-                      {eq.obra?.trim() ? eq.obra : "—"}
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        style={{
-                          padding: "6px 12px",
-                          margin: 0,
-                          width: "auto",
-                          color: "#fca5a5",
-                          borderColor: "rgba(248, 113, 113, 0.35)",
-                        }}
-                        onClick={() => void equip.remover(eq.id)}
-                        aria-label="Remover equipamento"
-                      >
-                        Remover
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
