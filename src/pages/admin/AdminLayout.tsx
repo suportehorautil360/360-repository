@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import logoUrl from "../../assets/logo.jpeg";
+import logoUrl from "../../assets/logo.png";
 import { useLogin } from "../login/hooks/use-login";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>

@@ -95,6 +95,13 @@ export function OficinaPage() {
   // Orçamentos enviados por esta oficina
   const [meusOrcamentos, setMeusOrcamentos] = useState<OrdemServico[]>([]);
   const [orcamentosLoading, setOrcamentosLoading] = useState(false);
+  const [comparativos, setComparativos] = useState<
+    Record<string, OrdemServico[]>
+  >({});
+  const [editandoOrcId, setEditandoOrcId] = useState<string | null>(null);
+  const [editandoValor, setEditandoValor] = useState("");
+  const [editandoSaving, setEditandoSaving] = useState(false);
+  const [editandoErro, setEditandoErro] = useState("");
 
   // Checklist devolução
   const [checklistOsId, setChecklistOsId] = useState("");
@@ -186,12 +193,35 @@ export function OficinaPage() {
             where("prefeituraId", "==", efetivoPrefeituraId),
           );
       const snap = await getDocs(q);
-      setMeusOrcamentos(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<OrdemServico, "id">),
-        })),
+      const lista: OrdemServico[] = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<OrdemServico, "id">),
+      }));
+      setMeusOrcamentos(lista);
+
+      // Carrega comparativos para orçamentos aguardando aprovação
+      const aguardando = lista.filter(
+        (o) => o.status === "aguardando_aprovacao" && o.solicitacaoOsId,
       );
+      const solIds = [...new Set(aguardando.map((o) => o.solicitacaoOsId!))];
+      if (solIds.length > 0) {
+        const compMap: Record<string, OrdemServico[]> = {};
+        await Promise.all(
+          solIds.map(async (solId) => {
+            const compSnap = await getDocs(
+              query(
+                collection(db, "ordensServico"),
+                where("solicitacaoOsId", "==", solId),
+              ),
+            );
+            compMap[solId] = compSnap.docs.map((d) => ({
+              id: d.id,
+              ...(d.data() as Omit<OrdemServico, "id">),
+            }));
+          }),
+        );
+        setComparativos(compMap);
+      }
     } catch {
       // silently fail
     } finally {
@@ -307,6 +337,28 @@ export function OficinaPage() {
       setChecklistErro("Erro ao enviar checklist. Tente novamente.");
     } finally {
       setChecklistSaving(false);
+    }
+  }
+
+  async function handleAtualizarValorOrcamento(orcId: string) {
+    setEditandoErro("");
+    const novoValor = parseFloat(editandoValor.replace(",", "."));
+    if (isNaN(novoValor) || novoValor <= 0) {
+      setEditandoErro("Informe um valor válido maior que zero.");
+      return;
+    }
+    setEditandoSaving(true);
+    try {
+      await updateDoc(doc(db, "ordensServico", orcId), {
+        valorTotal: novoValor,
+      });
+      setEditandoOrcId(null);
+      setEditandoValor("");
+      await loadMeusOrcamentos();
+    } catch {
+      setEditandoErro("Erro ao atualizar. Tente novamente.");
+    } finally {
+      setEditandoSaving(false);
     }
   }
 
@@ -922,7 +974,7 @@ export function OficinaPage() {
           id="orcamentos"
           className={`tab-content ${secaoAtiva === "orcamentos" ? "active" : ""}`}
         >
-          <h1>Meus Orçamentos Enviados</h1>
+          <h1>Acompanhamento de Propostas</h1>
           <div
             style={{
               display: "flex",
@@ -957,49 +1009,64 @@ export function OficinaPage() {
               Nenhum orçamento enviado ainda.
             </div>
           ) : (
-            meusOrcamentos.map((orc) => {
-              const dataStr = orc.criadoEm
-                ? new Date(orc.criadoEm.seconds * 1000).toLocaleDateString(
-                    "pt-BR",
-                  )
-                : "—";
-              const statusLabel =
-                orc.status === "aguardando_aprovacao"
+            [...meusOrcamentos]
+              .sort((a, b) => {
+                const order: Record<string, number> = {
+                  aguardando_aprovacao: 0,
+                  aprovado: 1,
+                  recusado: 2,
+                };
+                const statusDiff =
+                  (order[a.status] ?? 3) - (order[b.status] ?? 3);
+                if (statusDiff !== 0) return statusDiff;
+                // dentro do mesmo status: mais recente primeiro
+                return (b.criadoEm?.seconds ?? 0) - (a.criadoEm?.seconds ?? 0);
+              })
+              .map((orc) => {
+                const isAguardando = orc.status === "aguardando_aprovacao";
+                const statusLabel = isAguardando
                   ? "AGUARDANDO APROVAÇÃO"
                   : orc.status === "aprovado"
                     ? "APROVADO"
                     : orc.status === "recusado"
                       ? "RECUSADO"
                       : orc.status.toUpperCase();
-              const statusColor =
-                orc.status === "aprovado"
-                  ? "#15803d"
-                  : orc.status === "recusado"
-                    ? "#dc2626"
-                    : "#92400e";
-              const statusBg =
-                orc.status === "aprovado"
-                  ? "#f0fdf4"
-                  : orc.status === "recusado"
-                    ? "#fef2f2"
-                    : "#fef3c7";
-              return (
-                <div key={orc.id} className="card" style={{ marginBottom: 16 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      flexWrap: "wrap",
-                      gap: 8,
-                    }}
-                  >
-                    <div>
-                      <h3 style={{ margin: "0 0 6px" }}>
-                        {orc.protocolo}
+                const statusColor = isAguardando
+                  ? "#92400e"
+                  : orc.status === "aprovado"
+                    ? "#15803d"
+                    : "#dc2626";
+                const statusBg = isAguardando
+                  ? "#fef3c7"
+                  : orc.status === "aprovado"
+                    ? "#f0fdf4"
+                    : "#fef2f2";
+
+                if (isAguardando) {
+                  const solId = orc.solicitacaoOsId ?? "";
+                  const todos: OrdemServico[] =
+                    solId && comparativos[solId] ? comparativos[solId] : [orc];
+                  const sorted = [...todos].sort(
+                    (a, b) => (b.valorTotal ?? 0) - (a.valorTotal ?? 0),
+                  );
+                  const menorValor = Math.min(
+                    ...todos.map((t) => t.valorTotal ?? 0),
+                  );
+                  const isEditando = editandoOrcId === orc.id;
+
+                  return (
+                    <div
+                      key={orc.id}
+                      className="card"
+                      style={{
+                        marginBottom: 16,
+                        borderLeft: "4px solid var(--main-orange)",
+                      }}
+                    >
+                      <h3 style={{ margin: "0 0 10px" }}>
+                        O.S. #{orc.protocolo} —{" "}
                         <span
                           style={{
-                            marginLeft: 10,
                             fontSize: "0.75rem",
                             fontWeight: 400,
                             background: statusBg,
@@ -1011,71 +1078,355 @@ export function OficinaPage() {
                           {statusLabel}
                         </span>
                       </h3>
-                      <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
-                        <strong>Equipamento:</strong> {orc.equipamento}
-                      </p>
-                      {orc.defeito ? (
-                        <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
-                          <strong>Defeito:</strong> {orc.defeito}
-                        </p>
-                      ) : null}
-                      <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
-                        <strong>Data:</strong> {dataStr}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <p
+
+                      {/* Seu orçamento */}
+                      <div
                         style={{
-                          margin: 0,
-                          fontSize: "1.2rem",
-                          fontWeight: 700,
-                          color: "var(--main-orange)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          flexWrap: "wrap",
+                          marginBottom: 4,
                         }}
                       >
-                        R$ {(orc.valorTotal ?? 0).toFixed(2).replace(".", ",")}
-                      </p>
-                      <p
-                        style={{
-                          margin: "2px 0",
-                          fontSize: "0.8rem",
-                          color: "#888",
-                        }}
-                      >
-                        Valor total
-                      </p>
-                    </div>
-                  </div>
-                  {orc.itens?.length > 0 ? (
-                    <div style={{ marginTop: 12 }}>
-                      <table style={{ width: "100%", fontSize: "0.88rem" }}>
-                        <thead>
-                          <tr>
-                            <th style={{ textAlign: "left", paddingBottom: 4 }}>
-                              Item
-                            </th>
-                            <th
-                              style={{ textAlign: "right", paddingBottom: 4 }}
+                        {isEditando ? (
+                          <>
+                            <span style={{ fontWeight: 600 }}>
+                              Seu Orçamento:
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editandoValor}
+                              onChange={(e) => {
+                                setEditandoValor(e.target.value);
+                                setEditandoErro("");
+                              }}
+                              style={{ width: 150, margin: 0 }}
+                              placeholder="Novo valor R$"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-orange"
+                              style={{
+                                width: "auto",
+                                padding: "8px 14px",
+                                margin: 0,
+                                opacity: editandoSaving ? 0.7 : 1,
+                              }}
+                              onClick={() =>
+                                void handleAtualizarValorOrcamento(orc.id)
+                              }
+                              disabled={editandoSaving}
                             >
-                              Valor
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orc.itens.map((it, i) => (
-                            <tr key={i}>
-                              <td>{it.descricao}</td>
-                              <td style={{ textAlign: "right" }}>
-                                R$ {it.valor.toFixed(2).replace(".", ",")}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                              {editandoSaving ? "Salvando..." : "Salvar"}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{
+                                width: "auto",
+                                padding: "8px 14px",
+                                margin: 0,
+                              }}
+                              onClick={() => {
+                                setEditandoOrcId(null);
+                                setEditandoValor("");
+                                setEditandoErro("");
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                            {editandoErro ? (
+                              <span
+                                style={{
+                                  color: "#dc2626",
+                                  fontSize: "0.85rem",
+                                }}
+                              >
+                                {editandoErro}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: "0.95rem" }}>
+                              Seu Orçamento:{" "}
+                              <strong>
+                                R${" "}
+                                {(orc.valorTotal ?? 0)
+                                  .toFixed(2)
+                                  .replace(".", ",")}
+                              </strong>
+                            </span>
+                            <button
+                              type="button"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "var(--main-orange)",
+                                fontSize: "0.85rem",
+                                padding: 0,
+                                textDecoration: "underline",
+                              }}
+                              onClick={() => {
+                                setEditandoOrcId(orc.id);
+                                setEditandoValor(String(orc.valorTotal ?? ""));
+                                setEditandoErro("");
+                              }}
+                            >
+                              ✏ Editar valor
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Comparativo de mercado */}
+                      <div
+                        style={{
+                          marginTop: 20,
+                          borderTop: "1px solid #e5e7eb",
+                          paddingTop: 16,
+                        }}
+                      >
+                        <h4
+                          style={{
+                            color: "var(--main-orange)",
+                            margin: "0 0 12px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Comparativo de Mercado (Transparência Pública)
+                        </h4>
+                        {todos.length < 2 ? (
+                          <p
+                            style={{
+                              color: "#888",
+                              fontSize: "0.88rem",
+                              margin: 0,
+                            }}
+                          >
+                            Aguardando demais oficinas enviarem suas propostas.
+                          </p>
+                        ) : (
+                          <table
+                            style={{
+                              width: "100%",
+                              borderCollapse: "collapse",
+                              fontSize: "0.9rem",
+                              marginTop: 0,
+                            }}
+                          >
+                            <thead>
+                              <tr>
+                                <th
+                                  style={{
+                                    textAlign: "left",
+                                    padding: "10px 16px",
+                                    color: "var(--main-orange)",
+                                    fontWeight: 600,
+                                    fontSize: "0.9rem",
+                                    background: "white",
+                                    borderBottom: "1px solid #e5e7eb",
+                                    width: "35%",
+                                  }}
+                                >
+                                  Orçamento
+                                </th>
+                                <th
+                                  style={{
+                                    textAlign: "left",
+                                    padding: "10px 16px",
+                                    color: "var(--main-orange)",
+                                    fontWeight: 600,
+                                    fontSize: "0.9rem",
+                                    background: "white",
+                                    borderBottom: "1px solid #e5e7eb",
+                                    width: "35%",
+                                  }}
+                                >
+                                  Valor da Proposta
+                                </th>
+                                <th
+                                  style={{
+                                    textAlign: "left",
+                                    padding: "10px 16px",
+                                    color: "var(--main-orange)",
+                                    fontWeight: 600,
+                                    fontSize: "0.9rem",
+                                    background: "white",
+                                    borderBottom: "1px solid #e5e7eb",
+                                    width: "30%",
+                                  }}
+                                >
+                                  Status
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sorted.map((t, idx) => {
+                                const isMine = t.id === orc.id;
+                                const isMenorPreco =
+                                  (t.valorTotal ?? 0) === menorValor;
+                                const compStatus = isMenorPreco
+                                  ? "Menor Preço"
+                                  : "Superior";
+                                return (
+                                  <tr
+                                    key={t.id}
+                                    style={{
+                                      background: isMine ? "#fff7ed" : "white",
+                                    }}
+                                  >
+                                    <td
+                                      style={{
+                                        padding: "12px 16px",
+                                        borderBottom: "1px solid #f3f4f6",
+                                        fontWeight: isMine ? 700 : 400,
+                                      }}
+                                    >
+                                      Orçamento {idx + 1}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "12px 16px",
+                                        borderBottom: "1px solid #f3f4f6",
+                                        fontWeight: isMine ? 700 : 400,
+                                      }}
+                                    >
+                                      R${" "}
+                                      {(t.valorTotal ?? 0)
+                                        .toFixed(2)
+                                        .replace(".", ",")}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "12px 16px",
+                                        borderBottom: "1px solid #f3f4f6",
+                                        fontWeight: isMine ? 700 : 400,
+                                      }}
+                                    >
+                                      {compStatus}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
                     </div>
-                  ) : null}
-                </div>
-              );
-            })
+                  );
+                }
+
+                // Orçamentos aprovados / recusados: card simples
+                const dataStr = orc.criadoEm
+                  ? new Date(orc.criadoEm.seconds * 1000).toLocaleDateString(
+                      "pt-BR",
+                    )
+                  : "—";
+                return (
+                  <div
+                    key={orc.id}
+                    className="card"
+                    style={{ marginBottom: 16 }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
+                        gap: 8,
+                      }}
+                    >
+                      <div>
+                        <h3 style={{ margin: "0 0 6px" }}>
+                          {orc.protocolo}
+                          <span
+                            style={{
+                              marginLeft: 10,
+                              fontSize: "0.75rem",
+                              fontWeight: 400,
+                              background: statusBg,
+                              color: statusColor,
+                              padding: "2px 8px",
+                              borderRadius: 4,
+                            }}
+                          >
+                            {statusLabel}
+                          </span>
+                        </h3>
+                        <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
+                          <strong>Equipamento:</strong> {orc.equipamento}
+                        </p>
+                        {orc.defeito ? (
+                          <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
+                            <strong>Defeito:</strong> {orc.defeito}
+                          </p>
+                        ) : null}
+                        <p style={{ margin: "2px 0", fontSize: "0.9rem" }}>
+                          <strong>Data:</strong> {dataStr}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "1.2rem",
+                            fontWeight: 700,
+                            color: "var(--main-orange)",
+                          }}
+                        >
+                          R${" "}
+                          {(orc.valorTotal ?? 0).toFixed(2).replace(".", ",")}
+                        </p>
+                        <p
+                          style={{
+                            margin: "2px 0",
+                            fontSize: "0.8rem",
+                            color: "#888",
+                          }}
+                        >
+                          Valor total
+                        </p>
+                      </div>
+                    </div>
+                    {orc.itens?.length > 0 ? (
+                      <div style={{ marginTop: 12 }}>
+                        <table style={{ width: "100%", fontSize: "0.88rem" }}>
+                          <thead>
+                            <tr>
+                              <th
+                                style={{ textAlign: "left", paddingBottom: 4 }}
+                              >
+                                Item
+                              </th>
+                              <th
+                                style={{ textAlign: "right", paddingBottom: 4 }}
+                              >
+                                Valor
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orc.itens.map((it, i) => (
+                              <tr key={i}>
+                                <td>{it.descricao}</td>
+                                <td style={{ textAlign: "right" }}>
+                                  R$ {it.valor.toFixed(2).replace(".", ",")}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
           )}
         </div>
 

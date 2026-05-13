@@ -116,11 +116,6 @@ export function LoginView({
             Controle checklist operacional (operador)
           </Link>
           {" · "}
-          Contas demo (cada uma vê só sua prefeitura): <strong>
-            admin
-          </strong> / <strong>admin123</strong> (Três Lagoas-MS) ·{" "}
-          <strong>gestor</strong> / <strong>gestor123</strong> (Curitiba-PR) ·{" "}
-          <strong>admin.bh</strong> / <strong>bh123456</strong> (BH-MG)
         </p>
       </div>
     </section>

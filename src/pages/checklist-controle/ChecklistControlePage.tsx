@@ -504,6 +504,42 @@ export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
   const [aba, setAba] = useState<Aba>("dashboard");
 
+  // Auto-preenche GPS quando o operador abre a aba de emergência
+  useEffect(() => {
+    if (aba !== "emergencia") return;
+    if (gpsEmerg) return; // já preenchido
+    if (!navigator.geolocation) {
+      setGpsErro("Geolocalização não suportada neste dispositivo.");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsErro("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        setGpsEmerg(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+        setGpsLoading(false);
+        if (accuracy > 100) {
+          setGpsErro(
+            `Precisão baixa (±${Math.round(accuracy)} m). Você pode corrigir abaixo.`,
+          );
+        }
+      },
+      (err) => {
+        setGpsLoading(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsErro("Permissão de localização negada. Preencha manualmente.");
+        } else {
+          setGpsErro(
+            "Não foi possível obter localização. Preencha manualmente.",
+          );
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aba]);
+
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [loginMsg, setLoginMsg] = useState<{
@@ -551,9 +587,9 @@ export function ChecklistControlePage() {
   const [tipoFalhaOutros, setTipoFalhaOutros] = useState("");
   const [descEmerg, setDescEmerg] = useState("");
   const [gpsEmerg, setGpsEmerg] = useState("");
-  const [fotosEmergencia, setFotosEmergencia] = useState<string[]>(() =>
-    Array.from({ length: EMERG_NUM_FOTOS }, () => ""),
-  );
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsErro, setGpsErro] = useState("");
+  const [fotosEmergencia, setFotosEmergencia] = useState<string[]>([""]);
   const [emergCameraSlot, setEmergCameraSlot] = useState<number | null>(null);
   const [emergMsg, setEmergMsg] = useState("");
   const [emergRows, setEmergRows] = useState<Record<string, unknown>[]>(() =>
@@ -1170,7 +1206,7 @@ export function ChecklistControlePage() {
     setTipoFalhaOutros("");
     setDescEmerg("");
     setGpsEmerg("");
-    setFotosEmergencia(Array.from({ length: EMERG_NUM_FOTOS }, () => ""));
+    setFotosEmergencia([""]);
     stopEmergenciaCamera();
     setPainelChecklistsHojeAberto(false);
     setPainelChecklistExpandidoId(null);
@@ -1414,13 +1450,11 @@ export function ChecklistControlePage() {
       return;
     }
 
-    const faltaFotoIdx = fotosEmergencia.findIndex(
-      (u) => !u || !u.startsWith("data:image"),
+    const fotosPreenchidas = fotosEmergencia.filter((u) =>
+      u.startsWith("data:image"),
     );
-    if (faltaFotoIdx !== -1) {
-      setEmergMsg(
-        `Tire as ${EMERG_NUM_FOTOS} fotos na hora com a câmera (falta a foto ${faltaFotoIdx + 1}).`,
-      );
+    if (fotosPreenchidas.length === 0) {
+      setEmergMsg("Tire ao menos 1 foto com a câmera do aparelho.");
       return;
     }
 
@@ -1439,8 +1473,12 @@ export function ChecklistControlePage() {
       Localizacao_GPS: gpsEmerg.trim() || null,
       Status_Atendimento: "Aberto",
       Foto_Evidencia: null,
-      Fotos_Evidencia_JSON: JSON.stringify(fotosEmergencia),
-      Qtd_Fotos_Evidencia: EMERG_NUM_FOTOS,
+      Fotos_Evidencia_JSON: JSON.stringify(
+        fotosEmergencia.filter((u) => u.startsWith("data:image")),
+      ),
+      Qtd_Fotos_Evidencia: fotosEmergencia.filter((u) =>
+        u.startsWith("data:image"),
+      ).length,
     };
 
     // Salva localmente (fallback offline)
@@ -1494,8 +1532,9 @@ export function ChecklistControlePage() {
         descricao: descEmerg.trim(),
         localizacaoGps: gpsEmerg.trim() || null,
         statusAtendimento: "aberto",
-        fotos: fotosEmergencia,
-        qtdFotos: EMERG_NUM_FOTOS,
+        fotos: fotosEmergencia.filter((u) => u.startsWith("data:image")),
+        qtdFotos: fotosEmergencia.filter((u) => u.startsWith("data:image"))
+          .length,
         criadoEm: serverTimestamp(),
         dataHoraIso: dataHora,
       });
@@ -1514,7 +1553,8 @@ export function ChecklistControlePage() {
     setTipoFalhaOutros("");
     setDescEmerg("");
     setGpsEmerg("");
-    setFotosEmergencia(Array.from({ length: EMERG_NUM_FOTOS }, () => ""));
+    setGpsErro("");
+    setFotosEmergencia([""]);
     stopEmergenciaCamera();
   }
 
@@ -1529,14 +1569,7 @@ export function ChecklistControlePage() {
               color: "var(--hu-muted)",
               fontSize: "0.9rem",
             }}
-          >
-            <strong>Administrador:</strong> usuário{" "}
-            <code style={{ color: "var(--hu-accent)" }}>jefferson</code>, senha{" "}
-            <code style={{ color: "var(--hu-accent)" }}>{OPERADOR_SENHA}</code>.
-            Outros operadores: nome completo como na planilha (locações ativas),
-            mesma senha. <strong>admin</strong> usa a primeira locação
-            (demonstração).
-          </p>
+          ></p>
           <form onSubmit={handleLogin}>
             <label htmlFor="hu360-usuario">Usuário</label>
             <input
@@ -2427,19 +2460,88 @@ export function ChecklistControlePage() {
                 />
 
                 <label htmlFor="hu360-gps-emerg">
-                  Localização (GPS ou referência)
+                  Localização (GPS)
+                  {gpsLoading && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: "0.8rem",
+                        color: "#64748b",
+                      }}
+                    >
+                      ⏳ Obtendo localização…
+                    </span>
+                  )}
                 </label>
                 <input
                   id="hu360-gps-emerg"
                   value={gpsEmerg}
                   onChange={(ev) => setGpsEmerg(ev.target.value)}
-                  placeholder="-20.xxx, -54.xxx ou trecho da obra"
+                  placeholder="-20.xxxxxx, -54.xxxxxx"
+                  readOnly={gpsLoading}
                 />
+                {gpsErro && (
+                  <p
+                    style={{
+                      margin: "4px 0 0",
+                      fontSize: "0.82rem",
+                      color: "#dc2626",
+                    }}
+                  >
+                    {gpsErro}
+                  </p>
+                )}
+                {!gpsLoading && (
+                  <button
+                    type="button"
+                    className="hu360-btn hu360-btn-ghost"
+                    style={{
+                      marginTop: 6,
+                      width: "auto",
+                      padding: "6px 14px",
+                      fontSize: "0.82rem",
+                    }}
+                    onClick={() => {
+                      if (!navigator.geolocation) return;
+                      setGpsLoading(true);
+                      setGpsErro("");
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          const { latitude, longitude, accuracy } = pos.coords;
+                          setGpsEmerg(
+                            `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+                          );
+                          setGpsLoading(false);
+                          if (accuracy > 100)
+                            setGpsErro(
+                              `Precisão baixa (±${Math.round(accuracy)} m). Você pode corrigir.`,
+                            );
+                          else setGpsErro("");
+                        },
+                        (err) => {
+                          setGpsLoading(false);
+                          setGpsErro(
+                            err.code === err.PERMISSION_DENIED
+                              ? "Permissão negada. Preencha manualmente."
+                              : "Erro ao obter localização.",
+                          );
+                        },
+                        {
+                          enableHighAccuracy: true,
+                          timeout: 10000,
+                          maximumAge: 0,
+                        },
+                      );
+                    }}
+                  >
+                    📍 Atualizar localização
+                  </button>
+                )}
 
                 <div className="hu360-inline-label" style={{ marginTop: 16 }}>
                   Fotos da emergência{" "}
-                  <span style={{ color: "#dc2626" }}>*</span> ({EMERG_NUM_FOTOS}{" "}
-                  na hora)
+                  <span style={{ color: "#dc2626" }}>*</span> (mínimo 1, máximo{" "}
+                  {EMERG_NUM_FOTOS})
                 </div>
                 <p
                   style={{
@@ -2448,9 +2550,8 @@ export function ChecklistControlePage() {
                     color: "#64748b",
                   }}
                 >
-                  Obrigatórias {EMERG_NUM_FOTOS} fotos com a câmera do aparelho,
-                  ao vivo (sem galeria). Toque em «Tirar foto» em cada quadro,
-                  capture e repita até completar as seis.
+                  Tire ao menos 1 foto com a câmera do aparelho, ao vivo (sem
+                  galeria). Você pode adicionar até {EMERG_NUM_FOTOS} fotos.
                 </p>
 
                 <div className="hu360-emerg-fotos-grid">
@@ -2483,7 +2584,7 @@ export function ChecklistControlePage() {
                         >
                           {src ? "Refazer" : "Tirar foto"}
                         </button>
-                        {src ? (
+                        {fotosEmergencia.length > 1 ? (
                           <button
                             type="button"
                             className="hu360-btn hu360-btn-ghost"
@@ -2492,13 +2593,24 @@ export function ChecklistControlePage() {
                               padding: "8px 10px",
                               fontSize: "0.85rem",
                             }}
-                            onClick={() => {
-                              setFotosEmergencia((prev) => {
-                                const n = [...prev];
-                                n[i] = "";
-                                return n;
-                              });
+                            onClick={() =>
+                              setFotosEmergencia((prev) =>
+                                prev.filter((_, idx) => idx !== i),
+                              )
+                            }
+                          >
+                            Remover
+                          </button>
+                        ) : src ? (
+                          <button
+                            type="button"
+                            className="hu360-btn hu360-btn-ghost"
+                            style={{
+                              width: "100%",
+                              padding: "8px 10px",
+                              fontSize: "0.85rem",
                             }}
+                            onClick={() => setFotosEmergencia([""])}
                           >
                             Remover
                           </button>
@@ -2507,6 +2619,24 @@ export function ChecklistControlePage() {
                     </div>
                   ))}
                 </div>
+
+                {fotosEmergencia.length < EMERG_NUM_FOTOS ? (
+                  <button
+                    type="button"
+                    className="hu360-btn"
+                    style={{
+                      marginTop: 12,
+                      width: "auto",
+                      padding: "8px 20px",
+                      background: "var(--hu-orange, #f97316)",
+                      color: "#fff",
+                      border: "none",
+                    }}
+                    onClick={() => setFotosEmergencia((prev) => [...prev, ""])}
+                  >
+                    + Adicionar outra foto
+                  </button>
+                ) : null}
 
                 {emergCameraSlot !== null ? (
                   <div className="hu360-emerg-camera-panel">
@@ -2517,7 +2647,8 @@ export function ChecklistControlePage() {
                         color: "#334155",
                       }}
                     >
-                      Câmera — foto {emergCameraSlot + 1} de {EMERG_NUM_FOTOS}
+                      Câmera — foto {emergCameraSlot + 1} de{" "}
+                      {fotosEmergencia.length}
                     </p>
                     <video
                       ref={emergVideoRef}
