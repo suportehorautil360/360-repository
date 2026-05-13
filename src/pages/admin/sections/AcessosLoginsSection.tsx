@@ -882,6 +882,8 @@ export function AcessosLoginsSection() {
                 <th>Nome</th>
                 <th>Login</th>
                 <th>Município</th>
+                <th>Oficina vinculada</th>
+                <th>ID da oficina</th>
                 <th>Perfil</th>
                 <th>Ação</th>
               </tr>
@@ -889,52 +891,85 @@ export function AcessosLoginsSection() {
             <tbody id="tabelaUsuariosOficina">
               {loadingUsuarios ? (
                 <tr>
-                  <td colSpan={5} className="topbar-user">
+                  <td colSpan={7} className="topbar-user">
                     Carregando...
                   </td>
                 </tr>
               ) : usersOfi.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="topbar-user">
+                  <td colSpan={7} className="topbar-user">
                     Nenhum usuário para este município.
                   </td>
                 </tr>
               ) : (
-                usersOfi.map((u) => (
-                  <tr key={u.usuario}>
-                    <td>{u.nome}</td>
-                    <td>{u.usuario}</td>
-                    <td>{prefeituraLabel(u.prefeituraId)}</td>
-                    <td>
-                      <span
-                        className={
-                          "badge " +
-                          (u.perfil === "admin"
-                            ? "badge-admin"
-                            : "badge-gestor")
-                        }
-                      >
-                        {u.perfil}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn-text"
-                        onClick={() =>
-                          removerUsuario(
-                            u.usuario,
-                            setMsgOfiCb,
-                            (x) =>
-                              x.prefeituraId === selMunOfi && vinculoOficina(x),
-                          )
-                        }
-                      >
-                        Remover
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                usersOfi.map((u) => {
+                  const ofi = oficinasDoMun.find(
+                    (o) => o.id === (u.officinaId ?? ""),
+                  );
+                  return (
+                    <tr key={u.usuario}>
+                      <td>{u.nome}</td>
+                      <td>{u.usuario}</td>
+                      <td>{prefeituraLabel(u.prefeituraId)}</td>
+                      <td>
+                        {ofi ? (
+                          `${ofi.nome} — ${ofi.especialidade}`
+                        ) : u.officinaId ? (
+                          "—"
+                        ) : (
+                          <span
+                            style={{
+                              color: "var(--main-orange)",
+                              fontSize: "0.78rem",
+                            }}
+                          >
+                            Sem vínculo
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <code
+                          style={{
+                            fontSize: "0.72rem",
+                            color: "#6b7280",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          {u.officinaId ?? "—"}
+                        </code>
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            "badge " +
+                            (u.perfil === "admin"
+                              ? "badge-admin"
+                              : "badge-gestor")
+                          }
+                        >
+                          {u.perfil}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn-text"
+                          onClick={() =>
+                            removerUsuario(
+                              u.usuario,
+                              setMsgOfiCb,
+                              (x) =>
+                                x.prefeituraId === selMunOfi &&
+                                vinculoOficina(x),
+                            )
+                          }
+                        >
+                          Remover
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

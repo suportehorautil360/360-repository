@@ -316,7 +316,7 @@ export function PrefeituraPage() {
             id="dash"
             className={`tab-content ${aba === "dash" ? "active" : ""}`}
           >
-            <DashboardSection dados={dados} />
+            <DashboardSection prefeituraId={prefeituraId} />
           </div>
 
           <div
@@ -330,7 +330,7 @@ export function PrefeituraPage() {
             id="riscos"
             className={`tab-content ${aba === "riscos" ? "active" : ""}`}
           >
-            <RiscosSection dados={dados} />
+            <RiscosSection prefeituraId={prefeituraId} />
           </div>
 
           <div

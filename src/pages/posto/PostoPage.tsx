@@ -1,27 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "@firebase/firestore";
+import { db } from "../../lib/firebase/firebase";
 import { useHU360 } from "../../lib/hu360";
 import { useLogin } from "../login/hooks/use-login";
-import {
-  computeAbsRowsSorted,
-  computeDashboardKpis,
-} from "../../portal/postoPortalCompute";
 import { esc } from "../../portal/postoPortalFormat";
 import {
-  buildFaturamentoSnapshot,
   postoExportarFaturamentoCsvFromSnapshot,
   postoExportarFaturamentoPdfFromSnapshot,
 } from "../../portal/postoPortalFaturamento";
 import {
-  encontrarPostoCredenciado,
   mesesOptions,
-  obterCaMesclado,
 } from "../../portal/postoPortalHu360Data";
 import type {
+  FatUltimoSnapshot,
   PortalSessao,
-  PostoCredenciado,
   PostoUsuarioPortal,
 } from "../../portal/postoPortalTypes";
+import type { PostoFirestore } from "../admin/hooks/postos/types";
 import "./posto.css";
 
 type PostoSecao = "inicio" | "abs" | "fat";
@@ -40,6 +41,18 @@ const SECRETARIAS_OPCOES = [
   "Secretaria de Transportes",
   "Secretaria de Administração",
 ] as const;
+
+function parseValorBR(v: string | undefined): number {
+  if (!v) return 0;
+  const n = Number(
+    v.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", "."),
+  );
+  return Number.isFinite(n) ? n : 0;
+}
+
+function fmtBRL(v: number): string {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 function isAdminPrefeitura(user: { type: string } | null): boolean {
   if (!user) return false;
@@ -60,13 +73,11 @@ export function PostoPage() {
 
   const [secaoAtiva, setSecaoAtiva] = useState<PostoSecao>("inicio");
 
-  // Selecao usada quando o usuario logado eh admin/gestor (vinculo=prefeitura).
   const [selPrefId, setSelPrefId] = useState<string>("");
   const [selPostoId, setSelPostoId] = useState<string>("");
   const [selMsg, setSelMsg] = useState<AuthMsg>({ texto: "", cor: COR_INFO });
   const [controleConfirmado, setControleConfirmado] = useState(false);
 
-  // Filtros das telas internas.
   const mesAbsChoices = useMemo(() => mesesOptions(18), []);
   const fatMesChoices = useMemo(() => mesesOptions(24), []);
   const [mesAbs, setMesAbs] = useState(() => mesAbsChoices[0]?.value ?? "");
@@ -82,18 +93,23 @@ export function PostoPage() {
     }
   }, [adminMode, selPrefId, prefeituras, user]);
 
-  const postosDoMunicipio: PostoCredenciado[] = useMemo(() => {
-    if (!adminMode || !selPrefId) return [];
-    const ca = obterCaMesclado(selPrefId);
-    return ca.postosCredenciados ?? [];
-  }, [adminMode, selPrefId, controleConfirmado]);
+  // Postos do município (admin) — Firestore
+  const [postosDoMunicipio, setPostosDoMunicipio] = useState<PostoFirestore[]>([]);
+
+  useEffect(() => {
+    if (!adminMode || !selPrefId) { setPostosDoMunicipio([]); return; }
+    getDocs(
+      query(collection(db, "postos"), where("prefeituraId", "==", selPrefId)),
+    ).then((snap) => {
+      setPostosDoMunicipio(
+        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PostoFirestore),
+      );
+    }).catch(() => setPostosDoMunicipio([]));
+  }, [adminMode, selPrefId]);
 
   useEffect(() => {
     if (!adminMode) return;
-    if (postosDoMunicipio.length === 0) {
-      setSelPostoId("");
-      return;
-    }
+    if (postosDoMunicipio.length === 0) { setSelPostoId(""); return; }
     if (!postosDoMunicipio.some((p) => p.id === selPostoId)) {
       setSelPostoId(postosDoMunicipio[0].id);
     }
@@ -108,7 +124,7 @@ export function PostoPage() {
           postoId: user.postoId,
           prefeituraId: user.prefeituraId,
         } as PostoUsuarioPortal,
-        prefeituraId: user.prefeituraId || "tl-ms",
+        prefeituraId: user.prefeituraId || "",
         postoId: String(user.postoId),
         controle: false,
       };
@@ -127,23 +143,138 @@ export function PostoPage() {
     return null;
   }, [user, adminMode, controleConfirmado, selPrefId, selPostoId]);
 
-  const kpis = useMemo(() => computeDashboardKpis(portal), [portal]);
-  const absRows = useMemo(
-    () => computeAbsRowsSorted(portal, mesAbs || null),
-    [portal, mesAbs],
-  );
-  const fatSnapshot = useMemo(() => {
-    if (!portal || !fatMes) return null;
-    const p = fatMes.split("-");
-    const ano = parseInt(p[0], 10);
-    const mes = parseInt(p[1], 10);
-    return buildFaturamentoSnapshot(
-      portal,
+  // ===== Dados do Firestore =====
+  interface AbsRow {
+    id?: string;
+    postoId?: string;
+    prefeituraId?: string;
+    data?: string;
+    hora?: string;
+    veiculo?: string;
+    motorista?: string;
+    combustivel?: string;
+    litros?: number;
+    valorTotal?: string;
+    km?: number;
+    cupomFiscal?: string;
+    secretaria?: string;
+  }
+
+  const [todasAbs, setTodasAbs] = useState<AbsRow[]>([]);
+  const [postoInfo, setPostoInfo] = useState<PostoFirestore | null>(null);
+  const [absLoading, setAbsLoading] = useState(false);
+
+  const loadDadosPosto = useCallback(async () => {
+    if (!portal || !("postoId" in portal) || !portal.postoId) return;
+    setAbsLoading(true);
+    try {
+      const constraints = [
+        where("postoId", "==", portal.postoId),
+        where("prefeituraId", "==", portal.prefeituraId),
+      ];
+      const [absSnap, postoSnap] = await Promise.all([
+        getDocs(query(collection(db, "abastecimentos"), ...constraints)),
+        getDocs(
+          query(
+            collection(db, "postos"),
+            where("prefeituraId", "==", portal.prefeituraId),
+          ),
+        ),
+      ]);
+      const lista = absSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as AbsRow[];
+      lista.sort((a, b) => ((a.data ?? "") < (b.data ?? "") ? 1 : -1));
+      setTodasAbs(lista);
+      const posto = postoSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as PostoFirestore)
+        .find((p) => p.id === portal.postoId) ?? null;
+      setPostoInfo(posto);
+    } catch {
+      // silently fail
+    } finally {
+      setAbsLoading(false);
+    }
+  }, [portal]);
+
+  useEffect(() => { void loadDadosPosto(); }, [loadDadosPosto]);
+
+  // KPIs calculados do Firestore
+  const kpis = useMemo(() => {
+    const agora = new Date();
+    const anoAtual = agora.getFullYear();
+    const mesAtual = agora.getMonth() + 1;
+    const absMesArr = todasAbs.filter((r) => {
+      if (!r.data) return false;
+      const m = /^(\d{4})-(\d{2})/.exec(r.data);
+      if (!m) return false;
+      return Number(m[1]) === anoAtual && Number(m[2]) === mesAtual;
+    });
+    const litrosMes = absMesArr.reduce((s, a) => s + (Number(a.litros) || 0), 0);
+    const valorMes = absMesArr.reduce((s, a) => s + parseValorBR(a.valorTotal), 0);
+    return {
+      absMes: absMesArr.length,
+      litrosMes:
+        litrosMes.toLocaleString("pt-BR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }) + " L",
+      valorMes: fmtBRL(valorMes),
+      totalGeralAbs: todasAbs.length,
+    };
+  }, [todasAbs]);
+
+  // Abastecimentos filtrados por mês
+  const absRows = useMemo(() => {
+    if (!mesAbs) return todasAbs;
+    const [ano, mes] = mesAbs.split("-").map(Number);
+    return todasAbs.filter((r) => {
+      if (!r.data) return false;
+      const m = /^(\d{4})-(\d{2})/.exec(r.data);
+      if (!m) return false;
+      return Number(m[1]) === ano && Number(m[2]) === mes;
+    });
+  }, [todasAbs, mesAbs]);
+
+  // Faturamento snapshot calculado do Firestore
+  const fatSnapshot = useMemo((): FatUltimoSnapshot | null => {
+    if (!portal || !("postoId" in portal) || !fatMes) return null;
+    const [ano, mes] = fatMes.split("-").map(Number);
+    const filtered = todasAbs.filter((r) => {
+      if (!r.data) return false;
+      const m = /^(\d{4})-(\d{2})/.exec(r.data);
+      if (!m) return false;
+      if (Number(m[1]) !== ano || Number(m[2]) !== mes) return false;
+      if (fatSecretaria !== "__todas__" && r.secretaria !== fatSecretaria)
+        return false;
+      return true;
+    });
+    const map: Record<string, { equip: string; qtd: number; litros: number }> = {};
+    for (const a of filtered) {
+      const eq = (a.veiculo ?? "—").trim() || "—";
+      if (!map[eq]) map[eq] = { equip: eq, qtd: 0, litros: 0 };
+      map[eq].qtd++;
+      map[eq].litros += Number(a.litros) || 0;
+    }
+    // valor unitário do edital: 0 quando não configurado
+    const vEdital = 0;
+    const rows = Object.values(map)
+      .sort((a, b) => a.equip.localeCompare(b.equip))
+      .map((r) => ({ ...r, valorFaturar: r.litros * vEdital }));
+    const totalLitros = rows.reduce((s, r) => s + r.litros, 0);
+    const postoLabel =
+      postoInfo?.nomeFantasia || postoInfo?.razaoSocial || portal.postoId;
+    return {
+      agg: { rows, totalLitros, totalFaturar: totalLitros * vEdital, valorUnitarioEdital: vEdital },
       ano,
       mes,
-      fatSecretaria || "__todas__",
-    );
-  }, [portal, fatMes, fatSecretaria]);
+      municipio: prefeituraLabel(portal.prefeituraId),
+      secretariaFiltro: fatSecretaria,
+      postoLabel,
+      postoId: portal.postoId,
+    };
+  }, [portal, todasAbs, fatMes, fatSecretaria, postoInfo, prefeituraLabel]);
 
   const labelPrefSel = selPrefId ? prefeituraLabel(selPrefId) : "—";
 
@@ -283,16 +414,17 @@ export function PostoPage() {
   }
 
   // ===== Portal ativo =====
-  const ca = obterCaMesclado(portal.prefeituraId);
-  const postoInfo = encontrarPostoCredenciado(ca, portal.postoId);
-  const labelPref = prefeituraLabel(portal.prefeituraId);
+  const labelPref = portal ? prefeituraLabel((portal as { prefeituraId?: string }).prefeituraId ?? "") : "";
   const nomeUsuario = user.usuario;
-  const postoNome = postoInfo
-    ? postoInfo.nomeFantasia || postoInfo.razaoSocial || portal.postoId
-    : portal.postoId;
-  const usuarioLogadoTexto = portal.controle
-    ? `Conectado (controle Hub): ${nomeUsuario} · ${labelPref} · ${postoNome}`
-    : `Conectado: ${nomeUsuario} · ${labelPref} · Posto credenciado`;
+  const postoNome =
+    postoInfo?.nomeFantasia ||
+    postoInfo?.razaoSocial ||
+    (portal && "postoId" in portal ? portal.postoId : "") ||
+    "Posto";
+  const usuarioLogadoTexto =
+    portal && "controle" in portal && portal.controle
+      ? `Conectado (controle Hub): ${nomeUsuario} · ${labelPref} · ${postoNome}`
+      : `Conectado: ${nomeUsuario} · ${labelPref} · Posto credenciado`;
 
   return (
     <div id="appShell">
@@ -371,7 +503,7 @@ export function PostoPage() {
             >
               {usuarioLogadoTexto}
             </span>
-            {portal.controle ? (
+            {portal && "controle" in portal && portal.controle ? (
               <button
                 type="button"
                 className="btn btn-ghost"
@@ -428,19 +560,19 @@ export function PostoPage() {
           <div className="kpi-grid">
             <div className="kpi">
               <p>Abastecimentos (mês)</p>
-              <h3 id="posto-kpi-abs-mes">{kpis?.absMes ?? "—"}</h3>
+              <h3 id="posto-kpi-abs-mes">{absLoading ? "—" : kpis.absMes}</h3>
             </div>
             <div className="kpi" style={{ borderLeftColor: "#0284c7" }}>
               <p>Litros (mês)</p>
-              <h3 id="posto-kpi-litros-mes">{kpis?.litrosMes ?? "—"}</h3>
+              <h3 id="posto-kpi-litros-mes">{absLoading ? "—" : kpis.litrosMes}</h3>
             </div>
             <div className="kpi" style={{ borderLeftColor: "#16a34a" }}>
               <p>Valor cupons (mês)</p>
-              <h3 id="posto-kpi-valor-mes">{kpis?.valorMes ?? "—"}</h3>
+              <h3 id="posto-kpi-valor-mes">{absLoading ? "—" : kpis.valorMes}</h3>
             </div>
             <div className="kpi" style={{ borderLeftColor: "#9333ea" }}>
               <p>Total histórico no portal</p>
-              <h3 id="posto-kpi-total-geral">{kpis?.totalGeralAbs ?? "—"}</h3>
+              <h3 id="posto-kpi-total-geral">{absLoading ? "—" : kpis.totalGeralAbs}</h3>
             </div>
           </div>
           <div className="card">
@@ -710,19 +842,23 @@ export function PostoPage() {
                 </tr>
               </thead>
               <tbody id="posto-tbody-abs">
-                {absRows.map((a, i) => (
-                  <tr key={`${a.cupomFiscal ?? "cup"}-${i}`}>
-                    <td>
-                      {esc(a.data)} {esc(a.hora || "")}
-                    </td>
-                    <td>{esc(a.veiculo)}</td>
-                    <td>{esc(a.motorista || "—")}</td>
-                    <td>{esc(a.combustivel || "—")}</td>
-                    <td>{esc(a.litros != null ? a.litros : "—")}</td>
-                    <td>{esc(a.valorTotal || "—")}</td>
-                    <td>{esc(a.cupomFiscal || "—")}</td>
-                  </tr>
-                ))}
+                {absLoading ? (
+                  <tr><td colSpan={7} style={{ color: "#78716c" }}>Carregando…</td></tr>
+                ) : absRows.length === 0 ? (
+                  <tr><td colSpan={7} style={{ color: "#78716c" }}>Nenhum abastecimento neste período.</td></tr>
+                ) : (
+                  absRows.map((a, i) => (
+                    <tr key={`${a.cupomFiscal ?? "cup"}-${i}`}>
+                      <td>{esc(a.data)} {esc(a.hora || "")}</td>
+                      <td>{esc(a.veiculo)}</td>
+                      <td>{esc(a.motorista || "—")}</td>
+                      <td>{esc(a.combustivel || "—")}</td>
+                      <td>{esc(a.litros != null ? String(a.litros) : "—")}</td>
+                      <td>{esc(a.valorTotal || "—")}</td>
+                      <td>{esc(a.cupomFiscal || "—")}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
             {absRows.length === 0 ? (

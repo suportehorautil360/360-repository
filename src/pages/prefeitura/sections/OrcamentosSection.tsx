@@ -22,6 +22,7 @@ interface SolicitacaoOS {
   relato: string;
   oficinas: string[];
   oficinasIds?: string[];
+  oficinasResponderam?: string[];
   status: string;
   criadoEm: { seconds: number } | null;
 }
@@ -36,6 +37,8 @@ interface OrdemServico {
   protocolo: string;
   solicitacaoOsId: string;
   operador: string;
+  oficinaNome?: string;
+  oficinaId?: string;
   equipamento: string;
   defeito: string;
   itens: ItemOrdem[];
@@ -259,6 +262,11 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
             ? new Date(sol.criadoEm.seconds * 1000).toLocaleDateString("pt-BR")
             : "—";
           const msgAtual = msgAcao?.id === sol.id ? msgAcao : null;
+          const totalConvidadas =
+            sol.oficinasIds?.length ?? sol.oficinas?.length ?? 0;
+          const temOrcamento = ordensDoOS.some(
+            (o) => o.status === "aguardando_aprovacao",
+          );
 
           return (
             <div key={sol.id} className="card" style={{ marginBottom: 20 }}>
@@ -312,7 +320,27 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
                     textAlign: "right",
                   }}
                 >
-                  {ordensDoOS.length} orçamento(s) recebido(s)
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      color: temOrcamento ? "#15803d" : "#92400e",
+                    }}
+                  >
+                    {ordensDoOS.length}/
+                    {totalConvidadas > 0 ? totalConvidadas : 3} orçamento(s)
+                    recebido(s)
+                  </span>
+                  {temOrcamento && sol.status !== "aprovado" ? (
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        color: "#15803d",
+                        marginTop: 2,
+                      }}
+                    >
+                      ✔ Pronto para aprovar
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -364,7 +392,7 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
                             <td>
                               <strong>{ord.protocolo}</strong>
                             </td>
-                            <td>{ord.operador}</td>
+                            <td>{ord.oficinaNome ?? ord.operador}</td>
                             <td style={{ maxWidth: 260, fontSize: "0.85rem" }}>
                               {ord.defeito}
                             </td>
@@ -463,8 +491,8 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
               Orçamento — {modalOrdem.protocolo}
             </h2>
             <p className="pf-modal-sub">
-              Operador: {modalOrdem.operador} &nbsp;·&nbsp; Equipamento:{" "}
-              {modalOrdem.equipamento}
+              Oficina: {modalOrdem.oficinaNome ?? modalOrdem.operador}{" "}
+              &nbsp;·&nbsp; Equipamento: {modalOrdem.equipamento}
             </p>
             <p
               style={{

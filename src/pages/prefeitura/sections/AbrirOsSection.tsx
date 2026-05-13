@@ -168,7 +168,7 @@ export function AbrirOsSection({ dados, prefeituraId }: AbrirOsSectionProps) {
       return;
     }
     const matches = oficinasCredenciadas.filter((o) =>
-      especialidadeCompativel(o.especialidade, linha),
+      especialidadeCompativel(o.nome, linha),
     );
     const pool = matches.length > 0 ? matches : oficinasCredenciadas;
     setOficinasEnvio(sortearAte(pool, 3));

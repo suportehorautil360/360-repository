@@ -1297,6 +1297,20 @@ export function ChecklistControlePage() {
 
     const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
     const pontos = numSim * 2;
+    const itensNao = itensFiltrados
+      .filter((it) => answers[String(it["Nº"])]?.v === "nao")
+      .map((it) => {
+        const num = String(it["Nº"]);
+        const titulo = it.Tipo
+          ? `${it.Tipo}: ${it["Item de Verificação"]}`
+          : String(it["Item de Verificação"]);
+        return {
+          numero: num,
+          titulo,
+          //@ts-ignore
+          problema: answers[num]?.problema ?? "",
+        };
+      });
     const id = crypto.randomUUID();
     const dataHora = new Date().toISOString();
 
@@ -1348,6 +1362,7 @@ export function ChecklistControlePage() {
         totalItens: keys.length,
         totalSim: numSim,
         totalNao: keys.length - numSim,
+        itensNao,
         pontuacao: pontos,
         respostas: answers,
         obs: obsChecklist || null,

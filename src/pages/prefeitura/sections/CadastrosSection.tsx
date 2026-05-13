@@ -170,7 +170,6 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
       setOSaving(false);
     }
   }
-
   //@ts-ignore
   async function removerEquipamento(id: string) {
     await deleteDoc(doc(db, "equipamentos", id));

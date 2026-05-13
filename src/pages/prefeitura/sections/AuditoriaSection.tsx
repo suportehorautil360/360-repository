@@ -188,7 +188,7 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
           <div style={{ display: "flex", gap: 8, paddingBottom: 1 }}>
             <button
               type="button"
-              className="btn"
+              className="btn btn-outline"
               style={{ flex: 1, margin: 0 }}
               disabled={carregando}
               onClick={() => setTick((t) => t + 1)}
