@@ -118,6 +118,12 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
         ]);
 
       setAtivos(equipSnap.size);
+      console.log("CheckList recebidos:", {
+        checkDev: checkDevSnap.size,
+        registros: registrosSnap.size,
+        CheckDevDocs: checkDevSnap.docs.map((d) => d.data()),
+        RegistrosDocs: registrosSnap.docs.map((d) => d.data()),
+      });
       setChecklists(checkDevSnap.size + registrosSnap.size);
 
       // IDs de ordens que já têm checklist de devolução
