@@ -167,11 +167,10 @@ export function AbrirOsSection({ dados, prefeituraId }: AbrirOsSectionProps) {
       setOficinasEnvio([]);
       return;
     }
-    const matches = oficinasCredenciadas.filter((o) =>
-      especialidadeCompativel(o.nome, linha),
+    const matches = oficinasCredenciadas.filter(
+      (o) => normEsp(o.especialidade) === normEsp(linha),
     );
-    const pool = matches.length > 0 ? matches : oficinasCredenciadas;
-    setOficinasEnvio(sortearAte(pool, 3));
+    setOficinasEnvio(sortearAte(matches, 3));
   }, [oficinasCredenciadas, linha]);
 
   // Names of the drawn oficinas (used in OS document)
