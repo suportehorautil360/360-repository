@@ -35,15 +35,6 @@ function normEsp(s: string): string {
     .trim();
 }
 
-function especialidadeCompativel(
-  especialidade: string,
-  linha: string,
-): boolean {
-  const e = normEsp(especialidade);
-  const l = normEsp(linha);
-  return e === l || e.includes(l) || l.includes(e);
-}
-
 function sortearAte<T>(arr: T[], max: number): T[] {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, max);
 }
@@ -170,6 +161,7 @@ export function AbrirOsSection({ dados, prefeituraId }: AbrirOsSectionProps) {
     const matches = oficinasCredenciadas.filter(
       (o) => normEsp(o.especialidade) === normEsp(linha),
     );
+
     setOficinasEnvio(sortearAte(matches, 3));
   }, [oficinasCredenciadas, linha]);
 
