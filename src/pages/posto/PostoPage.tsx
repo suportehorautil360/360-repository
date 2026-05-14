@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
+  addDoc,
   collection,
   getDocs,
   query,
+  serverTimestamp,
   where,
 } from "@firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
@@ -14,9 +16,7 @@ import {
   postoExportarFaturamentoCsvFromSnapshot,
   postoExportarFaturamentoPdfFromSnapshot,
 } from "../../portal/postoPortalFaturamento";
-import {
-  mesesOptions,
-} from "../../portal/postoPortalHu360Data";
+import { mesesOptions } from "../../portal/postoPortalHu360Data";
 import type {
   FatUltimoSnapshot,
   PortalSessao,
@@ -25,7 +25,7 @@ import type {
 import type { PostoFirestore } from "../admin/hooks/postos/types";
 import "./posto.css";
 
-type PostoSecao = "inicio" | "abs" | "fat";
+type PostoSecao = "inicio" | "abs" | "fat" | "novoabs";
 
 const COR_INFO = "#78716c";
 const COR_ERRO = "#dc2626";
@@ -45,7 +45,10 @@ const SECRETARIAS_OPCOES = [
 function parseValorBR(v: string | undefined): number {
   if (!v) return 0;
   const n = Number(
-    v.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", "."),
+    v
+      .replace(/[^0-9,.-]/g, "")
+      .replace(/\./g, "")
+      .replace(",", "."),
   );
   return Number.isFinite(n) ? n : 0;
 }
@@ -63,6 +66,8 @@ export function PostoPage() {
   const { user, setUser } = useLogin();
   const navigate = useNavigate();
   const { prefeituras, prefeituraLabel } = useHU360();
+
+  console.log("Render PostoPage", { user });
 
   useEffect(() => {
     document.body.classList.add("posto-root");
@@ -94,22 +99,32 @@ export function PostoPage() {
   }, [adminMode, selPrefId, prefeituras, user]);
 
   // Postos do município (admin) — Firestore
-  const [postosDoMunicipio, setPostosDoMunicipio] = useState<PostoFirestore[]>([]);
+  const [postosDoMunicipio, setPostosDoMunicipio] = useState<PostoFirestore[]>(
+    [],
+  );
 
   useEffect(() => {
-    if (!adminMode || !selPrefId) { setPostosDoMunicipio([]); return; }
+    if (!adminMode || !selPrefId) {
+      setPostosDoMunicipio([]);
+      return;
+    }
     getDocs(
       query(collection(db, "postos"), where("prefeituraId", "==", selPrefId)),
-    ).then((snap) => {
-      setPostosDoMunicipio(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PostoFirestore),
-      );
-    }).catch(() => setPostosDoMunicipio([]));
+    )
+      .then((snap) => {
+        setPostosDoMunicipio(
+          snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PostoFirestore),
+        );
+      })
+      .catch(() => setPostosDoMunicipio([]));
   }, [adminMode, selPrefId]);
 
   useEffect(() => {
     if (!adminMode) return;
-    if (postosDoMunicipio.length === 0) { setSelPostoId(""); return; }
+    if (postosDoMunicipio.length === 0) {
+      setSelPostoId("");
+      return;
+    }
     if (!postosDoMunicipio.some((p) => p.id === selPostoId)) {
       setSelPostoId(postosDoMunicipio[0].id);
     }
@@ -187,9 +202,10 @@ export function PostoPage() {
       })) as AbsRow[];
       lista.sort((a, b) => ((a.data ?? "") < (b.data ?? "") ? 1 : -1));
       setTodasAbs(lista);
-      const posto = postoSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }) as PostoFirestore)
-        .find((p) => p.id === portal.postoId) ?? null;
+      const posto =
+        postoSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }) as PostoFirestore)
+          .find((p) => p.id === portal.postoId) ?? null;
       setPostoInfo(posto);
     } catch {
       // silently fail
@@ -198,7 +214,114 @@ export function PostoPage() {
     }
   }, [portal]);
 
-  useEffect(() => { void loadDadosPosto(); }, [loadDadosPosto]);
+  useEffect(() => {
+    void loadDadosPosto();
+  }, [loadDadosPosto]);
+
+  // ===== Novo abastecimento form =====
+  const [veiculosForm, setVeiculosForm] = useState<string[]>([]);
+  const [novoData, setNovoData] = useState("");
+  const [novoHora, setNovoHora] = useState("");
+  const [novoVeic, setNovoVeic] = useState("");
+  const [novoMotor, setNovoMotor] = useState("");
+  const [novoSec, setNovoSec] = useState("Secretaria de Infraestrutura");
+  const [novoComb, setNovoComb] = useState("Diesel S10");
+  const [novoLitros, setNovoLitros] = useState("");
+  const [novoValor, setNovoValor] = useState("");
+  const [novoKm, setNovoKm] = useState("");
+  const [novoCupom, setNovoCupom] = useState("");
+  const [salvandoForm, setSalvandoForm] = useState(false);
+  const [msgForm, setMsgForm] = useState<{
+    tone: "none" | "ok" | "err";
+    text: string;
+  }>({ tone: "none", text: "" });
+
+  useEffect(() => {
+    if (
+      secaoAtiva !== "novoabs" ||
+      !portal ||
+      !("prefeituraId" in portal) ||
+      !portal.prefeituraId
+    )
+      return;
+    getDocs(
+      query(
+        collection(db, "equipamentos"),
+        where("prefeituraId", "==", portal.prefeituraId),
+      ),
+    )
+      .then((snap) => {
+        const veics = snap.docs
+          .map((d) => {
+            const dt = d.data();
+            return [
+              dt.label ?? dt.descricao ?? "",
+              dt.marca ?? "",
+              dt.modelo ?? "",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+          })
+          .filter(Boolean);
+        setVeiculosForm(Array.from(new Set(veics)));
+      })
+      .catch(() => {});
+  }, [secaoAtiva, portal]);
+
+  async function handleSalvarNovoAbs() {
+    setMsgForm({ tone: "none", text: "" });
+    const litrosNum = Number(novoLitros);
+    const valorNum = parseValorBR(novoValor);
+    if (!novoData || !novoVeic || !novoMotor) {
+      setMsgForm({ tone: "err", text: "Preencha data, veículo e motorista." });
+      return;
+    }
+    if (!Number.isFinite(litrosNum) || litrosNum <= 0) {
+      setMsgForm({ tone: "err", text: "Litros inválidos." });
+      return;
+    }
+    if (valorNum <= 0) {
+      setMsgForm({ tone: "err", text: "Valor inválido." });
+      return;
+    }
+    if (!portal || !("postoId" in portal)) {
+      setMsgForm({ tone: "err", text: "Sessão inválida." });
+      return;
+    }
+    setSalvandoForm(true);
+    try {
+      await addDoc(collection(db, "abastecimentos"), {
+        id: `abs-${Date.now()}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+        prefeituraId: portal.prefeituraId,
+        postoId: portal.postoId,
+        data: novoData,
+        hora: novoHora,
+        veiculo: novoVeic,
+        placa: "",
+        motorista: novoMotor,
+        secretaria: novoSec,
+        litros: litrosNum,
+        valorTotal: novoValor,
+        km: Number(novoKm) || 0,
+        combustivel: novoComb,
+        cupomFiscal: novoCupom,
+        criadoEm: serverTimestamp(),
+      });
+      setMsgForm({ tone: "ok", text: "Abastecimento registrado com sucesso." });
+      setNovoData("");
+      setNovoHora("");
+      setNovoVeic("");
+      setNovoMotor("");
+      setNovoLitros("");
+      setNovoValor("");
+      setNovoKm("");
+      setNovoCupom("");
+    } catch {
+      setMsgForm({ tone: "err", text: "Erro ao salvar. Tente novamente." });
+    } finally {
+      setSalvandoForm(false);
+    }
+  }
 
   // KPIs calculados do Firestore
   const kpis = useMemo(() => {
@@ -211,8 +334,14 @@ export function PostoPage() {
       if (!m) return false;
       return Number(m[1]) === anoAtual && Number(m[2]) === mesAtual;
     });
-    const litrosMes = absMesArr.reduce((s, a) => s + (Number(a.litros) || 0), 0);
-    const valorMes = absMesArr.reduce((s, a) => s + parseValorBR(a.valorTotal), 0);
+    const litrosMes = absMesArr.reduce(
+      (s, a) => s + (Number(a.litros) || 0),
+      0,
+    );
+    const valorMes = absMesArr.reduce(
+      (s, a) => s + parseValorBR(a.valorTotal),
+      0,
+    );
     return {
       absMes: absMesArr.length,
       litrosMes:
@@ -250,7 +379,8 @@ export function PostoPage() {
         return false;
       return true;
     });
-    const map: Record<string, { equip: string; qtd: number; litros: number }> = {};
+    const map: Record<string, { equip: string; qtd: number; litros: number }> =
+      {};
     for (const a of filtered) {
       const eq = (a.veiculo ?? "—").trim() || "—";
       if (!map[eq]) map[eq] = { equip: eq, qtd: 0, litros: 0 };
@@ -266,7 +396,12 @@ export function PostoPage() {
     const postoLabel =
       postoInfo?.nomeFantasia || postoInfo?.razaoSocial || portal.postoId;
     return {
-      agg: { rows, totalLitros, totalFaturar: totalLitros * vEdital, valorUnitarioEdital: vEdital },
+      agg: {
+        rows,
+        totalLitros,
+        totalFaturar: totalLitros * vEdital,
+        valorUnitarioEdital: vEdital,
+      },
       ano,
       mes,
       municipio: prefeituraLabel(portal.prefeituraId),
@@ -414,7 +549,9 @@ export function PostoPage() {
   }
 
   // ===== Portal ativo =====
-  const labelPref = portal ? prefeituraLabel((portal as { prefeituraId?: string }).prefeituraId ?? "") : "";
+  const labelPref = portal
+    ? prefeituraLabel((portal as { prefeituraId?: string }).prefeituraId ?? "")
+    : "";
   const nomeUsuario = user.usuario;
   const postoNome =
     postoInfo?.nomeFantasia ||
@@ -488,6 +625,20 @@ export function PostoPage() {
           }}
         >
           💰 Faturamento &amp; NF mensal
+        </div>
+        <div
+          className={`nav-item ${secaoAtiva === "novoabs" ? "active" : ""}`}
+          onClick={() => setSecaoAtiva("novoabs")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setSecaoAtiva("novoabs");
+            }
+          }}
+        >
+          ➕ Novo Abastecimento
         </div>
       </div>
 
@@ -564,15 +715,21 @@ export function PostoPage() {
             </div>
             <div className="kpi" style={{ borderLeftColor: "#0284c7" }}>
               <p>Litros (mês)</p>
-              <h3 id="posto-kpi-litros-mes">{absLoading ? "—" : kpis.litrosMes}</h3>
+              <h3 id="posto-kpi-litros-mes">
+                {absLoading ? "—" : kpis.litrosMes}
+              </h3>
             </div>
             <div className="kpi" style={{ borderLeftColor: "#16a34a" }}>
               <p>Valor cupons (mês)</p>
-              <h3 id="posto-kpi-valor-mes">{absLoading ? "—" : kpis.valorMes}</h3>
+              <h3 id="posto-kpi-valor-mes">
+                {absLoading ? "—" : kpis.valorMes}
+              </h3>
             </div>
             <div className="kpi" style={{ borderLeftColor: "#9333ea" }}>
               <p>Total histórico no portal</p>
-              <h3 id="posto-kpi-total-geral">{absLoading ? "—" : kpis.totalGeralAbs}</h3>
+              <h3 id="posto-kpi-total-geral">
+                {absLoading ? "—" : kpis.totalGeralAbs}
+              </h3>
             </div>
           </div>
           <div className="card">
@@ -795,6 +952,190 @@ export function PostoPage() {
         </div>
 
         <div
+          id="posto-novo-abs"
+          className={`tab-content ${secaoAtiva === "novoabs" ? "active" : ""}`}
+        >
+          <h1 style={{ margin: "0 0 4px", fontSize: "1.35rem" }}>
+            Novo abastecimento{" "}
+            <span
+              style={{ fontWeight: 400, color: "#78716c", fontSize: "0.9rem" }}
+            >
+              (consome crédito semanal)
+            </span>
+          </h1>
+          <p
+            style={{ color: "#78716c", fontSize: "0.8rem", margin: "0 0 20px" }}
+          >
+            O valor do cupom será debitado do saldo. Posto registrado
+            automaticamente:{" "}
+            <strong>
+              {portal && "postoId" in portal ? portal.postoId : "—"}
+            </strong>
+            .
+          </p>
+          <div className="card">
+            <div className="posto-form-grid">
+              <div>
+                <label htmlFor="ps-abs-data">Data</label>
+                <input
+                  type="date"
+                  id="ps-abs-data"
+                  value={novoData}
+                  onChange={(e) => setNovoData(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="ps-abs-hora">Hora</label>
+                <input
+                  type="time"
+                  id="ps-abs-hora"
+                  value={novoHora}
+                  onChange={(e) => setNovoHora(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="ps-abs-sel-veiculo">
+                  Veículo / equipamento
+                </label>
+                <select
+                  id="ps-abs-sel-veiculo"
+                  value={novoVeic}
+                  onChange={(e) => setNovoVeic(e.target.value)}
+                >
+                  <option value="">— selecione —</option>
+                  {veiculosForm.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="ps-abs-motorista">Motorista</label>
+                <input
+                  type="text"
+                  id="ps-abs-motorista"
+                  placeholder="Nome completo"
+                  value={novoMotor}
+                  onChange={(e) => setNovoMotor(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="ps-abs-secretaria">
+                  Secretaria / departamento
+                </label>
+                <select
+                  id="ps-abs-secretaria"
+                  value={novoSec}
+                  onChange={(e) => setNovoSec(e.target.value)}
+                >
+                  <option value="Secretaria de Infraestrutura">
+                    Secretaria de Infraestrutura
+                  </option>
+                  <option value="Secretaria de Transportes">
+                    Secretaria de Transportes
+                  </option>
+                  <option value="Secretaria de Administração">
+                    Secretaria de Administração
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="ps-abs-combustivel">Combustível</label>
+                <select
+                  id="ps-abs-combustivel"
+                  value={novoComb}
+                  onChange={(e) => setNovoComb(e.target.value)}
+                >
+                  <option value="Diesel S10">Diesel S10</option>
+                  <option value="Gasolina comum">Gasolina comum</option>
+                  <option value="Etanol">Etanol</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="ps-abs-litros">Litros</label>
+                <input
+                  type="number"
+                  id="ps-abs-litros"
+                  min={1}
+                  step={1}
+                  placeholder="120"
+                  value={novoLitros}
+                  onChange={(e) => setNovoLitros(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="ps-abs-valor">Valor total (R$)</label>
+                <input
+                  type="text"
+                  id="ps-abs-valor"
+                  placeholder="850,00"
+                  value={novoValor}
+                  onChange={(e) => setNovoValor(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="ps-abs-km">Km / horímetro</label>
+                <input
+                  type="number"
+                  id="ps-abs-km"
+                  min={0}
+                  step={1}
+                  placeholder="45210"
+                  value={novoKm}
+                  onChange={(e) => setNovoKm(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="ps-abs-cupom">Cupom / NF</label>
+                <input
+                  type="text"
+                  id="ps-abs-cupom"
+                  placeholder="Número"
+                  value={novoCupom}
+                  onChange={(e) => setNovoCupom(e.target.value)}
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-success"
+                onClick={() => {
+                  void handleSalvarNovoAbs();
+                }}
+                disabled={salvandoForm}
+              >
+                {salvandoForm ? "Salvando…" : "Registrar abastecimento"}
+              </button>
+              {msgForm.text && (
+                <span
+                  style={{
+                    fontSize: "0.88rem",
+                    color:
+                      msgForm.tone === "ok"
+                        ? "#16a34a"
+                        : msgForm.tone === "err"
+                          ? "#dc2626"
+                          : "#78716c",
+                  }}
+                >
+                  {msgForm.text}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div
           id="posto-abs"
           className={`tab-content ${secaoAtiva === "abs" ? "active" : ""}`}
         >
@@ -843,13 +1184,23 @@ export function PostoPage() {
               </thead>
               <tbody id="posto-tbody-abs">
                 {absLoading ? (
-                  <tr><td colSpan={7} style={{ color: "#78716c" }}>Carregando…</td></tr>
+                  <tr>
+                    <td colSpan={7} style={{ color: "#78716c" }}>
+                      Carregando…
+                    </td>
+                  </tr>
                 ) : absRows.length === 0 ? (
-                  <tr><td colSpan={7} style={{ color: "#78716c" }}>Nenhum abastecimento neste período.</td></tr>
+                  <tr>
+                    <td colSpan={7} style={{ color: "#78716c" }}>
+                      Nenhum abastecimento neste período.
+                    </td>
+                  </tr>
                 ) : (
                   absRows.map((a, i) => (
                     <tr key={`${a.cupomFiscal ?? "cup"}-${i}`}>
-                      <td>{esc(a.data)} {esc(a.hora || "")}</td>
+                      <td>
+                        {esc(a.data)} {esc(a.hora || "")}
+                      </td>
                       <td>{esc(a.veiculo)}</td>
                       <td>{esc(a.motorista || "—")}</td>
                       <td>{esc(a.combustivel || "—")}</td>

@@ -88,34 +88,41 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
     setTituloPeriodo(`Mês atual: ${meses[mesAtual]} de ${anoAtual}`);
 
     try {
-      const [equipSnap, checkSnap, ordemSnap] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "equipamentos"),
-            where("prefeituraId", "==", prefeituraId),
+      const [equipSnap, checkDevSnap, registrosSnap, ordemSnap] =
+        await Promise.all([
+          getDocs(
+            query(
+              collection(db, "equipamentos"),
+              where("prefeituraId", "==", prefeituraId),
+            ),
           ),
-        ),
-        getDocs(
-          query(
-            collection(db, "checklistsDevolucao"),
-            where("prefeituraId", "==", prefeituraId),
+          getDocs(
+            query(
+              collection(db, "checklistsDevolucao"),
+              where("prefeituraId", "==", prefeituraId),
+            ),
           ),
-        ),
-        getDocs(
-          query(
-            collection(db, "ordensServico"),
-            where("prefeituraId", "==", prefeituraId),
-            where("status", "==", "aprovado"),
+          getDocs(
+            query(
+              collection(db, "checklistsRegistros"),
+              where("prefeituraId", "==", prefeituraId),
+            ),
           ),
-        ),
-      ]);
+          getDocs(
+            query(
+              collection(db, "ordensServico"),
+              where("prefeituraId", "==", prefeituraId),
+              where("status", "==", "aprovado"),
+            ),
+          ),
+        ]);
 
       setAtivos(equipSnap.size);
-      setChecklists(checkSnap.size);
+      setChecklists(checkDevSnap.size + registrosSnap.size);
 
       // IDs de ordens que já têm checklist de devolução
       const ordemIdsComChecklist = new Set(
-        checkSnap.docs
+        checkDevSnap.docs
           .map(
             (d) =>
               (d.data() as { ordemServicoId?: string | null }).ordemServicoId,
@@ -150,10 +157,11 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
       setManutencao(emManutencao);
       setGastosReais([...gastosSem]);
 
-      // Checklists por semana do mês atual + ranking de oficinas
+      // Checklists por semana: combina checklistsDevolucao + checklistsRegistros
       const ckSem = [0, 0, 0, 0];
       const rankMap = new Map<string, number>();
-      for (const d of checkSnap.docs) {
+
+      for (const d of checkDevSnap.docs) {
         const data = d.data() as {
           criadoEm?: { seconds: number } | null;
           oficinaNome?: string;
@@ -171,6 +179,27 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
           }
         }
       }
+
+      for (const d of registrosSnap.docs) {
+        const data = d.data() as {
+          dataHoraIso?: string;
+          operador?: string;
+        };
+        // Parse "YYYY-MM-DD HH:MM" or ISO string
+        if (data.dataHoraIso) {
+          const docDate = new Date(data.dataHoraIso.replace(" ", "T"));
+          if (
+            !isNaN(docDate.getTime()) &&
+            docDate.getFullYear() === anoAtual &&
+            docDate.getMonth() === mesAtual
+          ) {
+            const dia = docDate.getDate();
+            const sem = Math.min(3, Math.floor((dia - 1) / 7));
+            ckSem[sem]++;
+          }
+        }
+      }
+
       setChecklistSemanas([...ckSem]);
 
       const ranking = Array.from(rankMap.entries())
