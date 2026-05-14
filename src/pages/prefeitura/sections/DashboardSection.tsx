@@ -118,12 +118,6 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
         ]);
 
       setAtivos(equipSnap.size);
-      console.log("CheckList recebidos:", {
-        checkDev: checkDevSnap.size,
-        registros: registrosSnap.size,
-        CheckDevDocs: checkDevSnap.docs.map((d) => d.data()),
-        RegistrosDocs: registrosSnap.docs.map((d) => d.data()),
-      });
       setChecklists(checkDevSnap.size + registrosSnap.size);
 
       // IDs de ordens que já têm checklist de devolução
@@ -191,6 +185,9 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
           dataHoraIso?: string;
           operador?: string;
         };
+        // Adiciona operador ao ranking
+        const nome = data.operador?.trim() || "Desconhecido";
+        rankMap.set(nome, (rankMap.get(nome) ?? 0) + 1);
         // Parse "YYYY-MM-DD HH:MM" or ISO string
         if (data.dataHoraIso) {
           const docDate = new Date(data.dataHoraIso.replace(" ", "T"));
@@ -276,9 +273,10 @@ export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
           <MaxBars values={checklistSemanas} labels={SEMANA_LABELS} alt />
         </article>
         <article className="card chart-wrap wide">
-          <h3>Top 5 oficinas — checklists enviados</h3>
+          <h3>Top 5 — mais checklists realizados</h3>
           <p className="chart-sub">
-            Ranking por quantidade de checklists de devolução recebidos
+            Ranking por quantidade de checklists recebidos (operadores e
+            oficinas)
           </p>
           {topOficinas.length === 0 ? (
             <p style={{ color: "var(--text-gray)", fontSize: "0.88rem" }}>
