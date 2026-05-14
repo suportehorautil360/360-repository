@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import logoUrl from "../../assets/logo.png";
+import { clearAdminSession } from "../../admin/adminSession";
 import { useLogin } from "../login/hooks/use-login";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -10,7 +11,9 @@ export function AdminLayout() {
   const navigate = useNavigate();
 
   function onLogout() {
+    clearAdminSession();
     logout(navigate);
+    window.location.reload();
   }
   return (
     <div className="admin-root">

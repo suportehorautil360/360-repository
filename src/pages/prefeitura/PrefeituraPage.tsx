@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useHU360, useHU360Auth } from "../../lib/hu360";
+import { useHU360 } from "../../lib/hu360";
 import { DashboardSection } from "./sections/DashboardSection";
 import { AuditoriaSection } from "./sections/AuditoriaSection";
 import { RiscosSection } from "./sections/RiscosSection";
@@ -11,6 +11,7 @@ import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import "./prefeitura.css";
+import { useLogin } from "../login/hooks/use-login";
 
 type PrefAba =
   | "dash"
@@ -38,7 +39,7 @@ const ABAS: { id: PrefAba; label: string }[] = [
 export function PrefeituraPage() {
   const { id: idParam } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  const { user, login, logout } = useHU360Auth();
+  const { user, handleLogin: login, logout } = useLogin();
   const { obterDadosPrefeitura, prefeituraLabel } = useHU360();
 
   const [usuario, setUsuario] = useState("");
@@ -88,20 +89,19 @@ export function PrefeituraPage() {
       setAuthMsg({ tone: "err", text: "Informe usuário e senha." });
       return;
     }
-    const r = await login(usuario.trim(), senha);
-    if (!r.ok) {
-      setAuthMsg({ tone: "err", text: r.msg ?? "Login ou senha inválidos." });
+    const r = await login(usuario.trim(), senha, navigate);
+    if (r.error) {
+      setAuthMsg({ tone: "err", text: r.error });
       return;
     }
     setSenha("");
   }
 
-  async function handleLogout() {
-    await logout();
+  function handleLogout() {
+    logout(navigate);
     setUsuario("");
     setSenha("");
     setAuthMsg({ tone: "none", text: "" });
-    navigate("/prefeitura", { replace: true });
   }
 
   if (!user) {
@@ -156,9 +156,7 @@ export function PrefeituraPage() {
                 paddingTop: 12,
               }}
             >
-              Cada usuário vê só sua prefeitura: <strong>admin</strong> (Três
-              Lagoas) · <strong>gestor</strong> (Curitiba) ·{" "}
-              <strong>admin.bh</strong> (BH).
+              Use o login criado pelo administrador do sistema.
             </p>
             <Link
               to="/"
@@ -255,7 +253,7 @@ export function PrefeituraPage() {
             </Link>
             <div className="app-topbar-actions">
               <span id="usuarioLogado" className="topbar-user">
-                {user.nome} ({user.usuario})
+                {user.usuario}
               </span>
               <button
                 type="button"
@@ -276,7 +274,7 @@ export function PrefeituraPage() {
             >
               Você abriu o painel <strong>{labelMunicipio}</strong> a partir do
               Hub Mestre. Sua sessão original é{" "}
-              {prefeituraLabel(user.prefeituraId)}.
+              {prefeituraLabel(user.prefeituraId ?? "")}.
             </div>
           ) : null}
 

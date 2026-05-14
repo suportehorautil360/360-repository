@@ -17,23 +17,13 @@ const ADMIN_USUARIO_HU360 = "admin";
 
 export function AdminPage() {
   const auth = useHU360Auth();
-  const [authenticated, setAuthenticated] = useState(isAdminAuthenticated);
   const { user } = useLogin();
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
 
   const secretOk = isAdminSecretConfigured();
-  const sessionAuthenticated = authenticated || user?.type === "admin";
+  const sessionAuthenticated = isAdminAuthenticated() || user?.type === "admin";
 
-  /**
-   * SSO defensivo: se o cookie/admin secret diz que o admin está autenticado
-   * mas a sessão HU360 não está montada (ex.: localStorage limpo, primeiro
-   * carregamento depois de um refresh, ou login feito noutra aba), refaz o
-   * login do usuário `admin` do seed para que portais (Oficina, Locação,
-   * Posto, Prefeitura) abram direto sem nova etapa de login.
-   */
-
-  console.log("IS ADMIN AUTHENTICATED?", user);
   useEffect(() => {
     if (!sessionAuthenticated) return;
     if (auth.loading) return;
@@ -58,15 +48,8 @@ export function AdminPage() {
       return;
     }
     setAdminAuthenticated();
-    // SSO: também marca a sessão HU360 como o usuário admin do seed,
-    // para que o Portal Oficina e o Painel Locação abram direto sem nova etapa de login.
     auth.loginPorUsuario(ADMIN_USUARIO_HU360);
-    setAuthenticated(true);
     setSenha("");
-  }
-
-  if (authenticated) {
-    return <AdminLayout />;
   }
 
   return (
