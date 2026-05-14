@@ -38,6 +38,7 @@ function parseValorBR(v: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+//@ts-ignore
 function fmtBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
