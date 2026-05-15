@@ -585,6 +585,7 @@ export function ChecklistControlePage() {
 
   const [tipoFalhaCategoria, setTipoFalhaCategoria] = useState("");
   const [tipoFalhaOutros, setTipoFalhaOutros] = useState("");
+  const [nomeOperadorEmerg, setNomeOperadorEmerg] = useState("");
   const [descEmerg, setDescEmerg] = useState("");
   const [gpsEmerg, setGpsEmerg] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -1202,6 +1203,7 @@ export function ChecklistControlePage() {
     setFotoHorimetroDataUrl("");
     stopHorimetroCamera();
     stopItemNaoCamera();
+    setNomeOperadorEmerg("");
     setTipoFalhaCategoria("");
     setTipoFalhaOutros("");
     setDescEmerg("");
@@ -1523,11 +1525,11 @@ export function ChecklistControlePage() {
         prefeituraId,
         idOperadorSession: session.idCliente,
         idMaquina: mid,
-        chassis: maquinaDaSessao ? String(maquinaDaSessao.Chassis ?? "") : "",
+        chassis: String(session.chassis ?? maquinaDaSessao?.Chassis ?? ""),
         modelo: maquinaDaSessao
           ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
           : "",
-        operador: session.nome,
+        operador: nomeOperadorEmerg.trim() || session.nome,
         tipoFalha: tipoResolvido,
         descricao: descEmerg.trim(),
         localizacaoGps: gpsEmerg.trim() || null,
@@ -1549,6 +1551,7 @@ export function ChecklistControlePage() {
       setSalvandoEmerg(false);
     }
 
+    setNomeOperadorEmerg("");
     setTipoFalhaCategoria("");
     setTipoFalhaOutros("");
     setDescEmerg("");
@@ -2404,7 +2407,6 @@ export function ChecklistControlePage() {
                         </strong>
                         <br />
                         <span style={{ fontSize: "0.9rem", color: "#334155" }}>
-                          <strong>Nome:</strong> {session?.nome}{" "}
                           {maquinaDaSessao?.Modelo}
                         </span>
                         <br />
@@ -2418,6 +2420,17 @@ export function ChecklistControlePage() {
                     )}
                   </p>
                 </div>
+
+                <label htmlFor="hu360-nome-operador-emerg">
+                  Nome do operador
+                </label>
+                <input
+                  id="hu360-nome-operador-emerg"
+                  value={nomeOperadorEmerg}
+                  onChange={(ev) => setNomeOperadorEmerg(ev.target.value)}
+                  placeholder="Nome de quem está reportando"
+                  autoComplete="off"
+                />
 
                 <label htmlFor="hu360-tipo-falha">Tipo de falha</label>
                 <select

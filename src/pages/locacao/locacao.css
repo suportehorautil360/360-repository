@@ -156,7 +156,7 @@
 }
 
 .locacao-root input,
-.locacao-root select,
+.locacao-root select:not(.emg-status-select),
 .locacao-root textarea {
   width: 100%;
   padding: 12px;

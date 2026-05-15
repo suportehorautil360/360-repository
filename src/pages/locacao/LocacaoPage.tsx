@@ -18,6 +18,7 @@ import {
 } from "@firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
+import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { checklistAppToHistoricoRow } from "../../components/checklistHistorico/checklistAppToHistoricoRow";
 import {
   type ChecklistApiRow,
@@ -45,7 +46,8 @@ type LocacaoSecao =
   | "auditoria"
   | "riscos"
   | "equipamentos"
-  | "terceiros";
+  | "terceiros"
+  | "emergencia";
 
 const COR_INFO = "#78716c";
 const COR_ERRO = "#dc2626";
@@ -790,6 +792,7 @@ export function LocacaoPage() {
               { id: "riscos", label: "⚠️ Triagem de risco" },
               { id: "equipamentos", label: "🛠️ Equipamentos" },
               { id: "terceiros", label: "🏢 Empresas terceiras" },
+              { id: "emergencia", label: "🚨 Emergências" },
             ] as Array<{ id: LocacaoSecao; label: string }>
           ).map((it) => (
             <div
@@ -1567,6 +1570,22 @@ export function LocacaoPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div
+            className={`tab-content ${secaoAtiva === "emergencia" ? "active" : ""}`}
+          >
+            <h1>Emergências</h1>
+            <p className="loc-intro" style={{ marginTop: 0 }}>
+              Registros de emergência enviados pelos operadores deste contrato.
+            </p>
+            {prefeituraIdEff ? (
+              <EmergenciaTable prefeituraId={prefeituraIdEff} />
+            ) : (
+              <p style={{ color: "var(--text-gray)" }}>
+                Nenhum contrato selecionado.
+              </p>
+            )}
           </div>
         </div>
       </div>
