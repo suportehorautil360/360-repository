@@ -59,7 +59,9 @@
   font-size: 0.92rem;
   color: var(--hu-muted);
   border-left: 3px solid transparent;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .hu360-nav-item:hover {
@@ -372,6 +374,32 @@
   align-items: center;
 }
 
+.hu360-assinatura-block {
+  margin-top: 14px;
+}
+
+.hu360-assinatura-hint {
+  margin: 6px 0 10px;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+.hu360-assinatura-canvas {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  height: 180px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.hu360-assinatura-actions {
+  margin-top: 10px;
+}
+
 .hu360-emerg-fotos-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -573,7 +601,9 @@
   font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .hu360-nav-btn:hover {
@@ -745,7 +775,9 @@
   text-align: left;
   font: inherit;
   border: 1px solid #e2e8f0;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .hu360-dash-card--clickable:hover {

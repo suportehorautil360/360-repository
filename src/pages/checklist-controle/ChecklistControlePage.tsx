@@ -1,5 +1,6 @@
 import {
   type FormEvent,
+  type PointerEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -428,6 +429,7 @@ function firestoreDocToHistRow(
     Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
     Respostas_JSON: respostasJson,
     Horimetro_Final: data.horimetro ?? "",
+    Assinatura_Operador: data.assinaturaOperador ?? "",
     Pontuacao: data.pontuacao ?? 0,
     ID_Cliente: data.idOperadorSession ?? "",
     prefeituraId: data.prefeituraId ?? "",
@@ -565,6 +567,7 @@ export function ChecklistControlePage() {
   const [nomeOperadorChecklist, setNomeOperadorChecklist] = useState("");
   const [horimetro, setHorimetro] = useState("");
   const [fotoHorimetroDataUrl, setFotoHorimetroDataUrl] = useState("");
+  const [assinaturaDataUrl, setAssinaturaDataUrl] = useState("");
   const [horimetroCameraUi, setHorimetroCameraUi] = useState(false);
   const [obsChecklist, setObsChecklist] = useState("");
   const [checkMsg, setCheckMsg] = useState("");
@@ -605,6 +608,8 @@ export function ChecklistControlePage() {
 
   const horimetroVideoRef = useRef<HTMLVideoElement>(null);
   const horimetroStreamRef = useRef<MediaStream | null>(null);
+  const assinaturaCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const assinaturaDesenhandoRef = useRef(false);
   const emergVideoRef = useRef<HTMLVideoElement>(null);
   const emergStreamRef = useRef<MediaStream | null>(null);
   const itemNaoVideoRef = useRef<HTMLVideoElement>(null);
@@ -837,6 +842,87 @@ export function ChecklistControlePage() {
     setCheckMsg("");
     stopItemNaoCamera();
   }, [itemNaoCameraKey, stopItemNaoCamera]);
+
+  const resetAssinaturaCanvas = useCallback(() => {
+    const canvas = assinaturaCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  }, []);
+
+  const pointFromPointer = useCallback(
+    (ev: PointerEvent<HTMLCanvasElement>) => {
+      const canvas = assinaturaCanvasRef.current;
+      if (!canvas) return null;
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return null;
+      const x = ((ev.clientX - rect.left) / rect.width) * canvas.width;
+      const y = ((ev.clientY - rect.top) / rect.height) * canvas.height;
+      return { x, y };
+    },
+    [],
+  );
+
+  const handleAssinaturaPointerDown = useCallback(
+    (ev: PointerEvent<HTMLCanvasElement>) => {
+      ev.preventDefault();
+      const canvas = assinaturaCanvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      const p = pointFromPointer(ev);
+      if (!canvas || !ctx || !p) return;
+      canvas.setPointerCapture(ev.pointerId);
+      assinaturaDesenhandoRef.current = true;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    },
+    [pointFromPointer],
+  );
+
+  const handleAssinaturaPointerMove = useCallback(
+    (ev: PointerEvent<HTMLCanvasElement>) => {
+      if (!assinaturaDesenhandoRef.current) return;
+      ev.preventDefault();
+      const canvas = assinaturaCanvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      const p = pointFromPointer(ev);
+      if (!ctx || !p) return;
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    },
+    [pointFromPointer],
+  );
+
+  const handleAssinaturaPointerUp = useCallback(
+    (ev: PointerEvent<HTMLCanvasElement>) => {
+      const canvas = assinaturaCanvasRef.current;
+      if (!canvas) return;
+      if (canvas.hasPointerCapture(ev.pointerId)) {
+        canvas.releasePointerCapture(ev.pointerId);
+      }
+      if (!assinaturaDesenhandoRef.current) return;
+      assinaturaDesenhandoRef.current = false;
+      const ctx = canvas.getContext("2d");
+      ctx?.closePath();
+      setAssinaturaDataUrl(canvas.toDataURL("image/png"));
+    },
+    [],
+  );
+
+  const limparAssinatura = useCallback(() => {
+    assinaturaDesenhandoRef.current = false;
+    setAssinaturaDataUrl("");
+    setCheckMsg("");
+    resetAssinaturaCanvas();
+  }, [resetAssinaturaCanvas]);
 
   const dashMetrics = useMemo(() => {
     if (!session) {
@@ -1076,6 +1162,20 @@ export function ChecklistControlePage() {
   }, [session?.idMaquina]);
 
   useEffect(() => {
+    const canvas = assinaturaCanvasRef.current;
+    if (!canvas) return;
+    resetAssinaturaCanvas();
+    if (!assinaturaDataUrl.startsWith("data:image")) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = assinaturaDataUrl;
+  }, [assinaturaDataUrl, resetAssinaturaCanvas]);
+
+  useEffect(() => {
     if (!chassisChecklistAtivo) return;
     if (normalizeChassis(chassisChecklistDraft) !== chassisChecklistAtivo) {
       setChassisChecklistAtivo("");
@@ -1084,6 +1184,7 @@ export function ChecklistControlePage() {
       setNomeOperadorChecklist("");
       setHorimetro("");
       setFotoHorimetroDataUrl("");
+      setAssinaturaDataUrl("");
       stopHorimetroCamera();
       stopItemNaoCamera();
     }
@@ -1177,6 +1278,7 @@ export function ChecklistControlePage() {
     setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
+    setAssinaturaDataUrl("");
     stopHorimetroCamera();
     stopItemNaoCamera();
     setLoginMsg({
@@ -1201,6 +1303,7 @@ export function ChecklistControlePage() {
     setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
+    setAssinaturaDataUrl("");
     stopHorimetroCamera();
     stopItemNaoCamera();
     setNomeOperadorEmerg("");
@@ -1261,6 +1364,7 @@ export function ChecklistControlePage() {
       setNomeOperadorChecklist(session?.nome ?? "");
       setHorimetro("");
       setFotoHorimetroDataUrl("");
+      setAssinaturaDataUrl("");
       stopHorimetroCamera();
       stopItemNaoCamera();
       setCheckMsg("Lista de verificação aberta para este chassi.");
@@ -1317,6 +1421,10 @@ export function ChecklistControlePage() {
       );
       return;
     }
+    if (!assinaturaDataUrl.startsWith("data:image")) {
+      setCheckMsg("Assine no campo de assinatura antes de salvar o checklist.");
+      return;
+    }
     const keys = itensFiltrados.map((it) => String(it["Nº"]));
     const incompleto = keys.find((k) => !checklistRespostaCompleta(answers[k]));
     if (incompleto !== undefined) {
@@ -1369,6 +1477,7 @@ export function ChecklistControlePage() {
       Respostas_JSON: JSON.stringify(answers),
       Horimetro_Final: horimetro.trim(),
       Foto_Horimetro: fotoHorimetroDataUrl,
+      Assinatura_Operador: assinaturaDataUrl,
       Obs: obsChecklist || null,
       Pontuacao: pontos,
       ID_Cliente: session.idCliente,
@@ -1397,6 +1506,7 @@ export function ChecklistControlePage() {
         idOperadorSession: session.idCliente,
         horimetro: horimetro.trim(),
         fotoHorimetro: fotoHorimetroDataUrl,
+        assinaturaOperador: assinaturaDataUrl,
         totalItens: keys.length,
         totalSim: numSim,
         totalNao: keys.length - numSim,
@@ -1423,6 +1533,7 @@ export function ChecklistControlePage() {
     setNomeOperadorChecklist("");
     setHorimetro("");
     setFotoHorimetroDataUrl("");
+    setAssinaturaDataUrl("");
     stopHorimetroCamera();
     stopItemNaoCamera();
     setObsChecklist("");
@@ -2013,6 +2124,36 @@ export function ChecklistControlePage() {
                         </button>
                       </div>
                     ) : null}
+                  </div>
+
+                  <div className="hu360-assinatura-block">
+                    <span className="hu360-inline-label">
+                      Assinatura do operador{" "}
+                      <span style={{ color: "#dc2626" }}>*</span>
+                    </span>
+                    <p className="hu360-assinatura-hint">
+                      Assine com o dedo ou mouse no quadro abaixo.
+                    </p>
+                    <canvas
+                      ref={assinaturaCanvasRef}
+                      className="hu360-assinatura-canvas"
+                      width={520}
+                      height={180}
+                      onPointerDown={handleAssinaturaPointerDown}
+                      onPointerMove={handleAssinaturaPointerMove}
+                      onPointerUp={handleAssinaturaPointerUp}
+                      onPointerLeave={handleAssinaturaPointerUp}
+                    />
+                    <div className="hu360-assinatura-actions">
+                      <button
+                        type="button"
+                        className="hu360-btn hu360-btn-ghost"
+                        style={{ width: "auto", padding: "8px 14px" }}
+                        onClick={limparAssinatura}
+                      >
+                        Limpar assinatura
+                      </button>
+                    </div>
                   </div>
 
                   {checklistItensLiberados &&

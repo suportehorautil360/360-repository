@@ -17,7 +17,10 @@ import {
   where,
 } from "@firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
-import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
+import {
+  ListaChecklistHistoricoLocal,
+  baixarChecklistPdfsEmPasta,
+} from "../../components/checklistHistorico/ChecklistHistoricoLista";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { checklistAppToHistoricoRow } from "../../components/checklistHistorico/checklistAppToHistoricoRow";
 import {
@@ -116,6 +119,7 @@ function firestoreDocToHistRow(
     Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
     Respostas_JSON: respostasJson,
     Horimetro_Final: data.horimetro ?? "",
+    Assinatura_Operador: data.assinaturaOperador ?? "",
     Pontuacao: data.pontuacao ?? 0,
     ID_Cliente: data.idOperadorSession ?? "",
     prefeituraId: data.prefeituraId ?? "",
@@ -286,6 +290,8 @@ export function LocacaoPage() {
   const [audCarregando, setAudCarregando] = useState(false);
   const [audTick, setAudTick] = useState(0);
   const [audFiltroData, setAudFiltroData] = useState("");
+  const [audFiltroPeriodoInicio, setAudFiltroPeriodoInicio] = useState("");
+  const [audFiltroPeriodoFim, setAudFiltroPeriodoFim] = useState("");
   const [audFiltroChassis, setAudFiltroChassis] = useState("");
   const [audFiltroOperador, setAudFiltroOperador] = useState("");
 
@@ -606,10 +612,12 @@ export function LocacaoPage() {
 
   const audFiltrados = useMemo(() => {
     return audFirestoreRows.filter((row) => {
-      if (
-        audFiltroData &&
-        !String(row.Data_Hora ?? "").startsWith(audFiltroData)
-      )
+      const dataHora = String(row.Data_Hora ?? "");
+      const dataSomente = dataHora.slice(0, 10);
+      if (audFiltroData && !dataHora.startsWith(audFiltroData)) return false;
+      if (audFiltroPeriodoInicio && dataSomente < audFiltroPeriodoInicio)
+        return false;
+      if (audFiltroPeriodoFim && dataSomente > audFiltroPeriodoFim)
         return false;
       if (
         audFiltroChassis.trim() &&
@@ -627,7 +635,21 @@ export function LocacaoPage() {
         return false;
       return true;
     });
-  }, [audFirestoreRows, audFiltroData, audFiltroChassis, audFiltroOperador]);
+  }, [
+    audFirestoreRows,
+    audFiltroData,
+    audFiltroPeriodoInicio,
+    audFiltroPeriodoFim,
+    audFiltroChassis,
+    audFiltroOperador,
+  ]);
+
+  const audFiltroAtivo =
+    audFiltroData ||
+    audFiltroPeriodoInicio ||
+    audFiltroPeriodoFim ||
+    audFiltroChassis ||
+    audFiltroOperador;
 
   function abrirChecklistCard() {
     setSecaoAtiva("auditoria");
@@ -943,7 +965,7 @@ export function LocacaoPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
                   gap: "12px",
                   alignItems: "end",
                 }}
@@ -965,6 +987,46 @@ export function LocacaoPage() {
                     type="date"
                     value={audFiltroData}
                     onChange={(e) => setAudFiltroData(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="loc-aud-filtro-periodo-inicio"
+                    style={{
+                      display: "block",
+                      marginBottom: 4,
+                      fontSize: "0.82rem",
+                      color: "var(--text-gray)",
+                    }}
+                  >
+                    Período de
+                  </label>
+                  <input
+                    id="loc-aud-filtro-periodo-inicio"
+                    type="date"
+                    value={audFiltroPeriodoInicio}
+                    onChange={(e) => setAudFiltroPeriodoInicio(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="loc-aud-filtro-periodo-fim"
+                    style={{
+                      display: "block",
+                      marginBottom: 4,
+                      fontSize: "0.82rem",
+                      color: "var(--text-gray)",
+                    }}
+                  >
+                    até
+                  </label>
+                  <input
+                    id="loc-aud-filtro-periodo-fim"
+                    type="date"
+                    value={audFiltroPeriodoFim}
+                    onChange={(e) => setAudFiltroPeriodoFim(e.target.value)}
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -1014,19 +1076,32 @@ export function LocacaoPage() {
                   <button
                     type="button"
                     className="btn btn-outline"
-                    style={{ flex: 1, margin: 0 }}
+                    style={{ flex: 1, margin: 0, whiteSpace: "nowrap" }}
                     disabled={audCarregando}
                     onClick={() => setAudTick((t) => t + 1)}
                   >
                     {audCarregando ? "Carregando..." : "Atualizar"}
                   </button>
-                  {(audFiltroData || audFiltroChassis || audFiltroOperador) && (
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    style={{ flex: 1, margin: 0, whiteSpace: "nowrap" }}
+                    disabled={audCarregando || audFiltrados.length === 0}
+                    onClick={() =>
+                      void baixarChecklistPdfsEmPasta(audFiltrados)
+                    }
+                  >
+                    Baixar em pasta
+                  </button>
+                  {audFiltroAtivo && (
                     <button
                       type="button"
                       className="btn btn-outline"
-                      style={{ flex: 1, margin: 0 }}
+                      style={{ flex: 1, margin: 0, whiteSpace: "nowrap" }}
                       onClick={() => {
                         setAudFiltroData("");
+                        setAudFiltroPeriodoInicio("");
+                        setAudFiltroPeriodoFim("");
                         setAudFiltroChassis("");
                         setAudFiltroOperador("");
                       }}
@@ -1049,7 +1124,7 @@ export function LocacaoPage() {
                       ? "Carregando..."
                       : `${audFiltrados.length} registro${
                           audFiltrados.length !== 1 ? "s" : ""
-                        }${audFiltroData || audFiltroChassis || audFiltroOperador ? " (filtrado)" : ""}`}
+                        }${audFiltroAtivo ? " (filtrado)" : ""}`}
                   </h3>
                 </div>
                 {audCarregando ? (
@@ -1067,6 +1142,7 @@ export function LocacaoPage() {
                     rows={audFiltrados}
                     expandidoId={auditoriaExpandidoId}
                     setExpandidoId={setAuditoriaExpandidoId}
+                    permitirDownloadPdf
                     mensagemVazia="Nenhum checklist encontrado para os filtros aplicados."
                   />
                 )}

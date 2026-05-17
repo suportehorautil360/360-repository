@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where } from "@firebase/firestore";
 import { db } from "../../../lib/firebase/firebase";
-import { ListaChecklistHistoricoLocal } from "../../../components/checklistHistorico/ChecklistHistoricoLista";
+import {
+  ListaChecklistHistoricoLocal,
+  baixarChecklistPdfsEmPasta,
+} from "../../../components/checklistHistorico/ChecklistHistoricoLista";
 
 interface AuditoriaSectionProps {
   prefeituraId: string;
@@ -35,6 +38,7 @@ function firestoreDocToHistRow(
     Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
     Respostas_JSON: respostasJson,
     Horimetro_Final: data.horimetro ?? "",
+    Assinatura_Operador: data.assinaturaOperador ?? "",
     Pontuacao: data.pontuacao ?? 0,
     ID_Cliente: data.idOperadorSession ?? "",
     prefeituraId: data.prefeituraId ?? "",
@@ -48,6 +52,8 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
   const [carregando, setCarregando] = useState(false);
   const [tick, setTick] = useState(0);
   const [filtroData, setFiltroData] = useState("");
+  const [filtroPeriodoInicio, setFiltroPeriodoInicio] = useState("");
+  const [filtroPeriodoFim, setFiltroPeriodoFim] = useState("");
   const [filtroChassis, setFiltroChassis] = useState("");
   const [filtroOperador, setFiltroOperador] = useState("");
 
@@ -82,9 +88,16 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
 
   const filtrados = useMemo(() => {
     return rows.filter((row) => {
+      const dataHora = String(row.Data_Hora ?? "");
+      const dataSomente = dataHora.slice(0, 10);
       if (filtroData) {
-        const dh = String(row.Data_Hora ?? "");
-        if (!dh.startsWith(filtroData)) return false;
+        if (!dataHora.startsWith(filtroData)) return false;
+      }
+      if (filtroPeriodoInicio && dataSomente < filtroPeriodoInicio) {
+        return false;
+      }
+      if (filtroPeriodoFim && dataSomente > filtroPeriodoFim) {
+        return false;
       }
       if (filtroChassis.trim()) {
         const c = normalizeChassis(String(row.Chassis ?? ""));
@@ -96,7 +109,21 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
       }
       return true;
     });
-  }, [rows, filtroData, filtroChassis, filtroOperador]);
+  }, [
+    rows,
+    filtroData,
+    filtroPeriodoInicio,
+    filtroPeriodoFim,
+    filtroChassis,
+    filtroOperador,
+  ]);
+
+  const filtroAtivo =
+    filtroData ||
+    filtroPeriodoInicio ||
+    filtroPeriodoFim ||
+    filtroChassis ||
+    filtroOperador;
 
   return (
     <>
@@ -118,7 +145,7 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
             gap: "12px",
             alignItems: "end",
           }}
@@ -140,6 +167,46 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
               type="date"
               value={filtroData}
               onChange={(e) => setFiltroData(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="aud-pf-filtro-periodo-inicio"
+              style={{
+                display: "block",
+                marginBottom: 4,
+                fontSize: "0.82rem",
+                color: "var(--text-gray)",
+              }}
+            >
+              Período de
+            </label>
+            <input
+              id="aud-pf-filtro-periodo-inicio"
+              type="date"
+              value={filtroPeriodoInicio}
+              onChange={(e) => setFiltroPeriodoInicio(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="aud-pf-filtro-periodo-fim"
+              style={{
+                display: "block",
+                marginBottom: 4,
+                fontSize: "0.82rem",
+                color: "var(--text-gray)",
+              }}
+            >
+              até
+            </label>
+            <input
+              id="aud-pf-filtro-periodo-fim"
+              type="date"
+              value={filtroPeriodoFim}
+              onChange={(e) => setFiltroPeriodoFim(e.target.value)}
               style={{ width: "100%" }}
             />
           </div>
@@ -189,19 +256,30 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
             <button
               type="button"
               className="btn btn-outline"
-              style={{ flex: 1, margin: 0 }}
+              style={{ flex: 1, margin: 0, whiteSpace: "nowrap" }}
               disabled={carregando}
               onClick={() => setTick((t) => t + 1)}
             >
               {carregando ? "Carregando..." : "Atualizar"}
             </button>
-            {(filtroData || filtroChassis || filtroOperador) && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ flex: 1, margin: 0, whiteSpace: "nowrap" }}
+              disabled={carregando || filtrados.length === 0}
+              onClick={() => void baixarChecklistPdfsEmPasta(filtrados)}
+            >
+              Baixar em pasta
+            </button>
+            {filtroAtivo && (
               <button
                 type="button"
                 className="btn btn-outline"
-                style={{ flex: 1, margin: 0 }}
+                style={{ flex: 1, margin: 0, whiteSpace: "nowrap" }}
                 onClick={() => {
                   setFiltroData("");
+                  setFiltroPeriodoInicio("");
+                  setFiltroPeriodoFim("");
                   setFiltroChassis("");
                   setFiltroOperador("");
                 }}
@@ -222,9 +300,7 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
             <h3 className="hu360-dash-checklists-panel__title">
               {carregando
                 ? "Carregando..."
-                : `${filtrados.length} registro${
-                    filtrados.length !== 1 ? "s" : ""
-                  }${filtroData || filtroChassis || filtroOperador ? " (filtrado)" : ""}`}
+                : `${filtrados.length} registro${filtrados.length !== 1 ? "s" : ""}${filtroAtivo ? " (filtrado)" : ""}`}
             </h3>
           </div>
           {carregando ? (
@@ -242,6 +318,7 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
               rows={filtrados}
               expandidoId={expandidoId}
               setExpandidoId={setExpandidoId}
+              permitirDownloadPdf
               mensagemVazia="Nenhum checklist encontrado para os filtros aplicados."
             />
           )}

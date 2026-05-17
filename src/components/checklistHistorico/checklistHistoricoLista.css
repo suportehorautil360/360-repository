@@ -56,6 +56,13 @@
   flex-shrink: 0;
 }
 
+.hu360-dash-chk-list__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .hu360-dash-chk-list .hu360-btn.hu360-btn-ghost {
   display: inline-flex;
   align-items: center;
