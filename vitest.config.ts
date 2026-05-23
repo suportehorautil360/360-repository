@@ -9,5 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Só testes unitários em src/ — os E2E ficam em e2e/ (Playwright).
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })
