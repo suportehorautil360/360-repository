@@ -26,6 +26,8 @@ export const useLogin = create<LoginProps>()(
         let querySnapshot: Record<string, unknown>[];
         try {
           querySnapshot = (await getDocs(q)).docs.map((doc) => doc.data());
+
+          console.log("Query snapshot:", querySnapshot);
         } catch {
           // Offline e o usuário ainda não está no cache do Firestore: a query
           // não tem como ser resolvida. Mensagem clara em vez de "inválido".

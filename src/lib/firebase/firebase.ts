@@ -31,7 +31,7 @@ export const db = initializeFirestore(
       tabManager: persistentMultipleTabManager(),
     }),
   },
-  "default",
+  import.meta.env.VITE_ENVIRONMENT === "production" ? "(default)" : "default",
 );
 export const storage = getStorage(app);
 export default app;
