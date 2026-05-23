@@ -21,6 +21,15 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import {
+  checklistCategoriaFromMaquina,
+  dataLongaPtBr,
+  inferirCategoriaChecklist,
+  isSameLocalDay,
+  normalizeChassis,
+  normalizeModelo,
+  startOfLocalDayIso,
+} from "../../features/checklist";
 
 type Aba =
   | "dashboard"
@@ -153,49 +162,7 @@ function resolveLoginToSession(usuarioRaw: string): OperadorSession | null {
   return resolveSessionForUsuario(usuarioRaw);
 }
 
-function checklistCategoriaFromMaquina(catMaquina: string): string {
-  if (catMaquina.startsWith("Caminhão")) return "Caminhões";
-  return catMaquina;
-}
-
-/**
- * Infere a categoria do checklist a partir do label/modelo do equipamento do Firestore,
- * pois o campo `linha` guarda a linha de produto (ex: "Linha Amarela"), não o tipo de máquina.
- */
-function inferirCategoriaChecklist(label: string, modelo: string): string {
-  const s = `${label} ${modelo}`.toLowerCase();
-  if (s.includes("motoniveladora")) return "Motoniveladora";
-  if (s.includes("escavadeira")) return "Escavadeira";
-  if (
-    s.includes("trator de esteira") ||
-    (s.includes("trator") && s.includes("esteira"))
-  )
-    return "Trator de Esteira";
-  if (s.includes("caminhão") || s.includes("caminhao")) return "Caminhões";
-  if (s.includes("retroescavadeira") || s.includes("retroescavadeira"))
-    return "Retroescavadeira";
-  if (
-    s.includes("pa carregadeira") ||
-    s.includes("pá carregadeira") ||
-    s.includes("carregadeira")
-  )
-    return "Pá Carregadeira";
-  if (s.includes("rolo compactador") || s.includes("compactador"))
-    return "Rolo Compactador";
-  if (s.includes("trator")) return "Trator";
-  // fallback: tenta pelo campo linha (caso seja o próprio nome da categoria)
-  return label || modelo;
-}
-
 type FrotaRow = (typeof seedData.cadastro_frota)[number];
-
-function normalizeChassis(s: string): string {
-  return s.replace(/\s+/g, "").toUpperCase();
-}
-
-function normalizeModelo(s: string): string {
-  return s.trim().replace(/\s+/g, " ").toLowerCase();
-}
 
 type TreinoVideoRow = (typeof seedData.treinamentos_video)[number];
 
@@ -346,29 +313,6 @@ const ABAS: {
   { id: "treinamentos", label: "Treinamentos", icon: "play" },
 ];
 
-function startOfLocalDayIso(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function isSameLocalDay(iso: string, dayStamp: string): boolean {
-  if (!iso) return false;
-  const t = new Date(iso);
-  if (Number.isNaN(t.getTime())) return false;
-  return startOfLocalDayIso(t) === dayStamp;
-}
-
-function dataLongaPtBr(d: Date): string {
-  const raw = d.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
 
 function parseRespostasChecklist(row: Record<string, unknown>): {
   total: number;
