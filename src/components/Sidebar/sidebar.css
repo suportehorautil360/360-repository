@@ -1,0 +1,255 @@
+/* Sidebar reutilizável (HORA ÚTIL 360).
+   Cores herdam do tema (.admin-root etc.) quando presente; os var(--x, fallback)
+   garantem que o componente também funcione isolado. */
+
+.hu-sidebar {
+  --hu-sb-primary: var(--primary, #f97316);
+  --hu-sb-secondary: var(--secondary, #3b82f6);
+  --hu-sb-danger: var(--danger, #ef4444);
+  --hu-sb-warning: var(--warning, #f59e0b);
+  --hu-sb-text: var(--text, #e8ecf6);
+  --hu-sb-muted: var(--muted, #93a4c6);
+  --hu-sb-border: var(--border, rgba(255, 255, 255, 0.14));
+
+  display: flex;
+  flex-direction: column;
+  width: 290px;
+  /* Preenche a altura da coluna do app-shell (que é fixa em 100dvh).
+     O conteúdo do menu rola só internamente (ver .hu-sidebar__nav). */
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #070b16 0%, #0f172c 100%);
+  border-right: 1px solid var(--hu-sb-border);
+  color: var(--hu-sb-text);
+  box-sizing: border-box;
+}
+
+.hu-sidebar *,
+.hu-sidebar *::before,
+.hu-sidebar *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Marca ---------- */
+.hu-sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 18px;
+  border-bottom: 1px solid var(--hu-sb-border);
+}
+
+.hu-sidebar__brand-logo {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  color: var(--hu-sb-secondary);
+}
+
+.hu-sidebar__brand-logo svg,
+.hu-sidebar__brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hu-sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hu-sidebar__brand-title {
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+/* tons utilitários para compor o título (HORA / ÚTIL / 360) */
+.hu-sidebar__brand-title .accent {
+  color: var(--hu-sb-primary);
+}
+.hu-sidebar__brand-title .accent-2 {
+  color: var(--hu-sb-secondary);
+}
+
+.hu-sidebar__brand-subtitle {
+  margin-top: 6px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hu-sb-muted);
+  line-height: 1.45;
+}
+
+/* ---------- Navegação ---------- */
+.hu-sidebar__nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 12px 18px;
+}
+
+.hu-sidebar__group + .hu-sidebar__group {
+  margin-top: 18px;
+}
+
+.hu-sidebar__group-label {
+  margin: 0 8px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hu-sb-muted);
+}
+
+.hu-sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  border-left: 3px solid transparent;
+  color: var(--hu-sb-muted);
+  text-decoration: none;
+  font-size: 0.92rem;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.hu-sidebar__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--hu-sb-text);
+}
+
+.hu-sidebar__item:focus-visible {
+  outline: 2px solid var(--hu-sb-secondary);
+  outline-offset: 2px;
+}
+
+.hu-sidebar__item.is-active {
+  color: var(--hu-sb-primary);
+  font-weight: 700;
+  border-left-color: var(--hu-sb-primary);
+  background: linear-gradient(
+    90deg,
+    rgba(249, 115, 22, 0.14),
+    rgba(249, 115, 22, 0.02)
+  );
+}
+
+.hu-sidebar__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.hu-sidebar__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Badge ---------- */
+.hu-sidebar__badge {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.hu-sidebar__badge--danger {
+  background: var(--hu-sb-danger);
+}
+.hu-sidebar__badge--warning {
+  background: var(--hu-sb-warning);
+}
+.hu-sidebar__badge--primary {
+  background: var(--hu-sb-primary);
+}
+
+/* ---------- Rodapé (usuário) ---------- */
+.hu-sidebar__footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--hu-sb-border);
+}
+
+.hu-sidebar__avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--hu-sb-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.hu-sidebar__user {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.hu-sidebar__user-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hu-sidebar__user-role {
+  font-size: 0.76rem;
+  color: var(--hu-sb-muted);
+}
+
+.hu-sidebar__logout {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--hu-sb-border);
+  background: transparent;
+  color: var(--hu-sb-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.hu-sidebar__logout:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--hu-sb-danger);
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 980px) {
+  .hu-sidebar {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+}
