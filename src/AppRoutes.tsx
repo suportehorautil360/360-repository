@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useLogin } from "./pages/login/hooks/use-login";
+import { RouteErrorBoundary } from "./components/ErrorBoundary/RouteErrorBoundary";
 
 // Páginas carregadas sob demanda (cada rota vira um chunk próprio).
 // Os componentes são exports nomeados, então adaptamos para `default`.
@@ -131,8 +132,9 @@ function RequireOperacionalAuth({
 export function AppRoutes() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
+      <RouteErrorBoundary>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
           <Route path="/" element={<PostoPortalProvider />} />
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
@@ -182,8 +184,9 @@ export function AppRoutes() {
           <Route path="/prefeitura" element={<PrefeituraPage />} />
           <Route path="/prefeitura/:id" element={<PrefeituraPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+          </Routes>
+        </Suspense>
+      </RouteErrorBoundary>
     </BrowserRouter>
   );
 }
