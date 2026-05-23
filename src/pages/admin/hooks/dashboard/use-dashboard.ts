@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { collection, getDocs } from "@firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../../lib/firebase/firebase";
 import type {
   ChecklistFirestore,

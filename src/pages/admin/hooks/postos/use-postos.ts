@@ -7,7 +7,7 @@ import {
   getDocs,
   query,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { db } from "../../../../lib/firebase/firebase";
 import type { PostosProps } from "./types";
 

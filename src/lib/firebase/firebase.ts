@@ -15,6 +15,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// O banco deste projeto tem id "default" (nomeado), e não o "(default)" padrão.
+// Por isso passamos o id explicitamente — sem isso o SDK retorna 5 NOT_FOUND.
+export const db = getFirestore(app, "default");
 export const storage = getStorage(app);
 export default app;

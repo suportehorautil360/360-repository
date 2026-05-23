@@ -7,7 +7,7 @@ import {
   getDocs,
   query,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import {
   arquivoToTextPromise,
   parsePlanilhaTexto,

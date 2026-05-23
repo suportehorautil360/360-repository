@@ -15,7 +15,7 @@ import {
   query,
   serverTimestamp,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
 import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
