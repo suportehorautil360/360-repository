@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { LoginProps, User } from "./types";
-import { collection, getDocs, query, where } from "@firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { hashSenha } from "../../../utils/hashSenha";
 import { db } from "../../../lib/firebase/firebase";
 import { persist } from "zustand/middleware";

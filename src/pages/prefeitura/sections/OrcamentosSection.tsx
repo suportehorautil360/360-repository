@@ -6,7 +6,7 @@ import {
   query,
   where,
   writeBatch,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { db } from "../../../lib/firebase/firebase";
 
 interface OrcamentosSectionProps {

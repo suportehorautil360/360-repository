@@ -6,7 +6,7 @@ import {
   query,
   serverTimestamp,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { db } from "../lib/firebase/firebase";
 import { usePostoPortal } from "./PostoPortalContext";
 import {

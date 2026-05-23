@@ -7,7 +7,7 @@ import {
   collection,
   query,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import type { OperadorSession } from "./useOperadorSession";
 import { useOperadorSession } from "./useOperadorSession";

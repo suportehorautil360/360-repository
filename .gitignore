@@ -11,8 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
 *.env
 *.env.*.local
+
+# Backend (repositório próprio)
+back-360-/
 
 # Editor directories and files
 .vscode/*

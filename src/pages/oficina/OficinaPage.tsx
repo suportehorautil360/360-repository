@@ -11,7 +11,7 @@ import {
   setDoc,
   updateDoc,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { useHU360 } from "../../lib/hu360";
 import { useLogin } from "../login/hooks/use-login";

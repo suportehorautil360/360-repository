@@ -8,7 +8,7 @@ import {
   query,
   updateDoc,
   where,
-} from "@firebase/firestore";
+} from "firebase/firestore";
 import { db } from "../../../../lib/firebase/firebase";
 import type { OficinasProps } from "./types";
 
