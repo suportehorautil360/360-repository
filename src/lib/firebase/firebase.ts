@@ -1,6 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -15,8 +19,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-// O banco deste projeto tem id "default" (nomeado), e não o "(default)" padrão.
-// Por isso passamos o id explicitamente — sem isso o SDK retorna 5 NOT_FOUND.
-export const db = getFirestore(app, "default");
+// Persistência offline (PWA): mantém leituras em IndexedDB e enfileira escritas
+// feitas offline, sincronizando ao voltar a internet. persistentMultipleTabManager
+// permite o app aberto em várias abas compartilhando o mesmo cache.
+// O 3º argumento ("default") é o id do banco nomeado deste projeto — sem ele o
+// SDK aponta para o "(default)" inexistente e retorna 5 NOT_FOUND.
+export const db = initializeFirestore(
+  app,
+  {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  },
+  "default",
+);
 export const storage = getStorage(app);
 export default app;
