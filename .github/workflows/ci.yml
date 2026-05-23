@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Valores fake só para o build/E2E não quebrarem na inicialização do Firebase.
+# O Firestore não é acessado nos testes (unit mockam; E2E só checa o app shell).
+env:
+  VITE_ADMIN_SECRET: ci-dummy
+  VITE_FIREBASE_API_KEY: ci-dummy
+  VITE_FIREBASE_AUTH_DOMAIN: ci.example.com
+  VITE_FIREBASE_PROJECT_ID: ci-dummy
+  VITE_FIREBASE_STORAGE_BUCKET: ci-dummy.appspot.com
+  VITE_FIREBASE_MESSAGING_SENDER_ID: "0"
+  VITE_FIREBASE_APP_ID: ci-dummy
+
+jobs:
+  unit:
+    name: Testes unitários + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Vitest
+        run: pnpm test
+      - name: Build de produção
+        run: pnpm build
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Instalar navegador do Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Playwright (sobe build+preview automaticamente)
+        run: pnpm test:e2e
+      - name: Publicar relatório em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
