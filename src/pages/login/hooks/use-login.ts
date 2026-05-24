@@ -29,8 +29,7 @@ export const useLogin = create<LoginProps>()(
 
           console.log("Query snapshot:", querySnapshot);
         } catch {
-          // Offline e o usuário ainda não está no cache do Firestore: a query
-          // não tem como ser resolvida. Mensagem clara em vez de "inválido".
+          // Offline e o usuário ainda não está no cache do Firestore
           if (!navigator.onLine) {
             return {
               error: "Sem conexão. O login exige internet na primeira vez.",

@@ -24,6 +24,7 @@ export const auth = getAuth(app);
 // permite o app aberto em várias abas compartilhando o mesmo cache.
 // O 3º argumento ("default") é o id do banco nomeado deste projeto — sem ele o
 // SDK aponta para o "(default)" inexistente e retorna 5 NOT_FOUND.
+
 export const db = initializeFirestore(
   app,
   {
