@@ -711,6 +711,16 @@
   color: #0f172a;
 }
 
+.hu360-app-head__install {
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.hu360-app-head__install:hover {
+  border-color: #fb923c;
+  color: #c2410c;
+}
+
 .hu360-dash-kpis {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
