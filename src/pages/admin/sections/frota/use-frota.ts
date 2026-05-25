@@ -1,44 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  updateDoc,
-} from "firebase/firestore";
-import { db } from "../../../../lib/firebase/firebase";
-import type {
-  RevisaoInput,
-  VeiculoFrota,
-  VeiculoFrotaInput,
-} from "./types";
-
-const COLECAO = "frota";
-const COLECAO_REVISOES = "frota_revisoes";
+import { ApiError } from "../../../../lib/api/client";
+import { frotaApi } from "./frota-api";
+import type { RevisaoInput, VeiculoFrota, VeiculoFrotaInput } from "./types";
 
 export interface UseFrota {
   lista: VeiculoFrota[];
   loading: boolean;
-  /** Adiciona 1 veículo. Recusa código duplicado. */
+  erro: string;
+  /** Adiciona 1 veículo na prefeitura ativa. Recusa placa duplicada. */
   adicionar: (
     data: VeiculoFrotaInput,
   ) => Promise<{ ok: boolean; message: string }>;
-  /** Adiciona vários (usado pelo botão "popular com exemplos"). */
+  /** Adiciona vários (botão "popular com exemplos"). */
   adicionarLote: (entradas: VeiculoFrotaInput[]) => Promise<number>;
+  /** Atualiza a leitura atual (envia o DTO completo ao backend). */
+  atualizar: (id: string, medicaoAtual: number) => Promise<void>;
   /**
-   * Atualiza a leitura (e opcionalmente o alvo da próxima revisão).
-   * Toda atualização reavalia o bloqueio: zera `liberado`, então se a nova
-   * leitura ainda estiver vencida o veículo volta a bloquear.
-   */
-  atualizar: (
-    id: string,
-    dados: { medicaoAtual: number; revisaoEm: number },
-  ) => Promise<void>;
-  /**
-   * Registra uma revisão realizada: grava o histórico em `frota_revisoes`,
-   * adota o hodômetro informado como leitura atual, recalcula o próximo
-   * limite (hodômetro + intervalo do veículo) e libera o uso.
+   * Registra a revisão concluída e libera o veículo: o backend adota o
+   * hodômetro como leitura atual e base da próxima revisão, e volta o
+   * status para "ativo".
    */
   registrarRevisao: (
     veiculo: VeiculoFrota,
@@ -47,18 +27,31 @@ export interface UseFrota {
   remover: (id: string) => Promise<void>;
 }
 
-export function useFrota(): UseFrota {
+export function useFrota(prefeituraId: string | undefined): UseFrota {
   const [lista, setLista] = useState<VeiculoFrota[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
 
   const carregar = useCallback(async () => {
+    if (!prefeituraId) {
+      setLista([]);
+      return;
+    }
     setLoading(true);
-    const snap = await getDocs(collection(db, COLECAO));
-    setLista(
-      snap.docs.map((d) => ({ id: d.id, ...d.data() }) as VeiculoFrota),
-    );
-    setLoading(false);
-  }, []);
+    setErro("");
+    try {
+      setLista(await frotaApi.listar(prefeituraId));
+    } catch (e) {
+      setErro(
+        e instanceof ApiError
+          ? e.message
+          : "Não foi possível carregar a frota.",
+      );
+      setLista([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [prefeituraId]);
 
   useEffect(() => {
     void carregar();
@@ -66,103 +59,88 @@ export function useFrota(): UseFrota {
 
   const adicionar = useCallback(
     async (data: VeiculoFrotaInput) => {
-      const codigo = data.codigo.trim();
-      if (!codigo) return { ok: false, message: "Informe o código." };
+      if (!prefeituraId) return { ok: false, message: "Selecione a prefeitura." };
+      const placa = data.placa.trim();
+      if (!placa) return { ok: false, message: "Informe a placa / código." };
       if (!data.nome.trim()) return { ok: false, message: "Informe o nome." };
-      if (lista.some((v) => v.codigo.toLowerCase() === codigo.toLowerCase())) {
-        return { ok: false, message: "Código já cadastrado." };
+      if (lista.some((v) => v.placa.toLowerCase() === placa.toLowerCase())) {
+        return { ok: false, message: "Placa / código já cadastrado." };
       }
-
-      const novo: Omit<VeiculoFrota, "id"> = {
-        codigo,
-        nome: data.nome.trim(),
-        marca: data.marca.trim(),
-        tipo: data.tipo,
-        medicaoAtual: data.medicaoAtual,
-        revisaoEm: data.revisaoEm,
-        intervaloRevisao: data.intervaloRevisao,
-        obra: data.obra.trim() || "Disponível",
-        liberado: false,
-        criadoEm: new Date().toISOString(),
-      };
-      const ref = await addDoc(collection(db, COLECAO), novo);
-      setLista((prev) => [...prev, { id: ref.id, ...novo }]);
-      return { ok: true, message: "Veículo adicionado." };
+      try {
+        const novo = await frotaApi.criar(data, prefeituraId);
+        setLista((prev) => [...prev, novo]);
+        return { ok: true, message: "Veículo adicionado." };
+      } catch (e) {
+        return {
+          ok: false,
+          message: e instanceof ApiError ? e.message : "Erro ao salvar.",
+        };
+      }
     },
-    [lista],
+    [lista, prefeituraId],
   );
 
-  const adicionarLote = useCallback(async (entradas: VeiculoFrotaInput[]) => {
-    const novos: VeiculoFrota[] = [];
-    for (const data of entradas) {
-      const novo: Omit<VeiculoFrota, "id"> = {
-        codigo: data.codigo.trim(),
-        nome: data.nome.trim(),
-        marca: data.marca.trim(),
-        tipo: data.tipo,
-        medicaoAtual: data.medicaoAtual,
-        revisaoEm: data.revisaoEm,
-        intervaloRevisao: data.intervaloRevisao,
-        obra: data.obra.trim() || "Disponível",
-        liberado: false,
-        criadoEm: new Date().toISOString(),
-      };
-      const ref = await addDoc(collection(db, COLECAO), novo);
-      novos.push({ id: ref.id, ...novo });
-    }
-    if (novos.length > 0) setLista((prev) => [...prev, ...novos]);
-    return novos.length;
-  }, []);
+  const adicionarLote = useCallback(
+    async (entradas: VeiculoFrotaInput[]) => {
+      if (!prefeituraId) return 0;
+      let adicionados = 0;
+      for (const data of entradas) {
+        try {
+          await frotaApi.criar(data, prefeituraId);
+          adicionados++;
+        } catch {
+          // ignora falha individual (ex.: duplicado) e segue
+        }
+      }
+      if (adicionados > 0) await carregar();
+      return adicionados;
+    },
+    [prefeituraId, carregar],
+  );
 
   const atualizar = useCallback(
-    async (id: string, dados: { medicaoAtual: number; revisaoEm: number }) => {
-      const patch = { ...dados, liberado: false };
-      await updateDoc(doc(db, COLECAO, id), patch);
-      setLista((prev) =>
-        prev.map((v) => (v.id === id ? { ...v, ...patch } : v)),
-      );
+    async (id: string, medicaoAtual: number) => {
+      if (!prefeituraId) return;
+      const atual = lista.find((v) => v.id === id);
+      if (!atual) return;
+      const novo = { ...atual, medicaoAtual };
+      await frotaApi.atualizar(novo, prefeituraId);
+      setLista((prev) => prev.map((v) => (v.id === id ? novo : v)));
     },
-    [],
+    [lista, prefeituraId],
   );
 
   const registrarRevisao = useCallback(
     async (veiculo: VeiculoFrota, dados: RevisaoInput) => {
-      // Histórico da revisão.
-      await addDoc(collection(db, COLECAO_REVISOES), {
-        veiculoId: veiculo.id,
-        veiculoCodigo: veiculo.codigo,
-        veiculoNome: veiculo.nome,
-        data: dados.data,
-        hodometro: dados.hodometro,
-        oficina: dados.oficina.trim(),
-        servicos: dados.servicos.trim(),
-        custo: dados.custo,
-        notaFiscal: dados.notaFiscal.trim(),
-        criadoEm: new Date().toISOString(),
-      });
-
-      // Recalcula a leitura atual e o próximo limite; libera o uso.
-      const patch = {
-        medicaoAtual: dados.hodometro,
-        revisaoEm: dados.hodometro + veiculo.intervaloRevisao,
-        liberado: false,
-      };
-      await updateDoc(doc(db, COLECAO, veiculo.id), patch);
+      if (!prefeituraId) return;
+      await frotaApi.concluirRevisao(veiculo, prefeituraId, dados);
+      // Reflete o que o backend fez: leitura e última revisão = hodômetro,
+      // status volta a "ativo".
       setLista((prev) =>
-        prev.map((v) => (v.id === veiculo.id ? { ...v, ...patch } : v)),
+        prev.map((v) =>
+          v.id === veiculo.id
+            ? {
+                ...v,
+                medicaoAtual: dados.hodometro,
+                ultimaRevisao: dados.hodometro,
+                status: "ativo",
+              }
+            : v,
+        ),
       );
     },
-    [],
+    [prefeituraId],
   );
 
   const remover = useCallback(async (id: string) => {
-    await deleteDoc(doc(db, COLECAO, id));
+    await frotaApi.remover(id);
     setLista((prev) => prev.filter((v) => v.id !== id));
   }, []);
 
   return {
     lista,
     loading,
+    erro,
     adicionar,
     adicionarLote,
     atualizar,

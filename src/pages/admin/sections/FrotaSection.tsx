@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useHU360 } from "../../../lib/hu360";
 import { useFrota } from "./frota/use-frota";
 import {
   FROTA_EXEMPLO,
@@ -6,6 +7,7 @@ import {
   TIPO_LABEL,
   isBloqueado,
   isVencido,
+  revisaoEm,
   rotuloLeitura,
   textoLeitura,
   textoRevisao,
@@ -21,13 +23,14 @@ import "./frota/frota.css";
 const TIPOS: TipoVeiculo[] = ["carro", "caminhao", "van", "maquina"];
 
 const FORM_VAZIO: VeiculoFrotaInput = {
-  codigo: "",
+  placa: "",
   nome: "",
   marca: "",
   tipo: "carro",
+  ano: new Date().getFullYear(),
   medicaoAtual: 0,
-  revisaoEm: 0,
   intervaloRevisao: 0,
+  ultimaRevisao: 0,
   obra: "",
 };
 
@@ -36,17 +39,23 @@ function hojeISO() {
 }
 
 export function FrotaSection() {
-  const frota = useFrota();
+  const { prefeituras } = useHU360();
+  const [prefId, setPrefId] = useState(() => prefeituras[0]?.id ?? "");
+  const frota = useFrota(prefId);
   const [busca, setBusca] = useState("");
   const [modalAdd, setModalAdd] = useState(false);
   const [editando, setEditando] = useState<VeiculoFrota | null>(null);
   const [liberando, setLiberando] = useState<VeiculoFrota | null>(null);
 
+  useEffect(() => {
+    if (!prefId && prefeituras[0]?.id) setPrefId(prefeituras[0].id);
+  }, [prefId, prefeituras]);
+
   const filtrada = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return frota.lista;
     return frota.lista.filter((v) =>
-      [v.codigo, v.nome, v.marca, v.obra, TIPO_LABEL[v.tipo]]
+      [v.placa, v.nome, v.marca, v.obra, TIPO_LABEL[v.tipo], String(v.ano)]
         .join(" ")
         .toLowerCase()
         .includes(q),
@@ -63,7 +72,20 @@ export function FrotaSection() {
             cadastrado{frota.lista.length === 1 ? "" : "s"}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div className="frota-toolbar__actions">
+          <select
+            className="frota-pref"
+            value={prefId}
+            onChange={(e) => setPrefId(e.target.value)}
+            aria-label="Prefeitura / cliente"
+          >
+            {prefeituras.length === 0 && <option value="">Sem prefeituras</option>}
+            {prefeituras.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome} ({p.uf})
+              </option>
+            ))}
+          </select>
           <div className="frota-search">
             <input
               type="search"
@@ -78,15 +100,24 @@ export function FrotaSection() {
             className="btn btn-primary"
             style={{ margin: 0, width: "auto", whiteSpace: "nowrap" }}
             onClick={() => setModalAdd(true)}
+            disabled={!prefId}
           >
             + Veículo
           </button>
         </div>
       </div>
 
+      {frota.erro && (
+        <p className="frota-empty" style={{ color: "#fca5a5" }}>
+          {frota.erro}
+        </p>
+      )}
+
       {frota.loading ? (
         <p className="frota-empty">Carregando frota…</p>
-      ) : frota.lista.length === 0 ? (
+      ) : !prefId ? (
+        <p className="frota-empty">Selecione uma prefeitura para ver a frota.</p>
+      ) : frota.lista.length === 0 && !frota.erro ? (
         <div className="frota-empty">
           <p style={{ marginTop: 0 }}>Nenhum veículo cadastrado ainda.</p>
           <div
@@ -126,7 +157,7 @@ export function FrotaSection() {
               onLiberar={() => setLiberando(v)}
               onAtualizar={() => setEditando(v)}
               onRemover={() => {
-                if (window.confirm(`Remover ${v.nome} (${v.codigo})?`)) {
+                if (window.confirm(`Remover ${v.nome} (${v.placa})?`)) {
                   void frota.remover(v.id);
                 }
               }}
@@ -139,7 +170,7 @@ export function FrotaSection() {
         <VeiculoModal
           titulo="Adicionar veículo"
           inicial={FORM_VAZIO}
-          travarTipo={false}
+          soLeitura={false}
           onFechar={() => setModalAdd(false)}
           onSalvar={async (dados) => {
             const r = await frota.adicionar(dados);
@@ -152,15 +183,11 @@ export function FrotaSection() {
       {editando && (
         <VeiculoModal
           titulo={`Atualizar leitura — ${editando.nome}`}
-          inicial={editando}
-          travarTipo
+          inicial={veiculoParaInput(editando)}
           soLeitura
           onFechar={() => setEditando(null)}
           onSalvar={async (dados) => {
-            await frota.atualizar(editando.id, {
-              medicaoAtual: dados.medicaoAtual,
-              revisaoEm: dados.revisaoEm,
-            });
+            await frota.atualizar(editando.id, dados.medicaoAtual);
             setEditando(null);
             return { ok: true, message: "" };
           }}
@@ -181,6 +208,20 @@ export function FrotaSection() {
   );
 }
 
+function veiculoParaInput(v: VeiculoFrota): VeiculoFrotaInput {
+  return {
+    placa: v.placa,
+    nome: v.nome,
+    marca: v.marca,
+    tipo: v.tipo,
+    ano: v.ano,
+    medicaoAtual: v.medicaoAtual,
+    intervaloRevisao: v.intervaloRevisao,
+    ultimaRevisao: v.ultimaRevisao,
+    obra: v.obra,
+  };
+}
+
 function FrotaCard({
   veiculo,
   onLiberar,
@@ -194,14 +235,9 @@ function FrotaCard({
 }) {
   const bloqueado = isBloqueado(veiculo);
   const vencido = isVencido(veiculo);
-  const estado = bloqueado
-    ? "is-bloqueado"
-    : vencido
-      ? "is-liberado"
-      : "is-ok";
 
   return (
-    <article className={`frota-card ${estado}`}>
+    <article className={`frota-card ${bloqueado ? "is-bloqueado" : "is-ok"}`}>
       <span className="frota-card__lock" aria-hidden="true">
         {bloqueado ? "🔒" : "🔓"}
       </span>
@@ -213,7 +249,7 @@ function FrotaCard({
         <div>
           <div className="frota-card__title">{veiculo.nome}</div>
           <div className="frota-card__sub">
-            {veiculo.codigo} · {veiculo.marca}
+            {veiculo.placa} · {veiculo.marca} · {veiculo.ano}
           </div>
         </div>
       </div>
@@ -235,12 +271,12 @@ function FrotaCard({
             {textoRevisao(veiculo)}
           </div>
         </div>
-        {vencido && veiculo.liberado && (
-          <div>
-            <div className="frota-meta__label">Status</div>
-            <div className="frota-meta__value">Liberado</div>
+        <div>
+          <div className="frota-meta__label">Próximo limite</div>
+          <div className="frota-meta__value">
+            {revisaoEm(veiculo).toLocaleString("pt-BR")} {unidadeDe(veiculo.tipo)}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="frota-card__obra">
@@ -277,15 +313,13 @@ function FrotaCard({
 function VeiculoModal({
   titulo,
   inicial,
-  travarTipo,
-  soLeitura = false,
+  soLeitura,
   onFechar,
   onSalvar,
 }: {
   titulo: string;
   inicial: VeiculoFrotaInput;
-  travarTipo: boolean;
-  soLeitura?: boolean;
+  soLeitura: boolean;
   onFechar: () => void;
   onSalvar: (
     dados: VeiculoFrotaInput,
@@ -311,11 +345,7 @@ function VeiculoModal({
   }
 
   return (
-    <div
-      className="frota-modal-backdrop"
-      role="presentation"
-      onClick={onFechar}
-    >
+    <div className="frota-modal-backdrop" role="presentation" onClick={onFechar}>
       <div
         className="frota-modal"
         role="dialog"
@@ -334,13 +364,13 @@ function VeiculoModal({
             {!soLeitura && (
               <>
                 <div>
-                  <label htmlFor="frota-codigo">Código</label>
+                  <label htmlFor="frota-placa">Placa / código</label>
                   <input
-                    id="frota-codigo"
+                    id="frota-placa"
                     type="text"
-                    placeholder="CAR-001"
-                    value={form.codigo}
-                    onChange={(e) => set("codigo", e.target.value)}
+                    placeholder="ABC-1234"
+                    value={form.placa}
+                    onChange={(e) => set("placa", e.target.value)}
                   />
                 </div>
                 <div>
@@ -348,7 +378,6 @@ function VeiculoModal({
                   <select
                     id="frota-tipo"
                     value={form.tipo}
-                    disabled={travarTipo}
                     onChange={(e) => set("tipo", e.target.value as TipoVeiculo)}
                   >
                     {TIPOS.map((t) => (
@@ -379,6 +408,16 @@ function VeiculoModal({
                   />
                 </div>
                 <div>
+                  <label htmlFor="frota-ano">Ano</label>
+                  <input
+                    id="frota-ano"
+                    type="number"
+                    min={1950}
+                    value={form.ano}
+                    onChange={(e) => set("ano", Number(e.target.value))}
+                  />
+                </div>
+                <div className="full">
                   <label htmlFor="frota-obra">Obra atual</label>
                   <input
                     id="frota-obra"
@@ -402,31 +441,37 @@ function VeiculoModal({
                 onChange={(e) => set("medicaoAtual", Number(e.target.value))}
               />
             </div>
-            <div>
-              <label htmlFor="frota-revisao">Próxima revisão em ({unidade})</label>
-              <input
-                id="frota-revisao"
-                type="number"
-                min={0}
-                value={form.revisaoEm}
-                onChange={(e) => set("revisaoEm", Number(e.target.value))}
-              />
-            </div>
             {!soLeitura && (
-              <div>
-                <label htmlFor="frota-intervalo">
-                  Intervalo entre revisões ({unidade})
-                </label>
-                <input
-                  id="frota-intervalo"
-                  type="number"
-                  min={0}
-                  value={form.intervaloRevisao}
-                  onChange={(e) =>
-                    set("intervaloRevisao", Number(e.target.value))
-                  }
-                />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="frota-intervalo">
+                    Intervalo entre revisões ({unidade})
+                  </label>
+                  <input
+                    id="frota-intervalo"
+                    type="number"
+                    min={0}
+                    value={form.intervaloRevisao}
+                    onChange={(e) =>
+                      set("intervaloRevisao", Number(e.target.value))
+                    }
+                  />
+                </div>
+                <div>
+                  <label htmlFor="frota-ultima">
+                    Leitura na última revisão ({unidade})
+                  </label>
+                  <input
+                    id="frota-ultima"
+                    type="number"
+                    min={0}
+                    value={form.ultimaRevisao}
+                    onChange={(e) =>
+                      set("ultimaRevisao", Number(e.target.value))
+                    }
+                  />
+                </div>
+              </>
             )}
           </div>
 
@@ -486,15 +531,20 @@ function RevisaoModal({
       return;
     }
     setSalvando(true);
-    await onConfirmar({
-      data,
-      hodometro,
-      oficina,
-      servicos,
-      custo: typeof custo === "number" ? custo : 0,
-      notaFiscal,
-    });
-    setSalvando(false);
+    try {
+      await onConfirmar({
+        data,
+        hodometro,
+        oficina,
+        servicos,
+        custo: typeof custo === "number" ? custo : 0,
+        notaFiscal,
+      });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Erro ao concluir a revisão.");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -510,7 +560,7 @@ function RevisaoModal({
           <div>
             <h3 style={{ margin: 0 }}>🔒 Liberar bloqueio de revisão</h3>
             <p className="frota-rev__veic">
-              Veículo: <strong>{veiculo.codigo}</strong> — {veiculo.nome}
+              Veículo: <strong>{veiculo.placa}</strong> — {veiculo.nome}
             </p>
           </div>
           <button
@@ -553,7 +603,7 @@ function RevisaoModal({
                 id="rev-hod"
                 type="number"
                 min={0}
-                placeholder={`Ex: 183900`}
+                placeholder="Ex: 183900"
                 value={hodometro}
                 onChange={(e) =>
                   setHodometro(
