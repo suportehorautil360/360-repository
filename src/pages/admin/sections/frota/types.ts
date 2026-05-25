@@ -19,6 +19,8 @@ export interface VeiculoFrota {
   medicaoAtual: number;
   /** Valor de km/horímetro em que a próxima revisão vence. */
   revisaoEm: number;
+  /** Intervalo entre revisões (km ou h). Usado para recalcular o limite. */
+  intervaloRevisao: number;
   /** Obra/serviço atual ou "Disponível". */
   obra: string;
   /** Liberado manualmente apesar de a revisão estar vencida. */
@@ -31,6 +33,33 @@ export type VeiculoFrotaInput = Omit<
   VeiculoFrota,
   "id" | "criadoEm" | "liberado"
 >;
+
+/** Registro de uma revisão realizada (coleção `frota_revisoes`). */
+export interface RevisaoFrota {
+  id: string;
+  veiculoId: string;
+  veiculoCodigo: string;
+  veiculoNome: string;
+  /** Data da revisão (YYYY-MM-DD). */
+  data: string;
+  /** Leitura (km/h) registrada na revisão — vira a leitura atual do veículo. */
+  hodometro: number;
+  oficina: string;
+  servicos: string;
+  custo: number;
+  notaFiscal: string;
+  criadoEm: string;
+}
+
+/** Dados informados no modal de liberar/registrar revisão. */
+export interface RevisaoInput {
+  data: string;
+  hodometro: number;
+  oficina: string;
+  servicos: string;
+  custo: number;
+  notaFiscal: string;
+}
 
 export const TIPO_LABEL: Record<TipoVeiculo, string> = {
   carro: "Carro",
@@ -70,6 +99,21 @@ export function isBloqueado(v: VeiculoFrota): boolean {
   return isVencido(v) && !v.liberado;
 }
 
+/**
+ * Resumo do vencimento para o modal de liberar. Ex.:
+ * "Carro · Hyundai · Limite de 1.000 km atingido. KM atual: 12.000. Excesso: 11.000 km."
+ */
+export function textoVencimento(v: VeiculoFrota): string {
+  const un = unidadeDe(v.tipo);
+  const excesso = Math.abs(revisaoRestante(v));
+  return (
+    `${TIPO_LABEL[v.tipo]} · ${v.marca} · ` +
+    `Limite de ${v.revisaoEm.toLocaleString("pt-BR")} ${un} atingido. ` +
+    `${rotuloLeitura(v.tipo)}: ${v.medicaoAtual.toLocaleString("pt-BR")} ${un}. ` +
+    `Excesso: ${excesso.toLocaleString("pt-BR")} ${un}.`
+  );
+}
+
 /** Texto da revisão: "240 h rest." (no prazo) ou "+11000 km" (vencida). */
 export function textoRevisao(v: VeiculoFrota): string {
   const unidade = unidadeDe(v.tipo);
@@ -88,11 +132,11 @@ export function textoLeitura(v: VeiculoFrota): string {
  * por ação explícita do usuário (não há seed automático no Firestore).
  */
 export const FROTA_EXEMPLO: VeiculoFrotaInput[] = [
-  { codigo: "CAR-001", nome: "HB20 2021", marca: "Hyundai", tipo: "carro", medicaoAtual: 12000, revisaoEm: 1000, obra: "Galpão Industrial Norte" },
-  { codigo: "CAR-002", nome: "Onix 2020", marca: "Chevrolet", tipo: "carro", medicaoAtual: 34500, revisaoEm: 1000, obra: "Disponível" },
-  { codigo: "CAR-003", nome: "Civic 2019", marca: "Honda", tipo: "carro", medicaoAtual: 48500, revisaoEm: 1000, obra: "Disponível" },
-  { codigo: "TRK-001", nome: "Scania R450 2018", marca: "Scania", tipo: "caminhao", medicaoAtual: 120000, revisaoEm: 120000, obra: "Rodovia SP-310 — Trecho 4" },
-  { codigo: "VAN-002", nome: "Sprinter 2022", marca: "Mercedes", tipo: "van", medicaoAtual: 68000, revisaoEm: 500, obra: "Cond. Parque Verde" },
-  { codigo: "MQ-01", nome: "Caterpillar 320 2017", marca: "Caterpillar", tipo: "maquina", medicaoAtual: 1250, revisaoEm: 1250, obra: "Rodovia SP-310 — Trecho 4" },
-  { codigo: "MQ-02", nome: "Komatsu PC210 2019", marca: "Komatsu", tipo: "maquina", medicaoAtual: 860, revisaoEm: 1100, obra: "Cond. Parque Verde" },
+  { codigo: "CAR-001", nome: "HB20 2021", marca: "Hyundai", tipo: "carro", medicaoAtual: 12000, revisaoEm: 1000, intervaloRevisao: 10000, obra: "Galpão Industrial Norte" },
+  { codigo: "CAR-002", nome: "Onix 2020", marca: "Chevrolet", tipo: "carro", medicaoAtual: 34500, revisaoEm: 1000, intervaloRevisao: 10000, obra: "Disponível" },
+  { codigo: "CAR-003", nome: "Civic 2019", marca: "Honda", tipo: "carro", medicaoAtual: 48500, revisaoEm: 1000, intervaloRevisao: 10000, obra: "Disponível" },
+  { codigo: "TRK-001", nome: "Scania R450 2018", marca: "Scania", tipo: "caminhao", medicaoAtual: 120000, revisaoEm: 120000, intervaloRevisao: 20000, obra: "Rodovia SP-310 — Trecho 4" },
+  { codigo: "VAN-002", nome: "Sprinter 2022", marca: "Mercedes", tipo: "van", medicaoAtual: 68000, revisaoEm: 500, intervaloRevisao: 15000, obra: "Cond. Parque Verde" },
+  { codigo: "MQ-01", nome: "Caterpillar 320 2017", marca: "Caterpillar", tipo: "maquina", medicaoAtual: 1250, revisaoEm: 1250, intervaloRevisao: 250, obra: "Rodovia SP-310 — Trecho 4" },
+  { codigo: "MQ-02", nome: "Komatsu PC210 2019", marca: "Komatsu", tipo: "maquina", medicaoAtual: 860, revisaoEm: 1100, intervaloRevisao: 250, obra: "Cond. Parque Verde" },
 ];

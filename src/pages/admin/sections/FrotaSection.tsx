@@ -9,7 +9,9 @@ import {
   rotuloLeitura,
   textoLeitura,
   textoRevisao,
+  textoVencimento,
   unidadeDe,
+  type RevisaoInput,
   type TipoVeiculo,
   type VeiculoFrota,
   type VeiculoFrotaInput,
@@ -25,14 +27,20 @@ const FORM_VAZIO: VeiculoFrotaInput = {
   tipo: "carro",
   medicaoAtual: 0,
   revisaoEm: 0,
+  intervaloRevisao: 0,
   obra: "",
 };
+
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function FrotaSection() {
   const frota = useFrota();
   const [busca, setBusca] = useState("");
   const [modalAdd, setModalAdd] = useState(false);
   const [editando, setEditando] = useState<VeiculoFrota | null>(null);
+  const [liberando, setLiberando] = useState<VeiculoFrota | null>(null);
 
   const filtrada = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -115,7 +123,7 @@ export function FrotaSection() {
             <FrotaCard
               key={v.id}
               veiculo={v}
-              onLiberar={() => void frota.liberar(v.id)}
+              onLiberar={() => setLiberando(v)}
               onAtualizar={() => setEditando(v)}
               onRemover={() => {
                 if (window.confirm(`Remover ${v.nome} (${v.codigo})?`)) {
@@ -155,6 +163,17 @@ export function FrotaSection() {
             });
             setEditando(null);
             return { ok: true, message: "" };
+          }}
+        />
+      )}
+
+      {liberando && (
+        <RevisaoModal
+          veiculo={liberando}
+          onFechar={() => setLiberando(null)}
+          onConfirmar={async (dados) => {
+            await frota.registrarRevisao(liberando, dados);
+            setLiberando(null);
           }}
         />
       )}
@@ -393,6 +412,22 @@ function VeiculoModal({
                 onChange={(e) => set("revisaoEm", Number(e.target.value))}
               />
             </div>
+            {!soLeitura && (
+              <div>
+                <label htmlFor="frota-intervalo">
+                  Intervalo entre revisões ({unidade})
+                </label>
+                <input
+                  id="frota-intervalo"
+                  type="number"
+                  min={0}
+                  value={form.intervaloRevisao}
+                  onChange={(e) =>
+                    set("intervaloRevisao", Number(e.target.value))
+                  }
+                />
+              </div>
+            )}
           </div>
 
           <p className="frota-modal__msg">{msg}</p>
@@ -407,6 +442,193 @@ function VeiculoModal({
             </button>
             <button type="submit" className="btn btn-primary" disabled={salvando}>
               {salvando ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function RevisaoModal({
+  veiculo,
+  onFechar,
+  onConfirmar,
+}: {
+  veiculo: VeiculoFrota;
+  onFechar: () => void;
+  onConfirmar: (dados: RevisaoInput) => Promise<void>;
+}) {
+  const unidade = unidadeDe(veiculo.tipo);
+  const [data, setData] = useState(hojeISO());
+  const [hodometro, setHodometro] = useState<number | "">("");
+  const [oficina, setOficina] = useState("");
+  const [servicos, setServicos] = useState("");
+  const [custo, setCusto] = useState<number | "">("");
+  const [notaFiscal, setNotaFiscal] = useState("");
+  const [msg, setMsg] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const novoLimite =
+    typeof hodometro === "number"
+      ? hodometro + veiculo.intervaloRevisao
+      : null;
+
+  async function handleConfirmar() {
+    if (typeof hodometro !== "number" || hodometro <= 0) {
+      setMsg("Informe o hodômetro / horas registrado na revisão.");
+      return;
+    }
+    if (hodometro < veiculo.medicaoAtual) {
+      setMsg(
+        `A leitura não pode ser menor que a atual (${veiculo.medicaoAtual.toLocaleString("pt-BR")} ${unidade}).`,
+      );
+      return;
+    }
+    setSalvando(true);
+    await onConfirmar({
+      data,
+      hodometro,
+      oficina,
+      servicos,
+      custo: typeof custo === "number" ? custo : 0,
+      notaFiscal,
+    });
+    setSalvando(false);
+  }
+
+  return (
+    <div className="frota-modal-backdrop" role="presentation" onClick={onFechar}>
+      <div
+        className="frota-modal frota-modal--rev"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Liberar bloqueio de revisão"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="frota-rev__head">
+          <div>
+            <h3 style={{ margin: 0 }}>🔒 Liberar bloqueio de revisão</h3>
+            <p className="frota-rev__veic">
+              Veículo: <strong>{veiculo.codigo}</strong> — {veiculo.nome}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="frota-rev__close"
+            onClick={onFechar}
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="frota-rev__alerta">
+          <span aria-hidden="true">⚠️</span>
+          <div>
+            <strong>Revisão vencida</strong>
+            <p>{textoVencimento(veiculo)}</p>
+          </div>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleConfirmar();
+          }}
+        >
+          <div className="frota-modal__grid">
+            <div>
+              <label htmlFor="rev-data">Data da revisão realizada</label>
+              <input
+                id="rev-data"
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="rev-hod">Hodômetro / horas na revisão ({unidade})</label>
+              <input
+                id="rev-hod"
+                type="number"
+                min={0}
+                placeholder={`Ex: 183900`}
+                value={hodometro}
+                onChange={(e) =>
+                  setHodometro(
+                    e.target.value === "" ? "" : Number(e.target.value),
+                  )
+                }
+              />
+            </div>
+            <div className="full">
+              <label htmlFor="rev-oficina">Oficina / responsável</label>
+              <input
+                id="rev-oficina"
+                type="text"
+                placeholder="Nome da oficina ou mecânico"
+                value={oficina}
+                onChange={(e) => setOficina(e.target.value)}
+              />
+            </div>
+            <div className="full">
+              <label htmlFor="rev-serv">Serviços realizados</label>
+              <textarea
+                id="rev-serv"
+                rows={3}
+                placeholder="Descreva os serviços realizados…"
+                value={servicos}
+                onChange={(e) => setServicos(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="rev-custo">Custo da revisão (R$)</label>
+              <input
+                id="rev-custo"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0,00"
+                value={custo}
+                onChange={(e) =>
+                  setCusto(e.target.value === "" ? "" : Number(e.target.value))
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor="rev-nf">Nota fiscal</label>
+              <input
+                id="rev-nf"
+                type="text"
+                placeholder="NF-00000"
+                value={notaFiscal}
+                onChange={(e) => setNotaFiscal(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="frota-rev__aviso">
+            <strong>Atenção:</strong> ao confirmar, o próximo limite de revisão
+            será recalculado
+            {novoLimite != null && (
+              <> para {novoLimite.toLocaleString("pt-BR")} {unidade}</>
+            )}{" "}
+            e o uso será liberado imediatamente.
+          </div>
+
+          <p className="frota-modal__msg">{msg}</p>
+
+          <div className="frota-modal__footer">
+            <button type="button" className="btn btn-secondary" onClick={onFechar}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="btn frota-btn-confirmar"
+              disabled={salvando}
+            >
+              {salvando ? "Salvando…" : "✓ Confirmar revisão e liberar"}
             </button>
           </div>
         </form>

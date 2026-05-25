@@ -220,3 +220,89 @@
   color: #fca5a5;
   margin-top: 8px;
 }
+
+/* Modal de liberar / registrar revisão */
+.frota-modal--rev {
+  width: min(640px, 100%);
+}
+
+.frota-rev__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.frota-rev__head h3 {
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.frota-rev__veic {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.frota-rev__veic strong {
+  color: var(--primary, #f97316);
+}
+.frota-rev__close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+.frota-rev__close:hover {
+  color: var(--text);
+}
+
+.frota-rev__alerta {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.frota-rev__alerta strong {
+  display: block;
+  color: var(--danger, #ef4444);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+.frota-rev__alerta p {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.frota-rev__aviso {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 16px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+.frota-rev__aviso strong {
+  color: var(--warning, #f59e0b);
+}
+
+.frota-btn-confirmar {
+  background: var(--success, #22c55e);
+  color: #08210f;
+  border: none;
+}
+.frota-btn-confirmar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

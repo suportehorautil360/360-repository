@@ -8,9 +8,14 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../../../lib/firebase/firebase";
-import type { VeiculoFrota, VeiculoFrotaInput } from "./types";
+import type {
+  RevisaoInput,
+  VeiculoFrota,
+  VeiculoFrotaInput,
+} from "./types";
 
 const COLECAO = "frota";
+const COLECAO_REVISOES = "frota_revisoes";
 
 export interface UseFrota {
   lista: VeiculoFrota[];
@@ -30,8 +35,15 @@ export interface UseFrota {
     id: string,
     dados: { medicaoAtual: number; revisaoEm: number },
   ) => Promise<void>;
-  /** Libera o uso de um veículo com revisão vencida. */
-  liberar: (id: string) => Promise<void>;
+  /**
+   * Registra uma revisão realizada: grava o histórico em `frota_revisoes`,
+   * adota o hodômetro informado como leitura atual, recalcula o próximo
+   * limite (hodômetro + intervalo do veículo) e libera o uso.
+   */
+  registrarRevisao: (
+    veiculo: VeiculoFrota,
+    dados: RevisaoInput,
+  ) => Promise<void>;
   remover: (id: string) => Promise<void>;
 }
 
@@ -68,6 +80,7 @@ export function useFrota(): UseFrota {
         tipo: data.tipo,
         medicaoAtual: data.medicaoAtual,
         revisaoEm: data.revisaoEm,
+        intervaloRevisao: data.intervaloRevisao,
         obra: data.obra.trim() || "Disponível",
         liberado: false,
         criadoEm: new Date().toISOString(),
@@ -89,6 +102,7 @@ export function useFrota(): UseFrota {
         tipo: data.tipo,
         medicaoAtual: data.medicaoAtual,
         revisaoEm: data.revisaoEm,
+        intervaloRevisao: data.intervaloRevisao,
         obra: data.obra.trim() || "Disponível",
         liberado: false,
         criadoEm: new Date().toISOString(),
@@ -111,12 +125,35 @@ export function useFrota(): UseFrota {
     [],
   );
 
-  const liberar = useCallback(async (id: string) => {
-    await updateDoc(doc(db, COLECAO, id), { liberado: true });
-    setLista((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, liberado: true } : v)),
-    );
-  }, []);
+  const registrarRevisao = useCallback(
+    async (veiculo: VeiculoFrota, dados: RevisaoInput) => {
+      // Histórico da revisão.
+      await addDoc(collection(db, COLECAO_REVISOES), {
+        veiculoId: veiculo.id,
+        veiculoCodigo: veiculo.codigo,
+        veiculoNome: veiculo.nome,
+        data: dados.data,
+        hodometro: dados.hodometro,
+        oficina: dados.oficina.trim(),
+        servicos: dados.servicos.trim(),
+        custo: dados.custo,
+        notaFiscal: dados.notaFiscal.trim(),
+        criadoEm: new Date().toISOString(),
+      });
+
+      // Recalcula a leitura atual e o próximo limite; libera o uso.
+      const patch = {
+        medicaoAtual: dados.hodometro,
+        revisaoEm: dados.hodometro + veiculo.intervaloRevisao,
+        liberado: false,
+      };
+      await updateDoc(doc(db, COLECAO, veiculo.id), patch);
+      setLista((prev) =>
+        prev.map((v) => (v.id === veiculo.id ? { ...v, ...patch } : v)),
+      );
+    },
+    [],
+  );
 
   const remover = useCallback(async (id: string) => {
     await deleteDoc(doc(db, COLECAO, id));
@@ -129,7 +166,7 @@ export function useFrota(): UseFrota {
     adicionar,
     adicionarLote,
     atualizar,
-    liberar,
+    registrarRevisao,
     remover,
   };
 }
