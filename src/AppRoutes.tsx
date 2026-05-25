@@ -43,6 +43,11 @@ const EquipamentosLocacaoSection = lazy(() =>
     default: m.EquipamentosLocacaoSection,
   })),
 );
+const FrotaSection = lazy(() =>
+  import("./pages/admin/sections/FrotaSection").then((m) => ({
+    default: m.FrotaSection,
+  })),
+);
 const AdminPortalOficinaPage = lazy(() =>
   import("./pages/admin/sections/AdminPortalOficinaPage").then((m) => ({
     default: m.AdminPortalOficinaPage,
@@ -149,6 +154,7 @@ export function AppRoutes() {
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />
+            <Route path="frota" element={<FrotaSection />} />
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />
