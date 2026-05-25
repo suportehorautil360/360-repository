@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
@@ -59,19 +59,21 @@ describe("Sidebar", () => {
     expect(screen.getByText("6")).toBeInTheDocument();
   });
 
-  it("deriva as iniciais do usuário no rodapé", () => {
+  it("renderiza botão simples de sair quando há onLogout", () => {
+    const onLogout = vi.fn();
     renderSidebar({
       brand: { title: "HORA ÚTIL 360" },
       groups,
       user: { name: "João Santos", role: "Administrador" },
+      onLogout,
     });
-    expect(screen.getByText("JS")).toBeInTheDocument();
-    expect(screen.getByText("João Santos")).toBeInTheDocument();
-    expect(screen.getByText("Administrador")).toBeInTheDocument();
+    expect(screen.queryByText("JS")).not.toBeInTheDocument();
+    expect(screen.queryByText("João Santos")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
   });
 
-  it("não renderiza rodapé quando não há usuário", () => {
+  it("não renderiza rodapé quando não há ação de logout", () => {
     renderSidebar();
-    expect(screen.queryByText("Administrador")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sair" })).toBeNull();
   });
 });

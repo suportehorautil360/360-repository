@@ -44,11 +44,17 @@ describe("adminSession", () => {
 
   it("limpa sessão volátil e persistida no logout", () => {
     setAdminAuthenticated();
+    localStorage.setItem("hu360_session", "{}");
+    localStorage.setItem("hu360_hub_ctx_posto", "{}");
+    sessionStorage.setItem("hu360_hub_ctx_pref", "tl-ms");
 
     clearAdminSession();
 
     expect(sessionStorage.getItem(ADMIN_SESSION_KEY)).toBeNull();
     expect(localStorage.getItem(ADMIN_PERSISTED_SESSION_KEY)).toBeNull();
+    expect(localStorage.getItem("hu360_session")).toBeNull();
+    expect(localStorage.getItem("hu360_hub_ctx_posto")).toBeNull();
+    expect(sessionStorage.getItem("hu360_hub_ctx_pref")).toBeNull();
     expect(isAdminAuthenticated()).toBe(false);
   });
 });

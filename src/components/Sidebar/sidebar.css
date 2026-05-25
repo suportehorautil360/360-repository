@@ -183,60 +183,23 @@
   background: var(--hu-sb-primary);
 }
 
-/* ---------- Rodapé (usuário) ---------- */
+/* ---------- Rodapé ---------- */
 .hu-sidebar__footer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   padding: 14px 16px;
   border-top: 1px solid var(--hu-sb-border);
 }
 
-.hu-sidebar__avatar {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--hu-sb-primary);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-
-.hu-sidebar__user {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-
-.hu-sidebar__user-name {
-  font-size: 0.9rem;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hu-sidebar__user-role {
-  font-size: 0.76rem;
-  color: var(--hu-sb-muted);
-}
-
 .hu-sidebar__logout {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
+  width: 100%;
+  min-height: 40px;
   border-radius: 8px;
   border: 1px solid var(--hu-sb-border);
   background: transparent;
   color: var(--hu-sb-muted);
   cursor: pointer;
-  font-size: 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
   transition: background 0.2s ease, color 0.2s ease;
 }
 
