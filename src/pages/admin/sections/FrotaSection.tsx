@@ -38,6 +38,21 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Extrai só os dígitos de um texto e devolve o valor em centavos. */
+function digitosParaCentavos(raw: string): number {
+  const d = raw.replace(/\D/g, "");
+  return d ? parseInt(d, 10) : 0;
+}
+
+/** Formata centavos como "R$ 1.234,56" (vazio quando 0). */
+function formatBRL(centavos: number): string {
+  if (!centavos) return "";
+  return (centavos / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export function FrotaSection() {
   const { prefeituras } = useHU360();
   const [prefId, setPrefId] = useState(() => prefeituras[0]?.id ?? "");
@@ -509,7 +524,7 @@ function RevisaoModal({
   const [hodometro, setHodometro] = useState<number | "">("");
   const [oficina, setOficina] = useState("");
   const [servicos, setServicos] = useState("");
-  const [custo, setCusto] = useState<number | "">("");
+  const [custoCents, setCustoCents] = useState(0);
   const [notaFiscal, setNotaFiscal] = useState("");
   const [msg, setMsg] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -537,7 +552,7 @@ function RevisaoModal({
         hodometro,
         oficina,
         servicos,
-        custo: typeof custo === "number" ? custo : 0,
+        custo: custoCents / 100,
         notaFiscal,
       });
     } catch (e) {
@@ -636,13 +651,12 @@ function RevisaoModal({
               <label htmlFor="rev-custo">Custo da revisão (R$)</label>
               <input
                 id="rev-custo"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="0,00"
-                value={custo}
+                type="text"
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={formatBRL(custoCents)}
                 onChange={(e) =>
-                  setCusto(e.target.value === "" ? "" : Number(e.target.value))
+                  setCustoCents(digitosParaCentavos(e.target.value))
                 }
               />
             </div>
