@@ -495,7 +495,9 @@ export function ChecklistControlePage() {
     text: string;
   }>({ tone: "ok", text: "" });
 
-  const [chassisChecklistDraft, setChassisChecklistDraft] = useState("");
+  const [chassisChecklistDraft, setChassisChecklistDraft] = useState(
+    () => session?.chassis ?? "",
+  );
   const [chassisChecklistAtivo, setChassisChecklistAtivo] = useState("");
   const [equipamentoAtual, setEquipamentoAtual] =
     useState<EquipFirestore | null>(null);
@@ -1104,8 +1106,11 @@ export function ChecklistControlePage() {
   useEffect(() => {
     if (!session?.idMaquina) return;
     const m = seedData.cadastro_frota.find((x) => x.ID === session.idMaquina);
-    if (m?.Chassis != null) setChassisChecklistDraft(String(m.Chassis));
-  }, [session?.idMaquina]);
+    const chassisSessao = session.chassis?.trim();
+    const chassisCadastro = m?.Chassis != null ? String(m.Chassis) : "";
+    const chassisInicial = chassisSessao || chassisCadastro;
+    if (chassisInicial) setChassisChecklistDraft(chassisInicial);
+  }, [session?.chassis, session?.idMaquina]);
 
   useEffect(() => {
     const canvas = assinaturaCanvasRef.current;
@@ -1218,7 +1223,9 @@ export function ChecklistControlePage() {
 
     const saved = setSession(sess);
     const m0 = seedData.cadastro_frota.find((x) => x.ID === sess.idMaquina);
-    setChassisChecklistDraft(m0?.Chassis != null ? String(m0.Chassis) : "");
+    setChassisChecklistDraft(
+      sess.chassis ?? (m0?.Chassis != null ? String(m0.Chassis) : ""),
+    );
     setChassisChecklistAtivo("");
     setAnswers({});
     setNomeOperadorChecklist("");
