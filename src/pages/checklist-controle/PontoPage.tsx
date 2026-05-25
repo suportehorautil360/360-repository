@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useOperadorSession } from "./useOperadorSession";
 import { pontoApi, type PontoRegistro } from "./ponto-api";
+import { jaBateuHoje, marcarBatidaHoje } from "./ponto-dia";
 import "./ponto.css";
 
 /** Lê o arquivo, reduz para no máximo `maxSide`px e devolve JPEG base64. */
@@ -51,12 +52,17 @@ function ehHoje(iso: string): boolean {
 
 export function PontoPage() {
   const { session } = useOperadorSession();
+  const navigate = useNavigate();
   const [nome, setNome] = useState("");
   const [fotoDataUrl, setFotoDataUrl] = useState("");
   const [msg, setMsg] = useState("");
   const [okMsg, setOkMsg] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [batidas, setBatidas] = useState<PontoRegistro[]>([]);
+  // Entrou pelo gate obrigatório (ainda não bateu hoje) vs. visita pelo menu.
+  const [obrigatorio] = useState(() =>
+    session ? !jaBateuHoje(session) : false,
+  );
 
   const prefeituraId = session?.idCliente ?? "";
 
@@ -105,6 +111,12 @@ export function PontoPage() {
         timestampOriginal: new Date().toISOString(),
       });
       setBatidas((prev) => [reg, ...prev]);
+      if (session) marcarBatidaHoje(session);
+      if (obrigatorio) {
+        // Gate concluído: libera o checklist.
+        navigate("/checklist-controle", { replace: true });
+        return;
+      }
       setOkMsg(`Ponto registrado às ${horaDe(reg.timestampOriginal)}.`);
       setFotoDataUrl("");
       setNome("");
@@ -136,11 +148,17 @@ export function PontoPage() {
       <div className="ponto-card">
         <header className="ponto-head">
           <h1>Bater ponto</h1>
-          <Link className="ponto-voltar" to="/checklist-controle">
-            ← Voltar
-          </Link>
+          {!obrigatorio && (
+            <Link className="ponto-voltar" to="/checklist-controle">
+              ← Voltar
+            </Link>
+          )}
         </header>
-        <p className="ponto-sub">{session.empresa}</p>
+        <p className="ponto-sub">
+          {obrigatorio
+            ? "Bata o ponto para acessar o checklist."
+            : session.empresa}
+        </p>
 
         <label className="ponto-label" htmlFor="ponto-nome">
           Seu nome

@@ -1,6 +1,8 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useLogin } from "./pages/login/hooks/use-login";
+import { useOperadorSession } from "./pages/checklist-controle/useOperadorSession";
+import { jaBateuHoje } from "./pages/checklist-controle/ponto-dia";
 import { RouteErrorBoundary } from "./components/ErrorBoundary/RouteErrorBoundary";
 
 // Páginas carregadas sob demanda (cada rota vira um chunk próprio).
@@ -149,6 +151,20 @@ function RootRoute() {
   return <PostoPortalProvider />;
 }
 
+/**
+ * Gate obrigatório de ponto: com sessão de operador ativa e sem batida
+ * registrada hoje, manda bater o ponto antes de liberar o checklist.
+ */
+function RequirePonto({ children }: { children: ReactNode }) {
+  const { session } = useOperadorSession();
+
+  if (session && !jaBateuHoje(session)) {
+    return <Navigate to="/ponto" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 export function AppRoutes() {
   return (
     <BrowserRouter>
@@ -194,7 +210,14 @@ export function AppRoutes() {
           <Route path="/login-operacional" element={<OperacionalLoginPage />} />
           <Route path="/checklist-login" element={<ChecklistLoginPage />} />
           <Route path="/ponto" element={<PontoPage />} />
-          <Route path="/checklist-controle" element={<ChecklistControlePage />} />
+          <Route
+            path="/checklist-controle"
+            element={
+              <RequirePonto>
+                <ChecklistControlePage />
+              </RequirePonto>
+            }
+          />
           <Route
             path="/posto/:id"
             element={
