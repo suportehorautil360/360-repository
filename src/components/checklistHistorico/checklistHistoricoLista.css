@@ -150,6 +150,11 @@
   color: #991b1b;
 }
 
+.hu360-dash-chk-itens__tag.is-na {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .hu360-dash-chk-itens__nao {
   margin-top: 8px;
   padding: 10px;

@@ -324,6 +324,12 @@
   color: #fecaca;
 }
 
+.hu360-toggle-group button.active-na {
+  background: rgba(100, 116, 139, 0.18);
+  border-color: #94a3b8;
+  color: #e2e8f0;
+}
+
 .hu360-toggle-group button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
