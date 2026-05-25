@@ -1743,6 +1743,9 @@ export function ChecklistControlePage() {
             <Link to="/" className="hu360-app-head__link">
               Portal inicial
             </Link>
+            <Link to="/ponto" className="hu360-app-head__link">
+              Bater ponto
+            </Link>
             {canInstall ? (
               <button
                 type="button"

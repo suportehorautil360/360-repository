@@ -96,6 +96,11 @@ const ChecklistLoginPage = lazy(() =>
     default: m.ChecklistLoginPage,
   })),
 );
+const PontoPage = lazy(() =>
+  import("./pages/checklist-controle/PontoPage").then((m) => ({
+    default: m.PontoPage,
+  })),
+);
 
 function RouteFallback() {
   return (
@@ -188,6 +193,7 @@ export function AppRoutes() {
           />
           <Route path="/login-operacional" element={<OperacionalLoginPage />} />
           <Route path="/checklist-login" element={<ChecklistLoginPage />} />
+          <Route path="/ponto" element={<PontoPage />} />
           <Route path="/checklist-controle" element={<ChecklistControlePage />} />
           <Route
             path="/posto/:id"
