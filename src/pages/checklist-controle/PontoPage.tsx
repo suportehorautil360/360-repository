@@ -1,41 +1,33 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useOperadorSession } from "./useOperadorSession";
 import { pontoApi, type PontoRegistro } from "./ponto-api";
 import { jaBateuHoje, marcarBatidaHoje } from "./ponto-dia";
 import "./ponto.css";
 
-/** Lê o arquivo, reduz para no máximo `maxSide`px e devolve JPEG base64. */
-async function fileParaDataUrlReduzido(
-  file: File,
+/** Captura um frame do vídeo, reduz para `maxSide`px e devolve JPEG base64. */
+function capturarDoVideo(
+  video: HTMLVideoElement,
   maxSide = 800,
   quality = 0.7,
-): Promise<string> {
-  const original = await new Promise<string>((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = () => res(String(fr.result));
-    fr.onerror = () => rej(new Error("Falha ao ler a imagem."));
-    fr.readAsDataURL(file);
-  });
-  const img = await new Promise<HTMLImageElement>((res, rej) => {
-    const im = new Image();
-    im.onload = () => res(im);
-    im.onerror = () => rej(new Error("Imagem inválida."));
-    im.src = original;
-  });
-  let w = img.width;
-  let h = img.height;
-  if (Math.max(w, h) > maxSide) {
-    const r = maxSide / Math.max(w, h);
-    w = Math.round(w * r);
-    h = Math.round(h * r);
+): string | null {
+  if (video.readyState < 2) return null;
+  const w0 = video.videoWidth;
+  const h0 = video.videoHeight;
+  if (!w0 || !h0) return null;
+  let w = w0;
+  let h = h0;
+  if (Math.max(w0, h0) > maxSide) {
+    const r = maxSide / Math.max(w0, h0);
+    w = Math.round(w0 * r);
+    h = Math.round(h0 * r);
   }
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return original;
-  ctx.drawImage(img, 0, 0, w, h);
+  if (!ctx) return null;
+  ctx.drawImage(video, 0, 0, w, h);
   return canvas.toDataURL("image/jpeg", quality);
 }
 
@@ -53,8 +45,11 @@ function ehHoje(iso: string): boolean {
 export function PontoPage() {
   const { session } = useOperadorSession();
   const navigate = useNavigate();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [nome, setNome] = useState("");
   const [fotoDataUrl, setFotoDataUrl] = useState("");
+  const [cameraAberta, setCameraAberta] = useState(false);
   const [msg, setMsg] = useState("");
   const [okMsg, setOkMsg] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -65,6 +60,62 @@ export function PontoPage() {
   );
 
   const prefeituraId = session?.idCliente ?? "";
+
+  const pararCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCameraAberta(false);
+  }, []);
+
+  const abrirCamera = useCallback(async () => {
+    setMsg("");
+    try {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "user" } },
+          audio: false,
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
+      streamRef.current = stream;
+      setCameraAberta(true);
+    } catch (e) {
+      const negado = e instanceof DOMException && e.name === "NotAllowedError";
+      setMsg(
+        negado
+          ? "Permissão da câmera negada. Libere o acesso para bater o ponto."
+          : "Não foi possível abrir a câmera neste dispositivo.",
+      );
+    }
+  }, []);
+
+  // Conecta o stream ao <video> quando a câmera abre.
+  useEffect(() => {
+    if (cameraAberta && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      void videoRef.current.play().catch(() => {});
+    }
+  }, [cameraAberta]);
+
+  // Garante que a câmera é desligada ao sair da tela.
+  useEffect(() => () => pararCamera(), [pararCamera]);
+
+  const capturar = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const url = capturarDoVideo(v);
+    if (!url) {
+      setMsg("Não consegui capturar a imagem. Tente de novo.");
+      return;
+    }
+    setFotoDataUrl(url);
+    pararCamera();
+  }, [pararCamera]);
 
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
@@ -80,17 +131,6 @@ export function PontoPage() {
     void carregar();
   }, [carregar]);
 
-  async function onFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setMsg("");
-    try {
-      setFotoDataUrl(await fileParaDataUrlReduzido(file));
-    } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Falha ao processar a foto.");
-    }
-  }
-
   async function baterPonto() {
     setMsg("");
     setOkMsg("");
@@ -99,7 +139,7 @@ export function PontoPage() {
       return;
     }
     if (!fotoDataUrl) {
-      setMsg("Tire a foto antes de bater o ponto.");
+      setMsg("Capture a foto antes de bater o ponto.");
       return;
     }
     setSalvando(true);
@@ -173,8 +213,10 @@ export function PontoPage() {
         />
 
         <div className="ponto-foto">
-          {fotoDataUrl ? (
-            <img src={fotoDataUrl} alt="Pré-visualização da selfie" />
+          {cameraAberta ? (
+            <video ref={videoRef} autoPlay playsInline muted />
+          ) : fotoDataUrl ? (
+            <img src={fotoDataUrl} alt="Selfie capturada" />
           ) : (
             <div className="ponto-foto__vazio" aria-hidden="true">
               📷
@@ -182,23 +224,38 @@ export function PontoPage() {
           )}
         </div>
 
-        <label className="ponto-btn ponto-btn--secundario" htmlFor="ponto-cam">
-          {fotoDataUrl ? "Tirar outra foto" : "Tirar foto"}
-          <input
-            id="ponto-cam"
-            type="file"
-            accept="image/*"
-            capture="user"
-            onChange={(e) => void onFoto(e)}
-            hidden
-          />
-        </label>
+        {cameraAberta ? (
+          <div className="ponto-cam-acoes">
+            <button
+              type="button"
+              className="ponto-btn ponto-btn--primary"
+              onClick={capturar}
+            >
+              Capturar
+            </button>
+            <button
+              type="button"
+              className="ponto-btn ponto-btn--secundario"
+              onClick={pararCamera}
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="ponto-btn ponto-btn--secundario"
+            onClick={() => void abrirCamera()}
+          >
+            {fotoDataUrl ? "Tirar outra foto" : "Abrir câmera"}
+          </button>
+        )}
 
         <button
           type="button"
           className="ponto-btn ponto-btn--primary"
           onClick={() => void baterPonto()}
-          disabled={salvando}
+          disabled={salvando || cameraAberta}
         >
           {salvando ? "Registrando…" : "Bater ponto"}
         </button>
