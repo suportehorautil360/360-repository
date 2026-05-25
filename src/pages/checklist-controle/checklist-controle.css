@@ -535,6 +535,10 @@
 .hu360-sidebar--brand {
   width: 240px;
   flex-shrink: 0;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
   background: linear-gradient(180deg, #0f1a32 0%, #0a1224 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   padding: 24px 0 32px;
@@ -957,7 +961,9 @@
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
+    position: static;
     width: 100%;
+    height: auto;
     padding: 16px 12px 20px;
   }
 
