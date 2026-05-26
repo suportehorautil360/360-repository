@@ -83,6 +83,12 @@ export const ADMIN_NAV: SidebarGroup[] = [
       { label: "Cadastro de clientes", to: "/admin/cadastros", icon: "🗂️" },
       { label: "Acessos e logins", to: "/admin/usuarios", icon: "🔐" },
       {
+        label: "Funcionalidades",
+        to: "/admin/funcionalidades",
+        icon: "🎛️",
+        id: "nav-hub-funcionalidades",
+      },
+      {
         label: "Equipamentos locação",
         to: "/admin/equipamentos-locacao",
         icon: "🚜",

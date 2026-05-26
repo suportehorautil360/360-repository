@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useOperadorSession } from "./useOperadorSession";
 import { baterComFila } from "../../lib/api/pontos-fila";
+import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { jaBateuHoje, marcarBatidaHoje } from "./ponto-dia";
 import { usePontoSync } from "./usePontoSync";
 import { CameraSelfie } from "./CameraSelfie";
@@ -35,6 +36,8 @@ export function PontoPage() {
   );
 
   const prefeituraId = session?.idCliente ?? "";
+  const { ativo: pontoAtivo, carregando: flagCarregando } =
+    usePontoAtivo(prefeituraId);
 
   async function baterEntrada() {
     if (!nome.trim()) {
@@ -80,6 +83,20 @@ export function PontoPage() {
           </p>
           <Link className="ponto-btn ponto-btn--primary" to="/checklist-login">
             Ir para o login do checklist
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!flagCarregando && !pontoAtivo) {
+    return (
+      <div className="ponto-page">
+        <div className="ponto-card ponto-vazio">
+          <h1>Ponto indisponível</h1>
+          <p>O registro de ponto não está ativo para esta prefeitura.</p>
+          <Link className="ponto-btn ponto-btn--primary" to="/checklist-controle">
+            Voltar ao checklist
           </Link>
         </div>
       </div>

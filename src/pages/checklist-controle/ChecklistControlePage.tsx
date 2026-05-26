@@ -21,6 +21,7 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { PontosFolha } from "./PontosFolha";
 import {
@@ -340,7 +341,9 @@ function Hu360NavIcon({
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
   const { canInstall, installApp } = usePwaInstallPrompt();
+  const { ativo: pontoAtivo } = usePontoAtivo(session?.idCliente);
   const [aba, setAba] = useState<Aba>("dashboard");
+  const abasVisiveis = ABAS.filter((a) => a.id !== "pontos" || pontoAtivo);
 
   // Auto-preenche GPS quando o operador abre a aba de emergência
   useEffect(() => {
@@ -1587,7 +1590,7 @@ export function ChecklistControlePage() {
           </div>
         </div>
         <nav className="hu360-nav" aria-label="Menu principal">
-          {ABAS.map((t) => (
+          {abasVisiveis.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -1615,9 +1618,11 @@ export function ChecklistControlePage() {
             <Link to="/" className="hu360-app-head__link">
               Portal inicial
             </Link>
-            <Link to="/ponto" className="hu360-app-head__link">
-              Bater ponto
-            </Link>
+            {pontoAtivo && (
+              <Link to="/ponto" className="hu360-app-head__link">
+                Bater ponto
+              </Link>
+            )}
             {canInstall ? (
               <button
                 type="button"

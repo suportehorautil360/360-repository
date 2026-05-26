@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useLogin } from "./pages/login/hooks/use-login";
 import { useOperadorSession } from "./pages/checklist-controle/useOperadorSession";
 import { jaBateuHoje } from "./pages/checklist-controle/ponto-dia";
+import { usePontoAtivo } from "./lib/api/feature-flags";
 import { RouteErrorBoundary } from "./components/ErrorBoundary/RouteErrorBoundary";
 
 // Páginas carregadas sob demanda (cada rota vira um chunk próprio).
@@ -48,6 +49,11 @@ const EquipamentosLocacaoSection = lazy(() =>
 const FrotaSection = lazy(() =>
   import("./pages/admin/sections/FrotaSection").then((m) => ({
     default: m.FrotaSection,
+  })),
+);
+const FuncionalidadesSection = lazy(() =>
+  import("./pages/admin/sections/FuncionalidadesSection").then((m) => ({
+    default: m.FuncionalidadesSection,
   })),
 );
 const AdminPortalOficinaPage = lazy(() =>
@@ -157,10 +163,12 @@ function RootRoute() {
  */
 function RequirePonto({ children }: { children: ReactNode }) {
   const { session } = useOperadorSession();
+  const { ativo, carregando } = usePontoAtivo(session?.idCliente);
 
-  if (session && !jaBateuHoje(session)) {
-    return <Navigate to="/ponto" replace />;
-  }
+  // Sem ponto ativo (ou ainda carregando a flag) não força o gate.
+  if (!session || !ativo) return <>{children}</>;
+  if (carregando) return <RouteFallback />;
+  if (!jaBateuHoje(session)) return <Navigate to="/ponto" replace />;
 
   return <>{children}</>;
 }
@@ -176,6 +184,10 @@ export function AppRoutes() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />
             <Route path="frota" element={<FrotaSection />} />
+            <Route
+              path="funcionalidades"
+              element={<FuncionalidadesSection />}
+            />
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />

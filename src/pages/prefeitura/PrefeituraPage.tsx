@@ -14,6 +14,7 @@ import { PontosRhSection } from "./sections/PontosRhSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
+import { usePontoAtivo } from "../../lib/api/feature-flags";
 
 type PrefAba =
   | "dash"
@@ -82,6 +83,9 @@ export function PrefeituraPage() {
       navigate(`/prefeitura/${user.prefeituraId}`, { replace: true });
     }
   }, [user, idParam, navigate]);
+
+  const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
+  const abasVisiveis = ABAS.filter((a) => a.id !== "pontos-rh" || pontoAtivo);
 
   const dados = useMemo(
     () => (prefeituraId ? obterDadosPrefeitura(prefeituraId) : null),
@@ -240,7 +244,7 @@ export function PrefeituraPage() {
             </p>
           </div>
 
-          {ABAS.map((a) => (
+          {abasVisiveis.map((a) => (
             <button
               key={a.id}
               type="button"
