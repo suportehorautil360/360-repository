@@ -10,6 +10,7 @@ import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
+import { PontosRhSection } from "./sections/PontosRhSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
@@ -24,6 +25,7 @@ type PrefAba =
   | "orcamentos-pref"
   | "finalizar-os"
   | "abastecimento"
+  | "pontos-rh"
   | "emergencia";
 
 const ABAS: { id: PrefAba; label: string }[] = [
@@ -36,6 +38,7 @@ const ABAS: { id: PrefAba; label: string }[] = [
   { id: "orcamentos-pref", label: "📑 Orçamentos & Aprovação" },
   { id: "finalizar-os", label: "✅ Checklist, NF & Pagamento" },
   { id: "abastecimento", label: "⛽ Abastecimento & postos" },
+  { id: "pontos-rh", label: "🕐 Pontos (RH)" },
   { id: "emergencia", label: "🚨 Emergência" },
 ];
 
@@ -377,6 +380,13 @@ export function PrefeituraPage() {
             className={`tab-content ${aba === "abastecimento" ? "active" : ""}`}
           >
             <AbastecimentoSection dados={dados} prefeituraId={prefeituraId} />
+          </div>
+
+          <div
+            id="pontos-rh"
+            className={`tab-content ${aba === "pontos-rh" ? "active" : ""}`}
+          >
+            <PontosRhSection prefeituraId={prefeituraId} />
           </div>
 
           <div
