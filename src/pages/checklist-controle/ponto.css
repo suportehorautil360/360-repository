@@ -212,3 +212,41 @@
   flex-direction: column;
   gap: 10px;
 }
+
+/*
+ * A folha é embutida no checklist (tema claro). Os estilos base de .ponto-*
+ * assumem fundo escuro (tela /ponto), então aqui garantimos contraste legível
+ * dentro da aba — sem afetar o gate escuro.
+ */
+.ponto-folha .ponto-label {
+  color: #475569;
+}
+.ponto-folha .ponto-input {
+  color: #0f172a;
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-foto {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  max-height: 320px;
+}
+.ponto-folha .ponto-btn--secundario {
+  background: #e2e8f0;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-slot {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-slot__label,
+.ponto-folha .ponto-slot__valor strong {
+  color: #0f172a;
+}
+.ponto-folha__msg {
+  color: #475569;
+}
+.ponto-folha .ponto-msg--err {
+  color: #b91c1c;
+}
