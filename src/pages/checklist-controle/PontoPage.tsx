@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useOperadorSession } from "./useOperadorSession";
 import { baterComFila } from "../../lib/api/pontos-fila";
 import { jaBateuHoje, marcarBatidaHoje } from "./ponto-dia";
@@ -25,7 +26,6 @@ export function PontoPage() {
   const { pendentes, atualizar } = usePontoSync();
   const [nome, setNome] = useState("");
   const [fotoDataUrl, setFotoDataUrl] = useState("");
-  const [msg, setMsg] = useState("");
   const [recibo, setRecibo] = useState<{ hora: string; offline: boolean } | null>(
     null,
   );
@@ -37,13 +37,12 @@ export function PontoPage() {
   const prefeituraId = session?.idCliente ?? "";
 
   async function baterEntrada() {
-    setMsg("");
     if (!nome.trim()) {
-      setMsg("Informe seu nome.");
+      toast.error("Informe seu nome.");
       return;
     }
     if (!fotoDataUrl) {
-      setMsg("Capture a foto antes de bater o ponto.");
+      toast.error("Capture a foto antes de bater o ponto.");
       return;
     }
     setSalvando(true);
@@ -65,7 +64,7 @@ export function PontoPage() {
       setRecibo({ hora: horaDe(hora.toISOString()), offline: !r.sincronizado });
       setFotoDataUrl("");
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Erro ao registrar o ponto.");
+      toast.error(err instanceof Error ? err.message : "Erro ao registrar o ponto.");
     } finally {
       setSalvando(false);
     }
@@ -147,8 +146,6 @@ export function PontoPage() {
             >
               {salvando ? "Registrando…" : "Bater entrada"}
             </button>
-
-            {msg && <p className="ponto-msg ponto-msg--err">{msg}</p>}
           </>
         )}
       </div>

@@ -6,6 +6,7 @@ import {
   type StatusPonto,
   type TipoPonto,
 } from "./ponto-api";
+import { toast } from "sonner";
 import { CameraSelfie } from "./CameraSelfie";
 import { RelogioAoVivo } from "./RelogioAoVivo";
 import { baterComFila } from "../../lib/api/pontos-fila";
@@ -55,8 +56,6 @@ export function PontosFolha({
   const { pendentes: pendentesSync, atualizar: atualizarSync } = usePontoSync();
   const [batidas, setBatidas] = useState<PontoRegistro[]>([]);
   const [nome, setNome] = useState(nomePadrao);
-  const [msg, setMsg] = useState("");
-  const [recibo, setRecibo] = useState("");
   const [carregando, setCarregando] = useState(true);
 
   // Fluxo de bater: tipo em andamento + foto capturada.
@@ -79,7 +78,7 @@ export function PontosFolha({
       const entrada = doDia.find((p) => p.tipo === "entrada");
       if (entrada?.name) setNome((n) => n || entrada.name);
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Não foi possível carregar.");
+      toast.error(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
       setCarregando(false);
     }
@@ -97,7 +96,6 @@ export function PontosFolha({
   }, [batidas]);
 
   function iniciarBater(tipo: TipoPonto) {
-    setMsg("");
     setFoto("");
     setEditandoId(null);
     setBatendo(tipo);
@@ -107,11 +105,11 @@ export function PontosFolha({
     if (!batendo) return;
     const label = TIPOS_PONTO.find((t) => t.tipo === batendo)?.label ?? "Batida";
     if (!nome.trim()) {
-      setMsg("Informe seu nome.");
+      toast.error("Informe seu nome.");
       return;
     }
     if (!foto) {
-      setMsg("Capture a selfie antes de confirmar.");
+      toast.error("Capture a selfie antes de confirmar.");
       return;
     }
     setSalvando(true);
@@ -127,21 +125,20 @@ export function PontosFolha({
       setBatendo(null);
       setFoto("");
       atualizarSync();
-      setRecibo(
-        r.sincronizado
-          ? `${label} registrada às ${horaDe(agora.toISOString())}.`
-          : `${label} registrada offline — sincroniza ao reconectar.`,
-      );
+      if (r.sincronizado) {
+        toast.success(`${label} registrada às ${horaDe(agora.toISOString())}.`);
+      } else {
+        toast.warning(`${label} registrada offline — sincroniza ao reconectar.`);
+      }
       await carregar();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Erro ao registrar a batida.");
+      toast.error(e instanceof Error ? e.message : "Erro ao registrar a batida.");
     } finally {
       setSalvando(false);
     }
   }
 
   function iniciarEdicao(reg: PontoRegistro) {
-    setMsg("");
     setBatendo(null);
     setEditandoId(reg.id);
     setNovaHora(
@@ -163,7 +160,7 @@ export function PontosFolha({
       setEditandoId(null);
       await carregar();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "Erro ao editar o horário.");
+      toast.error(e instanceof Error ? e.message : "Erro ao editar o horário.");
     } finally {
       setSalvando(false);
     }
@@ -188,12 +185,6 @@ export function PontosFolha({
         value={nome}
         onChange={(e) => setNome(e.target.value)}
       />
-
-      {recibo && (
-        <p className="ponto-recibo-banner">
-          <span aria-hidden="true">✓</span> {recibo}
-        </p>
-      )}
 
       {pendentesSync > 0 && (
         <p className="ponto-pendentes">
@@ -297,8 +288,6 @@ export function PontosFolha({
           );
         })}
       </ul>
-
-      {msg && <p className="ponto-folha__msg">{msg}</p>}
     </div>
   );
 }
