@@ -41,16 +41,18 @@ type Aba =
 
 type ItemChecklist = (typeof seedData.itens_checklist)[number];
 
-/** Resposta por item: «Não» exige foto ao vivo + descrição do problema. */
+/** Resposta por item: «Não» exige foto ao vivo + descrição do problema; N/A não entra no cálculo. */
 type ChecklistAnswerValue =
   | { v: "sim" }
-  | { v: "nao"; foto: string; problema: string };
+  | { v: "nao"; foto: string; problema: string }
+  | { v: "na" };
 
 function checklistRespostaCompleta(
   a: ChecklistAnswerValue | undefined,
 ): boolean {
   if (!a) return false;
   if (a.v === "sim") return true;
+  if (a.v === "na") return true;
   return Boolean(a.foto.startsWith("data:image") && a.problema.trim());
 }
 
@@ -326,11 +328,15 @@ function parseRespostasChecklist(row: Record<string, unknown>): {
       let sim = 0;
       let total = 0;
       for (const val of Object.values(o)) {
-        total += 1;
         if (val === "sim") {
+          total += 1;
           sim += 1;
+        } else if (val === "nao") {
+          total += 1;
         } else if (val && typeof val === "object" && "v" in val) {
           const vv = (val as { v?: string }).v;
+          if (vv === "na") continue;
+          total += 1;
           if (vv === "sim") sim += 1;
         }
       }
@@ -371,7 +377,10 @@ function firestoreDocToHistRow(
     Modelo: data.modelo ?? "",
     Linha: data.linha ?? "",
     Item_Verificado: `Checklist ${data.totalItens ?? "?"} itens`,
-    Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
+    Status_Ok_Nao:
+      typeof data.totalNa === "number" && data.totalNa > 0
+        ? `${data.totalSim ?? 0}/${data.totalAplicaveis ?? data.totalItens ?? 0} OK · ${data.totalNa} N/A`
+        : `${data.totalSim ?? 0}/${data.totalAplicaveis ?? data.totalItens ?? 0} OK`,
     Respostas_JSON: respostasJson,
     Horimetro_Final: data.horimetro ?? "",
     Assinatura_Operador: data.assinaturaOperador ?? "",
@@ -495,7 +504,9 @@ export function ChecklistControlePage() {
     text: string;
   }>({ tone: "ok", text: "" });
 
-  const [chassisChecklistDraft, setChassisChecklistDraft] = useState("");
+  const [chassisChecklistDraft, setChassisChecklistDraft] = useState(
+    () => session?.chassis ?? "",
+  );
   const [chassisChecklistAtivo, setChassisChecklistAtivo] = useState("");
   const [equipamentoAtual, setEquipamentoAtual] =
     useState<EquipFirestore | null>(null);
@@ -1104,8 +1115,11 @@ export function ChecklistControlePage() {
   useEffect(() => {
     if (!session?.idMaquina) return;
     const m = seedData.cadastro_frota.find((x) => x.ID === session.idMaquina);
-    if (m?.Chassis != null) setChassisChecklistDraft(String(m.Chassis));
-  }, [session?.idMaquina]);
+    const chassisSessao = session.chassis?.trim();
+    const chassisCadastro = m?.Chassis != null ? String(m.Chassis) : "";
+    const chassisInicial = chassisSessao || chassisCadastro;
+    if (chassisInicial) setChassisChecklistDraft(chassisInicial);
+  }, [session?.chassis, session?.idMaquina]);
 
   useEffect(() => {
     const canvas = assinaturaCanvasRef.current;
@@ -1218,7 +1232,9 @@ export function ChecklistControlePage() {
 
     const saved = setSession(sess);
     const m0 = seedData.cadastro_frota.find((x) => x.ID === sess.idMaquina);
-    setChassisChecklistDraft(m0?.Chassis != null ? String(m0.Chassis) : "");
+    setChassisChecklistDraft(
+      sess.chassis ?? (m0?.Chassis != null ? String(m0.Chassis) : ""),
+    );
     setChassisChecklistAtivo("");
     setAnswers({});
     setNomeOperadorChecklist("");
@@ -1325,10 +1341,15 @@ export function ChecklistControlePage() {
   }
 
   const setAnswer = useCallback(
-    (numKey: string, v: "sim" | "nao") => {
+    (numKey: string, v: "sim" | "nao" | "na") => {
       if (v === "sim") {
         if (itemNaoCameraKey === numKey) stopItemNaoCamera();
         setAnswers((prev) => ({ ...prev, [numKey]: { v: "sim" } }));
+        return;
+      }
+      if (v === "na") {
+        if (itemNaoCameraKey === numKey) stopItemNaoCamera();
+        setAnswers((prev) => ({ ...prev, [numKey]: { v: "na" } }));
         return;
       }
       stopItemNaoCamera();
@@ -1381,13 +1402,16 @@ export function ChecklistControlePage() {
         );
       } else {
         setCheckMsg(
-          `Responda Sim/Não em todos os itens (pendente: ${incompleto}).`,
+          `Responda Sim/Não/N/A em todos os itens (pendente: ${incompleto}).`,
         );
       }
       return;
     }
 
     const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
+    const numNa = keys.filter((k) => answers[k]?.v === "na").length;
+    const totalAplicaveis = keys.length - numNa;
+    const numNao = keys.filter((k) => answers[k]?.v === "nao").length;
     const pontos = numSim * 2;
     const itensNao = itensFiltrados
       .filter((it) => answers[String(it["Nº"])]?.v === "nao")
@@ -1419,7 +1443,10 @@ export function ChecklistControlePage() {
       Modelo: equipamentoAtual.label,
       Linha: equipamentoAtual.linha,
       Item_Verificado: `Checklist ${itensFiltrados.length} itens`,
-      Status_Ok_Nao: `${numSim}/${keys.length} OK`,
+      Status_Ok_Nao:
+        numNa > 0
+          ? `${numSim}/${totalAplicaveis} OK · ${numNa} N/A`
+          : `${numSim}/${totalAplicaveis} OK`,
       Respostas_JSON: JSON.stringify(answers),
       Horimetro_Final: horimetro.trim(),
       Foto_Horimetro: fotoHorimetroDataUrl,
@@ -1454,8 +1481,10 @@ export function ChecklistControlePage() {
         fotoHorimetro: fotoHorimetroDataUrl,
         assinaturaOperador: assinaturaDataUrl,
         totalItens: keys.length,
+        totalAplicaveis,
         totalSim: numSim,
-        totalNao: keys.length - numSim,
+        totalNao: numNao,
+        totalNa: numNa,
         itensNao,
         pontuacao: pontos,
         respostas: answers,
@@ -2145,6 +2174,7 @@ export function ChecklistControlePage() {
                       const bloq = !checklistItensLiberados;
                       const isSim = cur?.v === "sim";
                       const isNao = cur?.v === "nao";
+                      const isNa = cur?.v === "na";
                       return (
                         <div key={key} className="hu360-check-block">
                           <div className="hu360-check-row">
@@ -2176,6 +2206,14 @@ export function ChecklistControlePage() {
                                 onClick={() => setAnswer(key, "nao")}
                               >
                                 Não
+                              </button>
+                              <button
+                                type="button"
+                                className={isNa ? "active-na" : ""}
+                                disabled={bloq}
+                                onClick={() => setAnswer(key, "na")}
+                              >
+                                N/A
                               </button>
                             </div>
                           </div>

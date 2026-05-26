@@ -32,14 +32,22 @@ export function sortChavesRespostasChecklist(keys: string[]): string[] {
 /** Interpreta valor salvo em Respostas_JSON (legado ou objeto). */
 export function parseRespostaChecklistItemUi(val: unknown): {
   ok: boolean;
+  na: boolean;
+  label: "Sim" | "Não" | "N/A";
+  tone: "sim" | "nao" | "na";
   problema?: string;
   fotoProblema?: string;
 } {
-  if (val === "sim") return { ok: true };
-  if (val === "nao") return { ok: false };
+  if (val === "sim") return { ok: true, na: false, label: "Sim", tone: "sim" };
+  if (val === "nao")
+    return { ok: false, na: false, label: "Não", tone: "nao" };
+  if (val === "na") return { ok: false, na: true, label: "N/A", tone: "na" };
   if (val && typeof val === "object" && "v" in val) {
     const o = val as { v?: string; foto?: string; problema?: string };
-    if (o.v === "sim") return { ok: true };
+    if (o.v === "sim")
+      return { ok: true, na: false, label: "Sim", tone: "sim" };
+    if (o.v === "na")
+      return { ok: false, na: true, label: "N/A", tone: "na" };
     if (o.v === "nao") {
       const foto =
         typeof o.foto === "string" && o.foto.startsWith("data:image")
@@ -47,12 +55,15 @@ export function parseRespostaChecklistItemUi(val: unknown): {
           : undefined;
       return {
         ok: false,
+        na: false,
+        label: "Não",
+        tone: "nao",
         problema: typeof o.problema === "string" ? o.problema : "",
         fotoProblema: foto,
       };
     }
   }
-  return { ok: false };
+  return { ok: false, na: false, label: "Não", tone: "nao" };
 }
 
 function readItemLabels(
@@ -201,7 +212,10 @@ function construirChecklistPdf(
   const totalSim = entradas.filter(
     ([, val]) => parseRespostaChecklistItemUi(val).ok,
   ).length;
-  const totalNao = entradas.length - totalSim;
+  const totalNa = entradas.filter(
+    ([, val]) => parseRespostaChecklistItemUi(val).na,
+  ).length;
+  const totalNao = entradas.length - totalSim - totalNa;
 
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(left, y, maxWidth, 23, 2, 2, "F");
@@ -225,6 +239,8 @@ function construirChecklistPdf(
   doc.text(`Sim: ${totalSim}`, left + 3, y);
   doc.setTextColor(153, 27, 27);
   doc.text(`Nao: ${totalNao}`, left + 28, y);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`N/A: ${totalNa}`, left + 54, y);
   y += 10;
 
   sectionTitle("Dados do equipamento");
@@ -258,30 +274,36 @@ function construirChecklistPdf(
       u.fotoProblema && u.fotoProblema.startsWith("data:image"),
     );
     const hasProblema = Boolean(problemaTexto);
-    const itemHeight = u.ok ? 10 : 12;
+    const itemHeight = u.ok || u.na ? 10 : 12;
     ensureSpace(itemHeight);
-    doc.setFillColor(u.ok ? 236 : 254, u.ok ? 253 : 242, u.ok ? 245 : 242);
+    if (u.ok) doc.setFillColor(236, 253, 245);
+    else if (u.na) doc.setFillColor(241, 245, 249);
+    else doc.setFillColor(254, 242, 242);
     doc.roundedRect(left, y - 3.8, maxWidth, itemHeight, 1.6, 1.6, "F");
-    doc.setFillColor(u.ok ? 34 : 220, u.ok ? 197 : 38, u.ok ? 94 : 38);
+    if (u.ok) doc.setFillColor(34, 197, 94);
+    else if (u.na) doc.setFillColor(100, 116, 139);
+    else doc.setFillColor(220, 38, 38);
     doc.rect(left, y - 3.8, 2.2, itemHeight, "F");
     doc.setTextColor(...cTitle);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9.4);
-    const tag = u.ok ? "SIM" : "NAO";
+    const tag = u.label.toUpperCase();
     const head = `[${k}] ${lbl}`;
     const headLines = doc.splitTextToSize(head, maxWidth - 18) as string[];
     doc.text(headLines[0] ?? head, left + 4, y + 0.4);
-    doc.setTextColor(u.ok ? 22 : 153, u.ok ? 101 : 27, u.ok ? 52 : 27);
+    if (u.ok) doc.setTextColor(22, 101, 52);
+    else if (u.na) doc.setTextColor(71, 85, 105);
+    else doc.setTextColor(153, 27, 27);
     doc.text(tag, left + maxWidth - 13, y + 0.4);
     y += 5;
 
-    if (!u.ok && hasFoto && u.fotoProblema) {
+    if (!u.ok && !u.na && hasFoto && u.fotoProblema) {
       ensureSpace(3);
       y += 1;
       addImage(u.fotoProblema, 78, 50);
     }
 
-    if (!u.ok && hasProblema) {
+    if (!u.ok && !u.na && hasProblema) {
       doc.setTextColor(...cText);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
@@ -427,7 +449,10 @@ export function gerarChecklistPdf(
     const totalSim = entradas.filter(
       ([, val]) => parseRespostaChecklistItemUi(val).ok,
     ).length;
-    const totalNao = entradas.length - totalSim;
+    const totalNa = entradas.filter(
+      ([, val]) => parseRespostaChecklistItemUi(val).na,
+    ).length;
+    const totalNao = entradas.length - totalSim - totalNa;
 
     doc.setFillColor(248, 250, 252);
     doc.roundedRect(left, y, maxWidth, 23, 2, 2, "F");
@@ -451,6 +476,8 @@ export function gerarChecklistPdf(
     doc.text(`Sim: ${totalSim}`, left + 3, y);
     doc.setTextColor(153, 27, 27);
     doc.text(`Nao: ${totalNao}`, left + 28, y);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`N/A: ${totalNa}`, left + 54, y);
     y += 10;
 
     sectionTitle("Dados do equipamento");
@@ -486,30 +513,36 @@ export function gerarChecklistPdf(
         u.fotoProblema && u.fotoProblema.startsWith("data:image"),
       );
       const hasProblema = Boolean(problemaTexto);
-      const itemHeight = u.ok ? 10 : 12;
+      const itemHeight = u.ok || u.na ? 10 : 12;
       ensureSpace(itemHeight);
-      doc.setFillColor(u.ok ? 236 : 254, u.ok ? 253 : 242, u.ok ? 245 : 242);
+      if (u.ok) doc.setFillColor(236, 253, 245);
+      else if (u.na) doc.setFillColor(241, 245, 249);
+      else doc.setFillColor(254, 242, 242);
       doc.roundedRect(left, y - 3.8, maxWidth, itemHeight, 1.6, 1.6, "F");
-      doc.setFillColor(u.ok ? 34 : 220, u.ok ? 197 : 38, u.ok ? 94 : 38);
+      if (u.ok) doc.setFillColor(34, 197, 94);
+      else if (u.na) doc.setFillColor(100, 116, 139);
+      else doc.setFillColor(220, 38, 38);
       doc.rect(left, y - 3.8, 2.2, itemHeight, "F");
       doc.setTextColor(...cTitle);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9.4);
-      const tag = u.ok ? "SIM" : "NAO";
+      const tag = u.label.toUpperCase();
       const head = `[${k}] ${lbl}`;
       const headLines = doc.splitTextToSize(head, maxWidth - 18) as string[];
       doc.text(headLines[0] ?? head, left + 4, y + 0.4);
-      doc.setTextColor(u.ok ? 22 : 153, u.ok ? 101 : 27, u.ok ? 52 : 27);
+      if (u.ok) doc.setTextColor(22, 101, 52);
+      else if (u.na) doc.setTextColor(71, 85, 105);
+      else doc.setTextColor(153, 27, 27);
       doc.text(tag, left + maxWidth - 13, y + 0.4);
       y += 5;
 
-      if (!u.ok && hasFoto && u.fotoProblema) {
+      if (!u.ok && !u.na && hasFoto && u.fotoProblema) {
         ensureSpace(3);
         y += 1;
         addImage(u.fotoProblema, 78, 50);
       }
 
-      if (!u.ok && hasProblema) {
+      if (!u.ok && !u.na && hasProblema) {
         doc.setTextColor(...cText);
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
@@ -758,7 +791,7 @@ export function ListaChecklistHistoricoLocal({
                     return (
                       <li
                         key={k}
-                        className={`hu360-dash-chk-itens__li ${u.ok ? "is-sim" : "is-nao"}`}
+                        className={`hu360-dash-chk-itens__li is-${u.tone}`}
                       >
                         <div className="hu360-dash-chk-itens__top">
                           <span className="hu360-dash-chk-itens__n">{k}</span>
@@ -766,12 +799,14 @@ export function ListaChecklistHistoricoLocal({
                             {lbl}
                           </span>
                           <span
-                            className={`hu360-dash-chk-itens__tag ${u.ok ? "is-sim" : "is-nao"}`}
+                            className={`hu360-dash-chk-itens__tag is-${u.tone}`}
                           >
-                            {u.ok ? "Sim" : "Não"}
+                            {u.label}
                           </span>
                         </div>
-                        {!u.ok && (u.problema?.trim() || u.fotoProblema) ? (
+                        {!u.ok &&
+                        !u.na &&
+                        (u.problema?.trim() || u.fotoProblema) ? (
                           <div className="hu360-dash-chk-itens__nao">
                             {u.fotoProblema ? (
                               <img
