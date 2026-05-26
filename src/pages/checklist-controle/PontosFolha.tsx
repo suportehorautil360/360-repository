@@ -7,6 +7,8 @@ import {
   type TipoPonto,
 } from "./ponto-api";
 import { CameraSelfie } from "./CameraSelfie";
+import { baterComFila } from "../../lib/api/pontos-fila";
+import { usePontoSync } from "./usePontoSync";
 import "./ponto.css";
 
 const STATUS_LABEL: Record<StatusPonto, string> = {
@@ -49,6 +51,7 @@ export function PontosFolha({
   prefeituraId: string;
   nomePadrao: string;
 }) {
+  const { pendentes: pendentesSync, atualizar: atualizarSync } = usePontoSync();
   const [batidas, setBatidas] = useState<PontoRegistro[]>([]);
   const [nome, setNome] = useState(nomePadrao);
   const [msg, setMsg] = useState("");
@@ -111,17 +114,23 @@ export function PontosFolha({
       return;
     }
     setSalvando(true);
+    const agora = new Date();
     try {
-      const reg = await pontoApi.bater({
+      const r = await baterComFila({
         name: nome.trim(),
         photo: foto,
         prefeituraId,
-        timestampOriginal: new Date().toISOString(),
+        timestampOriginal: agora.toISOString(),
         tipo: batendo,
       });
       setBatendo(null);
       setFoto("");
-      setRecibo(`${label} registrada às ${horaDe(reg.timestampOriginal)}.`);
+      atualizarSync();
+      setRecibo(
+        r.sincronizado
+          ? `${label} registrada às ${horaDe(agora.toISOString())}.`
+          : `${label} registrada offline — sincroniza ao reconectar.`,
+      );
       await carregar();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Erro ao registrar a batida.");
@@ -180,6 +189,12 @@ export function PontosFolha({
       {recibo && (
         <p className="ponto-recibo-banner">
           <span aria-hidden="true">✓</span> {recibo}
+        </p>
+      )}
+
+      {pendentesSync > 0 && (
+        <p className="ponto-pendentes">
+          {pendentesSync} batida(s) aguardando sincronização.
         </p>
       )}
 

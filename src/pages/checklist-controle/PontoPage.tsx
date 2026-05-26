@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useOperadorSession } from "./useOperadorSession";
-import { pontoApi } from "./ponto-api";
+import { baterComFila } from "../../lib/api/pontos-fila";
 import { jaBateuHoje, marcarBatidaHoje } from "./ponto-dia";
+import { usePontoSync } from "./usePontoSync";
 import { CameraSelfie } from "./CameraSelfie";
 import { RelogioAoVivo } from "./RelogioAoVivo";
 import "./ponto.css";
@@ -21,10 +22,13 @@ function horaDe(iso: string): string {
 export function PontoPage() {
   const { session } = useOperadorSession();
   const navigate = useNavigate();
+  const { pendentes, atualizar } = usePontoSync();
   const [nome, setNome] = useState("");
   const [fotoDataUrl, setFotoDataUrl] = useState("");
   const [msg, setMsg] = useState("");
-  const [recibo, setRecibo] = useState<string | null>(null);
+  const [recibo, setRecibo] = useState<{ hora: string; offline: boolean } | null>(
+    null,
+  );
   const [salvando, setSalvando] = useState(false);
   const [obrigatorio] = useState(() =>
     session ? !jaBateuHoje(session) : false,
@@ -43,20 +47,22 @@ export function PontoPage() {
       return;
     }
     setSalvando(true);
+    const hora = new Date();
     try {
-      const reg = await pontoApi.bater({
+      const r = await baterComFila({
         name: nome.trim(),
         photo: fotoDataUrl,
         prefeituraId,
-        timestampOriginal: new Date().toISOString(),
+        timestampOriginal: hora.toISOString(),
         tipo: "entrada",
       });
       if (session) marcarBatidaHoje(session);
+      atualizar();
       if (obrigatorio) {
         navigate("/checklist-controle", { replace: true });
         return;
       }
-      setRecibo(horaDe(reg.timestampOriginal));
+      setRecibo({ hora: horaDe(hora.toISOString()), offline: !r.sincronizado });
       setFotoDataUrl("");
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Erro ao registrar o ponto.");
@@ -93,10 +99,17 @@ export function PontoPage() {
           )}
         </header>
 
+        {pendentes > 0 && (
+          <p className="ponto-pendentes">
+            {pendentes} batida(s) aguardando sincronização.
+          </p>
+        )}
+
         {recibo ? (
           <PontoRecibo
-            hora={recibo}
+            hora={recibo.hora}
             label="Entrada"
+            offline={recibo.offline}
             onBaterOutra={() => {
               setRecibo(null);
               setNome("");
@@ -147,10 +160,12 @@ export function PontoPage() {
 export function PontoRecibo({
   hora,
   label,
+  offline = false,
   onBaterOutra,
 }: {
   hora: string;
   label: string;
+  offline?: boolean;
   onBaterOutra: () => void;
 }) {
   return (
@@ -161,7 +176,7 @@ export function PontoRecibo({
       <strong className="ponto-recibo__titulo">{label} registrada</strong>
       <span className="ponto-recibo__hora">{hora}</span>
       <span className="ponto-status ponto-status--pendente">
-        Aguardando aprovação
+        {offline ? "Offline — sincroniza ao reconectar" : "Aguardando aprovação"}
       </span>
       <button
         type="button"
