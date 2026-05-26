@@ -3,10 +3,21 @@ import {
   pontoApi,
   TIPOS_PONTO,
   type PontoRegistro,
+  type StatusPonto,
   type TipoPonto,
 } from "./ponto-api";
 import { CameraSelfie } from "./CameraSelfie";
 import "./ponto.css";
+
+const STATUS_LABEL: Record<StatusPonto, string> = {
+  pendente: "Pendente",
+  aprovado: "Aprovado",
+  reprovado: "Reprovado",
+};
+
+function statusDe(r: PontoRegistro): StatusPonto {
+  return r.status ?? "pendente";
+}
 
 function horaDe(iso: string): string {
   return new Date(iso).toLocaleTimeString("pt-BR", {
@@ -41,6 +52,7 @@ export function PontosFolha({
   const [batidas, setBatidas] = useState<PontoRegistro[]>([]);
   const [nome, setNome] = useState(nomePadrao);
   const [msg, setMsg] = useState("");
+  const [recibo, setRecibo] = useState("");
   const [carregando, setCarregando] = useState(true);
 
   // Fluxo de bater: tipo em andamento + foto capturada.
@@ -89,6 +101,7 @@ export function PontosFolha({
 
   async function confirmarBatida() {
     if (!batendo) return;
+    const label = TIPOS_PONTO.find((t) => t.tipo === batendo)?.label ?? "Batida";
     if (!nome.trim()) {
       setMsg("Informe seu nome.");
       return;
@@ -99,7 +112,7 @@ export function PontosFolha({
     }
     setSalvando(true);
     try {
-      await pontoApi.bater({
+      const reg = await pontoApi.bater({
         name: nome.trim(),
         photo: foto,
         prefeituraId,
@@ -108,6 +121,7 @@ export function PontosFolha({
       });
       setBatendo(null);
       setFoto("");
+      setRecibo(`${label} registrada às ${horaDe(reg.timestampOriginal)}.`);
       await carregar();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Erro ao registrar a batida.");
@@ -163,6 +177,12 @@ export function PontosFolha({
         onChange={(e) => setNome(e.target.value)}
       />
 
+      {recibo && (
+        <p className="ponto-recibo-banner">
+          <span aria-hidden="true">✓</span> {recibo}
+        </p>
+      )}
+
       <ul className="ponto-slots">
         {TIPOS_PONTO.map(({ tipo, label }) => {
           const reg = porTipo.get(tipo);
@@ -198,6 +218,11 @@ export function PontosFolha({
                 ) : reg ? (
                   <span className="ponto-slot__valor">
                     <strong>{horaDe(reg.timestampOriginal)}</strong>
+                    <span
+                      className={`ponto-status ponto-status--${statusDe(reg)}`}
+                    >
+                      {STATUS_LABEL[statusDe(reg)]}
+                    </span>
                     <button
                       type="button"
                       className="ponto-btn ponto-btn--secundario ponto-btn--sm"
@@ -216,6 +241,14 @@ export function PontosFolha({
                   </button>
                 )}
               </div>
+
+              {reg &&
+                statusDe(reg) === "reprovado" &&
+                reg.motivoReprovacao && (
+                  <span className="ponto-slot__motivo">
+                    Reprovado: {reg.motivoReprovacao}
+                  </span>
+                )}
 
               {batendo === tipo && (
                 <div className="ponto-slot__bater">

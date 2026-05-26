@@ -152,6 +152,99 @@
   gap: 16px;
 }
 
+/* Relógio grande ao vivo (gate, tema escuro) */
+.ponto-relogio {
+  width: 184px;
+  height: 184px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  margin: 8px auto 6px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e8ecf6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Recibo de confirmação (gate) */
+.ponto-recibo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 12px;
+  text-align: center;
+}
+.ponto-recibo__check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.ponto-recibo__titulo {
+  font-size: 1.1rem;
+}
+.ponto-recibo__hora {
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chip de status (base = tema escuro) */
+.ponto-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ponto-status--pendente {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.16);
+}
+.ponto-status--aprovado {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+.ponto-status--reprovado {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+/* Variantes claras dentro da folha (aba no checklist claro) */
+.ponto-folha .ponto-status--pendente {
+  color: #92702a;
+  background: #fef3c7;
+}
+.ponto-folha .ponto-status--aprovado {
+  color: #166534;
+  background: #dcfce7;
+}
+.ponto-folha .ponto-status--reprovado {
+  color: #991b1b;
+  background: #fee2e2;
+}
+.ponto-folha .ponto-slot__motivo {
+  color: #b91c1c;
+  font-size: 0.82rem;
+}
+.ponto-recibo-banner {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 /* Folha de ponto (aba do operador) */
 .ponto-folha {
   max-width: 520px;

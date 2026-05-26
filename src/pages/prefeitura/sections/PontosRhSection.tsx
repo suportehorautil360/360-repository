@@ -37,6 +37,12 @@ function statusDe(r: PontoRegistro): StatusPonto {
 
 const TIPOS_CONHECIDOS = new Set(TIPOS_PONTO.map((t) => t.tipo));
 
+const STATUS_ICONE: Record<StatusPonto, string> = {
+  pendente: "⏳",
+  aprovado: "✓",
+  reprovado: "✕",
+};
+
 interface Grupo {
   chave: string;
   nome: string;
@@ -152,7 +158,9 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
           <span className="rh-batida__label">{label}</span>
           <strong>{horaDe(reg.timestampOriginal)}</strong>
         </div>
-        <span className={`rh-badge rh-badge--${st}`}>{st}</span>
+        <span className={`rh-badge rh-badge--${st}`}>
+          <span aria-hidden="true">{STATUS_ICONE[st]}</span> {st}
+        </span>
 
         {reprovandoId === reg.id ? (
           <div className="rh-reprovar">

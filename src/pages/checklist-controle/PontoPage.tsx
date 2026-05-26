@@ -4,6 +4,7 @@ import { useOperadorSession } from "./useOperadorSession";
 import { pontoApi } from "./ponto-api";
 import { jaBateuHoje, marcarBatidaHoje } from "./ponto-dia";
 import { CameraSelfie } from "./CameraSelfie";
+import { RelogioAoVivo } from "./RelogioAoVivo";
 import "./ponto.css";
 
 function horaDe(iso: string): string {
@@ -23,6 +24,7 @@ export function PontoPage() {
   const [nome, setNome] = useState("");
   const [fotoDataUrl, setFotoDataUrl] = useState("");
   const [msg, setMsg] = useState("");
+  const [recibo, setRecibo] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [obrigatorio] = useState(() =>
     session ? !jaBateuHoje(session) : false,
@@ -54,7 +56,7 @@ export function PontoPage() {
         navigate("/checklist-controle", { replace: true });
         return;
       }
-      setMsg(`Entrada registrada às ${horaDe(reg.timestampOriginal)}.`);
+      setRecibo(horaDe(reg.timestampOriginal));
       setFotoDataUrl("");
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Erro ao registrar o ponto.");
@@ -90,37 +92,84 @@ export function PontoPage() {
             </Link>
           )}
         </header>
-        <p className="ponto-sub">
-          {obrigatorio
-            ? "Bata o ponto de entrada para acessar o checklist."
-            : session.empresa}
-        </p>
 
-        <label className="ponto-label" htmlFor="ponto-nome">
-          Seu nome
-        </label>
-        <input
-          id="ponto-nome"
-          className="ponto-input"
-          type="text"
-          placeholder="Nome completo"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-        />
+        {recibo ? (
+          <PontoRecibo
+            hora={recibo}
+            label="Entrada"
+            onBaterOutra={() => {
+              setRecibo(null);
+              setNome("");
+            }}
+          />
+        ) : (
+          <>
+            <p className="ponto-sub">
+              {obrigatorio
+                ? "Bata o ponto de entrada para acessar o checklist."
+                : session.empresa}
+            </p>
 
-        <CameraSelfie foto={fotoDataUrl} onFoto={setFotoDataUrl} />
+            <RelogioAoVivo />
 
-        <button
-          type="button"
-          className="ponto-btn ponto-btn--primary"
-          onClick={() => void baterEntrada()}
-          disabled={salvando}
-        >
-          {salvando ? "Registrando…" : "Bater entrada"}
-        </button>
+            <label className="ponto-label" htmlFor="ponto-nome">
+              Seu nome
+            </label>
+            <input
+              id="ponto-nome"
+              className="ponto-input"
+              type="text"
+              placeholder="Nome completo"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+            />
 
-        {msg && <p className="ponto-msg">{msg}</p>}
+            <CameraSelfie foto={fotoDataUrl} onFoto={setFotoDataUrl} />
+
+            <button
+              type="button"
+              className="ponto-btn ponto-btn--primary"
+              onClick={() => void baterEntrada()}
+              disabled={salvando}
+            >
+              {salvando ? "Registrando…" : "Bater entrada"}
+            </button>
+
+            {msg && <p className="ponto-msg ponto-msg--err">{msg}</p>}
+          </>
+        )}
       </div>
+    </div>
+  );
+}
+
+/** Recibo de confirmação exibido após uma batida. */
+export function PontoRecibo({
+  hora,
+  label,
+  onBaterOutra,
+}: {
+  hora: string;
+  label: string;
+  onBaterOutra: () => void;
+}) {
+  return (
+    <div className="ponto-recibo">
+      <div className="ponto-recibo__check" aria-hidden="true">
+        ✓
+      </div>
+      <strong className="ponto-recibo__titulo">{label} registrada</strong>
+      <span className="ponto-recibo__hora">{hora}</span>
+      <span className="ponto-status ponto-status--pendente">
+        Aguardando aprovação
+      </span>
+      <button
+        type="button"
+        className="ponto-btn ponto-btn--secundario"
+        onClick={onBaterOutra}
+      >
+        Bater outra
+      </button>
     </div>
   );
 }
