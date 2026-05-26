@@ -22,6 +22,7 @@ import {
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
+import { usePrefeituraBadges } from "./usePrefeituraBadges";
 
 /** Placeholder das seções da referência que ainda não têm tela. */
 function EmConstrucao({ titulo }: { titulo: string }) {
@@ -72,6 +73,7 @@ export function PrefeituraPage() {
   }, [user, idParam, secao, prefeituraId, navigate]);
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
+  const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
 
   const dados = useMemo(
     () => (prefeituraId ? obterDadosPrefeitura(prefeituraId) : null),
@@ -191,7 +193,7 @@ export function PrefeituraPage() {
   const labelMunicipio = prefeituraLabel(prefeituraId);
   const ehOutroMunicipio = idParam && idParam !== user.prefeituraId;
   const secaoAtual = secao ?? "dashboard";
-  const navGroups = prefeituraNav(prefeituraId, { pontoAtivo });
+  const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
 
   function renderSecao() {
     switch (secaoAtual) {
