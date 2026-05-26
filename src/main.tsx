@@ -5,6 +5,9 @@ import { AppRoutes } from './AppRoutes'
 import { HU360AuthProvider, HU360Provider } from './lib/hu360'
 import { PwaUpdatePrompt } from './components/Pwa/PwaUpdatePrompt'
 import { OfflineIndicator } from './components/Pwa/OfflineIndicator'
+import { setupPwaInstallPromptListener } from './pages/checklist-controle/usePwaInstallPrompt'
+
+setupPwaInstallPromptListener()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -324,6 +324,12 @@
   color: #fecaca;
 }
 
+.hu360-toggle-group button.active-na {
+  background: rgba(100, 116, 139, 0.18);
+  border-color: #94a3b8;
+  color: #e2e8f0;
+}
+
 .hu360-toggle-group button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -529,6 +535,10 @@
 .hu360-sidebar--brand {
   width: 240px;
   flex-shrink: 0;
+  align-self: flex-start;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
   background: linear-gradient(180deg, #0f1a32 0%, #0a1224 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   padding: 24px 0 32px;
@@ -709,6 +719,16 @@
 .hu360-app-head__sair:hover {
   border-color: #94a3b8;
   color: #0f172a;
+}
+
+.hu360-app-head__install {
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.hu360-app-head__install:hover {
+  border-color: #fb923c;
+  color: #c2410c;
 }
 
 .hu360-dash-kpis {
@@ -941,7 +961,9 @@
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
+    position: static;
     width: 100%;
+    height: auto;
     padding: 16px 12px 20px;
   }
 

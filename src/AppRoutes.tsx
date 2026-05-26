@@ -129,13 +129,23 @@ function RequireOperacionalAuth({
   return <>{children}</>;
 }
 
+function RootRoute() {
+  const { user } = useLogin();
+
+  if (user?.type === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return <PostoPortalProvider />;
+}
+
 export function AppRoutes() {
   return (
     <BrowserRouter>
       <RouteErrorBoundary>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-          <Route path="/" element={<PostoPortalProvider />} />
+          <Route path="/" element={<RootRoute />} />
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />

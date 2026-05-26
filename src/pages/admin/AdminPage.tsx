@@ -28,7 +28,7 @@ export function AdminPage() {
     if (!sessionAuthenticated) return;
     if (auth.loading) return;
     if (auth.user) return;
-    auth.loginPorUsuario(ADMIN_USUARIO_HU360);
+    auth.loginPorUsuario(ADMIN_USUARIO_HU360, { persist: false });
   }, [sessionAuthenticated, auth.loading, auth.user, auth]);
 
   if (sessionAuthenticated) {
@@ -48,7 +48,7 @@ export function AdminPage() {
       return;
     }
     setAdminAuthenticated();
-    auth.loginPorUsuario(ADMIN_USUARIO_HU360);
+    auth.loginPorUsuario(ADMIN_USUARIO_HU360, { persist: false });
     setSenha("");
   }
 
