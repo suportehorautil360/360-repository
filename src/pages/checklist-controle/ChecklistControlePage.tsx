@@ -21,6 +21,7 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import {
   checklistCategoriaFromMaquina,
   dataLongaPtBr,
@@ -448,6 +449,7 @@ function Hu360NavIcon({
 
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
+  const { canInstall, installApp } = usePwaInstallPrompt();
   const [aba, setAba] = useState<Aba>("dashboard");
 
   // Auto-preenche GPS quando o operador abre a aba de emergência
@@ -1712,6 +1714,15 @@ export function ChecklistControlePage() {
             <Link to="/" className="hu360-app-head__link">
               Portal inicial
             </Link>
+            {canInstall ? (
+              <button
+                type="button"
+                className="hu360-app-head__sair hu360-app-head__install"
+                onClick={installApp}
+              >
+                Instalar app
+              </button>
+            ) : null}
             <span className="hu360-app-head__user">
               {session.nome} · {session.empresa}
             </span>
