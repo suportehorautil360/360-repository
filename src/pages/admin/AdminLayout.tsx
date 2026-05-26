@@ -5,7 +5,7 @@ import { Sidebar } from "../../components/Sidebar/Sidebar";
 import { ADMIN_BRAND, ADMIN_NAV } from "./adminNav";
 
 export function AdminLayout() {
-  const { user, logout } = useLogin();
+  const { logout } = useLogin();
   const navigate = useNavigate();
 
   function onLogout() {
@@ -19,10 +19,6 @@ export function AdminLayout() {
         <Sidebar
           brand={ADMIN_BRAND}
           groups={ADMIN_NAV}
-          user={{
-            name: user?.usuario ?? "Usuário",
-            role: user?.type ?? "admin",
-          }}
           onLogout={onLogout}
         />
 

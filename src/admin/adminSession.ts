@@ -1,6 +1,11 @@
 const ADMIN_SESSION_KEY = 'hu360_admin_ok'
 const ADMIN_PERSISTED_SESSION_KEY = 'hu360_admin_session'
 const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000
+const LEGACY_PORTAL_SESSION_KEYS = [
+  'hu360_session',
+  'hu360_hub_ctx_posto',
+  'hu360_hub_ctx_pref',
+]
 
 type AdminPersistedSession = {
   authenticated: true
@@ -42,6 +47,10 @@ export function setAdminAuthenticated(): void {
 export function clearAdminSession(): void {
   sessionStorage.removeItem(ADMIN_SESSION_KEY)
   localStorage.removeItem(ADMIN_PERSISTED_SESSION_KEY)
+  LEGACY_PORTAL_SESSION_KEYS.forEach((key) => {
+    localStorage.removeItem(key)
+    sessionStorage.removeItem(key)
+  })
 }
 
 /** Compare com `import.meta.env.VITE_ADMIN_SECRET` no `.env` local (não commitar). */
