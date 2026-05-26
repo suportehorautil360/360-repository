@@ -22,6 +22,7 @@ import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
+import { PontosFolha } from "./PontosFolha";
 import {
   dataLongaPtBr,
   inferirCategoriaChecklist,
@@ -30,7 +31,7 @@ import {
   startOfLocalDayIso,
 } from "../../features/checklist";
 
-type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia";
+type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia" | "pontos";
 
 type ItemChecklist = (typeof seedData.itens_checklist)[number];
 
@@ -191,12 +192,13 @@ function saveChecklistHistory(rows: Record<string, unknown>[]) {
 const ABAS: {
   id: Aba;
   label: string;
-  icon: "dash" | "check" | "audit" | "alert" | "play";
+  icon: "dash" | "check" | "audit" | "alert" | "clock";
 }[] = [
   { id: "dashboard", label: "Dashboard", icon: "dash" },
   { id: "checklist", label: "Checklist", icon: "check" },
   { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
   { id: "emergencia", label: "Emergências", icon: "alert" },
+  { id: "pontos", label: "Pontos", icon: "clock" },
 ];
 
 
@@ -277,7 +279,7 @@ function firestoreDocToHistRow(
 function Hu360NavIcon({
   kind,
 }: {
-  kind: "dash" | "check" | "audit" | "alert" | "play";
+  kind: "dash" | "check" | "audit" | "alert" | "clock";
 }) {
   const s = {
     width: 20,
@@ -329,12 +331,8 @@ function Hu360NavIcon({
   }
   return (
     <svg {...s} aria-hidden>
-      <circle cx="12" cy="12" r="10" />
-      <polygon
-        points="10 8 16 12 10 16 10 8"
-        fill="currentColor"
-        stroke="none"
-      />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -2792,6 +2790,15 @@ export function ChecklistControlePage() {
           </section>
         ) : null}
 
+        {aba === "pontos" ? (
+          <section className="hu360-page">
+            <p className="hu360-page__lead">
+              Folha de ponto do dia — entrada, almoço, volta e saída. Cada
+              batida registra uma selfie; o horário pode ser corrigido.
+            </p>
+            <PontosFolha prefeituraId={session.idCliente} nomePadrao="" />
+          </section>
+        ) : null}
       </main>
     </div>
   );

@@ -151,3 +151,64 @@
   text-align: center;
   gap: 16px;
 }
+
+/* Folha de ponto (aba do operador) */
+.ponto-folha {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ponto-folha__msg {
+  color: #93a4c6;
+  font-size: 0.9rem;
+}
+.ponto-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ponto-slot {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ponto-slot__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+}
+.ponto-slot__label {
+  font-weight: 600;
+}
+.ponto-slot__valor,
+.ponto-slot__edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ponto-slot__valor strong {
+  font-variant-numeric: tabular-nums;
+}
+.ponto-input--time {
+  width: auto;
+  padding: 8px 10px;
+}
+.ponto-btn--sm {
+  padding: 7px 12px;
+  font-size: 0.85rem;
+}
+.ponto-slot__bater {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

@@ -30,13 +30,30 @@ describe("pontoApi.bater", () => {
       photo: "data:image/jpeg;base64,abc",
       prefeituraId: "pref-1",
       timestampOriginal: "2026-05-25T13:05:00.000Z",
+      tipo: "entrada",
     });
 
     expect(postMock).toHaveBeenCalledWith(
       "/time-records",
-      expect.objectContaining({ name: "João", prefeituraId: "pref-1" }),
+      expect.objectContaining({
+        name: "João",
+        prefeituraId: "pref-1",
+        tipo: "entrada",
+      }),
     );
     expect(r).toEqual(reg);
+  });
+});
+
+describe("pontoApi.editarHorario", () => {
+  it("faz POST em /time-records/update/:id com o novo horário", async () => {
+    postMock.mockResolvedValue({ data: {}, message: "ok" });
+
+    await pontoApi.editarHorario("t1", "2026-05-25T12:00:00.000Z");
+
+    expect(postMock).toHaveBeenCalledWith("/time-records/update/t1", {
+      timestampOriginal: "2026-05-25T12:00:00.000Z",
+    });
   });
 });
 
