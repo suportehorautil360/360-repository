@@ -11,6 +11,7 @@ import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
+import { FrotaSection } from "./sections/FrotaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
@@ -20,6 +21,7 @@ type PrefAba =
   | "dash"
   | "auditoria"
   | "riscos"
+  | "frota"
   | "equipamentos"
   | "cadastros"
   | "criar-os"
@@ -33,6 +35,7 @@ const ABAS: { id: PrefAba; label: string }[] = [
   { id: "dash", label: "📊 Dashboard Geral" },
   { id: "auditoria", label: "📋 Auditoria de Checklists" },
   { id: "riscos", label: "⚠️ Triagem de Riscos" },
+  { id: "frota", label: "🚚 Frota" },
   { id: "equipamentos", label: "🛠️ Equipamentos" },
   { id: "cadastros", label: "👤 Cadastros" },
   { id: "criar-os", label: "📝 Abrir O.S." },
@@ -339,6 +342,13 @@ export function PrefeituraPage() {
             className={`tab-content ${aba === "riscos" ? "active" : ""}`}
           >
             <RiscosSection prefeituraId={prefeituraId} />
+          </div>
+
+          <div
+            id="frota"
+            className={`tab-content ${aba === "frota" ? "active" : ""}`}
+          >
+            <FrotaSection prefeituraId={prefeituraId} />
           </div>
 
           <div

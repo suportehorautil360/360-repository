@@ -42,17 +42,6 @@ export const ADMIN_BRAND: SidebarBrand = {
 
 export const ADMIN_NAV: SidebarGroup[] = [
   {
-    label: "Gestão de Frota",
-    items: [
-      {
-        label: "Frota",
-        to: "/admin/frota",
-        icon: "🚚",
-        id: "nav-hub-frota",
-      },
-    ],
-  },
-  {
     label: "Principal",
     items: [
       {

@@ -53,9 +53,17 @@ function formatBRL(centavos: number): string {
   });
 }
 
-export function FrotaSection() {
+export function FrotaSection({
+  prefeituraId,
+}: {
+  /** Quando informado (ex.: painel da prefeitura), fixa a frota nessa
+   *  prefeitura e oculta o seletor. Sem ele (admin), mostra o seletor. */
+  prefeituraId?: string;
+} = {}) {
+  const scoped = prefeituraId != null;
   const { prefeituras } = useHU360();
-  const [prefId, setPrefId] = useState(() => prefeituras[0]?.id ?? "");
+  const [prefIdState, setPrefIdState] = useState(() => prefeituras[0]?.id ?? "");
+  const prefId = scoped ? prefeituraId : prefIdState;
   const frota = useFrota(prefId);
   const [busca, setBusca] = useState("");
   const [modalAdd, setModalAdd] = useState(false);
@@ -63,8 +71,10 @@ export function FrotaSection() {
   const [liberando, setLiberando] = useState<VeiculoFrota | null>(null);
 
   useEffect(() => {
-    if (!prefId && prefeituras[0]?.id) setPrefId(prefeituras[0].id);
-  }, [prefId, prefeituras]);
+    if (!scoped && !prefIdState && prefeituras[0]?.id) {
+      setPrefIdState(prefeituras[0].id);
+    }
+  }, [scoped, prefIdState, prefeituras]);
 
   const filtrada = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -78,7 +88,7 @@ export function FrotaSection() {
   }, [frota.lista, busca]);
 
   return (
-    <section id="frota" className="aba-conteudo ativa">
+    <section className="frota-section">
       <div className="frota-toolbar">
         <div>
           <h2 style={{ margin: 0 }}>Veículos cadastrados</h2>
@@ -88,19 +98,23 @@ export function FrotaSection() {
           </p>
         </div>
         <div className="frota-toolbar__actions">
-          <select
-            className="frota-pref"
-            value={prefId}
-            onChange={(e) => setPrefId(e.target.value)}
-            aria-label="Prefeitura / cliente"
-          >
-            {prefeituras.length === 0 && <option value="">Sem prefeituras</option>}
-            {prefeituras.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome} ({p.uf})
-              </option>
-            ))}
-          </select>
+          {!scoped && (
+            <select
+              className="frota-pref"
+              value={prefId}
+              onChange={(e) => setPrefIdState(e.target.value)}
+              aria-label="Prefeitura / cliente"
+            >
+              {prefeituras.length === 0 && (
+                <option value="">Sem prefeituras</option>
+              )}
+              {prefeituras.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome} ({p.uf})
+                </option>
+              ))}
+            </select>
+          )}
           <div className="frota-search">
             <input
               type="search"
@@ -112,7 +126,7 @@ export function FrotaSection() {
           </div>
           <button
             type="button"
-            className="btn btn-primary"
+            className="frota-btn frota-btn--primary"
             style={{ margin: 0, width: "auto", whiteSpace: "nowrap" }}
             onClick={() => setModalAdd(true)}
             disabled={!prefId}
@@ -145,7 +159,7 @@ export function FrotaSection() {
           >
             <button
               type="button"
-              className="btn btn-primary"
+              className="frota-btn frota-btn--primary"
               style={{ margin: 0, width: "auto" }}
               onClick={() => setModalAdd(true)}
             >
@@ -153,7 +167,7 @@ export function FrotaSection() {
             </button>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="frota-btn frota-btn--secundario"
               style={{ margin: 0, width: "auto" }}
               onClick={() => void frota.adicionarLote(FROTA_EXEMPLO)}
             >
@@ -303,18 +317,18 @@ function FrotaCard({
         {bloqueado && (
           <button
             type="button"
-            className="btn frota-btn-liberar"
+            className="frota-btn frota-btn-liberar"
             onClick={onLiberar}
           >
             Liberar
           </button>
         )}
-        <button type="button" className="btn btn-secondary" onClick={onAtualizar}>
+        <button type="button" className="frota-btn frota-btn--secundario" onClick={onAtualizar}>
           ↻ Atualizar
         </button>
         <button
           type="button"
-          className="btn frota-btn-del"
+          className="frota-btn frota-btn-del"
           onClick={onRemover}
           aria-label={`Remover ${veiculo.nome}`}
         >
@@ -495,12 +509,12 @@ function VeiculoModal({
           <div className="frota-modal__footer">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="frota-btn frota-btn--secundario"
               onClick={onFechar}
             >
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary" disabled={salvando}>
+            <button type="submit" className="frota-btn frota-btn--primary" disabled={salvando}>
               {salvando ? "Salvando…" : "Salvar"}
             </button>
           </div>
@@ -684,12 +698,12 @@ function RevisaoModal({
           <p className="frota-modal__msg">{msg}</p>
 
           <div className="frota-modal__footer">
-            <button type="button" className="btn btn-secondary" onClick={onFechar}>
+            <button type="button" className="frota-btn frota-btn--secundario" onClick={onFechar}>
               Cancelar
             </button>
             <button
               type="submit"
-              className="btn frota-btn-confirmar"
+              className="frota-btn frota-btn-confirmar"
               disabled={salvando}
             >
               {salvando ? "Salvando…" : "✓ Confirmar revisão e liberar"}
