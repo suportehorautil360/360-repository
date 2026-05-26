@@ -153,6 +153,10 @@
 }
 
 /* Relógio grande ao vivo (gate, tema escuro) */
+.ponto-relogio-wrap {
+  text-align: center;
+  margin: 4px 0 8px;
+}
 .ponto-relogio {
   width: 184px;
   height: 184px;
@@ -165,6 +169,21 @@
   font-weight: 700;
   color: #e8ecf6;
   font-variant-numeric: tabular-nums;
+}
+.ponto-relogio-data {
+  color: #93a4c6;
+  font-size: 0.9rem;
+}
+.ponto-relogio-data::first-letter {
+  text-transform: uppercase;
+}
+/* No tema claro da aba (folha), inverte as cores do relógio. */
+.ponto-folha .ponto-relogio {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-relogio-data {
+  color: #475569;
 }
 
 /* Recibo de confirmação (gate) */

@@ -7,6 +7,7 @@ import {
   type TipoPonto,
 } from "./ponto-api";
 import { CameraSelfie } from "./CameraSelfie";
+import { RelogioAoVivo } from "./RelogioAoVivo";
 import { baterComFila } from "../../lib/api/pontos-fila";
 import { usePontoSync } from "./usePontoSync";
 import "./ponto.css";
@@ -174,6 +175,8 @@ export function PontosFolha({
 
   return (
     <div className="ponto-folha">
+      <RelogioAoVivo comData />
+
       <label className="ponto-label" htmlFor="folha-nome">
         Funcionário
       </label>
