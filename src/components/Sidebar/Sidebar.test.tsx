@@ -59,7 +59,7 @@ describe("Sidebar", () => {
     expect(screen.getByText("6")).toBeInTheDocument();
   });
 
-  it("renderiza botão simples de sair quando há onLogout", () => {
+  it("renderiza o rodapé de usuário (avatar, nome, papel) quando há user", () => {
     const onLogout = vi.fn();
     renderSidebar({
       brand: { title: "HORA ÚTIL 360" },
@@ -67,8 +67,15 @@ describe("Sidebar", () => {
       user: { name: "João Santos", role: "Administrador" },
       onLogout,
     });
-    expect(screen.queryByText("JS")).not.toBeInTheDocument();
-    expect(screen.queryByText("João Santos")).not.toBeInTheDocument();
+    expect(screen.getByText("JS")).toBeInTheDocument();
+    expect(screen.getByText("João Santos")).toBeInTheDocument();
+    expect(screen.getByText("Administrador")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
+  });
+
+  it("renderiza botão simples de sair quando há onLogout sem user", () => {
+    const onLogout = vi.fn();
+    renderSidebar({ brand: { title: "HORA ÚTIL 360" }, groups, onLogout });
     expect(screen.getByRole("button", { name: "Sair" })).toBeInTheDocument();
   });
 

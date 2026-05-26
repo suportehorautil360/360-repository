@@ -234,6 +234,7 @@ export function AppRoutes() {
           />
           <Route path="/prefeitura" element={<PrefeituraPage />} />
           <Route path="/prefeitura/:id" element={<PrefeituraPage />} />
+          <Route path="/prefeitura/:id/:secao" element={<PrefeituraPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

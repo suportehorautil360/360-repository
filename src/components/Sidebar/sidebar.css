@@ -208,6 +208,56 @@
   color: var(--hu-sb-danger);
 }
 
+.hu-sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hu-sidebar__avatar {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #0c0f14;
+  background: var(--hu-sb-primary, #f97316);
+}
+.hu-sidebar__user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.hu-sidebar__user-name {
+  font-size: 0.92rem;
+  color: var(--hu-sb-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hu-sidebar__user-role {
+  font-size: 0.76rem;
+  color: var(--hu-sb-muted);
+}
+.hu-sidebar__logout-icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--hu-sb-border);
+  background: transparent;
+  color: var(--hu-sb-muted);
+  cursor: pointer;
+  font-size: 1rem;
+}
+.hu-sidebar__logout-icon:hover {
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--hu-sb-danger);
+}
+
 /* ---------- Responsivo ---------- */
 @media (max-width: 980px) {
   .hu-sidebar {
