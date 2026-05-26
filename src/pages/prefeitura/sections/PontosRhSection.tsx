@@ -5,6 +5,9 @@ import {
   type PontoRegistro,
   type StatusPonto,
 } from "../../../lib/api/pontos";
+import { escalaApi, type Escala } from "../../../lib/api/escala";
+import { EscalaConfig } from "./EscalaConfig";
+import { fmtMin, minutosPrevistos, minutosTrabalhados } from "./horasPonto";
 import "./pontos-rh.css";
 
 function horaDe(iso: string): string {
@@ -52,6 +55,7 @@ interface Grupo {
 
 export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   const [registros, setRegistros] = useState<PontoRegistro[]>([]);
+  const [escala, setEscala] = useState<Escala | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [soPendentes, setSoPendentes] = useState(false);
@@ -65,7 +69,12 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
     setCarregando(true);
     setErro("");
     try {
-      setRegistros(await pontosApi.listar(prefeituraId));
+      const [lista, esc] = await Promise.all([
+        pontosApi.listar(prefeituraId),
+        escalaApi.obter(prefeituraId),
+      ]);
+      setRegistros(lista);
+      setEscala(esc);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
@@ -234,6 +243,12 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
         horário e aprove ou reprove cada batida — ou o dia inteiro.
       </p>
 
+      <EscalaConfig
+        prefeituraId={prefeituraId}
+        escala={escala}
+        onSalvo={() => void carregar()}
+      />
+
       <label className="rh-filtro">
         <input
           type="checkbox"
@@ -255,12 +270,25 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
             );
             // Batidas sem um dos 4 tipos conhecidos (ex.: registros antigos).
             const extras = g.batidas.filter((b) => !TIPOS_CONHECIDOS.has(b.tipo));
+            const trab = minutosTrabalhados(
+              g.batidas,
+              escala?.almocoMinutos ?? 0,
+            );
+            const prev = minutosPrevistos(escala, g.dia);
+            const saldo = trab - prev;
             return (
               <article key={g.chave} className="rh-grupo">
                 <header className="rh-grupo__head">
                   <div>
                     <strong>{g.nome}</strong>
                     <span className="rh-grupo__dia">{diaLegivel(g.dia)}</span>
+                    <span className="rh-grupo__horas">
+                      Trab. {fmtMin(trab)} · Prev. {fmtMin(prev)} · Saldo{" "}
+                      <span className={saldo < 0 ? "rh-saldo--neg" : "rh-saldo--pos"}>
+                        {saldo >= 0 ? "+" : ""}
+                        {fmtMin(saldo)}
+                      </span>
+                    </span>
                   </div>
                   {temPendente && (
                     <button
