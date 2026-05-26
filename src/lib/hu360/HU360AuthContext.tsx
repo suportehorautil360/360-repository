@@ -20,6 +20,10 @@ export interface LoginResultado {
   msg?: string;
 }
 
+export interface LoginPorUsuarioOptions {
+  persist?: boolean;
+}
+
 export interface HU360AuthValue {
   user: Usuario | null;
   /** True enquanto a sessão remota (API) ainda está sendo validada. */
@@ -32,7 +36,10 @@ export interface HU360AuthValue {
    *
    * Retorna `true` se o usuário existir na base local.
    */
-  loginPorUsuario: (usuarioId: string) => boolean;
+  loginPorUsuario: (
+    usuarioId: string,
+    options?: LoginPorUsuarioOptions,
+  ) => boolean;
   logout: () => Promise<void>;
 }
 
@@ -188,18 +195,23 @@ export function HU360AuthProvider({ children }: HU360AuthProviderProps) {
     [sync],
   );
 
-  const loginPorUsuario = useCallback((usuarioId: string): boolean => {
-    const found =
-      usuariosRef.current.find((u) => u.usuario === usuarioId) ?? null;
-    if (!found) return false;
-    const u: Usuario = {
-      ...found,
-      prefeituraId: found.prefeituraId || "tl-ms",
-    };
-    gravarSessaoLocal(u);
-    setUser(u);
-    return true;
-  }, []);
+  const loginPorUsuario = useCallback(
+    (usuarioId: string, options?: LoginPorUsuarioOptions): boolean => {
+      const found =
+        usuariosRef.current.find((u) => u.usuario === usuarioId) ?? null;
+      if (!found) return false;
+      const u: Usuario = {
+        ...found,
+        prefeituraId: found.prefeituraId || "tl-ms",
+      };
+      if (options?.persist !== false) {
+        gravarSessaoLocal(u);
+      }
+      setUser(u);
+      return true;
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     if (sync.apiEnabled()) {

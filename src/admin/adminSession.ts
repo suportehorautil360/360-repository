@@ -1,15 +1,47 @@
 const ADMIN_SESSION_KEY = 'hu360_admin_ok'
+const ADMIN_PERSISTED_SESSION_KEY = 'hu360_admin_session'
+const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000
+
+type AdminPersistedSession = {
+  authenticated: true
+  expiresAt: number
+}
 
 export function isAdminAuthenticated(): boolean {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === '1'
+  if (sessionStorage.getItem(ADMIN_SESSION_KEY) === '1') {
+    return true
+  }
+
+  try {
+    const raw = localStorage.getItem(ADMIN_PERSISTED_SESSION_KEY)
+    if (!raw) {
+      return false
+    }
+
+    const session = JSON.parse(raw) as Partial<AdminPersistedSession>
+    if (session.authenticated === true && Number(session.expiresAt) > Date.now()) {
+      return true
+    }
+  } catch {
+    /* sessão inválida: limpa abaixo */
+  }
+
+  localStorage.removeItem(ADMIN_PERSISTED_SESSION_KEY)
+  return false
 }
 
 export function setAdminAuthenticated(): void {
   sessionStorage.setItem(ADMIN_SESSION_KEY, '1')
+  const session: AdminPersistedSession = {
+    authenticated: true,
+    expiresAt: Date.now() + ADMIN_SESSION_TTL_MS,
+  }
+  localStorage.setItem(ADMIN_PERSISTED_SESSION_KEY, JSON.stringify(session))
 }
 
 export function clearAdminSession(): void {
   sessionStorage.removeItem(ADMIN_SESSION_KEY)
+  localStorage.removeItem(ADMIN_PERSISTED_SESSION_KEY)
 }
 
 /** Compare com `import.meta.env.VITE_ADMIN_SECRET` no `.env` local (não commitar). */
