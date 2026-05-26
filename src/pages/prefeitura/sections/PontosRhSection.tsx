@@ -14,8 +14,13 @@ function horaDe(iso: string): string {
   });
 }
 
+/** Data LOCAL (YYYY-MM-DD) da batida — não a data UTC do ISO. */
 function diaDe(iso: string): string {
-  return iso.slice(0, 10);
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
 }
 
 function diaLegivel(diaIso: string): string {
