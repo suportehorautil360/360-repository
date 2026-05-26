@@ -23,21 +23,14 @@ import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import {
-  checklistCategoriaFromMaquina,
   dataLongaPtBr,
   inferirCategoriaChecklist,
   isSameLocalDay,
   normalizeChassis,
-  normalizeModelo,
   startOfLocalDayIso,
 } from "../../features/checklist";
 
-type Aba =
-  | "dashboard"
-  | "checklist"
-  | "auditoria"
-  | "emergencia"
-  | "treinamentos";
+type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia";
 
 type ItemChecklist = (typeof seedData.itens_checklist)[number];
 
@@ -165,115 +158,6 @@ function resolveLoginToSession(usuarioRaw: string): OperadorSession | null {
   return resolveSessionForUsuario(usuarioRaw);
 }
 
-type FrotaRow = (typeof seedData.cadastro_frota)[number];
-
-type TreinoVideoRow = (typeof seedData.treinamentos_video)[number];
-
-type TreinoVideoExtra = TreinoVideoRow & {
-  Maquinas?: unknown;
-  Chassis_Lista?: unknown;
-  Modelos_Lista?: unknown;
-  Chassis?: unknown;
-  Modelo?: unknown;
-};
-
-function parChassisModeloIgualMaquina(
-  maquina: FrotaRow,
-  chassis: string,
-  modelo: string,
-): boolean {
-  return (
-    normalizeChassis(String(maquina.Chassis ?? "")) ===
-      normalizeChassis(chassis) &&
-    normalizeModelo(String(maquina.Modelo ?? "")) === normalizeModelo(modelo)
-  );
-}
-
-function paresImplicitosFrotaPorCategoriaTreino(
-  categoriaTreino: string,
-): { ch: string; mod: string }[] {
-  return seedData.cadastro_frota
-    .filter(
-      (m) => checklistCategoriaFromMaquina(m.Categoria) === categoriaTreino,
-    )
-    .map((m) => ({
-      ch: normalizeChassis(String(m.Chassis ?? "")),
-      mod: normalizeModelo(String(m.Modelo ?? "")),
-    }))
-    .filter((p) => p.ch.length > 0 && p.mod.length > 0);
-}
-
-/**
- * Vídeo vale para a máquina da sessão por combinação chassi + modelo:
- * - `Maquinas`: [{ Chassis, Modelo }, ...] — bate se algum par for igual ao da máquina.
- * - `Chassis` + `Modelo` no mesmo registro — um par fixo.
- * - `Chassis_Lista` + `Modelos_Lista` — chassi da máquina na lista E modelo na lista.
- * - Só listas parciais — regra da lista preenchida.
- * - Só `Categoria` (sem listas/pares no JSON) — qualquer equipamento da frota com essa categoria
- *   de checklist (mesmo par chassi+modelo cadastrado).
- */
-function treinoAplicaAMaquina(t: TreinoVideoRow, maquina: FrotaRow): boolean {
-  const ext = t as TreinoVideoExtra;
-
-  const maquinas = ext.Maquinas;
-  if (Array.isArray(maquinas) && maquinas.length > 0) {
-    return maquinas.some((row) => {
-      if (!row || typeof row !== "object") return false;
-      const o = row as Record<string, unknown>;
-      const c = String(o.Chassis ?? "");
-      const m = String(o.Modelo ?? "");
-      if (!c.trim() || !m.trim()) return false;
-      return parChassisModeloIgualMaquina(maquina, c, m);
-    });
-  }
-
-  const sc = typeof ext.Chassis === "string" ? ext.Chassis : "";
-  const sm = typeof ext.Modelo === "string" ? ext.Modelo : "";
-  if (sc.trim() && sm.trim()) {
-    return parChassisModeloIgualMaquina(maquina, sc, sm);
-  }
-
-  const cl = ext.Chassis_Lista;
-  const ml = ext.Modelos_Lista;
-  const hasCl = Array.isArray(cl) && cl.length > 0;
-  const hasMl = Array.isArray(ml) && ml.length > 0;
-  if (hasCl && hasMl) {
-    const chOk = cl.some(
-      (c) =>
-        normalizeChassis(String(c)) ===
-        normalizeChassis(String(maquina.Chassis ?? "")),
-    );
-    const moOk = ml.some(
-      (m) =>
-        normalizeModelo(String(m)) ===
-        normalizeModelo(String(maquina.Modelo ?? "")),
-    );
-    return chOk && moOk;
-  }
-  if (hasCl && !hasMl) {
-    return cl.some(
-      (c) =>
-        normalizeChassis(String(c)) ===
-        normalizeChassis(String(maquina.Chassis ?? "")),
-    );
-  }
-  if (!hasCl && hasMl) {
-    return ml.some(
-      (m) =>
-        normalizeModelo(String(m)) ===
-        normalizeModelo(String(maquina.Modelo ?? "")),
-    );
-  }
-
-  const catT = String(t.Categoria ?? "");
-  if (!catT) return false;
-  return paresImplicitosFrotaPorCategoriaTreino(catT).some(
-    (p) =>
-      normalizeChassis(String(maquina.Chassis ?? "")) === p.ch &&
-      normalizeModelo(String(maquina.Modelo ?? "")) === p.mod,
-  );
-}
-
 function loadEmergencias(): Record<string, unknown>[] {
   try {
     const raw = localStorage.getItem(EMERG_STORAGE_KEY);
@@ -313,7 +197,6 @@ const ABAS: {
   { id: "checklist", label: "Checklist", icon: "check" },
   { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
   { id: "emergencia", label: "Emergências", icon: "alert" },
-  { id: "treinamentos", label: "Treinamentos", icon: "play" },
 ];
 
 
@@ -1172,15 +1055,6 @@ export function ChecklistControlePage() {
       seedData.cadastro_frota.find((m) => m.ID === session.idMaquina) ?? null
     );
   }, [session?.idMaquina]);
-
-  const treinamentosDaLocacao = useMemo(() => {
-    if (!maquinaDaSessao) return [];
-    return seedData.treinamentos_video.filter((t) =>
-      treinoAplicaAMaquina(t, maquinaDaSessao),
-    );
-  }, [maquinaDaSessao]);
-
-  console.log("Treinamentos da locação:", session);
 
   const itensFiltrados: ItemChecklist[] = useMemo(() => {
     if (!equipamentoAtual) return [];
@@ -2918,70 +2792,6 @@ export function ChecklistControlePage() {
           </section>
         ) : null}
 
-        {aba === "treinamentos" ? (
-          <section className="hu360-page">
-            <p className="hu360-page__lead">
-              Vídeos da planilha <strong>TREINAMENTOS_VIDEO</strong>{" "}
-              <strong>da máquina da sua locação</strong>
-              {maquinaDaSessao ? (
-                <>
-                  : <strong>{maquinaDaSessao.ID}</strong>, chassi{" "}
-                  <strong>{String(maquinaDaSessao.Chassis ?? "—")}</strong>,
-                  modelo{" "}
-                  <strong>{String(maquinaDaSessao.Modelo ?? "—")}</strong>
-                </>
-              ) : (
-                " (vínculo de máquina não encontrado)"
-              )}
-              . O filtro usa <strong>chassi e modelo</strong> ao mesmo tempo. No
-              cadastro do vídeo dá para informar pares (chassi + modelo), listas
-              de chassis e de modelos, ou só a categoria — neste último caso,
-              aparecem vídeos da categoria para a qual sua máquina (chassi e
-              modelo) está cadastrada na frota.
-            </p>
-            {treinamentosDaLocacao.length === 0 ? (
-              <p
-                style={{
-                  color: "#64748b",
-                  fontSize: "0.95rem",
-                  marginBottom: 16,
-                }}
-              >
-                Nenhum vídeo cadastrado para este chassi e modelo.
-              </p>
-            ) : null}
-            <div className="hu360-train-grid">
-              {treinamentosDaLocacao.map((t) => (
-                <article key={t.ID_Treino} className="hu360-train-card">
-                  <div
-                    style={{
-                      fontSize: "0.78rem",
-                      color: "var(--hu-accent)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {t.ID_Treino} · {t.Categoria}
-                  </div>
-                  <h3 style={{ margin: "8px 0 10px", fontSize: "1.05rem" }}>
-                    {t.Titulo_Video_IA}
-                  </h3>
-                  <p
-                    style={{
-                      margin: "0 0 10px",
-                      fontSize: "0.88rem",
-                      color: "var(--hu-muted)",
-                    }}
-                  >
-                    {t.Descricao_CapCut}
-                  </p>
-                  <a href={t.Link_Video_URL} target="_blank" rel="noreferrer">
-                    Abrir vídeo
-                  </a>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </main>
     </div>
   );
