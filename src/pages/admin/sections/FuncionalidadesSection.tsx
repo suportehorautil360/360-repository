@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useHU360 } from "../../../lib/hu360";
 import { featureFlagsApi } from "../../../lib/api/feature-flags";
 
@@ -26,8 +27,11 @@ function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
       const flags = await featureFlagsApi.obter(id);
       await featureFlagsApi.salvar(id, { ...flags, ponto: novo });
       setPonto(novo);
+      toast.success(
+        `Ponto ${novo ? "ativado" : "desativado"} para ${nome}.`,
+      );
     } catch {
-      // mantém o valor anterior em caso de erro
+      toast.error("Não foi possível salvar. Tente novamente.");
     } finally {
       setSalvando(false);
     }
@@ -39,17 +43,19 @@ function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
         {nome} <span style={{ color: "var(--muted)" }}>({uf})</span>
       </td>
       <td style={{ textAlign: "right" }}>
-        <label
-          style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-        >
+        <label className="hu-switch">
           <input
             type="checkbox"
             checked={ponto ?? false}
             disabled={ponto === null || salvando}
             onChange={() => void toggle()}
-            style={{ width: "auto" }}
           />
-          {ponto === null ? "…" : ponto ? "Ativo" : "Inativo"}
+          <span className="hu-switch__track" aria-hidden="true">
+            <span className="hu-switch__thumb" />
+          </span>
+          <span className="hu-switch__label">
+            {ponto === null ? "…" : ponto ? "Ativo" : "Inativo"}
+          </span>
         </label>
       </td>
     </tr>
