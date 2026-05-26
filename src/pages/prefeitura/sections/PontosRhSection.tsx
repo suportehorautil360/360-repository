@@ -30,6 +30,8 @@ function statusDe(r: PontoRegistro): StatusPonto {
   return r.status ?? "pendente";
 }
 
+const TIPOS_CONHECIDOS = new Set(TIPOS_PONTO.map((t) => t.tipo));
+
 interface Grupo {
   chave: string;
   nome: string;
@@ -79,7 +81,6 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
         g.batidas.some((b) => statusDe(b) === "pendente"),
       );
     }
-    // mais recentes primeiro, depois por nome
     return lista.sort((a, b) =>
       a.dia === b.dia ? a.nome.localeCompare(b.nome) : b.dia.localeCompare(a.dia),
     );
@@ -125,6 +126,91 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
     }
   }
 
+  /** Conteúdo de uma batida registrada (foto, horário, status e ações). */
+  function corpoBatida(reg: PontoRegistro, label: string) {
+    const st = statusDe(reg);
+    return (
+      <>
+        {reg.photo ? (
+          <button
+            type="button"
+            className="rh-foto"
+            onClick={() => setFotoAmpliada(reg.photo ?? "")}
+            aria-label="Ampliar foto"
+          >
+            <img src={reg.photo} alt={`Selfie ${label}`} />
+          </button>
+        ) : (
+          <span className="rh-foto rh-foto--sem">—</span>
+        )}
+        <div className="rh-batida__info">
+          <span className="rh-batida__label">{label}</span>
+          <strong>{horaDe(reg.timestampOriginal)}</strong>
+        </div>
+        <span className={`rh-badge rh-badge--${st}`}>{st}</span>
+
+        {reprovandoId === reg.id ? (
+          <div className="rh-reprovar">
+            <input
+              type="text"
+              placeholder="Motivo da reprovação"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+            <button
+              type="button"
+              className="rh-btn rh-btn--err"
+              disabled={ocupado || !motivo.trim()}
+              onClick={() => void confirmarReprovacao(reg.id)}
+            >
+              Confirmar
+            </button>
+            <button
+              type="button"
+              className="rh-btn"
+              onClick={() => {
+                setReprovandoId(null);
+                setMotivo("");
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : (
+          <div className="rh-batida__acoes">
+            {st !== "aprovado" && (
+              <button
+                type="button"
+                className="rh-btn rh-btn--ok"
+                disabled={ocupado}
+                onClick={() => void aprovar(reg.id)}
+              >
+                Aprovar
+              </button>
+            )}
+            {st !== "reprovado" && (
+              <button
+                type="button"
+                className="rh-btn rh-btn--err"
+                disabled={ocupado}
+                onClick={() => {
+                  setReprovandoId(reg.id);
+                  setMotivo("");
+                }}
+              >
+                Reprovar
+              </button>
+            )}
+          </div>
+        )}
+
+        {st === "reprovado" && reg.motivoReprovacao && (
+          <span className="rh-motivo">Motivo: {reg.motivoReprovacao}</span>
+        )}
+      </>
+    );
+  }
+
   if (carregando) return <p className="rh-msg">Carregando registros de ponto…</p>;
 
   return (
@@ -154,6 +240,8 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
             const temPendente = g.batidas.some(
               (b) => statusDe(b) === "pendente",
             );
+            // Batidas sem um dos 4 tipos conhecidos (ex.: registros antigos).
+            const extras = g.batidas.filter((b) => !TIPOS_CONHECIDOS.has(b.tipo));
             return (
               <article key={g.chave} className="rh-grupo">
                 <header className="rh-grupo__head">
@@ -176,98 +264,28 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                 <ul className="rh-batidas">
                   {TIPOS_PONTO.map(({ tipo, label }) => {
                     const reg = g.batidas.find((b) => b.tipo === tipo);
-                    if (!reg) {
-                      return (
-                        <li key={tipo} className="rh-batida rh-batida--vazia">
-                          <span className="rh-batida__label">{label}</span>
-                          <span className="rh-batida__sem">—</span>
-                        </li>
-                      );
-                    }
-                    const st = statusDe(reg);
                     return (
-                      <li key={tipo} className="rh-batida">
-                        {reg.photo ? (
-                          <button
-                            type="button"
-                            className="rh-foto"
-                            onClick={() => setFotoAmpliada(reg.photo ?? "")}
-                            aria-label="Ampliar foto"
-                          >
-                            <img src={reg.photo} alt={`Selfie ${label}`} />
-                          </button>
+                      <li
+                        key={tipo}
+                        className={`rh-batida ${reg ? "" : "rh-batida--vazia"}`}
+                      >
+                        {reg ? (
+                          corpoBatida(reg, label)
                         ) : (
-                          <span className="rh-foto rh-foto--sem">—</span>
-                        )}
-                        <div className="rh-batida__info">
-                          <span className="rh-batida__label">{label}</span>
-                          <strong>{horaDe(reg.timestampOriginal)}</strong>
-                        </div>
-                        <span className={`rh-badge rh-badge--${st}`}>{st}</span>
-
-                        {reprovandoId === reg.id ? (
-                          <div className="rh-reprovar">
-                            <input
-                              type="text"
-                              placeholder="Motivo da reprovação"
-                              value={motivo}
-                              onChange={(e) => setMotivo(e.target.value)}
-                            />
-                            <button
-                              type="button"
-                              className="rh-btn rh-btn--err"
-                              disabled={ocupado || !motivo.trim()}
-                              onClick={() => void confirmarReprovacao(reg.id)}
-                            >
-                              Confirmar
-                            </button>
-                            <button
-                              type="button"
-                              className="rh-btn"
-                              onClick={() => {
-                                setReprovandoId(null);
-                                setMotivo("");
-                              }}
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="rh-batida__acoes">
-                            {st !== "aprovado" && (
-                              <button
-                                type="button"
-                                className="rh-btn rh-btn--ok"
-                                disabled={ocupado}
-                                onClick={() => void aprovar(reg.id)}
-                              >
-                                Aprovar
-                              </button>
-                            )}
-                            {st !== "reprovado" && (
-                              <button
-                                type="button"
-                                className="rh-btn rh-btn--err"
-                                disabled={ocupado}
-                                onClick={() => {
-                                  setReprovandoId(reg.id);
-                                  setMotivo("");
-                                }}
-                              >
-                                Reprovar
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {st === "reprovado" && reg.motivoReprovacao && (
-                          <span className="rh-motivo">
-                            Motivo: {reg.motivoReprovacao}
-                          </span>
+                          <>
+                            <span className="rh-batida__label">{label}</span>
+                            <span className="rh-batida__sem">—</span>
+                          </>
                         )}
                       </li>
                     );
                   })}
+
+                  {extras.map((reg) => (
+                    <li key={reg.id} className="rh-batida">
+                      {corpoBatida(reg, "Batida (sem tipo)")}
+                    </li>
+                  ))}
                 </ul>
               </article>
             );
