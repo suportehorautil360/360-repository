@@ -1129,3 +1129,59 @@
     padding: 8px 8px;
   }
 }
+
+/* ============== SWITCH (toggle) ============== */
+.admin-root .hu-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.admin-root .hu-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.admin-root .hu-switch__track {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.2s ease;
+  flex: none;
+}
+.admin-root .hu-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e8ecf6;
+  transition: transform 0.2s ease;
+}
+.admin-root .hu-switch input:checked + .hu-switch__track {
+  background: var(--success, #22c55e);
+  border-color: var(--success, #22c55e);
+}
+.admin-root .hu-switch input:checked + .hu-switch__track .hu-switch__thumb {
+  transform: translateX(18px);
+}
+.admin-root .hu-switch input:disabled + .hu-switch__track {
+  opacity: 0.55;
+  cursor: default;
+}
+.admin-root .hu-switch input:focus-visible + .hu-switch__track {
+  outline: 2px solid var(--primary, #f97316);
+  outline-offset: 2px;
+}
+.admin-root .hu-switch__label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-width: 48px;
+  text-align: left;
+}

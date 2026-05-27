@@ -1,0 +1,335 @@
+/* Tela de Frota — cards de veículos. Herda as variáveis de .admin-root. */
+
+.frota-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.frota-toolbar__count {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 2px 0 0;
+}
+
+.frota-search {
+  position: relative;
+  max-width: 340px;
+  flex: 1;
+}
+
+.frota-search input {
+  width: 100%;
+  margin: 0;
+}
+
+.frota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.frota-card {
+  position: relative;
+  background: var(--bg-2, #121b30);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius, 16px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Estados: vencido+bloqueado (vermelho), liberado (azul), no prazo (verde) */
+.frota-card.is-bloqueado {
+  border-color: rgba(239, 68, 68, 0.5);
+  border-left-color: var(--danger, #ef4444);
+}
+.frota-card.is-liberado {
+  border-left-color: var(--secondary, #3b82f6);
+}
+.frota-card.is-ok {
+  border-left-color: var(--success, #22c55e);
+}
+
+.frota-card__lock {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+.frota-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 24px;
+}
+
+.frota-card__avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+}
+
+.frota-card__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.frota-card__sub {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.frota-card__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+.frota-meta__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.frota-meta__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.frota-meta__value.is-danger {
+  color: #fca5a5;
+}
+.frota-meta__value.is-ok {
+  color: #86efac;
+}
+
+.frota-card__obra {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.frota-card__obra .frota-meta__label {
+  margin-bottom: 2px;
+}
+
+.frota-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.frota-card__actions .frota-btn {
+  margin: 0;
+  width: auto;
+}
+
+/* Botões self-contained — não dependem do .btn do painel (admin/prefeitura). */
+.frota-btn {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8ecf6;
+}
+.frota-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.frota-btn--primary {
+  background: var(--primary, #f97316);
+  color: #0c0f14;
+  border: none;
+}
+.frota-btn--secundario {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8ecf6;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.frota-btn-liberar {
+  background: var(--primary, #f97316);
+  color: #0c0f14;
+  border: none;
+}
+
+.frota-btn-del {
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: transparent;
+  padding: 8px 12px;
+}
+.frota-btn-del:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.frota-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius, 16px);
+  margin-top: 16px;
+}
+
+/* Modal simples (cadastro / atualizar leitura) */
+.frota-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 9, 18, 0.7);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 50;
+}
+
+.frota-modal {
+  background: var(--bg-2, #121b30);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 16px);
+  padding: 20px;
+  width: min(460px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.frota-modal h3 {
+  margin: 0 0 14px;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+
+.frota-modal__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.frota-modal__grid .full {
+  grid-column: 1 / -1;
+}
+
+.frota-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.frota-modal__footer .frota-btn {
+  margin: 0;
+  width: auto;
+}
+
+.frota-modal__msg {
+  min-height: 20px;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  margin-top: 8px;
+}
+
+/* Modal de liberar / registrar revisão */
+.frota-modal--rev {
+  width: min(640px, 100%);
+}
+
+.frota-rev__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.frota-rev__head h3 {
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.frota-rev__veic {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.frota-rev__veic strong {
+  color: var(--primary, #f97316);
+}
+.frota-rev__close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+.frota-rev__close:hover {
+  color: var(--text);
+}
+
+.frota-rev__alerta {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.frota-rev__alerta strong {
+  display: block;
+  color: var(--danger, #ef4444);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+.frota-rev__alerta p {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.frota-rev__aviso {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 16px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+.frota-rev__aviso strong {
+  color: var(--warning, #f59e0b);
+}
+
+.frota-btn-confirmar {
+  background: var(--success, #22c55e);
+  color: #08210f;
+  border: none;
+}
+.frota-btn-confirmar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

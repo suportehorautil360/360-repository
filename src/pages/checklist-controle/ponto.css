@@ -1,0 +1,379 @@
+.ponto-page {
+  min-height: 100dvh;
+  background: #090f1f;
+  color: #e8ecf6;
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px;
+  font-family: system-ui, sans-serif;
+}
+
+.ponto-card {
+  width: min(440px, 100%);
+  background: #121b30;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: fit-content;
+}
+
+.ponto-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ponto-head h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+.ponto-voltar {
+  color: #93a4c6;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.ponto-voltar:hover {
+  color: #e8ecf6;
+}
+
+.ponto-sub {
+  margin: -4px 0 6px;
+  color: #93a4c6;
+  font-size: 0.9rem;
+}
+
+.ponto-label {
+  font-size: 0.8rem;
+  color: #93a4c6;
+}
+
+.ponto-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+.ponto-foto {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+}
+.ponto-foto img,
+.ponto-foto video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ponto-cam-acoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ponto-foto__vazio {
+  font-size: 2.4rem;
+  opacity: 0.5;
+}
+
+.ponto-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+.ponto-btn--primary {
+  background: #f97316;
+  color: #0c0f14;
+}
+.ponto-btn--primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.ponto-btn--secundario {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8ecf6;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ponto-msg {
+  margin: 0;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.ponto-msg--err {
+  color: #fca5a5;
+}
+.ponto-msg--ok {
+  color: #86efac;
+}
+
+.ponto-lista {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 12px;
+}
+.ponto-lista h2 {
+  font-size: 0.9rem;
+  color: #93a4c6;
+  margin: 0 0 8px;
+}
+.ponto-lista ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ponto-lista li {
+  font-size: 0.92rem;
+}
+
+.ponto-vazio {
+  text-align: center;
+  gap: 16px;
+}
+
+/* Relógio grande ao vivo (gate, tema escuro) */
+.ponto-relogio-wrap {
+  text-align: center;
+  margin: 4px 0 8px;
+}
+.ponto-relogio {
+  width: 184px;
+  height: 184px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+  margin: 8px auto 6px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e8ecf6;
+  font-variant-numeric: tabular-nums;
+}
+.ponto-relogio-data {
+  color: #93a4c6;
+  font-size: 0.9rem;
+}
+.ponto-relogio-data::first-letter {
+  text-transform: uppercase;
+}
+/* No tema claro da aba (folha), inverte as cores do relógio. */
+.ponto-folha .ponto-relogio {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-relogio-data {
+  color: #475569;
+}
+
+/* Recibo de confirmação (gate) */
+.ponto-recibo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 12px;
+  text-align: center;
+}
+.ponto-recibo__check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.ponto-recibo__titulo {
+  font-size: 1.1rem;
+}
+.ponto-recibo__hora {
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chip de status (base = tema escuro) */
+.ponto-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.ponto-status--pendente {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.16);
+}
+.ponto-status--aprovado {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.16);
+}
+.ponto-status--reprovado {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+/* Variantes claras dentro da folha (aba no checklist claro) */
+.ponto-folha .ponto-status--pendente {
+  color: #92702a;
+  background: #fef3c7;
+}
+.ponto-folha .ponto-status--aprovado {
+  color: #166534;
+  background: #dcfce7;
+}
+.ponto-folha .ponto-status--reprovado {
+  color: #991b1b;
+  background: #fee2e2;
+}
+.ponto-folha .ponto-slot__motivo {
+  color: #b91c1c;
+  font-size: 0.82rem;
+}
+.ponto-recibo-banner {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Aviso de batidas aguardando sincronização (offline) */
+.ponto-pendentes {
+  font-size: 0.85rem;
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.ponto-folha .ponto-pendentes {
+  color: #92702a;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+/* Folha de ponto (aba do operador) */
+.ponto-folha {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ponto-folha__msg {
+  color: #93a4c6;
+  font-size: 0.9rem;
+}
+.ponto-slots {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ponto-slot {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ponto-slot__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+}
+.ponto-slot__label {
+  font-weight: 600;
+}
+.ponto-slot__valor,
+.ponto-slot__edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ponto-slot__valor strong {
+  font-variant-numeric: tabular-nums;
+}
+.ponto-input--time {
+  width: auto;
+  padding: 8px 10px;
+}
+.ponto-btn--sm {
+  padding: 7px 12px;
+  font-size: 0.85rem;
+}
+.ponto-slot__bater {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/*
+ * A folha é embutida no checklist (tema claro). Os estilos base de .ponto-*
+ * assumem fundo escuro (tela /ponto), então aqui garantimos contraste legível
+ * dentro da aba — sem afetar o gate escuro.
+ */
+.ponto-folha .ponto-label {
+  color: #475569;
+}
+.ponto-folha .ponto-input {
+  color: #0f172a;
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-foto {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  max-height: 320px;
+}
+.ponto-folha .ponto-btn--secundario {
+  background: #e2e8f0;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-slot {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+.ponto-folha .ponto-slot__label,
+.ponto-folha .ponto-slot__valor strong {
+  color: #0f172a;
+}
+.ponto-folha__msg {
+  color: #475569;
+}
+.ponto-folha .ponto-msg--err {
+  color: #b91c1c;
+}

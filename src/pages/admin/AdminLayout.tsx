@@ -16,11 +16,7 @@ export function AdminLayout() {
   return (
     <div className="admin-root">
       <section id="appShell" className="app-shell">
-        <Sidebar
-          brand={ADMIN_BRAND}
-          groups={ADMIN_NAV}
-          onLogout={onLogout}
-        />
+        <Sidebar brand={ADMIN_BRAND} groups={ADMIN_NAV} />
 
         <main className="main-content">
           <div className="topbar">
@@ -32,6 +28,14 @@ export function AdminLayout() {
                 style={{ margin: "6px 0 0", fontSize: "0.82rem" }}
               />
             </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ width: "auto", whiteSpace: "nowrap", alignSelf: "center" }}
+              onClick={onLogout}
+            >
+              Sair
+            </button>
           </div>
 
           <div

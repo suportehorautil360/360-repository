@@ -33,9 +33,17 @@ function SidebarLink({ item }: { item: SidebarItem }) {
  * Estilo escuro (HORA ÚTIL 360); cores herdam do tema quando presente,
  * com fallback próprio para funcionar isolada.
  */
+/** Iniciais a partir do nome (ex.: "João Santos" → "JS"). */
+function iniciais(nome: string): string {
+  const partes = nome.trim().split(/\s+/);
+  const ini = (partes[0]?.[0] ?? "") + (partes[partes.length - 1]?.[0] ?? "");
+  return ini.toUpperCase() || "?";
+}
+
 export function Sidebar({
   brand,
   groups,
+  user,
   onLogout,
   className,
 }: SidebarProps) {
@@ -68,15 +76,42 @@ export function Sidebar({
         ))}
       </nav>
 
-      {onLogout && (
+      {(user || onLogout) && (
         <div className="hu-sidebar__footer">
-          <button
-            type="button"
-            className="hu-sidebar__logout"
-            onClick={onLogout}
-          >
-            Sair
-          </button>
+          {user ? (
+            <div className="hu-sidebar__user">
+              <span className="hu-sidebar__avatar" aria-hidden="true">
+                {user.initials ?? iniciais(user.name)}
+              </span>
+              <span className="hu-sidebar__user-text">
+                <strong className="hu-sidebar__user-name">{user.name}</strong>
+                {user.role != null && (
+                  <span className="hu-sidebar__user-role">{user.role}</span>
+                )}
+              </span>
+              {onLogout && (
+                <button
+                  type="button"
+                  className="hu-sidebar__logout-icon"
+                  onClick={onLogout}
+                  aria-label="Sair"
+                  title="Sair"
+                >
+                  ⏻
+                </button>
+              )}
+            </div>
+          ) : (
+            onLogout && (
+              <button
+                type="button"
+                className="hu-sidebar__logout"
+                onClick={onLogout}
+              >
+                Sair
+              </button>
+            )
+          )}
         </div>
       )}
     </aside>

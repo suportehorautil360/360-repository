@@ -1,6 +1,9 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useLogin } from "./pages/login/hooks/use-login";
+import { useOperadorSession } from "./pages/checklist-controle/useOperadorSession";
+import { jaBateuHoje } from "./pages/checklist-controle/ponto-dia";
+import { usePontoAtivo } from "./lib/api/feature-flags";
 import { RouteErrorBoundary } from "./components/ErrorBoundary/RouteErrorBoundary";
 
 // Páginas carregadas sob demanda (cada rota vira um chunk próprio).
@@ -41,6 +44,11 @@ const AcessosLoginsSection = lazy(() =>
 const EquipamentosLocacaoSection = lazy(() =>
   import("./pages/admin/sections/EquipamentosLocacaoSection").then((m) => ({
     default: m.EquipamentosLocacaoSection,
+  })),
+);
+const FuncionalidadesSection = lazy(() =>
+  import("./pages/admin/sections/FuncionalidadesSection").then((m) => ({
+    default: m.FuncionalidadesSection,
   })),
 );
 const AdminPortalOficinaPage = lazy(() =>
@@ -91,6 +99,11 @@ const ChecklistLoginPage = lazy(() =>
     default: m.ChecklistLoginPage,
   })),
 );
+const PontoPage = lazy(() =>
+  import("./pages/checklist-controle/PontoPage").then((m) => ({
+    default: m.PontoPage,
+  })),
+);
 
 function RouteFallback() {
   return (
@@ -139,6 +152,22 @@ function RootRoute() {
   return <PostoPortalProvider />;
 }
 
+/**
+ * Gate obrigatório de ponto: com sessão de operador ativa e sem batida
+ * registrada hoje, manda bater o ponto antes de liberar o checklist.
+ */
+function RequirePonto({ children }: { children: ReactNode }) {
+  const { session } = useOperadorSession();
+  const { ativo, carregando } = usePontoAtivo(session?.idCliente);
+
+  // Sem ponto ativo (ou ainda carregando a flag) não força o gate.
+  if (!session || !ativo) return <>{children}</>;
+  if (carregando) return <RouteFallback />;
+  if (!jaBateuHoje(session)) return <Navigate to="/ponto" replace />;
+
+  return <>{children}</>;
+}
+
 export function AppRoutes() {
   return (
     <BrowserRouter>
@@ -149,6 +178,10 @@ export function AppRoutes() {
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />
+            <Route
+              path="funcionalidades"
+              element={<FuncionalidadesSection />}
+            />
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />
@@ -182,7 +215,15 @@ export function AppRoutes() {
           />
           <Route path="/login-operacional" element={<OperacionalLoginPage />} />
           <Route path="/checklist-login" element={<ChecklistLoginPage />} />
-          <Route path="/checklist-controle" element={<ChecklistControlePage />} />
+          <Route path="/ponto" element={<PontoPage />} />
+          <Route
+            path="/checklist-controle"
+            element={
+              <RequirePonto>
+                <ChecklistControlePage />
+              </RequirePonto>
+            }
+          />
           <Route
             path="/posto/:id"
             element={
@@ -193,6 +234,7 @@ export function AppRoutes() {
           />
           <Route path="/prefeitura" element={<PrefeituraPage />} />
           <Route path="/prefeitura/:id" element={<PrefeituraPage />} />
+          <Route path="/prefeitura/:id/:secao" element={<PrefeituraPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

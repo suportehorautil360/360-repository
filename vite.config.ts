@@ -2,8 +2,22 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// URL do backend NestJS (back-360-). Em dev, o proxy abaixo encaminha
+// as chamadas de `/api/*` pra cá, evitando CORS. Override via env BACKEND_URL.
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:3000";
+
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      // O front chama `/api/vehicles`; o backend expõe `/vehicles`.
+      "/api": {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({

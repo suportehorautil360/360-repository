@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useHU360 } from "../../lib/hu360";
+import { Sidebar } from "../../components/Sidebar/Sidebar";
 import { DashboardSection } from "./sections/DashboardSection";
 import { AuditoriaSection } from "./sections/AuditoriaSection";
 import { RiscosSection } from "./sections/RiscosSection";
@@ -10,37 +11,34 @@ import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
+import { PontosRhSection } from "./sections/PontosRhSection";
+import { FrotaSection } from "./sections/FrotaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
+import {
+  PREFEITURA_BRAND,
+  SECAO_LABEL,
+  prefeituraNav,
+} from "./prefeituraNav";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
+import { usePontoAtivo } from "../../lib/api/feature-flags";
+import { usePrefeituraBadges } from "./usePrefeituraBadges";
 
-type PrefAba =
-  | "dash"
-  | "auditoria"
-  | "riscos"
-  | "equipamentos"
-  | "cadastros"
-  | "criar-os"
-  | "orcamentos-pref"
-  | "finalizar-os"
-  | "abastecimento"
-  | "emergencia";
-
-const ABAS: { id: PrefAba; label: string }[] = [
-  { id: "dash", label: "📊 Dashboard Geral" },
-  { id: "auditoria", label: "📋 Auditoria de Checklists" },
-  { id: "riscos", label: "⚠️ Triagem de Riscos" },
-  { id: "equipamentos", label: "🛠️ Equipamentos" },
-  { id: "cadastros", label: "👤 Cadastros" },
-  { id: "criar-os", label: "📝 Abrir O.S." },
-  { id: "orcamentos-pref", label: "📑 Orçamentos & Aprovação" },
-  { id: "finalizar-os", label: "✅ Checklist, NF & Pagamento" },
-  { id: "abastecimento", label: "⛽ Abastecimento & postos" },
-  { id: "emergencia", label: "🚨 Emergência" },
-];
+/** Placeholder das seções da referência que ainda não têm tela. */
+function EmConstrucao({ titulo }: { titulo: string }) {
+  return (
+    <div>
+      <h1>{titulo}</h1>
+      <p style={{ color: "var(--text-gray)", maxWidth: "48rem" }}>
+        🚧 Esta seção ainda está em construção. A estrutura já existe no menu;
+        o conteúdo será habilitado em breve.
+      </p>
+    </div>
+  );
+}
 
 export function PrefeituraPage() {
-  const { id: idParam } = useParams<{ id?: string }>();
+  const { id: idParam, secao } = useParams<{ id?: string; secao?: string }>();
   const navigate = useNavigate();
   const { user, handleLogin: login, logout } = useLogin();
   const { obterDadosPrefeitura, prefeituraLabel } = useHU360();
@@ -50,11 +48,7 @@ export function PrefeituraPage() {
   const [authMsg, setAuthMsg] = useState<{
     tone: "none" | "ok" | "err";
     text: string;
-  }>({
-    tone: "none",
-    text: "",
-  });
-  const [aba, setAba] = useState<PrefAba>("dash");
+  }>({ tone: "none", text: "" });
 
   useEffect(() => {
     document.body.classList.add("prefeitura-root");
@@ -63,22 +57,23 @@ export function PrefeituraPage() {
     };
   }, []);
 
-  // Sincroniza a URL com o município efetivamente em foco.
   const prefeituraId = useMemo(() => {
     if (idParam) return idParam;
     return user?.prefeituraId ?? "";
   }, [idParam, user?.prefeituraId]);
 
+  // Sincroniza a URL: garante /prefeitura/:id e uma seção padrão (dashboard).
   useEffect(() => {
-    if (!user) return;
-    if (idParam && idParam !== user.prefeituraId) {
-      // Hub abriu o portal apontando outro município: respeita a URL.
-      return;
-    }
+    if (!user || !prefeituraId) return;
     if (!idParam && user.prefeituraId) {
-      navigate(`/prefeitura/${user.prefeituraId}`, { replace: true });
+      navigate(`/prefeitura/${user.prefeituraId}/dashboard`, { replace: true });
+    } else if (idParam && !secao) {
+      navigate(`/prefeitura/${idParam}/dashboard`, { replace: true });
     }
-  }, [user, idParam, navigate]);
+  }, [user, idParam, secao, prefeituraId, navigate]);
+
+  const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
+  const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
 
   const dados = useMemo(
     () => (prefeituraId ? obterDadosPrefeitura(prefeituraId) : null),
@@ -150,17 +145,6 @@ export function PrefeituraPage() {
                 {authMsg.text}
               </div>
             </form>
-            <p
-              style={{
-                marginTop: 16,
-                fontSize: "0.8rem",
-                color: "var(--text-gray)",
-                borderTop: "1px dashed #2d3748",
-                paddingTop: 12,
-              }}
-            >
-              Use o login criado pelo administrador do sistema.
-            </p>
             <Link
               to="/"
               style={{
@@ -208,181 +192,39 @@ export function PrefeituraPage() {
 
   const labelMunicipio = prefeituraLabel(prefeituraId);
   const ehOutroMunicipio = idParam && idParam !== user.prefeituraId;
+  const secaoAtual = secao ?? "dashboard";
+  const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
 
-  return (
-    <div className="prefeitura-root">
-      <div id="appShell" className="pf-app-shell">
-        <aside id="sidebar">
-          <div className="logo">
-            <h2>horautil360</h2>
-            <p
-              id="prefCtxNome"
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--main-orange)",
-                marginTop: 8,
-                fontWeight: 600,
-              }}
-            >
-              {labelMunicipio}
-            </p>
-            <p
-              style={{
-                fontSize: "0.72rem",
-                color: "var(--text-gray)",
-                marginTop: 4,
-              }}
-            >
-              Dados exclusivos deste município
-            </p>
-          </div>
-
-          {ABAS.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              className={`nav-item ${aba === a.id ? "active" : ""}`}
-              onClick={() => setAba(a.id)}
-            >
-              {a.label}
-            </button>
-          ))}
-        </aside>
-
-        <main id="main">
-          <div className="app-topbar">
-            <Link className="hub-link" to="/admin/dashboard">
-              ← Hub Mestre
-            </Link>
-            <div className="app-topbar-actions">
-              <span id="usuarioLogado" className="topbar-user">
-                {user.usuario}
-              </span>
-              <button
-                type="button"
-                className="btn btn-outline"
-                style={{ width: "auto", margin: 0, padding: "8px 14px" }}
-                onClick={handleLogout}
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-
-          {ehOutroMunicipio ? (
-            <div
-              id="pf-banner-hub-ctx"
-              className="pf-hub-ctx-banner"
-              role="status"
-            >
-              Você abriu o painel <strong>{labelMunicipio}</strong> a partir do
-              Hub Mestre. Sua sessão original é{" "}
-              {prefeituraLabel(user.prefeituraId ?? "")}.
-            </div>
-          ) : null}
-
-          <p
-            style={{
-              fontSize: "0.78rem",
-              color: "var(--text-gray)",
-              margin: "0 0 18px",
-              lineHeight: 1.4,
-            }}
-          >
-            Cadastro ou exclusão de logins (prefeitura, oficina ou posto) é
-            feito somente no <strong>Hub Mestre</strong>, em{" "}
-            <strong>Controle → Acessos e logins</strong>.
-            <span style={{ display: "block", marginTop: 10 }}>
-              <strong>Oficinas e postos credenciados</strong> também são geridos
-              no Hub (aba <strong>Oficinas e postos</strong>), no contexto deste
-              município.
-              <Link
-                to="/admin/oficinas-postos"
-                className="btn btn-outline"
-                style={{
-                  width: "auto",
-                  marginTop: 8,
-                  padding: "8px 14px",
-                  fontSize: "0.78rem",
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                Abrir Hub — Oficinas e postos
-              </Link>
-            </span>
-          </p>
-
-          <div
-            id="dash"
-            className={`tab-content ${aba === "dash" ? "active" : ""}`}
-          >
-            <DashboardSection prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="auditoria"
-            className={`tab-content ${aba === "auditoria" ? "active" : ""}`}
-          >
-            <AuditoriaSection prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="riscos"
-            className={`tab-content ${aba === "riscos" ? "active" : ""}`}
-          >
-            <RiscosSection prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="equipamentos"
-            className={`tab-content ${aba === "equipamentos" ? "active" : ""}`}
-          >
-            <EquipamentosSection
-              prefeituraId={prefeituraId}
-              labelMunicipio={labelMunicipio}
-            />
-          </div>
-
-          <div
-            id="cadastros"
-            className={`tab-content ${aba === "cadastros" ? "active" : ""}`}
-          >
-            <CadastrosSection prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="criar-os"
-            className={`tab-content ${aba === "criar-os" ? "active" : ""}`}
-          >
-            <AbrirOsSection dados={dados} prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="orcamentos-pref"
-            className={`tab-content ${aba === "orcamentos-pref" ? "active" : ""}`}
-          >
-            <OrcamentosSection prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="finalizar-os"
-            className={`tab-content ${aba === "finalizar-os" ? "active" : ""}`}
-          >
-            <FinalizarOsSection dados={dados} prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="abastecimento"
-            className={`tab-content ${aba === "abastecimento" ? "active" : ""}`}
-          >
-            <AbastecimentoSection dados={dados} prefeituraId={prefeituraId} />
-          </div>
-
-          <div
-            id="emergencia"
-            className={`tab-content ${aba === "emergencia" ? "active" : ""}`}
-          >
+  function renderSecao() {
+    switch (secaoAtual) {
+      case "dashboard":
+        return <DashboardSection prefeituraId={prefeituraId} />;
+      case "abastecimento":
+        return <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />;
+      case "frota":
+        return <FrotaSection prefeituraId={prefeituraId} />;
+      case "equipamentos":
+        return (
+          <EquipamentosSection
+            prefeituraId={prefeituraId}
+            labelMunicipio={labelMunicipio}
+          />
+        );
+      case "cadastros":
+        return <CadastrosSection prefeituraId={prefeituraId} />;
+      case "abrir-os":
+        return <AbrirOsSection dados={dados!} prefeituraId={prefeituraId} />;
+      case "orcamentos":
+        return <OrcamentosSection prefeituraId={prefeituraId} />;
+      case "pagamentos":
+        return <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />;
+      case "auditoria-checklists":
+        return <AuditoriaSection prefeituraId={prefeituraId} />;
+      case "riscos":
+        return <RiscosSection prefeituraId={prefeituraId} />;
+      case "emergencia":
+        return (
+          <div>
             <h1>Emergências</h1>
             <p
               style={{
@@ -398,6 +240,44 @@ export function PrefeituraPage() {
             </p>
             <EmergenciaTable prefeituraId={prefeituraId} />
           </div>
+        );
+      case "pontos-rh":
+        return pontoAtivo ? (
+          <PontosRhSection prefeituraId={prefeituraId} />
+        ) : (
+          <EmConstrucao titulo="Pontos (RH)" />
+        );
+      default:
+        return <EmConstrucao titulo={SECAO_LABEL[secaoAtual] ?? "Em breve"} />;
+    }
+  }
+
+  return (
+    <div className="prefeitura-root">
+      <div id="appShell" className="pf-app-shell">
+        <Sidebar
+          brand={PREFEITURA_BRAND}
+          groups={navGroups}
+          user={{ name: user.usuario, role: labelMunicipio }}
+          onLogout={handleLogout}
+        />
+
+        <main id="main">
+          <div className="app-topbar">
+            <Link className="hub-link" to="/admin/dashboard">
+              ← Hub Mestre
+            </Link>
+          </div>
+
+          {ehOutroMunicipio ? (
+            <div className="pf-hub-ctx-banner" role="status">
+              Você abriu o painel <strong>{labelMunicipio}</strong> a partir do
+              Hub Mestre. Sua sessão original é{" "}
+              {prefeituraLabel(user.prefeituraId ?? "")}.
+            </div>
+          ) : null}
+
+          {renderSecao()}
         </main>
       </div>
     </div>
