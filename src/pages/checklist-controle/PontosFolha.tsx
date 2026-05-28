@@ -12,6 +12,7 @@ import { RelogioAoVivo } from "./RelogioAoVivo";
 import { baterComFila } from "../../lib/api/pontos-fila";
 import { usePontoSync } from "./usePontoSync";
 import { escalaApi, type Escala } from "../../lib/api/escala";
+import { solicitacoesPontoApi } from "../../lib/api/solicitacoes-ponto";
 import {
   Dialog,
   DialogContent,
@@ -126,6 +127,7 @@ export function PontosFolha({
   const [incHora, setIncHora] = useState("");
   const [incObs, setIncObs] = useState("");
   const [incAnexo, setIncAnexo] = useState<File | null>(null);
+  const [enviandoInclusao, setEnviandoInclusao] = useState(false);
 
   function abrirIncluir() {
     const hoje = new Date();
@@ -149,14 +151,53 @@ export function PontosFolha({
     setIncAnexo(file);
   }
 
-  function enviarInclusao() {
+  /** Lê o arquivo como data URL (base64) — suficiente para anexos pequenos. */
+  function lerComoDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error ?? new Error("Falha ao ler o arquivo."));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function enviarInclusao() {
     if (!incData || !incHora) {
       toast.error("Informe data e horário.");
       return;
     }
-    // Sem backend de solicitações de ajuste ainda: registra a intenção.
-    toast.success("Solicitação de inclusão enviada ao gestor.");
-    setIncluirAberto(false);
+    if (!nome.trim()) {
+      toast.error("Informe seu nome no campo Funcionário.");
+      return;
+    }
+    setEnviandoInclusao(true);
+    try {
+      // Combina data + hora locais e converte pra ISO 8601 (timezone do device).
+      const tsLocal = new Date(`${incData}T${incHora}:00`);
+      const timestampOriginal = tsLocal.toISOString();
+      let anexoDataUrl: string | undefined;
+      if (incAnexo) {
+        anexoDataUrl = await lerComoDataUrl(incAnexo);
+      }
+      await solicitacoesPontoApi.criar({
+        tipo: "incluir",
+        prefeituraId,
+        name: nome.trim(),
+        data: incData,
+        timestampOriginal,
+        observacao: incObs.trim() || undefined,
+        anexoDataUrl,
+        anexoNome: incAnexo?.name,
+      });
+      toast.success("Solicitação de inclusão enviada ao gestor.");
+      setIncluirAberto(false);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Erro ao enviar a solicitação.",
+      );
+    } finally {
+      setEnviandoInclusao(false);
+    }
   }
 
   const carregar = useCallback(async () => {
@@ -639,9 +680,10 @@ export function PontosFolha({
               <button
                 type="button"
                 className="folha-modal__salvar folha-modal__salvar--azul"
-                onClick={enviarInclusao}
+                disabled={enviandoInclusao}
+                onClick={() => void enviarInclusao()}
               >
-                Enviar solicitação
+                {enviandoInclusao ? "Enviando…" : "Enviar solicitação"}
               </button>
             </div>
           </DialogContent>
