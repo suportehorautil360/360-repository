@@ -229,107 +229,6 @@
   color: #fca5a5;
 }
 
-/* ===== Modal de cadastro/edição (shadcn Dialog) ===== */
-.func-dialog {
-  width: 100%;
-  max-width: 640px;
-  max-height: calc(100dvh - 40px);
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  gap: 0;
-  border: none;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #0b1220;
-  color: #e8ecf6;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-}
-.func-dialog__head {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--main-orange);
-  color: #1a1205;
-  padding: 16px 22px;
-}
-.func-dialog__head h2 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-}
-.func-dialog__voltar {
-  background: transparent;
-  border: none;
-  color: #1a1205;
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 2px;
-}
-.func-dialog__body {
-  padding: 22px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-.func-dialog__lead {
-  color: #93a4c6;
-  margin: 0 0 14px;
-  line-height: 1.5;
-}
-.func-dialog__body label {
-  font-size: 0.82rem;
-  color: #93a4c6;
-  margin: 12px 0 6px;
-}
-.func-dialog__body input,
-.func-dialog__body select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  color: #e8ecf6;
-  padding: 11px 12px;
-  font-size: 0.95rem;
-  width: 100%;
-}
-.func-dialog__body input:focus,
-.func-dialog__body select:focus {
-  outline: 2px solid var(--main-orange);
-  outline-offset: 1px;
-}
-.func-dialog__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.func-dialog__row--3 {
-  grid-template-columns: 1fr 0.6fr 1fr;
-}
-.func-dialog__row > div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.func-dialog__check {
-  flex-direction: row !important;
-  align-items: center;
-  gap: 8px;
-  margin: 18px 0 0 !important;
-  color: #e8ecf6 !important;
-  cursor: pointer;
-}
-.func-dialog__check input {
-  width: auto !important;
-}
-.func-dialog__acoes {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
 @media (max-width: 720px) {
   .func__card-head {
     flex-direction: column;
@@ -341,9 +240,5 @@
   .func__busca input {
     min-width: 0;
     width: 100%;
-  }
-  .func-dialog__row,
-  .func-dialog__row--3 {
-    grid-template-columns: 1fr;
   }
 }

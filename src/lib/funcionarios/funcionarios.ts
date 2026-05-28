@@ -11,6 +11,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
@@ -49,12 +50,35 @@ export interface Funcionario {
   temSenha: boolean;
   /** Matrícula interna da prefeitura (opcional). */
   matricula?: string;
+  /** Data de nascimento (YYYY-MM-DD). */
+  dataNascimento?: string;
+  /** RG (livre, ex.: "12.345.678-9"). */
+  rg?: string;
   /** Número da CNH (só dígitos). */
   cnh?: string;
   /** Categoria da CNH ("A", "B", "AB"…). */
   cnhCategoria?: string;
   /** Validade da CNH no formato ISO (YYYY-MM-DD). */
   cnhValidade?: string;
+  /** Local de emissão da CNH (UF). */
+  cnhLocalEmissao?: string;
+  /** Data de emissão da CNH (YYYY-MM-DD). */
+  cnhEmissao?: string;
+  /** Restrição médica (ex.: "Usa óculos"). */
+  cnhRestricao?: string;
+  /** Observações livres do gestor. */
+  observacoes?: string;
+}
+
+/**
+ * Login gerado a partir do nome + 3 últimos dígitos do CPF.
+ * Apenas para exibir nas credenciais; o login real continua sendo por CPF.
+ */
+export function gerarLogin(nome: string, cpf: string): string {
+  const primeiro = (nome || "").trim().split(/\s+/)[0] ?? "";
+  const cpfLimpo = (cpf || "").replace(/\D/g, "");
+  if (!primeiro || cpfLimpo.length < 3) return "";
+  return `${primeiro.toLowerCase()}${cpfLimpo.slice(-3)}`;
 }
 
 /** Dados de escrita (cadastro/edição). `senha` é opcional na edição. */
@@ -65,12 +89,18 @@ export interface FuncionarioInput {
   telefone?: string;
   tipo: FuncionarioTipo;
   status: FuncionarioStatus;
-  /** Senha em texto puro; só presente quando vai ser (re)definida. */
+  /** Senha em texto puro; quando ausente no cadastro, vira o CPF (senha inicial). */
   senha?: string;
   matricula?: string;
+  dataNascimento?: string;
+  rg?: string;
   cnh?: string;
   cnhCategoria?: string;
   cnhValidade?: string;
+  cnhLocalEmissao?: string;
+  cnhEmissao?: string;
+  cnhRestricao?: string;
+  observacoes?: string;
 }
 
 /**
@@ -102,9 +132,15 @@ function fromDoc(id: string, data: Record<string, unknown>): Funcionario {
     status,
     temSenha: Boolean(data.senhaHash),
     matricula: data.matricula ? String(data.matricula) : undefined,
+    dataNascimento: data.dataNascimento ? String(data.dataNascimento) : undefined,
+    rg: data.rg ? String(data.rg) : undefined,
     cnh: data.cnh ? String(data.cnh) : undefined,
     cnhCategoria: data.cnhCategoria ? String(data.cnhCategoria) : undefined,
     cnhValidade: data.cnhValidade ? String(data.cnhValidade) : undefined,
+    cnhLocalEmissao: data.cnhLocalEmissao ? String(data.cnhLocalEmissao) : undefined,
+    cnhEmissao: data.cnhEmissao ? String(data.cnhEmissao) : undefined,
+    cnhRestricao: data.cnhRestricao ? String(data.cnhRestricao) : undefined,
+    observacoes: data.observacoes ? String(data.observacoes) : undefined,
   };
 }
 
@@ -185,6 +221,10 @@ export const funcionariosApi = {
 
   async criar(prefeituraId: string, input: FuncionarioInput): Promise<void> {
     const cpf = limparCpf(input.cpf);
+    // Padrão enterprise: se a senha não foi escolhida, o CPF vira a senha
+    // inicial (operador troca depois). Garante que todo funcionário criado
+    // já pode logar.
+    const senhaInicial = input.senha || cpf;
     const payload: Record<string, unknown> = {
       prefeituraId,
       nome: input.nome.trim(),
@@ -194,15 +234,19 @@ export const funcionariosApi = {
       tipo: input.tipo,
       status: input.status,
       matricula: input.matricula?.trim() || null,
+      dataNascimento: input.dataNascimento?.trim() || null,
+      rg: input.rg?.trim() || null,
       cnh: input.cnh?.replace(/\D/g, "") || null,
       cnhCategoria: input.cnhCategoria?.trim() || null,
       cnhValidade: input.cnhValidade?.trim() || null,
+      cnhLocalEmissao: input.cnhLocalEmissao?.trim() || null,
+      cnhEmissao: input.cnhEmissao?.trim() || null,
+      cnhRestricao: input.cnhRestricao?.trim() || null,
+      observacoes: input.observacoes?.trim() || null,
+      senhaHash: await hashSenhaFuncionario(cpf, senhaInicial),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
-    if (input.senha) {
-      payload.senhaHash = await hashSenhaFuncionario(cpf, input.senha);
-    }
     await addDoc(collection(db, COLECAO), payload);
   },
 
@@ -216,15 +260,29 @@ export const funcionariosApi = {
       tipo: input.tipo,
       status: input.status,
       matricula: input.matricula?.trim() || null,
+      dataNascimento: input.dataNascimento?.trim() || null,
+      rg: input.rg?.trim() || null,
       cnh: input.cnh?.replace(/\D/g, "") || null,
       cnhCategoria: input.cnhCategoria?.trim() || null,
       cnhValidade: input.cnhValidade?.trim() || null,
+      cnhLocalEmissao: input.cnhLocalEmissao?.trim() || null,
+      cnhEmissao: input.cnhEmissao?.trim() || null,
+      cnhRestricao: input.cnhRestricao?.trim() || null,
+      observacoes: input.observacoes?.trim() || null,
       updatedAt: serverTimestamp(),
     };
     if (input.senha) {
       payload.senhaHash = await hashSenhaFuncionario(cpf, input.senha);
     }
     await updateDoc(doc(db, COLECAO, id), payload);
+  },
+
+  /** Carrega um funcionário pelo id (página de edição). */
+  async obter(id: string): Promise<Funcionario | null> {
+    const ref = doc(db, COLECAO, id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    return fromDoc(snap.id, snap.data());
   },
 
   /** Ativa/inativa sem mexer no resto do cadastro. */

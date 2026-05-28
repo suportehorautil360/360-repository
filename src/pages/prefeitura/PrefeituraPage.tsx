@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useHU360 } from "../../lib/hu360";
 import { Sidebar } from "../../components/Sidebar/Sidebar";
 import { DashboardSection } from "./sections/DashboardSection";
@@ -8,6 +8,7 @@ import { RiscosSection } from "./sections/RiscosSection";
 import { EquipamentosSection } from "./sections/EquipamentosSection";
 import { CadastrosSection } from "./sections/CadastrosSection";
 import { FuncionariosSection } from "./sections/FuncionariosSection";
+import { FuncionarioFormPage } from "./sections/FuncionarioFormPage";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
@@ -40,7 +41,17 @@ function EmConstrucao({ titulo }: { titulo: string }) {
 
 export function PrefeituraPage() {
   const { id: idParam, secao } = useParams<{ id?: string; secao?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
+
+  // Rotas dedicadas /funcionarios/novo e /funcionarios/:funcId/editar.
+  const funcFormModo: "novo" | "editar" | null = location.pathname.endsWith(
+    "/funcionarios/novo",
+  )
+    ? "novo"
+    : /\/funcionarios\/[^/]+\/editar$/.test(location.pathname)
+      ? "editar"
+      : null;
   const { user, handleLogin: login, logout } = useLogin();
   const { obterDadosPrefeitura, prefeituraLabel } = useHU360();
 
@@ -64,14 +75,17 @@ export function PrefeituraPage() {
   }, [idParam, user?.prefeituraId]);
 
   // Sincroniza a URL: garante /prefeitura/:id e uma seção padrão (dashboard).
+  // As rotas dedicadas (/funcionarios/novo, /funcionarios/:id/editar) não
+  // têm `secao` no useParams; aí o redirect padrão não deve disparar.
   useEffect(() => {
     if (!user || !prefeituraId) return;
+    if (funcFormModo) return;
     if (!idParam && user.prefeituraId) {
       navigate(`/prefeitura/${user.prefeituraId}/dashboard`, { replace: true });
     } else if (idParam && !secao) {
       navigate(`/prefeitura/${idParam}/dashboard`, { replace: true });
     }
-  }, [user, idParam, secao, prefeituraId, navigate]);
+  }, [user, idParam, secao, prefeituraId, navigate, funcFormModo]);
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
   const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
@@ -193,10 +207,20 @@ export function PrefeituraPage() {
 
   const labelMunicipio = prefeituraLabel(prefeituraId);
   const ehOutroMunicipio = idParam && idParam !== user.prefeituraId;
-  const secaoAtual = secao ?? "dashboard";
+  // Quando estamos na rota dedicada de funcionário, o topbar mostra
+  // "Funcionários" (a seção lógica).
+  const secaoAtual = funcFormModo ? "funcionarios" : (secao ?? "dashboard");
   const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
 
   function renderSecao() {
+    if (funcFormModo) {
+      return (
+        <FuncionarioFormPage
+          prefeituraId={prefeituraId}
+          modo={funcFormModo}
+        />
+      );
+    }
     switch (secaoAtual) {
       case "dashboard":
         return <DashboardSection prefeituraId={prefeituraId} />;
