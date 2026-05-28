@@ -7,6 +7,7 @@ export const SECOES_REAIS = new Set([
   "frota",
   "equipamentos",
   "cadastros",
+  "funcionarios",
   "abrir-os",
   "orcamentos",
   "pagamentos",
@@ -33,6 +34,7 @@ export const SECAO_LABEL: Record<string, string> = {
   "painel-geral": "Painel Geral",
   equipamentos: "Equipamentos",
   cadastros: "Cadastros",
+  funcionarios: "Funcionários",
   "abrir-os": "Abrir O.S.",
   orcamentos: "Orçamentos e Aprovações",
   "auditoria-devolucao": "Auditoria de Devolução",
@@ -122,6 +124,7 @@ export function prefeituraNav(
         { label: "Painel Geral", to: to("painel-geral"), icon: "📈" },
         { label: "Equipamentos", to: to("equipamentos"), icon: "🛠️" },
         { label: "Cadastros", to: to("cadastros"), icon: "👤" },
+        { label: "Funcionários", to: to("funcionarios"), icon: "👷" },
         { label: "Abrir O.S.", to: to("abrir-os"), icon: "📄" },
         { label: "Orçamentos e Aprovações", to: to("orcamentos"), icon: "📝" },
         {

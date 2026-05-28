@@ -7,6 +7,7 @@ import { AuditoriaSection } from "./sections/AuditoriaSection";
 import { RiscosSection } from "./sections/RiscosSection";
 import { EquipamentosSection } from "./sections/EquipamentosSection";
 import { CadastrosSection } from "./sections/CadastrosSection";
+import { FuncionariosSection } from "./sections/FuncionariosSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
@@ -212,6 +213,8 @@ export function PrefeituraPage() {
         );
       case "cadastros":
         return <CadastrosSection prefeituraId={prefeituraId} />;
+      case "funcionarios":
+        return <FuncionariosSection prefeituraId={prefeituraId} />;
       case "abrir-os":
         return <AbrirOsSection dados={dados!} prefeituraId={prefeituraId} />;
       case "orcamentos":

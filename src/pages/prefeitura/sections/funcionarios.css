@@ -1,0 +1,251 @@
+.func {
+  color: #e8ecf6;
+}
+.func__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.func__lead {
+  color: #93a4c6;
+  max-width: 52rem;
+  line-height: 1.55;
+  margin: 6px 0 0;
+}
+
+/* Filtros */
+.func__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+}
+.func__busca {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.func__filtros input,
+.func__filtros select,
+.func__dialog input,
+.func__dialog select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  color: #e8ecf6;
+  padding: 11px 12px;
+  font-size: 0.95rem;
+}
+.func__filtros input:focus,
+.func__filtros select:focus,
+.func__dialog input:focus,
+.func__dialog select:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+
+/* Mensagens */
+.func__msg {
+  color: #93a4c6;
+}
+.func__msg--err {
+  color: #fca5a5;
+}
+
+/* Lista de cards */
+.func__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.func__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px 16px;
+}
+.func__card--inativo {
+  opacity: 0.62;
+}
+.func__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.func__nome {
+  font-size: 1.02rem;
+}
+.func__sub {
+  font-size: 0.82rem;
+  color: #93a4c6;
+}
+.func__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.func__tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.func__tag--operador {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+.func__tag--supervisor {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+.func__tag--admin {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+}
+.func__tag--st-ativo {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.func__tag--st-inativo {
+  background: rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+}
+.func__tag--alerta {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+}
+
+/* Botões (alvos grandes, mobile-first) */
+.func__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.func__btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+.func__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.func__btn--primary {
+  background: var(--main-orange);
+  border-color: var(--main-orange);
+  color: #1a1205;
+}
+.func__btn--ok {
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
+}
+.func__btn--warn {
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+.func__btn--ghost {
+  border-style: dashed;
+  color: #93a4c6;
+}
+
+/* Modal de cadastro/edição */
+.func__modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.7);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+  z-index: 50;
+}
+.func__dialog {
+  width: 100%;
+  max-width: 600px;
+  background: #0b1220;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+}
+.func__dialog h2 {
+  margin: 0 0 12px;
+}
+.func__dialog label {
+  font-size: 0.82rem;
+  color: #93a4c6;
+  margin: 12px 0 5px;
+}
+.func__dialog input,
+.func__dialog select {
+  width: 100%;
+}
+.func__row {
+  display: flex;
+  gap: 12px;
+}
+.func__row > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.func__check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px !important;
+  color: #e8ecf6 !important;
+  cursor: pointer;
+}
+.func__check input {
+  width: auto !important;
+  min-height: 0;
+}
+.func__dialog-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 560px) {
+  .func__head {
+    flex-direction: column;
+  }
+  .func__head .func__btn--primary {
+    width: 100%;
+  }
+  .func__card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .func__acoes .func__btn {
+    flex: 1;
+  }
+  .func__row {
+    flex-direction: column;
+    gap: 0;
+  }
+}

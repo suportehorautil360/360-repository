@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   where,
 } from "firebase/firestore";
+import { Link } from "react-router-dom";
 import { db } from "../../../lib/firebase/firebase";
 
 interface CadastrosSectionProps {
@@ -25,19 +26,11 @@ interface EquipamentoDoc {
   linha: string;
 }
 
-interface OperadorDoc {
-  id: string;
-  nome: string;
-  cargo: string;
-}
-
 const LINHAS = [
   "Linha Amarela — máquinas pesadas",
   "Linha Branca — caminhões",
   "Linha Leve — carros e utilitários",
 ];
-
-const CARGOS = ["Operador de Máquinas", "Motorista", "Mecânico", "Outro"];
 
 export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
   // --- Equipamentos ---
@@ -51,14 +44,6 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
   const [eSaving, setESaving] = useState(false);
   const [eMsg, setEMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // --- Operadores ---
-  //@ts-ignore
-  const [operadores, setOperadores] = useState<OperadorDoc[]>([]);
-  const [oNome, setONome] = useState("");
-  const [oCargo, setOCargo] = useState(CARGOS[0]);
-  const [oSaving, setOSaving] = useState(false);
-  const [oMsg, setOMsg] = useState<{ ok: boolean; text: string } | null>(null);
-
   //@ts-ignore
   const [loading, setLoading] = useState(false);
 
@@ -66,22 +51,13 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
     if (!prefeituraId) return;
     setLoading(true);
     try {
-      const [snapEq, snapOp] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "equipamentos"),
-            where("prefeituraId", "==", prefeituraId),
-            orderBy("createdAt", "desc"),
-          ),
+      const snapEq = await getDocs(
+        query(
+          collection(db, "equipamentos"),
+          where("prefeituraId", "==", prefeituraId),
+          orderBy("createdAt", "desc"),
         ),
-        getDocs(
-          query(
-            collection(db, "operadores"),
-            where("prefeituraId", "==", prefeituraId),
-            orderBy("createdAt", "desc"),
-          ),
-        ),
-      ]);
+      );
       setEquipamentos(
         snapEq.docs.map((d) => ({
           id: d.id,
@@ -90,13 +66,6 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
           marca: (d.data().marca as string) ?? "",
           modelo: (d.data().modelo as string) ?? "",
           linha: (d.data().linha as string) ?? "",
-        })),
-      );
-      setOperadores(
-        snapOp.docs.map((d) => ({
-          id: d.id,
-          nome: (d.data().nome as string) ?? "",
-          cargo: (d.data().cargo as string) ?? "",
         })),
       );
     } catch {
@@ -146,39 +115,10 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
     }
   }
 
-  async function handleCadastrarOperador() {
-    setOMsg(null);
-    if (!oNome.trim()) {
-      setOMsg({ ok: false, text: "Informe o nome do operador." });
-      return;
-    }
-    setOSaving(true);
-    try {
-      await addDoc(collection(db, "operadores"), {
-        prefeituraId,
-        nome: oNome.trim(),
-        cargo: oCargo,
-        createdAt: serverTimestamp(),
-      });
-      setOMsg({ ok: true, text: "Operador cadastrado com sucesso!" });
-      setONome("");
-      setOCargo(CARGOS[0]);
-      await carregar();
-    } catch {
-      setOMsg({ ok: false, text: "Erro ao salvar. Tente novamente." });
-    } finally {
-      setOSaving(false);
-    }
-  }
   //@ts-ignore
   async function removerEquipamento(id: string) {
     await deleteDoc(doc(db, "equipamentos", id));
     setEquipamentos((prev) => prev.filter((e) => e.id !== id));
-  }
-  //@ts-ignore
-  async function removerOperador(id: string) {
-    await deleteDoc(doc(db, "operadores", id));
-    setOperadores((prev) => prev.filter((o) => o.id !== id));
   }
 
   return (
@@ -193,8 +133,9 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
           maxWidth: 760,
         }}
       >
-        Equipamentos e operadores cadastrados aqui ficam disponíveis ao abrir
-        uma O.S. na aba <strong>Abrir O.S.</strong>
+        Equipamentos cadastrados aqui ficam disponíveis ao abrir uma O.S. na
+        aba <strong>Abrir O.S.</strong> O cadastro de operadores foi movido
+        para <strong>Funcionários</strong>.
       </p>
 
       <div className="grid">
@@ -265,50 +206,28 @@ export function CadastrosSection({ prefeituraId }: CadastrosSectionProps) {
           </button>
         </article>
 
-        {/* Formulário de Operador */}
+        {/* Operadores agora são gerenciados na tela de Funcionários */}
         <article className="card">
-          <h3>+ Novo Operador</h3>
-          <label>Nome Completo *</label>
-          <input
-            type="text"
-            placeholder="Ex: José Ferreira"
-            value={oNome}
-            onChange={(e) => setONome(e.target.value)}
-          />
-          <label>Cargo</label>
-          <select value={oCargo} onChange={(e) => setOCargo(e.target.value)}>
-            {CARGOS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          {oMsg ? (
-            <p
-              style={{
-                marginTop: 8,
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                color: oMsg.ok ? "#15803d" : "#dc2626",
-              }}
-            >
-              {oMsg.text}
-            </p>
-          ) : null}
-          <button
-            className="btn"
-            type="button"
+          <h3>Operadores / Funcionários</h3>
+          <p
             style={{
-              opacity: oSaving ? 0.7 : 1,
-              cursor: oSaving ? "not-allowed" : "pointer",
-            }}
-            disabled={oSaving}
-            onClick={() => {
-              void handleCadastrarOperador();
+              color: "var(--text-gray)",
+              fontSize: "0.88rem",
+              lineHeight: 1.55,
+              marginBottom: 12,
             }}
           >
-            {oSaving ? "Salvando..." : "Cadastrar Operador"}
-          </button>
+            O cadastro de operadores foi movido para a tela{" "}
+            <strong>Funcionários</strong>, com CPF, senha de acesso, tipo de
+            usuário e ativação/inativação.
+          </p>
+          <Link
+            className="btn"
+            to={`/prefeitura/${prefeituraId}/funcionarios`}
+            style={{ textAlign: "center", textDecoration: "none" }}
+          >
+            Ir para Funcionários →
+          </Link>
         </article>
       </div>
 
