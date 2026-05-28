@@ -25,7 +25,8 @@ export function PontoPage() {
   const { session } = useOperadorSession();
   const navigate = useNavigate();
   const { pendentes, atualizar } = usePontoSync();
-  const [nome, setNome] = useState("");
+  // Pré-preenche com o funcionário autenticado (login por CPF+senha).
+  const [nome, setNome] = useState(() => session?.nome ?? "");
   const [fotoDataUrl, setFotoDataUrl] = useState("");
   const [recibo, setRecibo] = useState<{ hora: string; offline: boolean } | null>(
     null,

@@ -1197,6 +1197,16 @@ export function ChecklistControlePage() {
       };
       setEquipamentoAtual(equip);
       setChassisChecklistAtivo(normalizado);
+      // Login identifica a pessoa; o equipamento da sessão é definido aqui,
+      // ao abrir o checklist por chassi. Mantém os fluxos que leem
+      // session.idMaquina/chassis (emergência, exibição) consistentes.
+      if (session) {
+        setSession({
+          ...session,
+          idMaquina: equip.id,
+          chassis: equip.chassis,
+        });
+      }
       setAnswers({});
       setNomeOperadorChecklist(session?.nome ?? "");
       setHorimetro("");
