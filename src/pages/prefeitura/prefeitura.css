@@ -832,3 +832,128 @@
   background: #7f1d1d;
   color: #fca5a5;
 }
+
+/* ===== Topbar global do painel (título da seção + busca + ações + sino) ===== */
+.pf-pagebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0 14px;
+}
+.pf-pagebar__titulo {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8ecf6;
+}
+.pf-pagebar__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.pf-pagebar__busca {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.pf-pagebar__busca span {
+  position: absolute;
+  left: 10px;
+  font-size: 0.85rem;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.pf-pagebar__busca input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e8ecf6;
+  border-radius: 10px;
+  padding: 10px 12px 10px 32px;
+  font-size: 0.92rem;
+  min-width: 240px;
+}
+.pf-pagebar__busca input:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+.pf-pagebar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  min-height: 40px;
+}
+.pf-pagebar__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.pf-pagebar__btn--primary {
+  background: var(--main-orange);
+  border-color: var(--main-orange);
+  color: #1a1205;
+}
+.pf-pagebar__btn--primary:hover {
+  background: #ea6a0c;
+}
+.pf-pagebar__sino {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pf-pagebar__sino:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.pf-pagebar__sino-dot {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #0a0f1f;
+}
+.pf-pagebar__divisor {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--main-orange) 0%,
+    rgba(249, 115, 22, 0.4) 50%,
+    transparent 100%
+  );
+  margin: 0 0 18px;
+  border-radius: 1px;
+}
+
+@media (max-width: 720px) {
+  .pf-pagebar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pf-pagebar__busca input {
+    min-width: 0;
+    width: 100%;
+  }
+}

@@ -1,118 +1,154 @@
 .func {
   color: #e8ecf6;
 }
-.func__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.func__lead {
-  color: #93a4c6;
-  max-width: 52rem;
-  line-height: 1.55;
-  margin: 6px 0 0;
-}
 
-/* Filtros */
-.func__filtros {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 18px 0;
-}
-.func__busca {
-  flex: 1 1 220px;
-  min-width: 0;
-}
-.func__filtros input,
-.func__filtros select,
-.func__dialog input,
-.func__dialog select {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  color: #e8ecf6;
-  padding: 11px 12px;
-  font-size: 0.95rem;
-}
-.func__filtros input:focus,
-.func__filtros select:focus,
-.func__dialog input:focus,
-.func__dialog select:focus {
-  outline: 2px solid var(--main-orange);
-  outline-offset: 1px;
-}
-
-/* Mensagens */
-.func__msg {
-  color: #93a4c6;
-}
-.func__msg--err {
-  color: #fca5a5;
-}
-
-/* Lista de cards */
-.func__lista {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+/* ===== Card "Funcionários cadastrados" ===== */
 .func__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.func__card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 14px 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-.func__card--inativo {
-  opacity: 0.62;
-}
-.func__info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.func__nome {
-  font-size: 1.02rem;
-}
-.func__sub {
-  font-size: 0.82rem;
+.func__card-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: #93a4c6;
 }
-.func__tags {
+.func__card-acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 8px;
+  align-items: center;
 }
-.func__tag {
-  font-size: 0.72rem;
+
+/* Busca interna do card */
+.func__busca {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.func__busca span {
+  position: absolute;
+  left: 10px;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.func__busca input {
+  padding: 9px 12px 9px 30px;
+  min-width: 220px;
+}
+.func__card-acoes input,
+.func__card-acoes select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  color: #e8ecf6;
+  padding: 9px 10px;
+  font-size: 0.88rem;
+}
+.func__card-acoes input:focus,
+.func__card-acoes select:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+
+/* ===== Tabela ===== */
+.func__tabela-wrap {
+  overflow-x: auto;
+}
+.func__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.func__tabela thead th {
+  text-align: left;
+  font-size: 0.7rem;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7a99;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
 }
-.func__tag--operador {
+.func__tabela tbody td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+.func__tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+.func__tabela tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.func__tabela tbody tr.is-inativo {
+  opacity: 0.55;
+}
+.func__mono {
+  font-variant-numeric: tabular-nums;
+  color: #cbd5e1;
+}
+.func__sem-login {
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+.func__col-acoes {
+  width: 1%;
+  text-align: right;
+}
+
+/* Tag de tipo (operador/supervisor/admin) ao lado do nome */
+.func__tag-tipo {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.func__tag-tipo--operador {
   background: rgba(148, 163, 184, 0.16);
   color: #cbd5e1;
 }
-.func__tag--supervisor {
+.func__tag-tipo--supervisor {
   background: rgba(59, 130, 246, 0.18);
   color: #93c5fd;
 }
-.func__tag--admin {
+.func__tag-tipo--admin {
   background: rgba(168, 85, 247, 0.18);
   color: #d8b4fe;
+}
+
+/* Tag de status */
+.func__tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 999px;
 }
 .func__tag--st-ativo {
   background: rgba(34, 197, 94, 0.16);
@@ -122,28 +158,54 @@
   background: rgba(148, 163, 184, 0.14);
   color: #94a3b8;
 }
-.func__tag--alerta {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
+
+/* Empty state dentro da tabela */
+.func__vazio {
+  text-align: center;
+  padding: 56px 16px;
+  color: #93a4c6;
+}
+.func__vazio p {
+  margin: 0 0 16px;
 }
 
-/* Botões (alvos grandes, mobile-first) */
+/* Ações por linha (ícones) */
 .func__acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: inline-flex;
+  gap: 4px;
+  justify-content: flex-end;
 }
+.func__icone {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8ecf6;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.func__icone:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.func__icone:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botões gerais (já usados pelo + Novo / + Cadastrar primeiro) */
 .func__btn {
   appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.04);
   color: #e8ecf6;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  min-height: 44px;
+  min-height: 38px;
 }
 .func__btn:disabled {
   opacity: 0.5;
@@ -153,99 +215,134 @@
   background: var(--main-orange);
   border-color: var(--main-orange);
   color: #1a1205;
-}
-.func__btn--ok {
-  border-color: rgba(34, 197, 94, 0.5);
-  color: #86efac;
-}
-.func__btn--warn {
-  border-color: rgba(245, 158, 11, 0.5);
-  color: #fbbf24;
-}
-.func__btn--ghost {
-  border-style: dashed;
-  color: #93a4c6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* Modal de cadastro/edição */
-.func__modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(2, 6, 23, 0.7);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 24px 16px;
-  overflow-y: auto;
-  z-index: 50;
+/* Mensagens */
+.func__msg {
+  margin: 12px 20px 0;
+  color: #93a4c6;
 }
-.func__dialog {
+.func__msg--err {
+  color: #fca5a5;
+}
+
+/* ===== Modal de cadastro/edição (shadcn Dialog) ===== */
+.func-dialog {
   width: 100%;
-  max-width: 600px;
-  background: #0b1220;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  max-width: 640px;
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  border: none;
   border-radius: 16px;
+  overflow: hidden;
+  background: #0b1220;
+  color: #e8ecf6;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.func-dialog__head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--main-orange);
+  color: #1a1205;
+  padding: 16px 22px;
+}
+.func-dialog__head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+.func-dialog__voltar {
+  background: transparent;
+  border: none;
+  color: #1a1205;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.func-dialog__body {
   padding: 22px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
-.func__dialog h2 {
-  margin: 0 0 12px;
+.func-dialog__lead {
+  color: #93a4c6;
+  margin: 0 0 14px;
+  line-height: 1.5;
 }
-.func__dialog label {
+.func-dialog__body label {
   font-size: 0.82rem;
   color: #93a4c6;
-  margin: 12px 0 5px;
+  margin: 12px 0 6px;
 }
-.func__dialog input,
-.func__dialog select {
+.func-dialog__body input,
+.func-dialog__body select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  color: #e8ecf6;
+  padding: 11px 12px;
+  font-size: 0.95rem;
   width: 100%;
 }
-.func__row {
-  display: flex;
+.func-dialog__body input:focus,
+.func-dialog__body select:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+.func-dialog__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-.func__row > div {
-  flex: 1;
+.func-dialog__row--3 {
+  grid-template-columns: 1fr 0.6fr 1fr;
+}
+.func-dialog__row > div {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.func__check {
+.func-dialog__check {
   flex-direction: row !important;
   align-items: center;
   gap: 8px;
-  margin-top: 16px !important;
+  margin: 18px 0 0 !important;
   color: #e8ecf6 !important;
   cursor: pointer;
 }
-.func__check input {
+.func-dialog__check input {
   width: auto !important;
-  min-height: 0;
 }
-.func__dialog-acoes {
+.func-dialog__acoes {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
 }
 
-@media (max-width: 560px) {
-  .func__head {
-    flex-direction: column;
-  }
-  .func__head .func__btn--primary {
-    width: 100%;
-  }
-  .func__card {
+@media (max-width: 720px) {
+  .func__card-head {
     flex-direction: column;
     align-items: stretch;
   }
-  .func__acoes .func__btn {
-    flex: 1;
+  .func__card-acoes {
+    justify-content: stretch;
   }
-  .func__row {
-    flex-direction: column;
-    gap: 0;
+  .func__busca input {
+    min-width: 0;
+    width: 100%;
+  }
+  .func-dialog__row,
+  .func-dialog__row--3 {
+    grid-template-columns: 1fr;
   }
 }

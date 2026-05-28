@@ -33,6 +33,9 @@ export const TIPOS_FUNCIONARIO: { tipo: FuncionarioTipo; label: string }[] = [
   { tipo: "admin", label: "Administrador" },
 ];
 
+/** Categorias de CNH brasileiras. */
+export const CNH_CATEGORIAS = ["A", "B", "C", "D", "E", "AB", "AC", "AD", "AE"];
+
 export interface Funcionario {
   id: string;
   prefeituraId: string;
@@ -44,6 +47,14 @@ export interface Funcionario {
   status: FuncionarioStatus;
   /** true quando o funcionário tem senha definida (pode logar). */
   temSenha: boolean;
+  /** Matrícula interna da prefeitura (opcional). */
+  matricula?: string;
+  /** Número da CNH (só dígitos). */
+  cnh?: string;
+  /** Categoria da CNH ("A", "B", "AB"…). */
+  cnhCategoria?: string;
+  /** Validade da CNH no formato ISO (YYYY-MM-DD). */
+  cnhValidade?: string;
 }
 
 /** Dados de escrita (cadastro/edição). `senha` é opcional na edição. */
@@ -56,6 +67,10 @@ export interface FuncionarioInput {
   status: FuncionarioStatus;
   /** Senha em texto puro; só presente quando vai ser (re)definida. */
   senha?: string;
+  matricula?: string;
+  cnh?: string;
+  cnhCategoria?: string;
+  cnhValidade?: string;
 }
 
 /**
@@ -86,6 +101,10 @@ function fromDoc(id: string, data: Record<string, unknown>): Funcionario {
     tipo,
     status,
     temSenha: Boolean(data.senhaHash),
+    matricula: data.matricula ? String(data.matricula) : undefined,
+    cnh: data.cnh ? String(data.cnh) : undefined,
+    cnhCategoria: data.cnhCategoria ? String(data.cnhCategoria) : undefined,
+    cnhValidade: data.cnhValidade ? String(data.cnhValidade) : undefined,
   };
 }
 
@@ -174,6 +193,10 @@ export const funcionariosApi = {
       telefone: input.telefone?.trim() || null,
       tipo: input.tipo,
       status: input.status,
+      matricula: input.matricula?.trim() || null,
+      cnh: input.cnh?.replace(/\D/g, "") || null,
+      cnhCategoria: input.cnhCategoria?.trim() || null,
+      cnhValidade: input.cnhValidade?.trim() || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -192,6 +215,10 @@ export const funcionariosApi = {
       telefone: input.telefone?.trim() || null,
       tipo: input.tipo,
       status: input.status,
+      matricula: input.matricula?.trim() || null,
+      cnh: input.cnh?.replace(/\D/g, "") || null,
+      cnhCategoria: input.cnhCategoria?.trim() || null,
+      cnhValidade: input.cnhValidade?.trim() || null,
       updatedAt: serverTimestamp(),
     };
     if (input.senha) {

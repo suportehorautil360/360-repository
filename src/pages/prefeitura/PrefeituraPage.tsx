@@ -272,6 +272,40 @@ export function PrefeituraPage() {
             </Link>
           </div>
 
+          <div className="pf-pagebar">
+            <h1 className="pf-pagebar__titulo">
+              {SECAO_LABEL[secaoAtual] ?? "Painel"}
+            </h1>
+            <div className="pf-pagebar__acoes">
+              <div className="pf-pagebar__busca">
+                <span aria-hidden="true">🔍</span>
+                <input type="search" placeholder="Buscar…" />
+              </div>
+              <Link
+                className="pf-pagebar__btn"
+                to={`/prefeitura/${prefeituraId}/cadastros`}
+              >
+                + Veículo
+              </Link>
+              <Link
+                className="pf-pagebar__btn pf-pagebar__btn--primary"
+                to={`/prefeitura/${prefeituraId}/frentes-trabalho`}
+              >
+                + Frente de Trabalho
+              </Link>
+              <button
+                type="button"
+                className="pf-pagebar__sino"
+                aria-label="Notificações"
+                title="Notificações (em breve)"
+              >
+                🔔
+                <span className="pf-pagebar__sino-dot" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          <div className="pf-pagebar__divisor" aria-hidden="true" />
+
           {ehOutroMunicipio ? (
             <div className="pf-hub-ctx-banner" role="status">
               Você abriu o painel <strong>{labelMunicipio}</strong> a partir do
