@@ -13,9 +13,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 16px 20px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .func__card-titulo {
@@ -23,7 +23,7 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -32,7 +32,7 @@
 .func__card-acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
@@ -44,23 +44,23 @@
 }
 .func__busca span {
   position: absolute;
-  left: 10px;
-  font-size: 0.85rem;
+  left: 9px;
+  font-size: 0.78rem;
   opacity: 0.6;
   pointer-events: none;
 }
 .func__busca input {
-  padding: 9px 12px 9px 30px;
-  min-width: 220px;
+  padding: 6px 10px 6px 26px;
+  min-width: 180px;
 }
 .func__card-acoes input,
 .func__card-acoes select {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #e8ecf6;
-  padding: 9px 10px;
-  font-size: 0.88rem;
+  padding: 6px 9px;
+  font-size: 0.8rem;
 }
 .func__card-acoes input:focus,
 .func__card-acoes select:focus {
@@ -75,22 +75,22 @@
 .func__tabela {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
 }
 .func__tabela thead th {
   text-align: left;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #6b7a99;
-  padding: 12px 14px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.02);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
 .func__tabela tbody td {
-  padding: 14px;
+  padding: 9px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   vertical-align: middle;
 }
@@ -179,11 +179,11 @@
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #e8ecf6;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   line-height: 1;
 }
 .func__icone:hover {
@@ -200,12 +200,12 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.04);
   color: #e8ecf6;
-  border-radius: 8px;
-  padding: 9px 14px;
-  font-size: 0.85rem;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  min-height: 38px;
+  min-height: 30px;
 }
 .func__btn:disabled {
   opacity: 0.5;
