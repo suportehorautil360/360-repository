@@ -59,9 +59,19 @@ export const pontosApi = {
     return r.data;
   },
 
-  /** Edita apenas o horário de uma batida (operador). */
-  async editarHorario(id: string, timestampOriginal: string): Promise<void> {
-    await api.post(`/time-records/update/${id}`, { timestampOriginal });
+  /**
+   * Corrige o horário de uma batida (operador). A correção fica pendente de
+   * aprovação do gestor. `motivo` é opcional e acompanha a solicitação.
+   */
+  async editarHorario(
+    id: string,
+    timestampOriginal: string,
+    motivo?: string,
+  ): Promise<void> {
+    await api.post(`/time-records/update/${id}`, {
+      timestampOriginal,
+      ...(motivo?.trim() ? { motivo: motivo.trim() } : {}),
+    });
   },
 
   /** Aprova uma batida (RH). */

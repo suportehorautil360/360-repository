@@ -377,3 +377,322 @@
 .ponto-folha .ponto-msg--err {
   color: #b91c1c;
 }
+
+/* ===== Folha de ponto redesenhada (layout em duas colunas) ===== */
+.folha {
+  max-width: 1120px;
+}
+.folha__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+.folha__main,
+.folha__side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.folha__card {
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.folha__card-titulo {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.folha__clock {
+  display: grid;
+  place-items: center;
+  padding: 28px 22px;
+}
+.folha__clock .ponto-relogio-wrap {
+  margin: 0;
+}
+
+/* Registros do dia */
+.folha__regs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.folha__reg {
+  padding: 14px 0;
+  border-bottom: 1px solid #eef2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.folha__reg:first-child {
+  padding-top: 0;
+}
+.folha__reg:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.folha__reg-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  flex-wrap: wrap;
+}
+.folha__reg-label {
+  font-weight: 700;
+  color: #0f172a;
+}
+.folha__reg-acao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.folha__reg-hora {
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+/* Banco de horas */
+.folha__banco {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.folha__banco-rotulo {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 600;
+}
+.folha__banco-valor {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.folha__banco-valor.is-pos {
+  color: #15803d;
+}
+.folha__banco-valor.is-neg {
+  color: #b91c1c;
+}
+.folha__banco-sub {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+/* Solicitar ajustes */
+.folha__ajustes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.folha__ajuste {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  min-height: 84px;
+}
+.folha__ajuste:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.folha__ajuste svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: #475569;
+}
+
+/* Espelho detalhado */
+.folha__espelho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+.folha__espelho:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+/*
+ * Modal de edição/inclusão de batida — agora via shadcn Dialog (Radix).
+ * `.folha-dialog` neutraliza os defaults do DialogContent (p-6, gap, border,
+ * max-w-lg) e aplica o nosso "box". Fora das @layer do Tailwind, então vence
+ * as utilities sem !important.
+ */
+.folha-dialog {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  border: none;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+}
+.folha-modal__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f97316;
+  color: #ffffff;
+  padding: 18px 22px;
+}
+.folha-modal__head {
+  flex-shrink: 0;
+}
+.folha-modal__head h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.folha-modal__voltar {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.folha-modal__body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.folha-modal__textarea {
+  min-height: 88px;
+}
+.folha-modal__lead {
+  margin: 0 0 18px;
+  color: #475569;
+  line-height: 1.5;
+}
+.folha-modal__label {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+.folha-modal__input,
+.folha-modal__textarea {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 14px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+.folha-modal__input {
+  margin-bottom: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.folha-modal__textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+.folha-modal__input:focus,
+.folha-modal__textarea:focus {
+  outline: 2px solid #f97316;
+  outline-offset: 1px;
+}
+.folha-modal__contador {
+  align-self: flex-end;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+.folha-modal__salvar {
+  margin-top: 18px;
+  width: 100%;
+}
+
+/* Variante azul (Incluir batida) */
+.folha-modal__head--azul {
+  background: #4a90e2;
+}
+.folha-modal__salvar--azul {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 15px 16px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  background: #4a90e2;
+  color: #ffffff;
+}
+.folha-modal__salvar--azul:hover {
+  background: #3f7fcb;
+}
+.folha-modal__anexo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #9cc2ef;
+  border-radius: 12px;
+  color: #2f6fbf;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  word-break: break-word;
+}
+.folha-modal__anexo:hover {
+  background: #f0f6ff;
+}
+.folha-modal__anexo-dica {
+  align-self: center;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 860px) {
+  .folha__grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 420px) {
+  .folha__reg-linha {
+    align-items: flex-start;
+  }
+}
