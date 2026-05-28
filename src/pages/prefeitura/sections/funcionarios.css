@@ -106,6 +106,7 @@
 .func__mono {
   font-variant-numeric: tabular-nums;
   color: #cbd5e1;
+  white-space: nowrap;
 }
 .func__sem-login {
   color: #fbbf24;
