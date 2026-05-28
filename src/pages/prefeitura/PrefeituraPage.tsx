@@ -14,6 +14,7 @@ import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
+import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { FrotaSection } from "./sections/FrotaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import {
@@ -273,6 +274,12 @@ export function PrefeituraPage() {
           <PontosRhSection prefeituraId={prefeituraId} />
         ) : (
           <EmConstrucao titulo="Pontos (RH)" />
+        );
+      case "solicitacoes-ponto":
+        return pontoAtivo ? (
+          <SolicitacoesPontoSection prefeituraId={prefeituraId} />
+        ) : (
+          <EmConstrucao titulo="Solicitações de Ponto" />
         );
       default:
         return <EmConstrucao titulo={SECAO_LABEL[secaoAtual] ?? "Em breve"} />;

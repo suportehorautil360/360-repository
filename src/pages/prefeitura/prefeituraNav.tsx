@@ -15,6 +15,7 @@ export const SECOES_REAIS = new Set([
   "riscos",
   "emergencia",
   "pontos-rh",
+  "solicitacoes-ponto",
 ]);
 
 /** Rótulo legível por slug (usado no título do placeholder também). */
@@ -42,6 +43,7 @@ export const SECAO_LABEL: Record<string, string> = {
   riscos: "Triagem de Riscos",
   emergencia: "Emergência",
   "pontos-rh": "Pontos (RH)",
+  "solicitacoes-ponto": "Solicitações de Ponto",
   relatorios: "Relatórios",
   configuracoes: "Configurações",
 };
@@ -152,6 +154,11 @@ export function prefeituraNav(
                 icon: "🕐",
                 badge: badges.pontosRh,
                 badgeTone: "danger" as const,
+              },
+              {
+                label: "Solicitações de Ponto",
+                to: to("solicitacoes-ponto"),
+                icon: "📨",
               },
             ]
           : []),

@@ -129,6 +129,24 @@ export function PontosFolha({
   const [incAnexo, setIncAnexo] = useState<File | null>(null);
   const [enviandoInclusao, setEnviandoInclusao] = useState(false);
 
+  // Cancelar batida: aponta uma batida existente do dia.
+  const [cancelarAberto, setCancelarAberto] = useState(false);
+  const [cancelarBatidaId, setCancelarBatidaId] = useState("");
+  const [cancelarMotivo, setCancelarMotivo] = useState("");
+  const [enviandoCancelar, setEnviandoCancelar] = useState(false);
+
+  // Solicitar abono: dia + motivo + anexo (atestado).
+  const [abonoAberto, setAbonoAberto] = useState(false);
+  const [abonoData, setAbonoData] = useState("");
+  const [abonoMotivo, setAbonoMotivo] = useState("");
+  const [abonoAnexo, setAbonoAnexo] = useState<File | null>(null);
+  const [enviandoAbono, setEnviandoAbono] = useState(false);
+
+  // Enviar mensagem ao gestor.
+  const [mensagemAberta, setMensagemAberta] = useState(false);
+  const [mensagemTexto, setMensagemTexto] = useState("");
+  const [enviandoMensagem, setEnviandoMensagem] = useState(false);
+
   function abrirIncluir() {
     const hoje = new Date();
     const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
@@ -149,6 +167,106 @@ export function PontosFolha({
       return;
     }
     setIncAnexo(file);
+  }
+
+  function hojeIso(): string {
+    const h = new Date();
+    return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, "0")}-${String(h.getDate()).padStart(2, "0")}`;
+  }
+
+  function abrirCancelar() {
+    setCancelarBatidaId("");
+    setCancelarMotivo("");
+    setCancelarAberto(true);
+  }
+  function abrirAbono() {
+    setAbonoData(hojeIso());
+    setAbonoMotivo("");
+    setAbonoAnexo(null);
+    setAbonoAberto(true);
+  }
+  function abrirMensagem() {
+    setMensagemTexto("");
+    setMensagemAberta(true);
+  }
+
+  function escolherAbonoAnexo(file: File | null) {
+    if (!file) return setAbonoAnexo(null);
+    if (file.size > ANEXO_MAX_MB * 1024 * 1024) {
+      toast.error(`Arquivo maior que ${ANEXO_MAX_MB}MB.`);
+      return;
+    }
+    setAbonoAnexo(file);
+  }
+
+  async function enviarCancelar() {
+    if (!cancelarBatidaId) return toast.error("Selecione a batida a cancelar.");
+    if (!cancelarMotivo.trim())
+      return toast.error("Descreva o motivo do cancelamento.");
+    if (!nome.trim()) return toast.error("Informe seu nome.");
+    setEnviandoCancelar(true);
+    try {
+      await solicitacoesPontoApi.criar({
+        tipo: "cancelar",
+        prefeituraId,
+        name: nome.trim(),
+        batidaId: cancelarBatidaId,
+        observacao: cancelarMotivo.trim(),
+      });
+      toast.success("Solicitação de cancelamento enviada ao gestor.");
+      setCancelarAberto(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar.");
+    } finally {
+      setEnviandoCancelar(false);
+    }
+  }
+
+  async function enviarAbono() {
+    if (!abonoData) return toast.error("Informe a data do abono.");
+    if (!abonoMotivo.trim()) return toast.error("Descreva o motivo.");
+    if (!nome.trim()) return toast.error("Informe seu nome.");
+    setEnviandoAbono(true);
+    try {
+      let anexoDataUrl: string | undefined;
+      if (abonoAnexo) anexoDataUrl = await lerComoDataUrl(abonoAnexo);
+      await solicitacoesPontoApi.criar({
+        tipo: "abono",
+        prefeituraId,
+        name: nome.trim(),
+        data: abonoData,
+        observacao: abonoMotivo.trim(),
+        anexoDataUrl,
+        anexoNome: abonoAnexo?.name,
+      });
+      toast.success("Solicitação de abono enviada ao gestor.");
+      setAbonoAberto(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar.");
+    } finally {
+      setEnviandoAbono(false);
+    }
+  }
+
+  async function enviarMensagem() {
+    if (!mensagemTexto.trim())
+      return toast.error("Escreva uma mensagem antes de enviar.");
+    if (!nome.trim()) return toast.error("Informe seu nome.");
+    setEnviandoMensagem(true);
+    try {
+      await solicitacoesPontoApi.criar({
+        tipo: "mensagem",
+        prefeituraId,
+        name: nome.trim(),
+        observacao: mensagemTexto.trim(),
+      });
+      toast.success("Mensagem enviada ao gestor.");
+      setMensagemAberta(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao enviar.");
+    } finally {
+      setEnviandoMensagem(false);
+    }
   }
 
   /** Lê o arquivo como data URL (base64) — suficiente para anexos pequenos. */
@@ -494,7 +612,7 @@ export function PontosFolha({
               <button
                 type="button"
                 className="folha__ajuste"
-                onClick={() => emBreve("Cancelar batida")}
+                onClick={abrirCancelar}
               >
                 <IconMenos />
                 Cancelar batida
@@ -502,7 +620,7 @@ export function PontosFolha({
               <button
                 type="button"
                 className="folha__ajuste"
-                onClick={() => emBreve("Enviar mensagem")}
+                onClick={abrirMensagem}
               >
                 <IconChat />
                 Enviar mensagem
@@ -510,7 +628,7 @@ export function PontosFolha({
               <button
                 type="button"
                 className="folha__ajuste"
-                onClick={() => emBreve("Solicitar abono")}
+                onClick={abrirAbono}
               >
                 <IconAbono />
                 Solicitar abono
@@ -688,6 +806,206 @@ export function PontosFolha({
             </div>
           </DialogContent>
         </Dialog>
+
+      {/* Cancelar batida */}
+      <Dialog open={cancelarAberto} onOpenChange={setCancelarAberto}>
+        <DialogContent showCloseButton={false} className="folha-dialog">
+          <header className="folha-modal__head folha-modal__head--azul">
+            <button
+              type="button"
+              className="folha-modal__voltar"
+              aria-label="Voltar"
+              onClick={() => setCancelarAberto(false)}
+            >
+              ‹
+            </button>
+            <DialogTitle asChild>
+              <h2>Cancelar batida</h2>
+            </DialogTitle>
+          </header>
+          <div className="folha-modal__body">
+            <DialogDescription className="folha-modal__lead">
+              Selecione a batida do dia que deseja cancelar e descreva o motivo.
+              A solicitação fica pendente de aprovação do gestor.
+            </DialogDescription>
+
+            <label className="folha-modal__label" htmlFor="canc-batida">
+              Batida do dia
+            </label>
+            <select
+              id="canc-batida"
+              className="folha-modal__input"
+              value={cancelarBatidaId}
+              onChange={(e) => setCancelarBatidaId(e.target.value)}
+            >
+              <option value="">Selecione…</option>
+              {batidasDia.map((b) => {
+                const label =
+                  TIPOS_PONTO.find((t) => t.tipo === b.tipo)?.label ?? b.tipo;
+                return (
+                  <option key={b.id} value={b.id}>
+                    {label} — {horaDe(b.timestampOriginal)}
+                  </option>
+                );
+              })}
+            </select>
+
+            <label className="folha-modal__label" htmlFor="canc-motivo">
+              Motivo do cancelamento
+            </label>
+            <textarea
+              id="canc-motivo"
+              className="folha-modal__textarea"
+              rows={4}
+              maxLength={OBS_MAX}
+              placeholder="Ex.: Bati o ponto errado por engano."
+              value={cancelarMotivo}
+              onChange={(e) => setCancelarMotivo(e.target.value)}
+            />
+            <span className="folha-modal__contador">
+              {cancelarMotivo.length}/{OBS_MAX}
+            </span>
+
+            <button
+              type="button"
+              className="folha-modal__salvar folha-modal__salvar--azul"
+              disabled={enviandoCancelar}
+              onClick={() => void enviarCancelar()}
+            >
+              {enviandoCancelar ? "Enviando…" : "Enviar solicitação"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Solicitar abono */}
+      <Dialog open={abonoAberto} onOpenChange={setAbonoAberto}>
+        <DialogContent showCloseButton={false} className="folha-dialog">
+          <header className="folha-modal__head folha-modal__head--azul">
+            <button
+              type="button"
+              className="folha-modal__voltar"
+              aria-label="Voltar"
+              onClick={() => setAbonoAberto(false)}
+            >
+              ‹
+            </button>
+            <DialogTitle asChild>
+              <h2>Solicitar abono</h2>
+            </DialogTitle>
+          </header>
+          <div className="folha-modal__body">
+            <DialogDescription className="folha-modal__lead">
+              Informe o dia, o motivo e — se houver — anexe o documento
+              comprovante (atestado, declaração, etc.).
+            </DialogDescription>
+
+            <label className="folha-modal__label" htmlFor="abono-data">
+              Data do abono
+            </label>
+            <input
+              id="abono-data"
+              type="date"
+              className="folha-modal__input"
+              value={abonoData}
+              onChange={(e) => setAbonoData(e.target.value)}
+            />
+
+            <label className="folha-modal__label" htmlFor="abono-motivo">
+              Motivo
+            </label>
+            <textarea
+              id="abono-motivo"
+              className="folha-modal__textarea"
+              rows={4}
+              maxLength={OBS_MAX}
+              placeholder="Ex.: Consulta médica com atestado."
+              value={abonoMotivo}
+              onChange={(e) => setAbonoMotivo(e.target.value)}
+            />
+            <span className="folha-modal__contador">
+              {abonoMotivo.length}/{OBS_MAX}
+            </span>
+
+            <label className="folha-modal__anexo">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                hidden
+                onChange={(e) =>
+                  escolherAbonoAnexo(e.target.files?.[0] ?? null)
+                }
+              />
+              📎{" "}
+              {abonoAnexo
+                ? abonoAnexo.name
+                : "Adicionar comprovante (Opcional)"}
+            </label>
+            <span className="folha-modal__anexo-dica">
+              Arquivos: PDF, JPG, PNG (máx. {ANEXO_MAX_MB}MB).
+            </span>
+
+            <button
+              type="button"
+              className="folha-modal__salvar folha-modal__salvar--azul"
+              disabled={enviandoAbono}
+              onClick={() => void enviarAbono()}
+            >
+              {enviandoAbono ? "Enviando…" : "Enviar solicitação"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enviar mensagem */}
+      <Dialog open={mensagemAberta} onOpenChange={setMensagemAberta}>
+        <DialogContent showCloseButton={false} className="folha-dialog">
+          <header className="folha-modal__head folha-modal__head--azul">
+            <button
+              type="button"
+              className="folha-modal__voltar"
+              aria-label="Voltar"
+              onClick={() => setMensagemAberta(false)}
+            >
+              ‹
+            </button>
+            <DialogTitle asChild>
+              <h2>Enviar mensagem</h2>
+            </DialogTitle>
+          </header>
+          <div className="folha-modal__body">
+            <DialogDescription className="folha-modal__lead">
+              Mande uma observação ao seu gestor sobre o seu ponto. Você
+              receberá a resposta no mesmo painel.
+            </DialogDescription>
+
+            <label className="folha-modal__label" htmlFor="msg-texto">
+              Mensagem
+            </label>
+            <textarea
+              id="msg-texto"
+              className="folha-modal__textarea"
+              rows={6}
+              maxLength={OBS_MAX}
+              placeholder="Descreva o que precisa…"
+              value={mensagemTexto}
+              onChange={(e) => setMensagemTexto(e.target.value)}
+            />
+            <span className="folha-modal__contador">
+              {mensagemTexto.length}/{OBS_MAX}
+            </span>
+
+            <button
+              type="button"
+              className="folha-modal__salvar folha-modal__salvar--azul"
+              disabled={enviandoMensagem}
+              onClick={() => void enviarMensagem()}
+            >
+              {enviandoMensagem ? "Enviando…" : "Enviar"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
