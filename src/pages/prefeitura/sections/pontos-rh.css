@@ -1,21 +1,74 @@
-.rh-pontos {
+/* Central de Ponto (RH) — tema escuro do painel. */
+.rh {
   color: #e8ecf6;
 }
-.rh-lead {
+
+.rh__page-titulo {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.rh__lead {
   color: #93a4c6;
-  max-width: 52rem;
-  line-height: 1.55;
+  font-size: 0.88rem;
+  margin: 0 0 14px;
+  line-height: 1.5;
+  max-width: 56rem;
+}
+
+/* KPIs em linha */
+.rh__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
   margin-bottom: 14px;
 }
-.rh-filtro {
+@media (max-width: 720px) {
+  .rh__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Barra de filtros */
+.rh__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.rh__busca {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-  color: #93a4c6;
-  margin-bottom: 16px;
-  cursor: pointer;
 }
+.rh__busca svg {
+  position: absolute;
+  left: 9px;
+  color: #6b7a99;
+  pointer-events: none;
+}
+.rh__busca input {
+  padding: 6px 10px 6px 30px;
+  min-width: 220px;
+}
+.rh__filtros input,
+.rh__filtros select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #e8ecf6;
+  padding: 6px 9px;
+  font-size: 0.82rem;
+}
+.rh__filtros input:focus,
+.rh__filtros select:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+
+/* Mensagens (loading / erro) */
 .rh-msg {
   color: #93a4c6;
 }
@@ -23,115 +76,290 @@
   color: #fca5a5;
 }
 
-.rh-grupos {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.rh-grupo {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
+/* Tabela principal */
+.rh__tabela-wrap {
   background: rgba(255, 255, 255, 0.03);
-  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow-x: auto;
 }
-.rh-grupo__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+.rh__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
 }
-.rh-grupo__head strong {
-  font-size: 1.05rem;
+.rh__tabela thead th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7a99;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
 }
-.rh-grupo__dia {
-  color: #93a4c6;
-  font-size: 0.85rem;
-  margin-left: 10px;
-  text-transform: capitalize;
+.rh__tabela tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
 }
-.rh-grupo__horas {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.82rem;
-  color: #93a4c6;
+.rh__tabela tbody tr:last-child td {
+  border-bottom: none;
 }
-.rh-saldo--pos {
+.rh__tabela tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.rh__num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rh__pos {
   color: #86efac;
   font-weight: 700;
 }
-.rh-saldo--neg {
+.rh__neg {
   color: #fca5a5;
   font-weight: 700;
 }
-
-/* Cadastro de escala (jornada) */
-.rh-escala {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  margin-bottom: 14px;
+.rh__sub {
+  display: block;
+  font-size: 0.74rem;
+  color: #6b7a99;
+  margin-top: 2px;
 }
-.rh-escala__toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.rh__sub--alerta {
+  color: #fbbf24;
+}
+.rh__mute {
+  color: #6b7a99;
+}
+.rh__vazio {
+  text-align: center;
+  padding: 32px 12px;
+  color: #93a4c6;
+}
+.rh__link {
   background: transparent;
-  border: none;
-  color: #e8ecf6;
-  padding: 12px 16px;
-  font-size: 0.92rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #93c5fd;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
 }
-.rh-escala__form {
-  padding: 0 16px 14px;
+.rh__link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Chips de situação */
+.rh__chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.rh__chip--ok {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.rh__chip--atraso {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+.rh__chip--falta {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+.rh__chip--abonado {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+.rh__chip--incompleto {
+  background: rgba(168, 85, 247, 0.16);
+  color: #d8b4fe;
+}
+.rh__chip--sem-jornada {
+  background: rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+}
+.rh__chip--pendente {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+.rh__chip--aprovado {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.rh__chip--reprovado {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+/* Drawer lateral (shadcn Sheet — side="right").
+ * O Sheet já cuida do positioning/animação/overlay nativamente; aqui só
+ * customizamos cor/tema e zeramos gap default pra controlar layout interno. */
+.rh-sheet {
+  background: #0b1220;
+  color: #e8ecf6;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* X close do shadcn dentro do Sheet — discreto */
+.rh-sheet [data-slot="sheet-close"] {
+  top: 14px;
+  right: 14px;
+  border-radius: 8px;
+  padding: 4px;
+  opacity: 0.7;
+  color: #cbd5e1;
+}
+.rh-sheet [data-slot="sheet-close"]:hover {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+
+/* Header fixo */
+/* SheetHeader vem com flex-col + gap-1.5 + p-4 do shadcn. Sobrescrevemos
+ * pra ficar um bloco compacto (sem gap interno) com nosso padding e o
+ * conteúdo do head fica num row separado abaixo. */
+.rh-sheet__head {
+  flex-shrink: 0;
+  gap: 0;
+  padding: 16px 56px 14px 20px; /* 56px à direita pra não bater no X */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+.rh-sheet__head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rh-sheet__avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(168, 85, 247, 0.25));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fed7aa;
+  display: grid;
+  place-items: center;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.rh-sheet__id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rh-sheet__nome {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #e8ecf6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rh-sheet__id-sub {
+  font-size: 0.74rem;
+  color: #93a4c6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Corpo rolável */
+.rh-sheet__corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
-.rh-escala__linha {
+
+/* Linha de contexto (data + chip de situação) */
+.rh-sheet__contexto {
   display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.rh-escala__linha label,
-.rh-escala__dia {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
   font-size: 0.82rem;
   color: #93a4c6;
 }
-.rh-escala__linha input {
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
+.rh-sheet__contexto strong {
   color: #e8ecf6;
-}
-.rh-escala__dias {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.rh-escala__dia {
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-}
-.rh-escala__acoes {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.rh-escala__msg {
-  font-size: 0.85rem;
-  color: #86efac;
+  text-transform: capitalize;
 }
 
-.rh-batidas {
+/* Faixa de aviso quando o dia está abonado (mostra o motivo). */
+.rh-sheet__abono-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+.rh-sheet__abono-info svg {
+  color: #93c5fd;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.rh-sheet__abono-info strong {
+  color: #93c5fd;
+}
+
+/* Tabs dos dias do período */
+.rh-sheet__dias {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.rh-sheet__dia-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #cbd5e1;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+.rh-sheet__dia-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.rh-sheet__dia-btn.is-ativo {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: var(--main-orange);
+  color: #fed7aa;
+}
+
+/* Lista de batidas */
+.rh-sheet__batidas {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -139,134 +367,265 @@
   flex-direction: column;
   gap: 8px;
 }
-.rh-batida {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 8px;
+.rh-sheet__bat {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid transparent;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-}
-.rh-batida--vazia {
-  opacity: 0.55;
-}
-.rh-batida__info {
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  min-width: 110px;
+  gap: 8px;
 }
-.rh-batida__label {
-  font-size: 0.78rem;
-  color: #93a4c6;
+.rh-sheet__bat--pendente {
+  border-left-color: #fcd34d;
 }
-.rh-batida__sem {
-  color: #64748b;
+.rh-sheet__bat--aprovado {
+  border-left-color: rgba(34, 197, 94, 0.55);
 }
-.rh-batida__acoes,
-.rh-reprovar {
+.rh-sheet__bat--reprovado {
+  border-left-color: rgba(239, 68, 68, 0.55);
+}
+.rh-sheet__bat--vazia {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.015);
+  border-style: dashed;
+}
+.rh-sheet__bat-linha {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-left: auto;
+  gap: 10px;
 }
-.rh-reprovar input {
-  padding: 7px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
+.rh-sheet__bat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7a99;
+}
+.rh-sheet__bat-meio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rh-sheet__bat-hora {
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
   color: #e8ecf6;
-  min-width: 180px;
+  font-weight: 700;
 }
-.rh-motivo {
-  width: 100%;
-  font-size: 0.82rem;
-  color: #fca5a5;
+.rh-sheet__bat-vazio {
+  font-size: 0.78rem;
+  color: #5a6a85;
+}
+.rh-sheet__bat-acoes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-left: 50px; /* alinha com o conteúdo após foto */
 }
 
-.rh-foto {
-  width: 44px;
-  height: 44px;
-  flex: none;
-  border-radius: 8px;
+/* Foto / placeholder */
+.rh-sheet__foto {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  place-items: center;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 0;
+  flex-shrink: 0;
 }
-.rh-foto img {
+.rh-sheet__foto img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.rh-foto--sem {
-  display: grid;
-  place-items: center;
-  color: #64748b;
+.rh-sheet__foto--sem {
   cursor: default;
+  color: #4b5b75;
+  border-style: dashed;
 }
 
-.rh-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid transparent;
+/* Ação subtle (Reprovar/Aprovar single quando o status já está decidido) */
+.rh-sheet__rev {
+  background: transparent;
+  border: none;
+  color: #6b7a99;
+  font-size: 0.76rem;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
-.rh-badge--pendente {
-  color: #fcd34d;
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(245, 158, 11, 0.12);
-}
-.rh-badge--aprovado {
-  color: #86efac;
-  border-color: rgba(34, 197, 94, 0.5);
-  background: rgba(34, 197, 94, 0.12);
-}
-.rh-badge--reprovado {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.5);
-  background: rgba(239, 68, 68, 0.12);
+.rh-sheet__rev:hover {
+  color: #cbd5e1;
 }
 
-.rh-btn {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
+/* Form de reprovação inline */
+.rh-sheet__reprovar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 50px;
+}
+.rh-sheet__reprovar input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 6px;
   color: #e8ecf6;
+  padding: 7px 10px;
+  font-size: 0.82rem;
+}
+.rh-sheet__reprovar input:focus {
+  outline: 2px solid rgba(239, 68, 68, 0.5);
+  outline-offset: 1px;
+}
+.rh-sheet__reprovar-acoes {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.rh-sheet__motivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #fca5a5;
+  padding-left: 50px;
+}
+
+/* Resumo do dia (totais) */
+.rh-sheet__resumo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+.rh-sheet__resumo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rh-sheet__resumo span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7a99;
+  font-weight: 700;
+}
+.rh-sheet__resumo strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  color: #e8ecf6;
+}
+
+/* Rodapé (atalhos). SheetFooter vem com flex-col por padrão; overrides
+ * pra deixar como row com espaço entre os atalhos. */
+.rh-sheet__rodape {
+  flex-shrink: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0;
+}
+.rh-sheet__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
   border-radius: 8px;
   padding: 7px 12px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.rh-sheet__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8ecf6;
+}
+.rh-sheet__link--primary {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: var(--main-orange);
+  color: #fed7aa;
+}
+.rh-sheet__link--primary:hover {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fed7aa;
+}
+
+/* Botões do RH (Aprovar/Reprovar/Cancelar) */
+.rh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e8ecf6;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
 }
 .rh-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .rh-btn--ok {
-  border-color: rgba(34, 197, 94, 0.5);
+  border-color: rgba(34, 197, 94, 0.45);
   color: #86efac;
 }
 .rh-btn--err {
-  border-color: rgba(239, 68, 68, 0.5);
+  border-color: rgba(239, 68, 68, 0.45);
   color: #fca5a5;
 }
 
+/* Modal de foto ampliada */
 .rh-foto-modal {
   position: fixed;
   inset: 0;
-  background: rgba(5, 9, 18, 0.85);
-  display: grid;
-  place-items: center;
+  background: rgba(2, 6, 23, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 24px;
   z-index: 60;
   cursor: zoom-out;
 }
 .rh-foto-modal img {
-  max-width: 90vw;
-  max-height: 90vh;
-  border-radius: 12px;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+}
+
+@media (max-width: 720px) {
+  .rh-drawer {
+    max-width: 100%;
+  }
+  .rh__busca input {
+    min-width: 0;
+    width: 100%;
+  }
 }

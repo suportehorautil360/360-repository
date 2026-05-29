@@ -1,0 +1,174 @@
+/* Espelho detalhado da folha de ponto (tema claro do checklist). */
+.esp {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1120px;
+}
+
+.esp__topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.esp__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.esp__voltar:hover {
+  background: #f8fafc;
+}
+.esp__titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Mês */
+.esp__mes-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 10px;
+}
+.esp__mes-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.esp__mes-btn:hover {
+  background: #f1f5f9;
+}
+.esp__mes-label {
+  color: #0f172a;
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+/* Totais */
+.esp__totais {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.esp__totais > div {
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.esp__totais span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 700;
+}
+.esp__totais strong {
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+.esp__totais strong.is-pos {
+  color: #15803d;
+}
+.esp__totais strong.is-neg {
+  color: #b91c1c;
+}
+
+/* Tabela */
+.esp__tabela-wrap {
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.esp__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.esp__tabela thead th {
+  text-align: left;
+  padding: 8px 12px;
+  background: #f8fafc;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  border-bottom: 1px solid #eef2f7;
+  white-space: nowrap;
+}
+.esp__tabela tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eef2f7;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.esp__tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+.esp__tabela tbody td.is-pos {
+  color: #15803d;
+  font-weight: 700;
+}
+.esp__tabela tbody td.is-neg {
+  color: #b91c1c;
+  font-weight: 700;
+}
+.esp__vazio {
+  text-align: center;
+  padding: 32px 12px;
+  color: #64748b;
+}
+
+/* Linha + chip quando o dia está abonado. */
+.esp__chip-abono {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.18);
+  color: #2563eb;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.esp__linha-abonada {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+@media (max-width: 560px) {
+  .esp__totais {
+    grid-template-columns: 1fr;
+  }
+}

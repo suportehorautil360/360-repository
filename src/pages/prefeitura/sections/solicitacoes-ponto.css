@@ -1,0 +1,247 @@
+.sol {
+  color: #e8ecf6;
+}
+
+.sol__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.sol__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sol__card-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93a4c6;
+}
+.sol__badge {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 8px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.sol__card-head select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #e8ecf6;
+  padding: 6px 9px;
+  font-size: 0.8rem;
+}
+
+.sol__vazio {
+  padding: 32px 16px;
+  text-align: center;
+  color: #93a4c6;
+}
+.sol__msg {
+  margin: 12px 16px 0;
+  color: #93a4c6;
+}
+.sol__msg--err {
+  color: #fca5a5;
+}
+
+/* Lista de itens */
+.sol__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sol__item {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sol__item:last-child {
+  border-bottom: none;
+}
+.sol__item--aprovado {
+  opacity: 0.7;
+}
+.sol__item--reprovado {
+  opacity: 0.6;
+}
+
+.sol__item-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sol__tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+.sol__tag--incluir {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+.sol__tag--cancelar {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+.sol__tag--abono {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+.sol__tag--mensagem {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+}
+.sol__nome {
+  font-weight: 600;
+  color: #e8ecf6;
+}
+.sol__data {
+  font-size: 0.78rem;
+  color: #93a4c6;
+  font-variant-numeric: tabular-nums;
+}
+.sol__status {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.sol__status--pendente {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fcd34d;
+}
+.sol__status--aprovado {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.sol__status--reprovado {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+.sol__detalhes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  padding-left: 4px;
+}
+.sol__detalhes code {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+.sol__obs {
+  font-style: italic;
+  color: #93a4c6;
+}
+.sol__anexo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #93c5fd;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.82rem;
+  width: fit-content;
+  text-decoration: underline;
+}
+.sol__motivo-reprov {
+  color: #fca5a5;
+}
+
+.sol__acoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sol__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e8ecf6;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sol__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sol__btn--ok {
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #86efac;
+}
+.sol__btn--err {
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+}
+.sol__motivo-input {
+  flex: 1;
+  min-width: 200px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #e8ecf6;
+  padding: 6px 9px;
+  font-size: 0.8rem;
+}
+
+/* Modal de visualização de anexo */
+.sol__anexo-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 60;
+  cursor: zoom-out;
+}
+.sol__anexo-modal img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 8px;
+}
+.sol__anexo-modal iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+  border-radius: 8px;
+}

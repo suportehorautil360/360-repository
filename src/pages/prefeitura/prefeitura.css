@@ -123,6 +123,21 @@
   background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
   padding-bottom: 16px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+  /* Prende no viewport com scroll interno — antes o menu empurrava a página. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  /* Scrollbar discreta */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.prefeitura-root #sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.prefeitura-root #sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
 }
 
 .prefeitura-root #sidebar .logo {
@@ -831,4 +846,397 @@
 .prefeitura-root .hu360-dash-chk-itens__tag.is-nao {
   background: #7f1d1d;
   color: #fca5a5;
+}
+
+/* ============== EQUIPAMENTOS ============== */
+.prefeitura-root .pf-eq-page {
+  color: #dbe5f4;
+}
+
+.prefeitura-root .pf-eq-topline {
+  height: 3px;
+  margin: 0 0 28px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #ff8a00, rgba(255, 138, 0, 0));
+}
+
+.prefeitura-root .pf-eq-breadcrumb {
+  margin: 0 0 10px;
+  color: #7f8da4;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.prefeitura-root .pf-eq-breadcrumb strong {
+  color: var(--main-orange);
+}
+
+.prefeitura-root .pf-eq-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 14px 0 18px;
+  color: #8291aa;
+  font-size: 0.9rem;
+}
+
+.prefeitura-root .pf-eq-notice strong {
+  color: #ff8a00;
+}
+
+.prefeitura-root .pf-eq-hub-button,
+.prefeitura-root .pf-eq-secondary {
+  border: 1px solid rgba(64, 112, 204, 0.75);
+  border-radius: 8px;
+  background: #162a55;
+  color: #edf4ff;
+  padding: 9px 14px;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-weight: 900;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.prefeitura-root .pf-eq-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.prefeitura-root .pf-eq-metrics article {
+  border: 1px solid rgba(42, 79, 145, 0.72);
+  border-radius: 10px;
+  background: rgba(18, 38, 76, 0.72);
+  padding: 12px 14px;
+}
+
+.prefeitura-root .pf-eq-metrics span {
+  display: block;
+  color: #7f8da4;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+}
+
+.prefeitura-root .pf-eq-metrics strong {
+  display: block;
+  margin-top: 4px;
+  color: #f8fafc;
+  font-size: 1.35rem;
+}
+
+.prefeitura-root .pf-eq-panel {
+  overflow: hidden;
+  border: 1px solid rgba(47, 90, 168, 0.72);
+  border-radius: 12px;
+  background: #102244;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+}
+
+.prefeitura-root .pf-eq-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 20px;
+  background: linear-gradient(180deg, #17284d, #142549);
+  border-bottom: 1px solid rgba(47, 90, 168, 0.72);
+}
+
+.prefeitura-root .pf-eq-panel-head h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.prefeitura-root .pf-eq-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.prefeitura-root .pf-eq-actions input {
+  width: min(360px, 42vw);
+  border: 1px solid rgba(47, 90, 168, 0.7);
+  border-radius: 8px;
+  background: rgba(8, 20, 42, 0.56);
+  color: #e5edf9;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.prefeitura-root .pf-eq-primary,
+.prefeitura-root .pf-eq-lock,
+.prefeitura-root .pf-eq-modal footer button[type="submit"] {
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ff981a, #f97316);
+  color: #fff;
+  padding: 10px 16px;
+  text-transform: uppercase;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.22);
+}
+
+.prefeitura-root .pf-eq-error {
+  margin: 12px 20px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.32);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #fecaca;
+  font-size: 0.86rem;
+}
+
+.prefeitura-root .pf-eq-table-wrap {
+  overflow-x: auto;
+}
+
+.prefeitura-root .pf-eq-table {
+  min-width: 1120px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.prefeitura-root .pf-eq-table th {
+  color: #7f8da4;
+  background: #182f5d;
+  border-bottom-color: rgba(47, 90, 168, 0.62);
+  padding: 13px 14px;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
+.prefeitura-root .pf-eq-table td {
+  padding: 15px 14px;
+  border-bottom-color: rgba(47, 90, 168, 0.54);
+  background: #10254b;
+  color: #d7e1ee;
+  vertical-align: middle;
+}
+
+.prefeitura-root .pf-eq-table tr:nth-child(even) td {
+  background: #14294f;
+}
+
+.prefeitura-root .pf-eq-table td strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.prefeitura-root .pf-eq-table td small {
+  display: block;
+  margin-top: 2px;
+  color: #7f8da4;
+  font-size: 0.78rem;
+}
+
+.prefeitura-root .pf-eq-plate {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid rgba(70, 119, 216, 0.78);
+  border-radius: 7px;
+  background: #193665;
+  color: #f8fafc;
+  padding: 3px 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.prefeitura-root .pf-eq-type {
+  white-space: nowrap;
+}
+
+.prefeitura-root .pf-eq-muted {
+  color: #74849c !important;
+}
+
+.prefeitura-root .pf-eq-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-weight: 900;
+  font-size: 0.74rem;
+}
+
+.prefeitura-root .pf-eq-status-em-dia {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+
+.prefeitura-root .pf-eq-status-atencao {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.prefeitura-root .pf-eq-status-bloqueado {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ff6b6b;
+}
+
+.prefeitura-root .pf-eq-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prefeitura-root .pf-eq-secondary {
+  cursor: pointer;
+  padding: 9px 13px;
+}
+
+.prefeitura-root .pf-eq-lock {
+  min-width: 48px;
+  padding: 9px 12px;
+}
+
+.prefeitura-root .pf-eq-empty {
+  text-align: center;
+  color: #8fa0b9 !important;
+  padding: 22px !important;
+}
+
+.prefeitura-root .pf-eq-modal-overlay {
+  background: rgba(1, 5, 14, 0.76);
+  backdrop-filter: blur(7px);
+}
+
+.prefeitura-root .pf-eq-modal {
+  width: min(500px, calc(100vw - 28px));
+  overflow: hidden;
+  border: 1px solid rgba(70, 119, 216, 0.72);
+  border-radius: 12px;
+  background: #122750;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.62);
+}
+
+.prefeitura-root .pf-eq-modal-wide {
+  width: min(690px, calc(100vw - 28px));
+}
+
+.prefeitura-root .pf-eq-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px;
+  background: linear-gradient(100deg, #202846, #132b58);
+  border-bottom: 1px solid rgba(70, 119, 216, 0.58);
+}
+
+.prefeitura-root .pf-eq-modal header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.prefeitura-root .pf-eq-modal header button {
+  border: 0;
+  background: transparent;
+  color: #7f8da4;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.prefeitura-root .pf-eq-modal-body {
+  padding: 24px 28px;
+}
+
+.prefeitura-root .pf-eq-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 14px 16px;
+}
+
+.prefeitura-root .pf-eq-modal label {
+  display: block;
+  color: #8291aa;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 900;
+}
+
+.prefeitura-root .pf-eq-required {
+  color: #ff981a;
+}
+
+.prefeitura-root .pf-eq-modal input,
+.prefeitura-root .pf-eq-modal select {
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid rgba(70, 119, 216, 0.58);
+  border-radius: 7px;
+  background: #1a3466;
+  color: #e5edf9;
+  padding: 12px 13px;
+  outline: none;
+}
+
+.prefeitura-root .pf-eq-modal footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 28px 22px;
+  border-top: 1px solid rgba(70, 119, 216, 0.45);
+}
+
+.prefeitura-root .pf-eq-modal footer button {
+  border: 1px solid rgba(70, 119, 216, 0.65);
+  border-radius: 8px;
+  background: transparent;
+  color: #e5edf9;
+  padding: 10px 16px;
+  text-transform: uppercase;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .prefeitura-root .pf-eq-notice,
+  .prefeitura-root .pf-eq-panel-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .prefeitura-root .pf-eq-actions {
+    justify-content: flex-start;
+  }
+
+  .prefeitura-root .pf-eq-actions input {
+    width: 100%;
+  }
+
+  .prefeitura-root .pf-eq-metrics {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .prefeitura-root .pf-eq-metrics,
+  .prefeitura-root .pf-eq-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prefeitura-root .pf-eq-modal header,
+  .prefeitura-root .pf-eq-modal-body,
+  .prefeitura-root .pf-eq-modal footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
 }

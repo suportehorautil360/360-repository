@@ -1,5 +1,7 @@
+import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // URL do backend NestJS (back-360-). Em dev, o proxy abaixo encaminha
@@ -8,6 +10,11 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:3000";
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   server: {
     proxy: {
       // O front chama `/api/vehicles`; o backend expõe `/vehicles`.
@@ -20,6 +27,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       // Mostra um aviso "nova versão disponível" em vez de recarregar sozinho.
       registerType: 'prompt',

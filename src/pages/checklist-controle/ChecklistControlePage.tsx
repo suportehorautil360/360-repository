@@ -23,8 +23,19 @@ import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
-import { PontosFolha } from "./PontosFolha";
+import { toast } from "sonner";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { PontosFolha } from "./PontosFolha";
+import { checklistsApi } from "../../features/checklist/api/checklists-api";
+import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
+import {
+  CHECKLIST_DOCUMENTO_ITENS,
+  type ChecklistDocumentoItem,
   dataLongaPtBr,
   inferirCategoriaChecklist,
   isSameLocalDay,
@@ -34,7 +45,16 @@ import {
 
 type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia" | "pontos";
 
-type ItemChecklist = (typeof seedData.itens_checklist)[number];
+type ItemChecklist =
+  | (typeof seedData.itens_checklist)[number]
+  | ChecklistDocumentoItem;
+
+/** True se o item é classificado como `impeditivo` no seed (default = não). */
+function itemImpeditivo(it: ItemChecklist): boolean {
+  return (
+    (it as { Severidade?: string }).Severidade === "impeditivo"
+  );
+}
 
 /** Resposta por item: «Não» exige foto ao vivo + descrição do problema; N/A não entra no cálculo. */
 type ChecklistAnswerValue =
@@ -59,6 +79,7 @@ type EquipFirestore = {
   chassis: string;
   modelo: string;
   linha: string;
+  tipo: string;
 };
 
 /** Senha do modo demonstração / operadores (inclui login administrativo jefferson). */
@@ -340,7 +361,24 @@ function Hu360NavIcon({
 
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
-  const { canInstall, installApp } = usePwaInstallPrompt();
+  const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
+  const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
+
+  async function aoClicarInstalar() {
+    if (pwaEstado === "instalado") {
+      toast.info("O app já está instalado neste dispositivo.");
+      return;
+    }
+    if (pwaEstado === "nativo") {
+      const disparou = await instalarApp();
+      if (!disparou) setPwaInstrucoesAberto(true);
+      return;
+    }
+    setPwaInstrucoesAberto(true);
+  }
+
+  const pwaBotaoLabel =
+    pwaEstado === "instalado" ? "App instalado ✓" : "Instalar app";
   const { ativo: pontoAtivo } = usePontoAtivo(session?.idCliente);
   const [aba, setAba] = useState<Aba>("dashboard");
   const abasVisiveis = ABAS.filter((a) => a.id !== "pontos" || pontoAtivo);
@@ -1062,8 +1100,21 @@ export function ChecklistControlePage() {
     const cat = inferirCategoriaChecklist(
       equipamentoAtual.label,
       equipamentoAtual.modelo,
+      `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    return seedData.itens_checklist.filter((it) => it.Categoria === cat);
+    // Novo schema do seed: cada item declara `Aplica A: string[]` listando
+    // os tipos de equipamento aos quais ele se aplica. "Geral (Chassi)"
+    // aparece em todos. Subtipos específicos só nos próprios.
+    // Fallback p/ docs antigos sem `Aplica A` continua casando por Categoria.
+    const legacy = seedData.itens_checklist.filter((it) => {
+      const aplicaA = (it as { "Aplica A"?: string[] })["Aplica A"];
+      if (Array.isArray(aplicaA)) return aplicaA.includes(cat);
+      return (it as { Categoria?: string }).Categoria === cat;
+    });
+    const documento = CHECKLIST_DOCUMENTO_ITENS.filter(
+      (it) => it.Categoria === "Geral (Chassi)" || it.Categoria === cat,
+    );
+    return [...documento, ...legacy];
   }, [equipamentoAtual]);
 
   function handleLogin(e: FormEvent) {
@@ -1194,9 +1245,20 @@ export function ChecklistControlePage() {
         chassis: String(data.chassis ?? ""),
         modelo: String(data.modelo ?? ""),
         linha: String(data.linha ?? ""),
+        tipo: String(data.tipo ?? ""),
       };
       setEquipamentoAtual(equip);
       setChassisChecklistAtivo(normalizado);
+      // Login identifica a pessoa; o equipamento da sessão é definido aqui,
+      // ao abrir o checklist por chassi. Mantém os fluxos que leem
+      // session.idMaquina/chassis (emergência, exibição) consistentes.
+      if (session) {
+        setSession({
+          ...session,
+          idMaquina: equip.id,
+          chassis: equip.chassis,
+        });
+      }
       setAnswers({});
       setNomeOperadorChecklist(session?.nome ?? "");
       setHorimetro("");
@@ -1235,6 +1297,16 @@ export function ChecklistControlePage() {
     },
     [itemNaoCameraKey, stopItemNaoCamera],
   );
+
+  function checklistItemTitulo(it: ItemChecklist): string {
+    // `Tipo` só existe nos itens de documento (schema antigo). Os itens
+    // operacionais novos usam `Categoria Origem` / `Aplica A` e dispensam
+    // o prefixo.
+    const tipo = (it as { Tipo?: string }).Tipo;
+    return tipo
+      ? `${tipo}: ${it["Item de Verificação"]}`
+      : String(it["Item de Verificação"]);
+  }
 
   async function handleSalvarChecklist(e: FormEvent) {
     e.preventDefault();
@@ -1283,6 +1355,24 @@ export function ChecklistControlePage() {
       return;
     }
 
+    // Avisa quando algum item IMPEDITIVO foi marcado como "Não": esses
+    // itens, pela tabela oficial, deveriam barrar a operação do veículo.
+    // Não bloqueia em definitivo (o gestor decide via auditoria), mas pede
+    // confirmação dupla pra evitar registro descuidado.
+    const impeditivosViolados = itensFiltrados.filter(
+      (it) =>
+        itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
+    );
+    if (impeditivosViolados.length > 0) {
+      const lista = impeditivosViolados
+        .map((it) => `• ${it["Nº"]} — ${it["Item de Verificação"]}`)
+        .join("\n");
+      const ok = window.confirm(
+        `Atenção: ${impeditivosViolados.length} item(ns) IMPEDITIVO(s) marcado(s) como "Não":\n\n${lista}\n\nPela tabela oficial, esses itens deveriam impedir a operação. Salvar mesmo assim?`,
+      );
+      if (!ok) return;
+    }
+
     const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
     const numNa = keys.filter((k) => answers[k]?.v === "na").length;
     const totalAplicaveis = keys.length - numNa;
@@ -1292,14 +1382,12 @@ export function ChecklistControlePage() {
       .filter((it) => answers[String(it["Nº"])]?.v === "nao")
       .map((it) => {
         const num = String(it["Nº"]);
-        const titulo = it.Tipo
-          ? `${it.Tipo}: ${it["Item de Verificação"]}`
-          : String(it["Item de Verificação"]);
+        const titulo = checklistItemTitulo(it);
+        const resposta = answers[num];
         return {
           numero: num,
           titulo,
-          //@ts-ignore
-          problema: answers[num]?.problema ?? "",
+          problema: resposta?.v === "nao" ? resposta.problema : "",
         };
       });
     const id = crypto.randomUUID();
@@ -1314,6 +1402,7 @@ export function ChecklistControlePage() {
       Categoria: inferirCategoriaChecklist(
         equipamentoAtual.label,
         equipamentoAtual.modelo,
+        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
       ),
       Modelo: equipamentoAtual.label,
       Linha: equipamentoAtual.linha,
@@ -1349,6 +1438,7 @@ export function ChecklistControlePage() {
         categoria: inferirCategoriaChecklist(
           equipamentoAtual.label,
           equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
         ),
         operador: nomeOperadorChecklist.trim(),
         idOperadorSession: session.idCliente,
@@ -1367,6 +1457,7 @@ export function ChecklistControlePage() {
         criadoEm: serverTimestamp(),
         dataHoraIso: dataHora,
       });
+      await sincronizarRespostasPendentesWorkflow();
       setCheckMsg("✅ Checklist salvo com sucesso!");
       setChecklistsHojeTick((t) => t + 1);
       setAuditoriaTick((t) => t + 1);
@@ -1387,6 +1478,56 @@ export function ChecklistControlePage() {
     stopHorimetroCamera();
     stopItemNaoCamera();
     setObsChecklist("");
+  }
+
+  async function sincronizarRespostasPendentesWorkflow() {
+    if (!equipamentoAtual || !nomeOperadorChecklist.trim()) return;
+    const itensNao = itensFiltrados
+      .map((item) => ({
+        item,
+        key: String(item["Nº"]),
+        resposta: answers[String(item["Nº"])],
+      }))
+      .filter(
+        (row): row is {
+          item: ItemChecklist;
+          key: string;
+          resposta: { v: "nao"; foto: string; problema: string };
+        } => row.resposta?.v === "nao" && checklistRespostaCompleta(row.resposta),
+      );
+    if (itensNao.length === 0) return;
+
+    try {
+      const categoria = inferirCategoriaChecklist(
+        equipamentoAtual.label,
+        equipamentoAtual.modelo,
+        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+      );
+      const run = await checklistsApi.iniciar({
+        prefeituraId: equipamentoAtual.prefeituraId,
+        definitionId: `seed:${categoria}`,
+        definitionVersion: 1,
+        equipamentoId: equipamentoAtual.id,
+        chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
+        operadorNome: nomeOperadorChecklist.trim(),
+        categoria,
+      });
+      for (const row of itensNao) {
+        await checklistsApi.responder(run.id, {
+          questionId: row.key,
+          questionLabel: checklistItemTitulo(row.item),
+          value: row.resposta,
+          problemDescription: row.resposta.problema,
+          photoUrls: row.resposta.foto ? [row.resposta.foto] : [],
+        });
+      }
+      setEmergTick((t) => t + 1);
+    } catch (err) {
+      console.warn(
+        "[Checklist] Workflow backend indisponível; checklist legado foi salvo.",
+        err,
+      );
+    }
   }
 
   async function handleEmergencia(e: FormEvent) {
@@ -1481,26 +1622,37 @@ export function ChecklistControlePage() {
         }
       }
 
-      await addDoc(collection(db, "emergenciasRegistros"), {
-        id,
-        prefeituraId,
-        idOperadorSession: session.idCliente,
-        idMaquina: mid,
+      const fotos = fotosEmergencia.filter((u) => u.startsWith("data:image"));
+      const payload = {
+        prefeituraId: prefeituraId || session.idCliente,
+        source: "manual" as const,
+        severity: "critical" as const,
+        equipamentoId: mid,
         chassis: String(session.chassis ?? maquinaDaSessao?.Chassis ?? ""),
-        modelo: maquinaDaSessao
-          ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
-          : "",
-        operador: nomeOperadorEmerg.trim() || session.nome,
+        operadorNome: nomeOperadorEmerg.trim() || session.nome,
         tipoFalha: tipoResolvido,
         descricao: descEmerg.trim(),
         localizacaoGps: gpsEmerg.trim() || null,
-        statusAtendimento: "aberto",
-        fotos: fotosEmergencia.filter((u) => u.startsWith("data:image")),
-        qtdFotos: fotosEmergencia.filter((u) => u.startsWith("data:image"))
-          .length,
-        criadoEm: serverTimestamp(),
-        dataHoraIso: dataHora,
-      });
+        fotos,
+      };
+      try {
+        await emergenciasApi.criar(payload);
+      } catch {
+        await addDoc(collection(db, "emergenciasRegistros"), {
+          id,
+          ...payload,
+          idOperadorSession: session.idCliente,
+          idMaquina: mid,
+          modelo: maquinaDaSessao
+            ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
+            : "",
+          operador: payload.operadorNome,
+          statusAtendimento: "ABERTO",
+          qtdFotos: fotos.length,
+          criadoEm: serverTimestamp(),
+          dataHoraIso: dataHora,
+        });
+      }
       setEmergMsg("✅ Emergência registrada e enviada ao servidor.");
       setEmergTick((t) => t + 1);
     } catch (err) {
@@ -1623,15 +1775,19 @@ export function ChecklistControlePage() {
                 Bater ponto
               </Link>
             )}
-            {canInstall ? (
-              <button
-                type="button"
-                className="hu360-app-head__sair hu360-app-head__install"
-                onClick={installApp}
-              >
-                Instalar app
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="hu360-app-head__sair hu360-app-head__install"
+              onClick={() => void aoClicarInstalar()}
+              disabled={pwaEstado === "instalado"}
+              title={
+                pwaEstado === "instalado"
+                  ? "O app já está instalado neste dispositivo"
+                  : "Instalar o app na tela de início"
+              }
+            >
+              {pwaBotaoLabel}
+            </button>
             <span className="hu360-app-head__user">
               {session.nome} · {session.empresa}
             </span>
@@ -1869,6 +2025,7 @@ export function ChecklistControlePage() {
                   {inferirCategoriaChecklist(
                     equipamentoAtual.label,
                     equipamentoAtual.modelo,
+                    `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
                   )}
                   &quot; na planilha.
                 </p>
@@ -1886,10 +2043,22 @@ export function ChecklistControlePage() {
                     id="hu360-nome-operador-chk"
                     autoComplete="name"
                     required
+                    readOnly
                     value={nomeOperadorChecklist}
-                    onChange={(ev) => setNomeOperadorChecklist(ev.target.value)}
-                    placeholder="Nome completo de quem está fazendo a verificação"
+                    aria-describedby="hu360-nome-operador-chk-hint"
+                    placeholder="Operador da sessão"
                   />
+                  <p
+                    id="hu360-nome-operador-chk-hint"
+                    style={{
+                      margin: "4px 0 0",
+                      fontSize: "0.8rem",
+                      color: "#64748b",
+                    }}
+                  >
+                    Operador vinculado ao login. Para trocar, encerre a sessão e
+                    entre com outro usuário.
+                  </p>
 
                   <label htmlFor="hu360-horimetro">
                     Horímetro <span style={{ color: "#dc2626" }}>*</span>
@@ -2055,19 +2224,49 @@ export function ChecklistControlePage() {
                       const isSim = cur?.v === "sim";
                       const isNao = cur?.v === "nao";
                       const isNa = cur?.v === "na";
+                      const impeditivo = itemImpeditivo(it);
+                      const categoria =
+                        (it as { "Categoria Origem"?: string })[
+                          "Categoria Origem"
+                        ] ??
+                        (it as { Categoria?: string }).Categoria ??
+                        "";
+                      // Destaca em vermelho quando impeditivo foi marcado "Não".
+                      const alertaImped = impeditivo && isNao;
                       return (
-                        <div key={key} className="hu360-check-block">
+                        <div
+                          key={key}
+                          className={`hu360-check-block ${alertaImped ? "is-imped-violado" : ""}`}
+                        >
                           <div className="hu360-check-row">
                             <span className="hu360-check-num">{key}</span>
                             <div style={{ flex: "1 1 220px" }}>
-                              {it["Item de Verificação"]}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: 8,
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <span>{it["Item de Verificação"]}</span>
+                                {impeditivo && (
+                                  <span
+                                    className="hu360-imped-chip"
+                                    title="Item impeditivo — não pode operar com este item marcado como Não"
+                                  >
+                                    IMPEDITIVO
+                                  </span>
+                                )}
+                              </div>
                               <div
                                 style={{
                                   fontSize: "0.78rem",
                                   color: "var(--hu-muted)",
+                                  marginTop: 2,
                                 }}
                               >
-                                {it.Tipo}
+                                {categoria || (it as { Tipo?: string }).Tipo}
                               </div>
                             </div>
                             <div className="hu360-toggle-group">
@@ -2805,6 +3004,50 @@ export function ChecklistControlePage() {
           </section>
         ) : null}
       </main>
+
+      <Dialog open={pwaInstrucoesAberto} onOpenChange={setPwaInstrucoesAberto}>
+        <DialogContent>
+          <DialogTitle>Como instalar o app</DialogTitle>
+          <DialogDescription asChild>
+            {pwaEstado === "manual-ios" ? (
+              <div>
+                <p>No Safari do iPhone/iPad:</p>
+                <ol style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
+                  <li>
+                    Toque no botão <strong>Compartilhar</strong> (□↑) na barra
+                    inferior.
+                  </li>
+                  <li>
+                    Role e toque em{" "}
+                    <strong>Adicionar à Tela de Início</strong>.
+                  </li>
+                  <li>
+                    Toque em <strong>Adicionar</strong>. O app vai aparecer
+                    como ícone na tela inicial.
+                  </li>
+                </ol>
+              </div>
+            ) : (
+              <div>
+                <p>
+                  Abra o menu do navegador (⋮ ou ⋯) e procure por uma das
+                  opções:
+                </p>
+                <ul style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
+                  <li><strong>Instalar app</strong></li>
+                  <li><strong>Adicionar à tela inicial</strong></li>
+                  <li><strong>Criar atalho</strong></li>
+                </ul>
+                <p style={{ marginTop: 12, fontSize: "0.85rem", opacity: 0.8 }}>
+                  Se nenhuma opção aparecer, abra o site em outro navegador
+                  (Chrome/Edge) ou aguarde — o sistema sugere quando a
+                  instalação ficar disponível.
+                </p>
+              </div>
+            )}
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

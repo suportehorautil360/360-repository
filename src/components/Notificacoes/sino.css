@@ -1,0 +1,211 @@
+.sino {
+  position: relative;
+  display: inline-block;
+}
+.sino__btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+.sino--escuro .sino__btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e8ecf6;
+}
+.sino--escuro .sino__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.sino--claro .sino__btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+.sino--claro .sino__btn:hover {
+  background: #f8fafc;
+}
+.sino__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.sino--escuro .sino__badge {
+  border: 2px solid #0a0f1f;
+}
+.sino--claro .sino__badge {
+  border: 2px solid #ffffff;
+}
+
+/* Painel dropdown */
+.sino__painel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-height: 420px;
+  background: #0b1220;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 40;
+}
+.sino--claro .sino__painel {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+.sino__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e8ecf6;
+  font-size: 0.85rem;
+}
+.sino--claro .sino__head {
+  color: #0f172a;
+  border-bottom-color: #eef2f7;
+}
+.sino__head-acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #93a4c6;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+.sino__head-acao:hover:not(:disabled) {
+  color: #cbd5e1;
+}
+.sino--claro .sino__head-acao {
+  color: #64748b;
+}
+.sino__head-acao:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Lista */
+.sino__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+.sino__vazio {
+  padding: 24px 16px;
+  text-align: center;
+  color: #93a4c6;
+  font-size: 0.85rem;
+}
+.sino--claro .sino__vazio {
+  color: #64748b;
+}
+.sino__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid transparent;
+}
+.sino--claro .sino__item {
+  border-bottom-color: #eef2f7;
+}
+.sino__item:last-child {
+  border-bottom: none;
+}
+.sino__item.is-lida {
+  opacity: 0.55;
+}
+.sino__item--info {
+  border-left-color: #3b82f6;
+}
+.sino__item--sucesso {
+  border-left-color: #22c55e;
+}
+.sino__item--aviso {
+  border-left-color: #f59e0b;
+}
+.sino__item--erro {
+  border-left-color: #ef4444;
+}
+.sino__item-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8rem;
+}
+.sino__item-corpo strong {
+  color: #e8ecf6;
+  font-size: 0.84rem;
+}
+.sino__item-corpo span {
+  color: #93a4c6;
+  line-height: 1.35;
+}
+.sino__item-corpo time {
+  color: #6b7a99;
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+.sino--claro .sino__item-corpo strong {
+  color: #0f172a;
+}
+.sino--claro .sino__item-corpo span {
+  color: #475569;
+}
+.sino--claro .sino__item-corpo time {
+  color: #94a3b8;
+}
+.sino__item-acao {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  color: #93a4c6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sino__item-acao:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8ecf6;
+}
+.sino--claro .sino__item-acao {
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+.sino--claro .sino__item-acao:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}

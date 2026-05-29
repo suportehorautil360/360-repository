@@ -1,0 +1,133 @@
+.hist {
+  color: #e8ecf6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hist__msg {
+  color: #93a4c6;
+  padding: 24px 0;
+}
+.hist__alerta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+/* Topo / contexto do funcionário no escuro */
+.hist__topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hist__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.hist__voltar:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.hist__contexto {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.hist__id strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #e8ecf6;
+}
+.hist__sub {
+  display: block;
+  font-size: 0.78rem;
+  color: #93a4c6;
+  margin-top: 2px;
+}
+
+/*
+ * O EspelhoDetalhado foi desenhado pro tema claro do PWA do operador.
+ * Aqui, dentro do painel escuro, invertemos pra tema escuro reusando o
+ * mesmo markup sem duplicar componente.
+ */
+.hist__espelho-wrap .esp__voltar {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+}
+.hist__espelho-wrap .esp__voltar:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.hist__espelho-wrap .esp__titulo {
+  color: #e8ecf6;
+}
+.hist__espelho-wrap .esp__mes-bar {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.hist__espelho-wrap .esp__mes-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+}
+.hist__espelho-wrap .esp__mes-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.hist__espelho-wrap .esp__mes-label {
+  color: #e8ecf6;
+}
+.hist__espelho-wrap .esp__totais > div {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.hist__espelho-wrap .esp__totais span {
+  color: #6b7a99;
+}
+.hist__espelho-wrap .esp__totais strong {
+  color: #e8ecf6;
+}
+.hist__espelho-wrap .esp__totais strong.is-pos {
+  color: #86efac;
+}
+.hist__espelho-wrap .esp__totais strong.is-neg {
+  color: #fca5a5;
+}
+.hist__espelho-wrap .esp__tabela-wrap {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.hist__espelho-wrap .esp__tabela thead th {
+  background: rgba(255, 255, 255, 0.02);
+  color: #6b7a99;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.hist__espelho-wrap .esp__tabela tbody td {
+  color: #cbd5e1;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+.hist__espelho-wrap .esp__tabela tbody td.is-pos {
+  color: #86efac;
+}
+.hist__espelho-wrap .esp__tabela tbody td.is-neg {
+  color: #fca5a5;
+}
+.hist__espelho-wrap .esp__vazio {
+  color: #93a4c6;
+}

@@ -11,6 +11,23 @@ declare global {
   }
 }
 
+/**
+ * Estado discriminado da instalação do PWA.
+ *
+ * - `instalado`: rodando como app instalado (display-mode standalone).
+ * - `nativo`: navegador disparou `beforeinstallprompt` — `instalar()` chama
+ *   o prompt do sistema.
+ * - `manual-ios`: iOS Safari (não suporta o prompt) — instruções "Compartilhar
+ *   → Adicionar à Tela de Início".
+ * - `manual-outro`: demais navegadores sem prompt disponível ainda — instruções
+ *   genéricas (menu do navegador → Instalar app).
+ */
+export type PwaInstallEstado =
+  | "instalado"
+  | "nativo"
+  | "manual-ios"
+  | "manual-outro";
+
 let installPrompt: BeforeInstallPromptEvent | null = null;
 let installed = typeof window !== "undefined" ? isAppInstalled() : false;
 let listenerStarted = false;
@@ -18,19 +35,26 @@ const listeners = new Set<() => void>();
 
 function isAppInstalled(): boolean {
   if (typeof window === "undefined") return false;
-
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true
   );
 }
 
-function notifyInstallPromptChange() {
-  listeners.forEach((listener) => listener());
+function ehIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
-function canInstallApp(): boolean {
-  return Boolean(installPrompt && !installed);
+function calcularEstado(): PwaInstallEstado {
+  if (installed) return "instalado";
+  if (installPrompt) return "nativo";
+  if (ehIos()) return "manual-ios";
+  return "manual-outro";
+}
+
+function notifyInstallPromptChange() {
+  listeners.forEach((listener) => listener());
 }
 
 export function setupPwaInstallPromptListener() {
@@ -52,11 +76,11 @@ export function setupPwaInstallPromptListener() {
 }
 
 export function usePwaInstallPrompt() {
-  const [canInstall, setCanInstall] = useState(() => canInstallApp());
+  const [estado, setEstado] = useState<PwaInstallEstado>(() => calcularEstado());
 
   useEffect(() => {
     setupPwaInstallPromptListener();
-    const listener = () => setCanInstall(canInstallApp());
+    const listener = () => setEstado(calcularEstado());
     listeners.add(listener);
     listener();
     return () => {
@@ -64,9 +88,14 @@ export function usePwaInstallPrompt() {
     };
   }, []);
 
-  const installApp = useCallback(async () => {
+  /**
+   * Dispara o prompt nativo quando disponível. Retorna `true` se o prompt
+   * foi disparado, `false` se não rolou (a UI deve mostrar instruções
+   * manuais quando o estado for `manual-*`).
+   */
+  const instalar = useCallback(async (): Promise<boolean> => {
     const promptEvent = installPrompt;
-    if (!promptEvent) return;
+    if (!promptEvent) return false;
 
     await promptEvent.prompt();
     await promptEvent.userChoice;
@@ -75,10 +104,17 @@ export function usePwaInstallPrompt() {
     }
     installed = isAppInstalled();
     notifyInstallPromptChange();
+    return true;
   }, []);
 
+  // Compat: o nome antigo continua funcionando, mas o consumidor deve
+  // migrar para `estado` + `instalar` (mais rico).
+  const canInstall = estado === "nativo";
+
   return {
+    estado,
+    instalar,
     canInstall,
-    installApp,
+    installApp: instalar,
   };
 }

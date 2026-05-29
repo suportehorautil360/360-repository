@@ -1,0 +1,303 @@
+/* Página dedicada: Novo / Editar Funcionário. Tema escuro do painel. */
+.ff {
+  color: #e8ecf6;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ff__carregando {
+  color: #93a4c6;
+  padding: 24px 0;
+}
+
+/* Topo: voltar + título */
+.ff__topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ff__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  min-height: 32px;
+}
+.ff__voltar:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.ff__titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ff__alerta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* Cards de seção */
+.ff__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.ff__card--acento {
+  border-color: rgba(249, 115, 22, 0.45);
+  background: rgba(249, 115, 22, 0.04);
+}
+.ff__card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #93a4c6;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.ff__card-head h2 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+/* Grid de duas colunas em CNH/Acesso. Card "Dados Pessoais" usa 3 colunas. */
+.ff__col2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.ff__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 12px;
+}
+.ff__col2 .ff__grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+.ff__grid--apertado {
+  gap: 6px 12px;
+  margin-top: 4px;
+}
+.ff__campo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ff__campo--w1 {
+  grid-column: span 1;
+}
+.ff__campo--w2 {
+  grid-column: span 2;
+}
+.ff__campo--w3 {
+  grid-column: 1 / -1;
+}
+.ff__campo label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #93a4c6;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.ff__obrig {
+  color: #f97316;
+  margin-left: 2px;
+}
+.ff__campo input,
+.ff__campo select,
+.ff__campo textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #e8ecf6;
+  padding: 6px 9px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  width: 100%;
+}
+.ff__campo textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+.ff__campo input:focus,
+.ff__campo select:focus,
+.ff__campo textarea:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.ff__campo input::placeholder,
+.ff__campo textarea::placeholder {
+  color: #5a6a85;
+}
+.ff__erro {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: #fca5a5;
+}
+
+/* Bloco de credenciais geradas */
+.ff__credenciais {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px dashed rgba(249, 115, 22, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.ff__credenciais-rotulo {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #93a4c6;
+  margin-bottom: 8px;
+}
+.ff__credenciais-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ff__cred {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ff__cred label {
+  font-size: 0.72rem;
+  color: #93a4c6;
+  font-weight: 600;
+}
+.ff__cred-valor {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: #cbd5e1;
+  border-left: 3px solid #93a4c6;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+}
+.ff__cred-valor--ok {
+  border-left-color: #22c55e;
+  color: #86efac;
+}
+.ff__credenciais-dica {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 10px 0 0;
+  font-size: 0.74rem;
+  color: #fcd34d;
+  line-height: 1.4;
+}
+.ff__credenciais-dica svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.ff__reset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.ff__reset-msg {
+  font-size: 0.78rem;
+  color: #86efac;
+}
+
+/* Rodapé com ações */
+.ff__rodape {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+}
+.ff__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 36px;
+}
+.ff__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ff__btn--primary {
+  background: var(--main-orange);
+  border-color: var(--main-orange);
+  color: #1a1205;
+}
+.ff__btn--primary:hover:not(:disabled) {
+  background: #ea6a0c;
+}
+
+@media (max-width: 960px) {
+  .ff__col2 {
+    grid-template-columns: 1fr;
+  }
+  .ff__grid,
+  .ff__col2 .ff__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .ff__grid,
+  .ff__col2 .ff__grid,
+  .ff__credenciais-grid {
+    grid-template-columns: 1fr;
+  }
+  .ff__campo--w1,
+  .ff__campo--w2,
+  .ff__campo--w3 {
+    grid-column: 1 / -1;
+  }
+  .ff__rodape {
+    flex-direction: column-reverse;
+  }
+  .ff__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

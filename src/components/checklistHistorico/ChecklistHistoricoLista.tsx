@@ -14,9 +14,15 @@ function checklistItemLabelFromSeed(
   categoriaMaquina: string,
 ): string {
   const cat = checklistCategoriaFromMaquina(String(categoriaMaquina ?? ""));
-  const it = seedData.itens_checklist.find(
-    (x) => x.Categoria === cat && String(x["Nº"]) === String(numKey),
-  );
+  // Schema novo usa `Aplica A` (array). Mantemos fallback para o `Categoria`
+  // antigo caso ainda apareça em algum item residual / persistido.
+  const it = seedData.itens_checklist.find((x) => {
+    if (String(x["Nº"]) !== String(numKey)) return false;
+    const aplicaA = (x as { "Aplica A"?: string[] })["Aplica A"];
+    if (Array.isArray(aplicaA)) return aplicaA.includes(cat);
+    const catLegacy = (x as { Categoria?: string }).Categoria;
+    return catLegacy === cat;
+  });
   return it ? String(it["Item de Verificação"] ?? numKey) : `Item ${numKey}`;
 }
 

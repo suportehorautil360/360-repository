@@ -7,6 +7,7 @@ export const SECOES_REAIS = new Set([
   "frota",
   "equipamentos",
   "cadastros",
+  "funcionarios",
   "abrir-os",
   "orcamentos",
   "pagamentos",
@@ -14,6 +15,8 @@ export const SECOES_REAIS = new Set([
   "riscos",
   "emergencia",
   "pontos-rh",
+  "solicitacoes-ponto",
+  "configuracoes",
 ]);
 
 /** Rótulo legível por slug (usado no título do placeholder também). */
@@ -33,6 +36,7 @@ export const SECAO_LABEL: Record<string, string> = {
   "painel-geral": "Painel Geral",
   equipamentos: "Equipamentos",
   cadastros: "Cadastros",
+  funcionarios: "Funcionários",
   "abrir-os": "Abrir O.S.",
   orcamentos: "Orçamentos e Aprovações",
   "auditoria-devolucao": "Auditoria de Devolução",
@@ -40,6 +44,7 @@ export const SECAO_LABEL: Record<string, string> = {
   riscos: "Triagem de Riscos",
   emergencia: "Emergência",
   "pontos-rh": "Pontos (RH)",
+  "solicitacoes-ponto": "Solicitações de Ponto",
   relatorios: "Relatórios",
   configuracoes: "Configurações",
 };
@@ -122,6 +127,7 @@ export function prefeituraNav(
         { label: "Painel Geral", to: to("painel-geral"), icon: "📈" },
         { label: "Equipamentos", to: to("equipamentos"), icon: "🛠️" },
         { label: "Cadastros", to: to("cadastros"), icon: "👤" },
+        { label: "Funcionários", to: to("funcionarios"), icon: "👷" },
         { label: "Abrir O.S.", to: to("abrir-os"), icon: "📄" },
         { label: "Orçamentos e Aprovações", to: to("orcamentos"), icon: "📝" },
         {
@@ -149,6 +155,11 @@ export function prefeituraNav(
                 icon: "🕐",
                 badge: badges.pontosRh,
                 badgeTone: "danger" as const,
+              },
+              {
+                label: "Solicitações de Ponto",
+                to: to("solicitacoes-ponto"),
+                icon: "📨",
               },
             ]
           : []),

@@ -1,0 +1,254 @@
+.func {
+  color: #e8ecf6;
+}
+.func__page-titulo {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8ecf6;
+}
+
+/* ===== Card "Funcionários cadastrados" ===== */
+.func__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.func__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.func__card-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #93a4c6;
+}
+.func__card-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Busca interna do card */
+.func__busca {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.func__busca span {
+  position: absolute;
+  left: 9px;
+  font-size: 0.78rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.func__card-acoes input,
+.func__card-acoes select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #e8ecf6;
+  padding: 6px 9px;
+  font-size: 0.8rem;
+}
+/* Específica DEPOIS da regra de .func__card-acoes input pra ganhar
+   o padding-left de 28px que abre espaço para o ícone absolute. */
+.func__card-acoes .func__busca input {
+  padding: 6px 10px 6px 28px;
+  min-width: 180px;
+}
+.func__card-acoes input:focus,
+.func__card-acoes select:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+
+/* ===== Tabela ===== */
+.func__tabela-wrap {
+  overflow-x: auto;
+}
+.func__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.func__tabela thead th {
+  text-align: left;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7a99;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+.func__tabela tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+.func__tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+.func__tabela tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.func__tabela tbody tr.is-inativo {
+  opacity: 0.55;
+}
+.func__mono {
+  font-variant-numeric: tabular-nums;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+.func__sem-login {
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+.func__col-acoes {
+  width: 1%;
+  text-align: right;
+}
+
+/* Tag de tipo (operador/supervisor/admin) ao lado do nome */
+.func__tag-tipo {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.func__tag-tipo--operador {
+  background: rgba(148, 163, 184, 0.16);
+  color: #cbd5e1;
+}
+.func__tag-tipo--supervisor {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+.func__tag-tipo--admin {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+}
+
+/* Tag de status */
+.func__tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.func__tag--st-ativo {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.func__tag--st-inativo {
+  background: rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
+}
+
+/* Empty state dentro da tabela */
+.func__vazio {
+  text-align: center;
+  padding: 56px 16px;
+  color: #93a4c6;
+}
+.func__vazio p {
+  margin: 0 0 16px;
+}
+
+/* Ações por linha (ícones) */
+.func__acoes {
+  display: inline-flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.func__icone {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8ecf6;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+.func__icone:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.func__icone:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botões gerais (já usados pelo + Novo / + Cadastrar primeiro) */
+.func__btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 30px;
+}
+.func__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.func__btn--primary {
+  background: var(--main-orange);
+  border-color: var(--main-orange);
+  color: #1a1205;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Mensagens */
+.func__msg {
+  margin: 12px 20px 0;
+  color: #93a4c6;
+}
+.func__msg--err {
+  color: #fca5a5;
+}
+
+@media (max-width: 720px) {
+  .func__card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .func__card-acoes {
+    justify-content: stretch;
+  }
+  .func__busca input {
+    min-width: 0;
+    width: 100%;
+  }
+}

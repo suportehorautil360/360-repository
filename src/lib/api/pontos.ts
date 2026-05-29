@@ -6,7 +6,12 @@ import { api } from "./client";
 
 export type TipoPonto = "entrada" | "almoco" | "volta" | "saida";
 
-export type StatusPonto = "pendente" | "aprovado" | "reprovado";
+export type StatusPonto =
+  | "pendente"
+  | "aprovado"
+  | "reprovado"
+  /** Batida cancelada — gerada pela aprovação de uma solicitação tipo=cancelar. Front filtra. */
+  | "cancelado";
 
 /** Ordem e rótulos da folha do dia. */
 export const TIPOS_PONTO: { tipo: TipoPonto; label: string }[] = [
@@ -59,9 +64,19 @@ export const pontosApi = {
     return r.data;
   },
 
-  /** Edita apenas o horário de uma batida (operador). */
-  async editarHorario(id: string, timestampOriginal: string): Promise<void> {
-    await api.post(`/time-records/update/${id}`, { timestampOriginal });
+  /**
+   * Corrige o horário de uma batida (operador). A correção fica pendente de
+   * aprovação do gestor. `motivo` é opcional e acompanha a solicitação.
+   */
+  async editarHorario(
+    id: string,
+    timestampOriginal: string,
+    motivo?: string,
+  ): Promise<void> {
+    await api.post(`/time-records/update/${id}`, {
+      timestampOriginal,
+      ...(motivo?.trim() ? { motivo: motivo.trim() } : {}),
+    });
   },
 
   /** Aprova uma batida (RH). */

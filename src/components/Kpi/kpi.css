@@ -1,0 +1,59 @@
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  font-family: inherit;
+  color: #e8ecf6;
+}
+.kpi--clicavel {
+  cursor: pointer;
+  appearance: none;
+}
+.kpi--clicavel:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.kpi--clicavel:focus-visible {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+}
+.kpi__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7a99;
+}
+.kpi__valor {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.kpi__valor--neutro {
+  color: #e8ecf6;
+}
+.kpi__valor--info {
+  color: #93c5fd;
+}
+.kpi__valor--sucesso {
+  color: #86efac;
+}
+.kpi__valor--aviso {
+  color: #fcd34d;
+}
+.kpi__valor--erro {
+  color: #fca5a5;
+}
+.kpi__sub {
+  font-size: 0.74rem;
+  color: #93a4c6;
+}
