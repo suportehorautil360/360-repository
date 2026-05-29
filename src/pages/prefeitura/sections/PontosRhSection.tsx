@@ -50,6 +50,7 @@ const STATUS_PONTO_LABEL: Record<StatusPonto, string> = {
   pendente: "Pendente",
   aprovado: "Aprovada",
   reprovado: "Reprovada",
+  cancelado: "Cancelada",
 };
 
 type FiltroSituacao = "todos" | StatusDia | "com-pendencia";

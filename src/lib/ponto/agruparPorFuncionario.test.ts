@@ -203,6 +203,17 @@ describe("agruparPorFuncionario", () => {
     expect(r[0].totais.pendentes).toBe(1);
   });
 
+  it("ignora batidas com status='cancelado' (vindas de aprovação de cancelamento)", () => {
+    const batidas = [
+      b("X", "2026-05-27T08:00:00", "entrada", "aprovado"),
+      // saída foi cancelada → não deve contar; dia fica incompleto
+      b("X", "2026-05-27T18:00:00", "saida", "cancelado"),
+    ];
+    const r = agruparPorFuncionario(batidas, [], ["2026-05-27"], ESCALA);
+    expect(r[0].dias[0].batidas).toHaveLength(1);
+    expect(r[0].dias[0].status).toBe("incompleto");
+  });
+
   it("converte falta em 'abonado' quando há abono ativo pro CPF/dia", () => {
     const abono: Abono = {
       id: "ab1",

@@ -162,8 +162,11 @@ export function agruparPorFuncionario(
   }
 
   // Agrupa as batidas: nome → dia → batidas[].
+  // Batidas com status='cancelado' são ignoradas — surgiram de uma
+  // aprovação de solicitação tipo=cancelar e devem sumir do cálculo.
   const porNome = new Map<string, Map<string, PontoRegistro[]>>();
   for (const b of batidas) {
+    if (b.status === "cancelado") continue;
     const dia = diaDe(b.timestampOriginal);
     if (!periodoSet.has(dia)) continue;
     const k = chaveNome(b.name);

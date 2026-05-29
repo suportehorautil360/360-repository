@@ -33,6 +33,7 @@ const STATUS_LABEL: Record<StatusPonto, string> = {
   pendente: "Pendente",
   aprovado: "Aprovado",
   reprovado: "Reprovado",
+  cancelado: "Cancelada",
 };
 
 function statusDe(r: PontoRegistro): StatusPonto {

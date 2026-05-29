@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, X, Paperclip } from "lucide-react";
+import { Check, X, Paperclip, RotateCcw } from "lucide-react";
 import {
   solicitacoesPontoApi,
   type SolicitacaoPonto,
   type StatusSolicitacao,
   type TipoSolicitacao,
 } from "../../../lib/api/solicitacoes-ponto";
+import { abonosApi, type Abono } from "../../../lib/api/abonos";
 import "./solicitacoes-ponto.css";
 
 const TIPO_LABEL: Record<TipoSolicitacao, string> = {
@@ -39,6 +40,7 @@ export function SolicitacoesPontoSection({
   prefeituraId: string;
 }) {
   const [lista, setLista] = useState<SolicitacaoPonto[]>([]);
+  const [abonos, setAbonos] = useState<Abono[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | StatusSolicitacao>(
@@ -54,13 +56,27 @@ export function SolicitacoesPontoSection({
     setCarregando(true);
     setErro("");
     try {
-      setLista(await solicitacoesPontoApi.listar(prefeituraId));
+      const [sols, abs] = await Promise.all([
+        solicitacoesPontoApi.listar(prefeituraId),
+        abonosApi.listar(prefeituraId).catch(() => []),
+      ]);
+      setLista(sols);
+      setAbonos(abs);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
       setCarregando(false);
     }
   }, [prefeituraId]);
+
+  /** Mapeia solicitacaoId → abonoId, pra saber quais abonos ainda existem. */
+  const abonoBySolicitacao = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of abonos) {
+      if (a.solicitacaoId) m.set(a.solicitacaoId, a.id);
+    }
+    return m;
+  }, [abonos]);
 
   useEffect(() => {
     void carregar();
@@ -98,6 +114,27 @@ export function SolicitacoesPontoSection({
       await carregar();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao reprovar.");
+    } finally {
+      setOcupadoId(null);
+    }
+  }
+
+  /**
+   * Cancela um abono aprovado — chama DELETE /abonos/:id. A solicitação
+   * em si fica como `aprovado` (histórico) mas o abono deixa de existir,
+   * então o dia volta a contar como "falta" no cálculo de saldo/KPIs.
+   */
+  async function cancelarAbono(solicitacaoId: string, abonoId: string) {
+    const ok = window.confirm(
+      "Cancelar o abono aprovado? O dia volta a contar como falta no saldo do funcionário.",
+    );
+    if (!ok) return;
+    setOcupadoId(solicitacaoId);
+    try {
+      await abonosApi.remover(abonoId);
+      await carregar();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao cancelar o abono.");
     } finally {
       setOcupadoId(null);
     }
@@ -187,6 +224,28 @@ export function SolicitacoesPontoSection({
                     </span>
                   )}
                 </div>
+
+                {/* Abono aprovado com registro ainda ativo: permitir cancelar. */}
+                {s.tipo === "abono" &&
+                  s.status === "aprovado" &&
+                  abonoBySolicitacao.has(s.id) && (
+                    <div className="sol__acoes">
+                      <button
+                        type="button"
+                        className="sol__btn sol__btn--err"
+                        disabled={ocupadoId === s.id}
+                        onClick={() =>
+                          void cancelarAbono(
+                            s.id,
+                            abonoBySolicitacao.get(s.id) as string,
+                          )
+                        }
+                      >
+                        <RotateCcw size={13} aria-hidden="true" />
+                        Cancelar abono
+                      </button>
+                    </div>
+                  )}
 
                 {s.status === "pendente" && (
                   <div className="sol__acoes">

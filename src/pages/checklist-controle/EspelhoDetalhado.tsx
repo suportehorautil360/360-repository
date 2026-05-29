@@ -61,8 +61,11 @@ export function EspelhoDetalhado({
   const minhasBatidas = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
     if (!alvo) return [];
+    // Ignora batidas canceladas (vieram de aprovação de solicitação tipo=cancelar).
     return batidas.filter(
-      (b) => (b.name ?? "").trim().toLowerCase() === alvo,
+      (b) =>
+        b.status !== "cancelado" &&
+        (b.name ?? "").trim().toLowerCase() === alvo,
     );
   }, [batidas, nome]);
 
