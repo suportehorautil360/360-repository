@@ -23,6 +23,13 @@ import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PontosFolha } from "./PontosFolha";
 import {
   dataLongaPtBr,
@@ -340,7 +347,24 @@ function Hu360NavIcon({
 
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
-  const { canInstall, installApp } = usePwaInstallPrompt();
+  const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
+  const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
+
+  async function aoClicarInstalar() {
+    if (pwaEstado === "instalado") {
+      toast.info("O app já está instalado neste dispositivo.");
+      return;
+    }
+    if (pwaEstado === "nativo") {
+      const disparou = await instalarApp();
+      if (!disparou) setPwaInstrucoesAberto(true);
+      return;
+    }
+    setPwaInstrucoesAberto(true);
+  }
+
+  const pwaBotaoLabel =
+    pwaEstado === "instalado" ? "App instalado ✓" : "Instalar app";
   const { ativo: pontoAtivo } = usePontoAtivo(session?.idCliente);
   const [aba, setAba] = useState<Aba>("dashboard");
   const abasVisiveis = ABAS.filter((a) => a.id !== "pontos" || pontoAtivo);
@@ -1633,15 +1657,19 @@ export function ChecklistControlePage() {
                 Bater ponto
               </Link>
             )}
-            {canInstall ? (
-              <button
-                type="button"
-                className="hu360-app-head__sair hu360-app-head__install"
-                onClick={installApp}
-              >
-                Instalar app
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="hu360-app-head__sair hu360-app-head__install"
+              onClick={() => void aoClicarInstalar()}
+              disabled={pwaEstado === "instalado"}
+              title={
+                pwaEstado === "instalado"
+                  ? "O app já está instalado neste dispositivo"
+                  : "Instalar o app na tela de início"
+              }
+            >
+              {pwaBotaoLabel}
+            </button>
             <span className="hu360-app-head__user">
               {session.nome} · {session.empresa}
             </span>
@@ -2815,6 +2843,50 @@ export function ChecklistControlePage() {
           </section>
         ) : null}
       </main>
+
+      <Dialog open={pwaInstrucoesAberto} onOpenChange={setPwaInstrucoesAberto}>
+        <DialogContent>
+          <DialogTitle>Como instalar o app</DialogTitle>
+          <DialogDescription asChild>
+            {pwaEstado === "manual-ios" ? (
+              <div>
+                <p>No Safari do iPhone/iPad:</p>
+                <ol style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
+                  <li>
+                    Toque no botão <strong>Compartilhar</strong> (□↑) na barra
+                    inferior.
+                  </li>
+                  <li>
+                    Role e toque em{" "}
+                    <strong>Adicionar à Tela de Início</strong>.
+                  </li>
+                  <li>
+                    Toque em <strong>Adicionar</strong>. O app vai aparecer
+                    como ícone na tela inicial.
+                  </li>
+                </ol>
+              </div>
+            ) : (
+              <div>
+                <p>
+                  Abra o menu do navegador (⋮ ou ⋯) e procure por uma das
+                  opções:
+                </p>
+                <ul style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
+                  <li><strong>Instalar app</strong></li>
+                  <li><strong>Adicionar à tela inicial</strong></li>
+                  <li><strong>Criar atalho</strong></li>
+                </ul>
+                <p style={{ marginTop: 12, fontSize: "0.85rem", opacity: 0.8 }}>
+                  Se nenhuma opção aparecer, abra o site em outro navegador
+                  (Chrome/Edge) ou aguarde — o sistema sugere quando a
+                  instalação ficar disponível.
+                </p>
+              </div>
+            )}
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
