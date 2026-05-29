@@ -319,6 +319,21 @@ export const funcionariosApi = {
     return fromDoc(snap.id, snap.data());
   },
 
+  /**
+   * Reseta a senha do funcionário para o CPF (ação do gestor).
+   * Útil quando o operador esqueceu a senha OU quando o doc foi criado
+   * com uma senha que ninguém lembra. Não há fluxo de troca pelo operador.
+   */
+  async resetarSenha(id: string): Promise<void> {
+    const ref = doc(db, COLECAO, id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error("Funcionário não encontrado.");
+    const cpf = limparCpf(String(snap.data().cpf ?? ""));
+    if (!cpf) throw new Error("CPF não definido — não dá pra resetar.");
+    const senhaHash = await hashSenhaFuncionario(cpf, cpf);
+    await updateDoc(ref, { senhaHash, updatedAt: serverTimestamp() });
+  },
+
   /** Ativa/inativa sem mexer no resto do cadastro. */
   async definirStatus(id: string, status: FuncionarioStatus): Promise<void> {
     await updateDoc(doc(db, COLECAO, id), {

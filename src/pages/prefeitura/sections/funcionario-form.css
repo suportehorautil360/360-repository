@@ -226,6 +226,17 @@
   flex-shrink: 0;
   margin-top: 1px;
 }
+.ff__reset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.ff__reset-msg {
+  font-size: 0.78rem;
+  color: #86efac;
+}
 
 /* Rodapé com ações */
 .ff__rodape {

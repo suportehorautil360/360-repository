@@ -7,6 +7,7 @@ import {
   Save,
   UserCog,
   AlertTriangle,
+  KeyRound,
 } from "lucide-react";
 import {
   funcionariosApi,
@@ -102,6 +103,8 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
   const [form, setForm] = useState<FormState>(FORM_VAZIO);
   const [carregando, setCarregando] = useState(modo === "editar");
   const [salvando, setSalvando] = useState(false);
+  const [resetandoSenha, setResetandoSenha] = useState(false);
+  const [resetMsg, setResetMsg] = useState("");
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState("");
 
@@ -145,6 +148,24 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
 
   function voltar() {
     navigate(`/prefeitura/${prefeituraId}/funcionarios`);
+  }
+
+  async function resetarSenha() {
+    if (modo !== "editar" || !funcId) return;
+    const ok = window.confirm(
+      "Resetar a senha deste funcionário para o CPF? Ele perderá a senha atual.",
+    );
+    if (!ok) return;
+    setResetandoSenha(true);
+    setResetMsg("");
+    try {
+      await funcionariosApi.resetarSenha(funcId);
+      setResetMsg("Senha resetada para o CPF.");
+    } catch (e) {
+      setResetMsg(e instanceof Error ? e.message : "Erro ao resetar a senha.");
+    } finally {
+      setResetandoSenha(false);
+    }
   }
 
   function validar(): boolean {
@@ -422,6 +443,22 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
                 <strong>CPF sem pontuação</strong>.
               </span>
             </p>
+
+            {modo === "editar" && (
+              <div className="ff__reset">
+                <button
+                  type="button"
+                  className="ff__btn"
+                  disabled={resetandoSenha}
+                  onClick={() => void resetarSenha()}
+                  title="Volta a senha do funcionário para o CPF"
+                >
+                  <KeyRound size={14} aria-hidden="true" />
+                  {resetandoSenha ? "Resetando…" : "Resetar senha para o CPF"}
+                </button>
+                {resetMsg && <span className="ff__reset-msg">{resetMsg}</span>}
+              </div>
+            )}
           </div>
 
           <div className="ff__grid ff__grid--apertado">
