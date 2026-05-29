@@ -16,6 +16,7 @@ export const SECOES_REAIS = new Set([
   "emergencia",
   "pontos-rh",
   "solicitacoes-ponto",
+  "configuracoes",
 ]);
 
 /** Rótulo legível por slug (usado no título do placeholder também). */

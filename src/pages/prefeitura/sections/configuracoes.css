@@ -1,0 +1,54 @@
+.cfg {
+  color: #e8ecf6;
+}
+.cfg__page-titulo {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cfg__lead {
+  color: #93a4c6;
+  font-size: 0.88rem;
+  margin: 0 0 14px;
+  line-height: 1.5;
+  max-width: 56rem;
+}
+.cfg__msg {
+  color: #93a4c6;
+}
+.cfg__msg--err {
+  color: #fca5a5;
+}
+.cfg__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.cfg__card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  color: #93a4c6;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.cfg__card-head h2 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+.cfg__card-sub {
+  color: #93a4c6;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0 0 10px;
+  max-width: 52rem;
+}

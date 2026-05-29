@@ -1,0 +1,43 @@
+.jornada {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jornada__cel {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+.jornada__abrev {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6b7a99;
+  letter-spacing: 0.05em;
+}
+.jornada__hora {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+.jornada__cel--vazia .jornada__hora {
+  color: #5a6a85;
+}
+.jornada__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: 2px;
+  align-self: center;
+}
+.jornada__dot--pendente {
+  background: #fcd34d;
+}
+.jornada__dot--reprovado {
+  background: #fca5a5;
+}
