@@ -20,11 +20,13 @@ import { fmtMin } from "./horasPonto";
 import { KpiCard } from "../../../components/Kpi/KpiCard";
 import { JornadaInline } from "../../../components/JornadaInline/JornadaInline";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import "./pontos-rh.css";
 
 const PERIODO_LABEL: Record<PeriodoPreset, string> = {
@@ -422,14 +424,14 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
         </table>
       </div>
 
-      {/* Drawer de detalhe */}
-      <Dialog
+      {/* Drawer de detalhe (Sheet do shadcn — lateral à direita) */}
+      <Sheet
         open={!!detalhe}
         onOpenChange={(aberto) => {
           if (!aberto) setDetalhe(null);
         }}
       >
-        <DialogContent className="rh-drawer">
+        <SheetContent side="right" className="rh-sheet sm:max-w-lg">
           {(() => {
             if (!detalhe) return null;
             const f = detalhe.resumo.funcionario;
@@ -439,49 +441,51 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
 
             return (
               <>
-                <header className="rh-drawer__head">
-                  <div className="rh-drawer__avatar" aria-hidden="true">
-                    {iniciaisDe(detalhe.resumo.nome)}
-                  </div>
-                  <div className="rh-drawer__id">
-                    <DialogTitle asChild>
-                      <h2 className="rh-drawer__nome">
-                        {detalhe.resumo.nome}
-                      </h2>
-                    </DialogTitle>
-                    <span className="rh-drawer__id-sub">
-                      {f?.cpf ? formatarCpf(f.cpf) : "Sem cadastro"}
-                      {f?.cargo ? ` · ${f.cargo}` : ""}
-                      {f?.matricula ? ` · mat. ${f.matricula}` : ""}
-                    </span>
-                  </div>
-                </header>
-
-                <div className="rh-drawer__corpo">
-                  <DialogDescription asChild>
-                    <p className="rh-drawer__contexto">
-                      <Calendar size={13} aria-hidden="true" />
-                      <span>
-                        Detalhe do dia{" "}
-                        <strong>{diaLegivel(detalhe.diaIso)}</strong>
-                      </span>
-                      {diaAtual && (
-                        <span
-                          className={`rh__chip rh__chip--${diaAtual.status}`}
-                        >
-                          {STATUS_DIA_LABEL[diaAtual.status]}
+                <SheetHeader className="rh-sheet__head">
+                  <div className="rh-sheet__head-row">
+                    <div className="rh-sheet__avatar" aria-hidden="true">
+                      {iniciaisDe(detalhe.resumo.nome)}
+                    </div>
+                    <div className="rh-sheet__id">
+                      <SheetTitle asChild>
+                        <h2 className="rh-sheet__nome">
+                          {detalhe.resumo.nome}
+                        </h2>
+                      </SheetTitle>
+                      <SheetDescription asChild>
+                        <span className="rh-sheet__id-sub">
+                          {f?.cpf ? formatarCpf(f.cpf) : "Sem cadastro"}
+                          {f?.cargo ? ` · ${f.cargo}` : ""}
+                          {f?.matricula ? ` · mat. ${f.matricula}` : ""}
                         </span>
-                      )}
-                    </p>
-                  </DialogDescription>
+                      </SheetDescription>
+                    </div>
+                  </div>
+                </SheetHeader>
+
+                <div className="rh-sheet__corpo">
+                  <p className="rh-sheet__contexto">
+                    <Calendar size={13} aria-hidden="true" />
+                    <span>
+                      Detalhe do dia{" "}
+                      <strong>{diaLegivel(detalhe.diaIso)}</strong>
+                    </span>
+                    {diaAtual && (
+                      <span
+                        className={`rh__chip rh__chip--${diaAtual.status}`}
+                      >
+                        {STATUS_DIA_LABEL[diaAtual.status]}
+                      </span>
+                    )}
+                  </p>
 
                   {detalhe.resumo.dias.length > 1 && (
-                    <div className="rh-drawer__dias">
+                    <div className="rh-sheet__dias">
                       {detalhe.resumo.dias.map((d) => (
                         <button
                           key={d.dia}
                           type="button"
-                          className={`rh-drawer__dia-btn ${detalhe.diaIso === d.dia ? "is-ativo" : ""}`}
+                          className={`rh-sheet__dia-btn ${detalhe.diaIso === d.dia ? "is-ativo" : ""}`}
                           onClick={() =>
                             setDetalhe({ ...detalhe, diaIso: d.dia })
                           }
@@ -495,17 +499,17 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                     </div>
                   )}
 
-                  <ul className="rh-drawer__batidas">
+                  <ul className="rh-sheet__batidas">
                     {TIPOS_PONTO.map(({ tipo, label }) => {
                       const reg = diaAtual?.batidas.find((b) => b.tipo === tipo);
                       if (!reg) {
                         return (
                           <li
                             key={tipo}
-                            className="rh-drawer__bat rh-drawer__bat--vazia"
+                            className="rh-sheet__bat rh-sheet__bat--vazia"
                           >
-                            <span className="rh-drawer__bat-label">{label}</span>
-                            <span className="rh-drawer__bat-vazio">
+                            <span className="rh-sheet__bat-label">{label}</span>
+                            <span className="rh-sheet__bat-vazio">
                               Sem registro
                             </span>
                           </li>
@@ -516,13 +520,13 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                       return (
                         <li
                           key={tipo}
-                          className={`rh-drawer__bat rh-drawer__bat--${status}`}
+                          className={`rh-sheet__bat rh-sheet__bat--${status}`}
                         >
-                          <div className="rh-drawer__bat-linha">
+                          <div className="rh-sheet__bat-linha">
                             {reg.photo ? (
                               <button
                                 type="button"
-                                className="rh-drawer__foto"
+                                className="rh-sheet__foto"
                                 onClick={() => setFotoAmpliada(reg.photo ?? "")}
                                 aria-label="Ampliar selfie"
                               >
@@ -530,17 +534,17 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                               </button>
                             ) : (
                               <span
-                                className="rh-drawer__foto rh-drawer__foto--sem"
+                                className="rh-sheet__foto rh-sheet__foto--sem"
                                 aria-hidden="true"
                               >
                                 <ImageIcon size={14} />
                               </span>
                             )}
-                            <div className="rh-drawer__bat-meio">
-                              <span className="rh-drawer__bat-label">
+                            <div className="rh-sheet__bat-meio">
+                              <span className="rh-sheet__bat-label">
                                 {label}
                               </span>
-                              <strong className="rh-drawer__bat-hora">
+                              <strong className="rh-sheet__bat-hora">
                                 {horaDe(reg.timestampOriginal)}
                               </strong>
                             </div>
@@ -550,7 +554,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                           </div>
 
                           {reprovandoEssa ? (
-                            <div className="rh-drawer__reprovar">
+                            <div className="rh-sheet__reprovar">
                               <input
                                 type="text"
                                 placeholder="Motivo da reprovação"
@@ -558,7 +562,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                                 onChange={(e) => setMotivoReprov(e.target.value)}
                                 autoFocus
                               />
-                              <div className="rh-drawer__reprovar-acoes">
+                              <div className="rh-sheet__reprovar-acoes">
                                 <button
                                   type="button"
                                   className="rh-btn"
@@ -580,7 +584,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                               </div>
                             </div>
                           ) : (
-                            <div className="rh-drawer__bat-acoes">
+                            <div className="rh-sheet__bat-acoes">
                               {status === "pendente" && (
                                 <>
                                   <button
@@ -607,7 +611,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                               {status === "aprovado" && (
                                 <button
                                   type="button"
-                                  className="rh-drawer__rev"
+                                  className="rh-sheet__rev"
                                   disabled={ocupado}
                                   onClick={() => {
                                     setReprovandoId(reg.id);
@@ -621,7 +625,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                               {status === "reprovado" && (
                                 <button
                                   type="button"
-                                  className="rh-drawer__rev"
+                                  className="rh-sheet__rev"
                                   disabled={ocupado}
                                   onClick={() => void aprovar(reg.id)}
                                   title="Voltar para aprovada"
@@ -633,7 +637,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                           )}
 
                           {reg.motivoReprovacao && status === "reprovado" && (
-                            <span className="rh-drawer__motivo">
+                            <span className="rh-sheet__motivo">
                               <AlertTriangle size={12} aria-hidden="true" />
                               {reg.motivoReprovacao}
                             </span>
@@ -644,7 +648,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                   </ul>
 
                   {diaAtual && diaAtual.previstoMin > 0 && (
-                    <div className="rh-drawer__resumo">
+                    <div className="rh-sheet__resumo">
                       <div>
                         <span>Trabalhado</span>
                         <strong>{fmtMin(diaAtual.trabalhadoMin)}</strong>
@@ -669,27 +673,27 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                 </div>
 
                 {f && (
-                  <footer className="rh-drawer__rodape">
+                  <SheetFooter className="rh-sheet__rodape">
                     <a
-                      className="rh-drawer__link rh-drawer__link--primary"
+                      className="rh-sheet__link rh-sheet__link--primary"
                       href={`/prefeitura/${prefeituraId}/funcionarios/${f.id}/historico`}
                     >
                       <Calendar size={14} aria-hidden="true" />
                       Ver histórico do mês
                     </a>
                     <a
-                      className="rh-drawer__link"
+                      className="rh-sheet__link"
                       href={`/prefeitura/${prefeituraId}/funcionarios/${f.id}/editar`}
                     >
                       Abrir cadastro
                     </a>
-                  </footer>
+                  </SheetFooter>
                 )}
               </>
             );
           })()}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {fotoAmpliada && (
         <div

@@ -198,61 +198,49 @@
   color: #fca5a5;
 }
 
-/* Drawer (DialogContent) com layout lateral à direita.
- * shadcn aplica translate-x/y[-50%] e top/left 50% via Tailwind v4 — essas
- * utilities usam a propriedade `translate` (não `transform`), então
- * precisamos zerar AMBAS pra fixar o drawer à direita sem deslocamento.
- * O container fica `overflow:hidden` e o corpo interno é que rola — assim
- * o header e o rodapé ficam fixos. */
-.rh-drawer {
-  position: fixed;
-  top: 0 !important;
-  right: 0 !important;
-  left: auto !important;
-  bottom: 0;
-  transform: none !important;
-  translate: none !important;
-  width: 100%;
-  max-width: 480px;
-  height: 100dvh;
-  max-height: 100dvh;
-  border-radius: 0;
-  border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+/* Drawer lateral (shadcn Sheet — side="right").
+ * O Sheet já cuida do positioning/animação/overlay nativamente; aqui só
+ * customizamos cor/tema e zeramos gap default pra controlar layout interno. */
+.rh-sheet {
   background: #0b1220;
   color: #e8ecf6;
-  display: flex;
-  flex-direction: column;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
   gap: 0;
   padding: 0;
   overflow: hidden;
-  box-shadow: -20px 0 50px rgba(0, 0, 0, 0.4);
 }
 
-/* X close do shadcn — discreto */
-.rh-drawer [data-slot="dialog-close"] {
+/* X close do shadcn dentro do Sheet — discreto */
+.rh-sheet [data-slot="sheet-close"] {
   top: 14px;
   right: 14px;
   border-radius: 8px;
   padding: 4px;
   opacity: 0.7;
+  color: #cbd5e1;
 }
-.rh-drawer [data-slot="dialog-close"]:hover {
+.rh-sheet [data-slot="sheet-close"]:hover {
   background: rgba(255, 255, 255, 0.06);
   opacity: 1;
 }
 
 /* Header fixo */
-.rh-drawer__head {
+/* SheetHeader vem com flex-col + gap-1.5 + p-4 do shadcn. Sobrescrevemos
+ * pra ficar um bloco compacto (sem gap interno) com nosso padding e o
+ * conteúdo do head fica num row separado abaixo. */
+.rh-sheet__head {
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 0;
   padding: 16px 56px 14px 20px; /* 56px à direita pra não bater no X */
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.02);
 }
-.rh-drawer__avatar {
+.rh-sheet__head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rh-sheet__avatar {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
@@ -266,13 +254,13 @@
   font-weight: 800;
   letter-spacing: 0.04em;
 }
-.rh-drawer__id {
+.rh-sheet__id {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
-.rh-drawer__nome {
+.rh-sheet__nome {
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
@@ -281,7 +269,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rh-drawer__id-sub {
+.rh-sheet__id-sub {
   font-size: 0.74rem;
   color: #93a4c6;
   white-space: nowrap;
@@ -290,7 +278,7 @@
 }
 
 /* Corpo rolável */
-.rh-drawer__corpo {
+.rh-sheet__corpo {
   flex: 1;
   overflow-y: auto;
   padding: 14px 20px 16px;
@@ -300,7 +288,7 @@
 }
 
 /* Linha de contexto (data + chip de situação) */
-.rh-drawer__contexto {
+.rh-sheet__contexto {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -308,20 +296,20 @@
   font-size: 0.82rem;
   color: #93a4c6;
 }
-.rh-drawer__contexto strong {
+.rh-sheet__contexto strong {
   color: #e8ecf6;
   text-transform: capitalize;
 }
 
 /* Tabs dos dias do período */
-.rh-drawer__dias {
+.rh-sheet__dias {
   display: flex;
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 4px;
   scrollbar-width: thin;
 }
-.rh-drawer__dia-btn {
+.rh-sheet__dia-btn {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
@@ -335,17 +323,17 @@
   white-space: nowrap;
   text-transform: capitalize;
 }
-.rh-drawer__dia-btn:hover {
+.rh-sheet__dia-btn:hover {
   background: rgba(255, 255, 255, 0.06);
 }
-.rh-drawer__dia-btn.is-ativo {
+.rh-sheet__dia-btn.is-ativo {
   background: rgba(249, 115, 22, 0.12);
   border-color: var(--main-orange);
   color: #fed7aa;
 }
 
 /* Lista de batidas */
-.rh-drawer__batidas {
+.rh-sheet__batidas {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -353,7 +341,7 @@
   flex-direction: column;
   gap: 8px;
 }
-.rh-drawer__bat {
+.rh-sheet__bat {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 3px solid transparent;
@@ -363,16 +351,16 @@
   flex-direction: column;
   gap: 8px;
 }
-.rh-drawer__bat--pendente {
+.rh-sheet__bat--pendente {
   border-left-color: #fcd34d;
 }
-.rh-drawer__bat--aprovado {
+.rh-sheet__bat--aprovado {
   border-left-color: rgba(34, 197, 94, 0.55);
 }
-.rh-drawer__bat--reprovado {
+.rh-sheet__bat--reprovado {
   border-left-color: rgba(239, 68, 68, 0.55);
 }
-.rh-drawer__bat--vazia {
+.rh-sheet__bat--vazia {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -380,36 +368,36 @@
   background: rgba(255, 255, 255, 0.015);
   border-style: dashed;
 }
-.rh-drawer__bat-linha {
+.rh-sheet__bat-linha {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.rh-drawer__bat-label {
+.rh-sheet__bat-label {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #6b7a99;
 }
-.rh-drawer__bat-meio {
+.rh-sheet__bat-meio {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
-.rh-drawer__bat-hora {
+.rh-sheet__bat-hora {
   font-variant-numeric: tabular-nums;
   font-size: 1rem;
   color: #e8ecf6;
   font-weight: 700;
 }
-.rh-drawer__bat-vazio {
+.rh-sheet__bat-vazio {
   font-size: 0.78rem;
   color: #5a6a85;
 }
-.rh-drawer__bat-acoes {
+.rh-sheet__bat-acoes {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -417,7 +405,7 @@
 }
 
 /* Foto / placeholder */
-.rh-drawer__foto {
+.rh-sheet__foto {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -430,19 +418,19 @@
   padding: 0;
   flex-shrink: 0;
 }
-.rh-drawer__foto img {
+.rh-sheet__foto img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-.rh-drawer__foto--sem {
+.rh-sheet__foto--sem {
   cursor: default;
   color: #4b5b75;
   border-style: dashed;
 }
 
 /* Ação subtle (Reprovar/Aprovar single quando o status já está decidido) */
-.rh-drawer__rev {
+.rh-sheet__rev {
   background: transparent;
   border: none;
   color: #6b7a99;
@@ -452,18 +440,18 @@
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.rh-drawer__rev:hover {
+.rh-sheet__rev:hover {
   color: #cbd5e1;
 }
 
 /* Form de reprovação inline */
-.rh-drawer__reprovar {
+.rh-sheet__reprovar {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding-left: 50px;
 }
-.rh-drawer__reprovar input {
+.rh-sheet__reprovar input {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: 6px;
@@ -471,17 +459,17 @@
   padding: 7px 10px;
   font-size: 0.82rem;
 }
-.rh-drawer__reprovar input:focus {
+.rh-sheet__reprovar input:focus {
   outline: 2px solid rgba(239, 68, 68, 0.5);
   outline-offset: 1px;
 }
-.rh-drawer__reprovar-acoes {
+.rh-sheet__reprovar-acoes {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
 }
 
-.rh-drawer__motivo {
+.rh-sheet__motivo {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -491,7 +479,7 @@
 }
 
 /* Resumo do dia (totais) */
-.rh-drawer__resumo {
+.rh-sheet__resumo {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
@@ -501,37 +489,39 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
 }
-.rh-drawer__resumo > div {
+.rh-sheet__resumo > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.rh-drawer__resumo span {
+.rh-sheet__resumo span {
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #6b7a99;
   font-weight: 700;
 }
-.rh-drawer__resumo strong {
+.rh-sheet__resumo strong {
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
   color: #e8ecf6;
 }
 
-/* Rodapé fixo (atalhos) */
-.rh-drawer__rodape {
+/* Rodapé (atalhos). SheetFooter vem com flex-col por padrão; overrides
+ * pra deixar como row com espaço entre os atalhos. */
+.rh-sheet__rodape {
   flex-shrink: 0;
-  display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding: 12px 20px;
   background: rgba(255, 255, 255, 0.02);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0;
 }
-.rh-drawer__link {
+.rh-sheet__link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -545,16 +535,16 @@
   text-decoration: none;
   cursor: pointer;
 }
-.rh-drawer__link:hover {
+.rh-sheet__link:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #e8ecf6;
 }
-.rh-drawer__link--primary {
+.rh-sheet__link--primary {
   background: rgba(249, 115, 22, 0.12);
   border-color: var(--main-orange);
   color: #fed7aa;
 }
-.rh-drawer__link--primary:hover {
+.rh-sheet__link--primary:hover {
   background: rgba(249, 115, 22, 0.2);
   color: #fed7aa;
 }
