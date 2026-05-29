@@ -9,9 +9,9 @@ import { useOperadorSession } from "./useOperadorSession";
 import "../login/login.css";
 
 const MOTIVO_MSG: Record<string, string> = {
-  "nao-encontrado": "CPF não encontrado. Verifique com o gestor.",
+  "nao-encontrado": "CPF ou login não encontrado. Verifique com o gestor.",
   "sem-senha": "Funcionário sem senha cadastrada. Procure o gestor.",
-  "senha-invalida": "CPF ou senha incorretos.",
+  "senha-invalida": "Identificador ou senha incorretos.",
   inativo: "Acesso inativo. Procure o gestor da prefeitura.",
 };
 

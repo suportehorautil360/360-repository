@@ -212,6 +212,19 @@ export const funcionariosApi = {
         orderBy("createdAt", "desc"),
       ),
     );
+    // Backfill oportunístico: docs antigos não têm `loginGerado` salvo
+    // (foram criados antes do campo existir). Sem isso a query por login
+    // na autenticação retorna vazio. Regrava fire-and-forget — o load
+    // continua rápido e a próxima tentativa de login já funciona.
+    for (const d of snap.docs) {
+      const data = d.data();
+      if (data.loginGerado || !data.nome || !data.cpf) continue;
+      const loginGerado = gerarLogin(String(data.nome), String(data.cpf));
+      if (!loginGerado) continue;
+      void updateDoc(doc(db, COLECAO, d.id), { loginGerado }).catch(() => {
+        /* ignora falha de backfill — não bloqueia a tela */
+      });
+    }
     return snap.docs.map((d) => fromDoc(d.id, d.data()));
   },
 
