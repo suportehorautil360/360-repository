@@ -7,6 +7,7 @@ import {
 } from "../../../lib/funcionarios/funcionarios";
 import { pontosApi, type PontoRegistro } from "../../../lib/api/pontos";
 import { escalaApi, type Escala } from "../../../lib/api/escala";
+import { abonosApi, type Abono } from "../../../lib/api/abonos";
 import { EspelhoDetalhado } from "../../checklist-controle/EspelhoDetalhado";
 import { formatarCpf } from "../../../lib/funcionarios/cpf";
 import "./historico-ponto.css";
@@ -32,6 +33,7 @@ export function HistoricoPontoSection({
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null);
   const [batidas, setBatidas] = useState<PontoRegistro[]>([]);
   const [escala, setEscala] = useState<Escala | null>(null);
+  const [abonos, setAbonos] = useState<Abono[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -40,10 +42,11 @@ export function HistoricoPontoSection({
     setCarregando(true);
     setErro("");
     try {
-      const [f, ptos, esc] = await Promise.all([
+      const [f, ptos, esc, abs] = await Promise.all([
         funcionariosApi.obter(funcId),
         pontosApi.listar(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
+        abonosApi.listar(prefeituraId).catch(() => []),
       ]);
       if (!f) {
         setErro("Funcionário não encontrado.");
@@ -52,6 +55,7 @@ export function HistoricoPontoSection({
       setFuncionario(f);
       setBatidas(ptos);
       setEscala(esc);
+      setAbonos(abs);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
@@ -105,6 +109,8 @@ export function HistoricoPontoSection({
           batidas={batidas}
           escala={escala}
           nome={funcionario.nome}
+          abonos={abonos}
+          funcionarioCpf={funcionario.cpf}
           onVoltar={voltarParaLista}
         />
       </div>

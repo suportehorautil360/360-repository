@@ -8,6 +8,7 @@ import {
 import type { PontoRegistro } from "../api/pontos";
 import type { Escala } from "../api/escala";
 import type { Funcionario } from "../funcionarios/funcionarios";
+import type { Abono } from "../api/abonos";
 
 function b(
   name: string,
@@ -200,5 +201,100 @@ describe("agruparPorFuncionario", () => {
     ];
     const r = agruparPorFuncionario(batidas, [], ["2026-05-27"], ESCALA);
     expect(r[0].totais.pendentes).toBe(1);
+  });
+
+  it("converte falta em 'abonado' quando há abono ativo pro CPF/dia", () => {
+    const abono: Abono = {
+      id: "ab1",
+      prefeituraId: "p1",
+      funcionarioCpf: "11122233344",
+      funcionarioNome: "João Silva",
+      data: "2026-05-27",
+      motivo: "Consulta médica",
+      solicitacaoId: "sol1",
+      createdAt: "2026-05-27T10:00:00Z",
+    };
+    const r = agruparPorFuncionario(
+      [], // sem batidas
+      [FUNCIONARIO_JOAO],
+      ["2026-05-27"],
+      ESCALA,
+      [abono],
+    );
+    expect(r[0].dias[0].status).toBe("abonado");
+    expect(r[0].dias[0].motivoAbono).toBe("Consulta médica");
+    expect(r[0].totais.faltas).toBe(0);
+    expect(r[0].totais.abonados).toBe(1);
+  });
+
+  it("dia abonado conta horas previstas no trabalhado (saldo neutro)", () => {
+    const abono: Abono = {
+      id: "ab1",
+      prefeituraId: "p1",
+      funcionarioCpf: "11122233344",
+      funcionarioNome: "João Silva",
+      data: "2026-05-27",
+      motivo: null,
+      createdAt: "2026-05-27T10:00:00Z",
+    };
+    const r = agruparPorFuncionario(
+      [],
+      [FUNCIONARIO_JOAO],
+      ["2026-05-27"],
+      ESCALA,
+      [abono],
+    );
+    // Escala 08:00-18:00 com 60 min de almoço = 9h previstas = 540 min
+    expect(r[0].dias[0].previstoMin).toBe(540);
+    expect(r[0].dias[0].trabalhadoMin).toBe(540);
+    expect(r[0].dias[0].saldoMin).toBe(0);
+    expect(r[0].totais.saldoMin).toBe(0);
+  });
+
+  it("abono não afeta dia que já tem batidas", () => {
+    const abono: Abono = {
+      id: "ab1",
+      prefeituraId: "p1",
+      funcionarioCpf: "11122233344",
+      funcionarioNome: "João Silva",
+      data: "2026-05-27",
+      motivo: null,
+      createdAt: "2026-05-27T10:00:00Z",
+    };
+    const batidas = [
+      b("João Silva", "2026-05-27T08:00:00", "entrada"),
+      b("João Silva", "2026-05-27T18:00:00", "saida"),
+    ];
+    const r = agruparPorFuncionario(
+      batidas,
+      [FUNCIONARIO_JOAO],
+      ["2026-05-27"],
+      ESCALA,
+      [abono],
+    );
+    // Mesmo com abono, batidas presentes → status 'ok'
+    expect(r[0].dias[0].status).toBe("ok");
+    expect(r[0].totais.abonados).toBe(0);
+  });
+
+  it("abono sem CPF casado (funcionário não cadastrado) não é aplicado", () => {
+    const abono: Abono = {
+      id: "ab1",
+      prefeituraId: "p1",
+      funcionarioCpf: "11122233344",
+      funcionarioNome: "Desconhecido",
+      data: "2026-05-27",
+      motivo: null,
+      createdAt: "2026-05-27T10:00:00Z",
+    };
+    const r = agruparPorFuncionario(
+      [],
+      [], // sem cadastro
+      ["2026-05-27"],
+      ESCALA,
+      [abono],
+    );
+    // Sem batidas e sem funcionário cadastrado, o resumo nem existe
+    expect(r).toHaveLength(0);
   });
 });

@@ -15,6 +15,7 @@ import {
   type StatusDia,
 } from "../../../lib/ponto/agruparPorFuncionario";
 import { funcionariosApi, type Funcionario } from "../../../lib/funcionarios/funcionarios";
+import { abonosApi, type Abono } from "../../../lib/api/abonos";
 import { limparCpf, formatarCpf } from "../../../lib/funcionarios/cpf";
 import { fmtMin } from "./horasPonto";
 import { KpiCard } from "../../../components/Kpi/KpiCard";
@@ -41,6 +42,7 @@ const STATUS_DIA_LABEL: Record<StatusDia, string> = {
   atraso: "Atraso",
   incompleto: "Incompleto",
   falta: "Falta",
+  abonado: "Abonado",
   "sem-jornada": "—",
 };
 
@@ -84,6 +86,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   const [registros, setRegistros] = useState<PontoRegistro[]>([]);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [escala, setEscala] = useState<Escala | null>(null);
+  const [abonos, setAbonos] = useState<Abono[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -104,14 +107,16 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
     setCarregando(true);
     setErro("");
     try {
-      const [lista, funcs, esc] = await Promise.all([
+      const [lista, funcs, esc, abs] = await Promise.all([
         pontosApi.listar(prefeituraId),
         funcionariosApi.listar(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
+        abonosApi.listar(prefeituraId).catch(() => []),
       ]);
       setRegistros(lista);
       setFuncionarios(funcs);
       setEscala(esc);
+      setAbonos(abs);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
@@ -124,8 +129,15 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   }, [carregar]);
 
   const resumos = useMemo(
-    () => agruparPorFuncionario(registros, funcionarios, intervalo.dias, escala),
-    [registros, funcionarios, intervalo.dias, escala],
+    () =>
+      agruparPorFuncionario(
+        registros,
+        funcionarios,
+        intervalo.dias,
+        escala,
+        abonos,
+      ),
+    [registros, funcionarios, intervalo.dias, escala, abonos],
   );
 
   const filtrados = useMemo(() => {
@@ -283,6 +295,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
           <option value="com-pendencia">Com pendência</option>
           <option value="atraso">Com atraso</option>
           <option value="falta">Com falta</option>
+          <option value="abonado">Com abono</option>
           <option value="incompleto">Incompletos</option>
           <option value="ok">Só OK</option>
         </select>
@@ -478,6 +491,18 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                       </span>
                     )}
                   </p>
+
+                  {diaAtual?.status === "abonado" && (
+                    <p className="rh-sheet__abono-info">
+                      <AlertTriangle size={13} aria-hidden="true" />
+                      <span>
+                        <strong>Dia abonado</strong>
+                        {diaAtual.motivoAbono
+                          ? ` · ${diaAtual.motivoAbono}`
+                          : ""}
+                      </span>
+                    </p>
+                  )}
 
                   {detalhe.resumo.dias.length > 1 && (
                     <div className="rh-sheet__dias">

@@ -9,9 +9,17 @@
 import type { PontoRegistro } from "../api/pontos";
 import type { Escala } from "../api/escala";
 import type { Funcionario } from "../funcionarios/funcionarios";
+import type { Abono } from "../api/abonos";
+import { limparCpf } from "../funcionarios/cpf";
 import { minutosPrevistos, minutosTrabalhados } from "../../pages/prefeitura/sections/horasPonto";
 
-export type StatusDia = "ok" | "atraso" | "incompleto" | "falta" | "sem-jornada";
+export type StatusDia =
+  | "ok"
+  | "atraso"
+  | "incompleto"
+  | "falta"
+  | "abonado"
+  | "sem-jornada";
 
 /** Data LOCAL (YYYY-MM-DD) de um ISO — sem virar UTC. */
 export function diaDe(iso: string): string {
@@ -49,7 +57,8 @@ function diaUtil(escala: Escala | null, diaIso: string): boolean {
 /**
  * Classifica o dia de um funcionário com base nas batidas e na escala.
  * - sem-jornada: dia não-útil pela escala (final de semana, p.ex.)
- * - falta: dia útil sem nenhuma batida
+ * - abonado: dia útil sem batidas, mas com abono aprovado pelo RH
+ * - falta: dia útil sem nenhuma batida e sem abono
  * - incompleto: tem batidas mas falta entrada ou saída
  * - atraso: tem entrada e saída, mas a entrada chegou depois da escala + tolerância
  * - ok: jornada completa dentro da escala (ou sem escala definida)
@@ -58,9 +67,10 @@ export function statusDoDia(
   batidas: PontoRegistro[],
   escala: Escala | null,
   diaIso: string,
+  temAbono = false,
 ): StatusDia {
   if (!diaUtil(escala, diaIso)) return "sem-jornada";
-  if (batidas.length === 0) return "falta";
+  if (batidas.length === 0) return temAbono ? "abonado" : "falta";
 
   const tipos: Partial<Record<PontoRegistro["tipo"], PontoRegistro>> = {};
   for (const b of batidas) tipos[b.tipo] = b;
@@ -89,6 +99,8 @@ export interface FuncionarioJornadaDia {
   saldoMin: number;
   /** Classificação operacional. */
   status: StatusDia;
+  /** Quando status === 'abonado', motivo do abono (se houver). */
+  motivoAbono?: string | null;
 }
 
 export interface FuncionarioResumo {
@@ -106,6 +118,8 @@ export interface FuncionarioResumo {
     diasOk: number;
     atrasos: number;
     faltas: number;
+    /** Dias úteis sem batida, mas com abono aprovado (não conta como falta). */
+    abonados: number;
     incompletos: number;
     pendentes: number; // batidas com status === 'pendente'
   };
@@ -125,6 +139,7 @@ export function agruparPorFuncionario(
   funcionarios: Funcionario[],
   diasNoPeriodo: string[],
   escala: Escala | null,
+  abonos: Abono[] = [],
 ): FuncionarioResumo[] {
   const periodoSet = new Set(diasNoPeriodo);
 
@@ -133,6 +148,17 @@ export function agruparPorFuncionario(
   for (const f of funcionarios) {
     if (!f.nome) continue;
     indexFunc.set(chaveNome(f.nome), f);
+  }
+
+  // Index de abonos por CPF (limpo) → mapa de data → motivo.
+  // Só dias dentro do período interessam.
+  const abonosPorCpf = new Map<string, Map<string, string | null | undefined>>();
+  for (const a of abonos) {
+    if (!periodoSet.has(a.data)) continue;
+    const cpf = limparCpf(a.funcionarioCpf);
+    if (!cpf) continue;
+    if (!abonosPorCpf.has(cpf)) abonosPorCpf.set(cpf, new Map());
+    abonosPorCpf.get(cpf)!.set(a.data, a.motivo);
   }
 
   // Agrupa as batidas: nome → dia → batidas[].
@@ -163,6 +189,10 @@ export function agruparPorFuncionario(
       // pega o nome da primeira batida (mantém capitalização original)
       [...mapaDia.values()][0]?.[0]?.name ??
       nomeKey;
+    // Abonos só conseguem casar com funcionário cadastrado (precisamos do CPF).
+    const meusAbonos = funcionario?.cpf
+      ? abonosPorCpf.get(limparCpf(funcionario.cpf))
+      : undefined;
 
     const dias: FuncionarioJornadaDia[] = [];
     const tot = {
@@ -172,6 +202,7 @@ export function agruparPorFuncionario(
       diasOk: 0,
       atrasos: 0,
       faltas: 0,
+      abonados: 0,
       incompletos: 0,
       pendentes: 0,
     };
@@ -180,24 +211,30 @@ export function agruparPorFuncionario(
       const bs = mapaDia.get(diaIso) ?? [];
       const trab = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
       const prev = minutosPrevistos(escala, diaIso);
-      const status = statusDoDia(bs, escala, diaIso);
+      const temAbono = meusAbonos?.has(diaIso) ?? false;
+      const status = statusDoDia(bs, escala, diaIso, temAbono);
       const pend = bs.filter((b) => (b.status ?? "pendente") === "pendente").length;
 
-      tot.trabalhadoMin += trab;
+      // Em dia abonado, o "trabalhado" considera as horas previstas como
+      // se tivessem sido cumpridas (não pune no saldo).
+      const trabEfetivo = status === "abonado" ? prev : trab;
+      tot.trabalhadoMin += trabEfetivo;
       tot.previstoMin += prev;
       tot.pendentes += pend;
       if (status === "ok") tot.diasOk += 1;
       if (status === "atraso") tot.atrasos += 1;
       if (status === "falta") tot.faltas += 1;
+      if (status === "abonado") tot.abonados += 1;
       if (status === "incompleto") tot.incompletos += 1;
 
       dias.push({
         dia: diaIso,
         batidas: bs,
-        trabalhadoMin: trab,
+        trabalhadoMin: trabEfetivo,
         previstoMin: prev,
-        saldoMin: trab - prev,
+        saldoMin: trabEfetivo - prev,
         status,
+        motivoAbono: status === "abonado" ? meusAbonos?.get(diaIso) : undefined,
       });
     }
     tot.saldoMin = tot.trabalhadoMin - tot.previstoMin;

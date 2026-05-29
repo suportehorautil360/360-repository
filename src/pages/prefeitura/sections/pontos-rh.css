@@ -177,6 +177,10 @@
   background: rgba(239, 68, 68, 0.16);
   color: #fca5a5;
 }
+.rh__chip--abonado {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
 .rh__chip--incompleto {
   background: rgba(168, 85, 247, 0.16);
   color: #d8b4fe;
@@ -299,6 +303,28 @@
 .rh-sheet__contexto strong {
   color: #e8ecf6;
   text-transform: capitalize;
+}
+
+/* Faixa de aviso quando o dia está abonado (mostra o motivo). */
+.rh-sheet__abono-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+.rh-sheet__abono-info svg {
+  color: #93c5fd;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.rh-sheet__abono-info strong {
+  color: #93c5fd;
 }
 
 /* Tabs dos dias do período */

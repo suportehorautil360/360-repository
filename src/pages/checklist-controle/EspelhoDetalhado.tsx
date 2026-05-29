@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PontoRegistro } from "./ponto-api";
 import type { Escala } from "../../lib/api/escala";
+import type { Abono } from "../../lib/api/abonos";
+import { limparCpf } from "../../lib/funcionarios/cpf";
 import {
   fmtMin,
   minutosPrevistos,
@@ -13,6 +15,10 @@ interface Props {
   batidas: PontoRegistro[];
   escala: Escala | null;
   nome: string;
+  /** Abonos da prefeitura — filtramos pelo CPF abaixo. */
+  abonos?: Abono[];
+  /** CPF do funcionário (necessário pra casar com abonos). */
+  funcionarioCpf?: string;
   onVoltar: () => void;
 }
 
@@ -39,7 +45,14 @@ function rotuloMes(mes: string): string {
   });
 }
 
-export function EspelhoDetalhado({ batidas, escala, nome, onVoltar }: Props) {
+export function EspelhoDetalhado({
+  batidas,
+  escala,
+  nome,
+  abonos,
+  funcionarioCpf,
+  onVoltar,
+}: Props) {
   const [mes, setMes] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -53,6 +66,23 @@ export function EspelhoDetalhado({ batidas, escala, nome, onVoltar }: Props) {
     );
   }, [batidas, nome]);
 
+  /** Datas (YYYY-MM-DD) abonadas pra este funcionário, indexadas. */
+  const abonosDoMes = useMemo(() => {
+    const cpf = limparCpf(funcionarioCpf ?? "");
+    if (!cpf || !abonos?.length) return new Map<string, string | null | undefined>();
+    const out = new Map<string, string | null | undefined>();
+    for (const a of abonos) {
+      if (limparCpf(a.funcionarioCpf) !== cpf) continue;
+      if (!a.data.startsWith(mes)) continue;
+      out.set(a.data, a.motivo);
+    }
+    return out;
+  }, [abonos, funcionarioCpf, mes]);
+
+  /**
+   * Lista de [dia, batidas, abonado?, motivoAbono?] pra cada dia com
+   * registro OU abono no mês selecionado.
+   */
   const diasMes = useMemo(() => {
     const map = new Map<string, PontoRegistro[]>();
     for (const b of minhasBatidas) {
@@ -62,18 +92,27 @@ export function EspelhoDetalhado({ batidas, escala, nome, onVoltar }: Props) {
       arr.push(b);
       map.set(dia, arr);
     }
+    // Inclui dias que não têm batida, mas têm abono — só assim aparecem.
+    for (const data of abonosDoMes.keys()) {
+      if (!map.has(data)) map.set(data, []);
+    }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [minhasBatidas, mes]);
+  }, [minhasBatidas, abonosDoMes, mes]);
 
   const totais = useMemo(() => {
     let trab = 0;
     let prev = 0;
     for (const [dia, bs] of diasMes) {
-      trab += minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
-      prev += minutosPrevistos(escala, dia);
+      const trabBruto = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
+      const previsto = minutosPrevistos(escala, dia);
+      // Dia abonado (sem batidas, mas com abono): considera as previstas
+      // como cumpridas — saldo do dia fica neutro.
+      const abonado = bs.length === 0 && abonosDoMes.has(dia);
+      trab += abonado ? previsto : trabBruto;
+      prev += previsto;
     }
     return { trab, prev, saldo: trab - prev };
-  }, [diasMes, escala]);
+  }, [diasMes, escala, abonosDoMes]);
 
   function mudarMes(delta: number) {
     const [y, m] = mes.split("-").map(Number);
@@ -158,12 +197,27 @@ export function EspelhoDetalhado({ batidas, escala, nome, onVoltar }: Props) {
               diasMes.map(([dia, bs]) => {
                 const tipos: Record<string, string> = {};
                 for (const b of bs) tipos[b.tipo] = horaDe(b.timestampOriginal);
-                const trab = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
+                const trabBruto = minutosTrabalhados(
+                  bs,
+                  escala?.almocoMinutos ?? 0,
+                );
                 const prev = minutosPrevistos(escala, dia);
+                const ehAbonado = bs.length === 0 && abonosDoMes.has(dia);
+                const trab = ehAbonado ? prev : trabBruto;
                 const saldo = trab - prev;
                 return (
-                  <tr key={dia}>
-                    <td>{dia.split("-").reverse().join("/")}</td>
+                  <tr key={dia} className={ehAbonado ? "esp__linha-abonada" : ""}>
+                    <td>
+                      {dia.split("-").reverse().join("/")}
+                      {ehAbonado && (
+                        <span
+                          className="esp__chip-abono"
+                          title={abonosDoMes.get(dia) ?? "Abono aprovado"}
+                        >
+                          Abonado
+                        </span>
+                      )}
+                    </td>
                     <td>{tipos.entrada ?? "—"}</td>
                     <td>{tipos.almoco ?? "—"}</td>
                     <td>{tipos.volta ?? "—"}</td>
