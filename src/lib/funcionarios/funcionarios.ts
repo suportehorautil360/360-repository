@@ -68,6 +68,8 @@ export interface Funcionario {
   cnhRestricao?: string;
   /** Observações livres do gestor. */
   observacoes?: string;
+  /** Login gerado (primeiroNome+3 últimos do CPF), denormalizado p/ busca. */
+  loginGerado?: string;
 }
 
 /**
@@ -141,6 +143,10 @@ function fromDoc(id: string, data: Record<string, unknown>): Funcionario {
     cnhEmissao: data.cnhEmissao ? String(data.cnhEmissao) : undefined,
     cnhRestricao: data.cnhRestricao ? String(data.cnhRestricao) : undefined,
     observacoes: data.observacoes ? String(data.observacoes) : undefined,
+    // Backfill: docs antigos não têm `loginGerado`; computa na hora.
+    loginGerado: data.loginGerado
+      ? String(data.loginGerado)
+      : gerarLogin(String(data.nome ?? ""), String(data.cpf ?? "")),
   };
 }
 
@@ -154,28 +160,39 @@ export type AutenticacaoResultado =
 
 export const funcionariosApi = {
   /**
-   * Autentica um funcionário por CPF + senha (login do operador em campo).
-   * Busca global por CPF (o operador só conhece o próprio CPF); o
-   * prefeituraId sai do próprio doc. Verifica o hash salgado e o status.
+   * Autentica um funcionário por CPF **ou** login gerado + senha.
+   * O `identificador` é detectado por heurística: 11 dígitos → CPF; caso
+   * contrário, busca por `loginGerado` (campo denormalizado no doc).
+   * A senha continua sendo salgada com o CPF da pessoa.
    */
   async autenticar(
-    cpf: string,
+    identificador: string,
     senha: string,
   ): Promise<AutenticacaoResultado> {
-    const limpo = limparCpf(cpf);
-    const snap = await getDocs(
-      query(collection(db, COLECAO), where("cpf", "==", limpo)),
-    );
+    const ident = (identificador || "").trim();
+    const limpo = limparCpf(ident);
+    const ehCpf = limpo.length === 11;
+
+    const snap = ehCpf
+      ? await getDocs(query(collection(db, COLECAO), where("cpf", "==", limpo)))
+      : await getDocs(
+          query(
+            collection(db, COLECAO),
+            where("loginGerado", "==", ident.toLowerCase()),
+          ),
+        );
     if (snap.empty) return { ok: false, motivo: "nao-encontrado" };
 
-    // Pode haver mais de um doc com o mesmo CPF (unicidade é best-effort);
-    // pega o primeiro com senha que confere.
-    const esperado = await hashSenhaFuncionario(limpo, senha);
+    // Pode haver mais de um doc com o mesmo identificador (unicidade é
+    // best-effort); pega o primeiro com senha que confere.
     let temAlgumComSenha = false;
     for (const d of snap.docs) {
       const data = d.data();
       if (!data.senhaHash) continue;
       temAlgumComSenha = true;
+      // O salt do hash é sempre o CPF da pessoa (não o identificador).
+      const cpfDoDoc = limparCpf(String(data.cpf ?? ""));
+      const esperado = await hashSenhaFuncionario(cpfDoDoc, senha);
       if (data.senhaHash !== esperado) continue;
       const funcionario = fromDoc(d.id, data);
       if (funcionario.status !== "ativo") return { ok: false, motivo: "inativo" };
@@ -225,10 +242,12 @@ export const funcionariosApi = {
     // inicial (operador troca depois). Garante que todo funcionário criado
     // já pode logar.
     const senhaInicial = input.senha || cpf;
+    const loginGerado = gerarLogin(input.nome, cpf);
     const payload: Record<string, unknown> = {
       prefeituraId,
       nome: input.nome.trim(),
       cpf,
+      loginGerado,
       cargo: input.cargo.trim(),
       telefone: input.telefone?.trim() || null,
       tipo: input.tipo,
@@ -252,9 +271,11 @@ export const funcionariosApi = {
 
   async atualizar(id: string, input: FuncionarioInput): Promise<void> {
     const cpf = limparCpf(input.cpf);
+    const loginGerado = gerarLogin(input.nome, cpf);
     const payload: Record<string, unknown> = {
       nome: input.nome.trim(),
       cpf,
+      loginGerado,
       cargo: input.cargo.trim(),
       telefone: input.telefone?.trim() || null,
       tipo: input.tipo,

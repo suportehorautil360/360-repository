@@ -15,6 +15,7 @@ import { escalaApi, type Escala } from "../../lib/api/escala";
 import { solicitacoesPontoApi } from "../../lib/api/solicitacoes-ponto";
 import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
 import { useOperadorSession } from "./useOperadorSession";
+import { EspelhoDetalhado } from "./EspelhoDetalhado";
 import {
   Dialog,
   DialogContent,
@@ -149,6 +150,9 @@ export function PontosFolha({
   const [mensagemAberta, setMensagemAberta] = useState(false);
   const [mensagemTexto, setMensagemTexto] = useState("");
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
+
+  // Espelho detalhado: toggle dentro da própria folha.
+  const [modoEspelho, setModoEspelho] = useState(false);
 
   function abrirIncluir() {
     const hoje = new Date();
@@ -462,11 +466,21 @@ export function PontosFolha({
     }
   }
 
-  const emBreve = (o: string) =>
-    toast.info(`${o} — disponível em breve.`);
-
   if (carregando) {
     return <p className="ponto-folha__msg">Carregando folha de ponto…</p>;
+  }
+
+  if (modoEspelho) {
+    return (
+      <div className="ponto-folha folha">
+        <EspelhoDetalhado
+          batidas={todas}
+          escala={escala}
+          nome={nome}
+          onVoltar={() => setModoEspelho(false)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -651,7 +665,7 @@ export function PontosFolha({
           <button
             type="button"
             className="folha__card folha__espelho"
-            onClick={() => emBreve("Espelho detalhado")}
+            onClick={() => setModoEspelho(true)}
           >
             <span>📅 Acessar espelho detalhado</span>
             <span aria-hidden="true">›</span>

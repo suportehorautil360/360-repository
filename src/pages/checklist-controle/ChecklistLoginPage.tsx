@@ -19,16 +19,21 @@ export function ChecklistLoginPage() {
   const navigate = useNavigate();
   const { setSession } = useOperadorSession();
 
-  const [cpf, setCpf] = useState("");
+  // Identificador pode ser CPF (11 dígitos) OU login gerado (primeiroNome+3 últimos do CPF).
+  const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
+  /** Detecta CPF: se a entrada tem ≥ 11 dígitos, formata como CPF. Senão, deixa cru. */
+  const ehCpf = limparCpf(identificador).length === 11;
+  const valorExibido = ehCpf ? formatarCpf(identificador) : identificador;
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const cpfLimpo = limparCpf(cpf);
-    if (cpfLimpo.length !== 11) {
-      setErro("Informe um CPF válido (11 dígitos).");
+    const ident = identificador.trim();
+    if (!ident) {
+      setErro("Informe seu CPF ou login.");
       return;
     }
     if (!senha) {
@@ -39,7 +44,7 @@ export function ChecklistLoginPage() {
     setErro("");
     setLoading(true);
     try {
-      const r = await funcionariosApi.autenticar(cpfLimpo, senha);
+      const r = await funcionariosApi.autenticar(ident, senha);
       if (!r.ok) {
         setErro(MOTIVO_MSG[r.motivo] ?? "Não foi possível entrar.");
         setLoading(false);
@@ -89,19 +94,19 @@ export function ChecklistLoginPage() {
           Controle Checklist
         </h1>
         <p className="auth-subtitle">
-          Entre com seu CPF e senha para acessar o controle.
+          Entre com seu CPF ou login + senha para acessar o controle.
         </p>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <label htmlFor="checklist-cpf">CPF</label>
+          <label htmlFor="checklist-id">CPF ou Login</label>
           <input
-            id="checklist-cpf"
-            inputMode="numeric"
+            id="checklist-id"
+            inputMode={ehCpf ? "numeric" : "text"}
             autoComplete="username"
-            placeholder="000.000.000-00"
-            value={formatarCpf(cpf)}
+            placeholder="CPF (000.000.000-00) ou login (joao123)"
+            value={valorExibido}
             onChange={(e) => {
-              setCpf(limparCpf(e.target.value));
+              setIdentificador(e.target.value);
               setErro("");
             }}
           />
