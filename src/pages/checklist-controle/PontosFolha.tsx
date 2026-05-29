@@ -16,6 +16,7 @@ import { solicitacoesPontoApi } from "../../lib/api/solicitacoes-ponto";
 import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
 import { useOperadorSession } from "./useOperadorSession";
 import { EspelhoDetalhado } from "./EspelhoDetalhado";
+import { MinhasSolicitacoes } from "./MinhasSolicitacoes";
 import {
   Dialog,
   DialogContent,
@@ -154,6 +155,7 @@ export function PontosFolha({
 
   // Espelho detalhado: toggle dentro da própria folha.
   const [modoEspelho, setModoEspelho] = useState(false);
+  const [modoMinhas, setModoMinhas] = useState(false);
 
   function abrirIncluir() {
     const hoje = new Date();
@@ -484,6 +486,19 @@ export function PontosFolha({
     );
   }
 
+  if (modoMinhas) {
+    return (
+      <div className="ponto-folha folha">
+        <MinhasSolicitacoes
+          prefeituraId={prefeituraId}
+          cpf={session?.cpf}
+          nome={nome}
+          onVoltar={() => setModoMinhas(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="ponto-folha folha">
       {session?.cpf && (
@@ -662,6 +677,15 @@ export function PontosFolha({
               </button>
             </div>
           </section>
+
+          <button
+            type="button"
+            className="folha__card folha__espelho"
+            onClick={() => setModoMinhas(true)}
+          >
+            <span>📨 Minhas solicitações</span>
+            <span aria-hidden="true">›</span>
+          </button>
 
           <button
             type="button"
