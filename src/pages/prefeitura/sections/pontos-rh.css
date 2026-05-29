@@ -199,9 +199,11 @@
 }
 
 /* Drawer (DialogContent) com layout lateral à direita.
- * shadcn aplica translate-x/y[-50%] e top/left 50% via Tailwind v4. Em v4
- * essas utilities usam a propriedade `translate` (não `transform`), então
- * precisamos zerar AMBAS pra fixar o drawer à direita sem deslocamento. */
+ * shadcn aplica translate-x/y[-50%] e top/left 50% via Tailwind v4 — essas
+ * utilities usam a propriedade `translate` (não `transform`), então
+ * precisamos zerar AMBAS pra fixar o drawer à direita sem deslocamento.
+ * O container fica `overflow:hidden` e o corpo interno é que rola — assim
+ * o header e o rodapé ficam fixos. */
 .rh-drawer {
   position: fixed;
   top: 0 !important;
@@ -211,101 +213,222 @@
   transform: none !important;
   translate: none !important;
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
   height: 100dvh;
   max-height: 100dvh;
   border-radius: 0;
   border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
   background: #0b1220;
   color: #e8ecf6;
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: -20px 0 50px rgba(0, 0, 0, 0.4);
 }
-.rh-drawer__titulo {
+
+/* X close do shadcn — discreto */
+.rh-drawer [data-slot="dialog-close"] {
+  top: 14px;
+  right: 14px;
+  border-radius: 8px;
+  padding: 4px;
+  opacity: 0.7;
+}
+.rh-drawer [data-slot="dialog-close"]:hover {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+
+/* Header fixo */
+.rh-drawer__head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 56px 14px 20px; /* 56px à direita pra não bater no X */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+.rh-drawer__avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(168, 85, 247, 0.25));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fed7aa;
+  display: grid;
+  place-items: center;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.rh-drawer__id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rh-drawer__nome {
   margin: 0;
-  padding: 18px 20px 4px;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #e8ecf6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.rh-drawer__sub {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 500;
+.rh-drawer__id-sub {
+  font-size: 0.74rem;
   color: #93a4c6;
-  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.rh-drawer__lead {
-  color: #93a4c6;
-  font-size: 0.85rem;
-  padding: 0 20px 12px;
+
+/* Corpo rolável */
+.rh-drawer__corpo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Linha de contexto (data + chip de situação) */
+.rh-drawer__contexto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
+  font-size: 0.82rem;
+  color: #93a4c6;
 }
+.rh-drawer__contexto strong {
+  color: #e8ecf6;
+  text-transform: capitalize;
+}
+
+/* Tabs dos dias do período */
 .rh-drawer__dias {
   display: flex;
   gap: 6px;
-  padding: 0 20px 12px;
   overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
 }
 .rh-drawer__dia-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   color: #cbd5e1;
   padding: 6px 10px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   cursor: pointer;
   display: inline-flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
   text-transform: capitalize;
+}
+.rh-drawer__dia-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 .rh-drawer__dia-btn.is-ativo {
   background: rgba(249, 115, 22, 0.12);
   border-color: var(--main-orange);
   color: #fed7aa;
 }
+
+/* Lista de batidas */
 .rh-drawer__batidas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 0 20px 16px;
+  gap: 8px;
 }
-.rh-drawer__batida {
-  display: grid;
-  grid-template-columns: 80px 56px 1fr auto;
+.rh-drawer__bat {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rh-drawer__bat--pendente {
+  border-left-color: #fcd34d;
+}
+.rh-drawer__bat--aprovado {
+  border-left-color: rgba(34, 197, 94, 0.55);
+}
+.rh-drawer__bat--reprovado {
+  border-left-color: rgba(239, 68, 68, 0.55);
+}
+.rh-drawer__bat--vazia {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.015);
+  border-style: dashed;
+}
+.rh-drawer__bat-linha {
+  display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
 }
-.rh-drawer__batida--vazia {
-  grid-template-columns: 80px 1fr;
+.rh-drawer__bat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7a99;
 }
-.rh-drawer__batida-label {
+.rh-drawer__bat-meio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rh-drawer__bat-hora {
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  color: #e8ecf6;
+  font-weight: 700;
+}
+.rh-drawer__bat-vazio {
   font-size: 0.78rem;
-  color: #93a4c6;
-  font-weight: 600;
+  color: #5a6a85;
 }
+.rh-drawer__bat-acoes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-left: 50px; /* alinha com o conteúdo após foto */
+}
+
+/* Foto / placeholder */
 .rh-drawer__foto {
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
   display: grid;
   place-items: center;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 .rh-drawer__foto img {
   width: 100%;
@@ -314,59 +437,126 @@
 }
 .rh-drawer__foto--sem {
   cursor: default;
-  color: #5a6a85;
+  color: #4b5b75;
+  border-style: dashed;
 }
-.rh-drawer__hora {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.95rem;
+
+/* Ação subtle (Reprovar/Aprovar single quando o status já está decidido) */
+.rh-drawer__rev {
+  background: transparent;
+  border: none;
+  color: #6b7a99;
+  font-size: 0.76rem;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
-.rh-drawer__acoes {
-  display: inline-flex;
-  gap: 6px;
+.rh-drawer__rev:hover {
+  color: #cbd5e1;
 }
+
+/* Form de reprovação inline */
 .rh-drawer__reprovar {
-  grid-column: 1 / -1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 50px;
 }
 .rh-drawer__reprovar input {
-  flex: 1;
-  min-width: 160px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: 6px;
   color: #e8ecf6;
-  padding: 6px 9px;
+  padding: 7px 10px;
   font-size: 0.82rem;
 }
-.rh-drawer__motivo {
-  grid-column: 1 / -1;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
-  color: #fca5a5;
-  margin-top: 2px;
+.rh-drawer__reprovar input:focus {
+  outline: 2px solid rgba(239, 68, 68, 0.5);
+  outline-offset: 1px;
 }
-.rh-drawer__atalhos {
+.rh-drawer__reprovar-acoes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 0 20px 16px;
+  gap: 6px;
+  justify-content: flex-end;
 }
-.rh-drawer__link-mes {
+
+.rh-drawer__motivo {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #93c5fd;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  color: #fca5a5;
+  padding-left: 50px;
+}
+
+/* Resumo do dia (totais) */
+.rh-drawer__resumo {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+.rh-drawer__resumo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rh-drawer__resumo span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7a99;
+  font-weight: 700;
+}
+.rh-drawer__resumo strong {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  color: #e8ecf6;
+}
+
+/* Rodapé fixo (atalhos) */
+.rh-drawer__rodape {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.rh-drawer__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
 }
-.rh-drawer__link-mes:hover {
-  text-decoration: underline;
+.rh-drawer__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8ecf6;
+}
+.rh-drawer__link--primary {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: var(--main-orange);
+  color: #fed7aa;
+}
+.rh-drawer__link--primary:hover {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fed7aa;
 }
 
 /* Botões do RH (Aprovar/Reprovar/Cancelar) */

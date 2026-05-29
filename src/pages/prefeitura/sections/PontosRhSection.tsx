@@ -65,6 +65,14 @@ function diaLegivel(diaIso: string): string {
   });
 }
 
+/** Iniciais de uma pessoa para o avatar (até 2 caracteres). */
+function iniciaisDe(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+}
+
 interface DetalheAberto {
   resumo: FuncionarioResumo;
   diaIso: string; // dia em foco no drawer
@@ -422,170 +430,264 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
         }}
       >
         <DialogContent className="rh-drawer">
-          {detalhe && (
-            <>
-              <DialogTitle asChild>
-                <h2 className="rh-drawer__titulo">
-                  {detalhe.resumo.nome}
-                  {detalhe.resumo.funcionario && (
-                    <span className="rh-drawer__sub">
-                      {detalhe.resumo.funcionario.cpf
-                        ? formatarCpf(detalhe.resumo.funcionario.cpf)
-                        : ""}
-                      {detalhe.resumo.funcionario.cargo
-                        ? ` · ${detalhe.resumo.funcionario.cargo}`
-                        : ""}
+          {(() => {
+            if (!detalhe) return null;
+            const f = detalhe.resumo.funcionario;
+            const diaAtual = detalhe.resumo.dias.find(
+              (x) => x.dia === detalhe.diaIso,
+            );
+
+            return (
+              <>
+                <header className="rh-drawer__head">
+                  <div className="rh-drawer__avatar" aria-hidden="true">
+                    {iniciaisDe(detalhe.resumo.nome)}
+                  </div>
+                  <div className="rh-drawer__id">
+                    <DialogTitle asChild>
+                      <h2 className="rh-drawer__nome">
+                        {detalhe.resumo.nome}
+                      </h2>
+                    </DialogTitle>
+                    <span className="rh-drawer__id-sub">
+                      {f?.cpf ? formatarCpf(f.cpf) : "Sem cadastro"}
+                      {f?.cargo ? ` · ${f.cargo}` : ""}
+                      {f?.matricula ? ` · mat. ${f.matricula}` : ""}
                     </span>
-                  )}
-                </h2>
-              </DialogTitle>
-              <DialogDescription className="rh-drawer__lead">
-                Detalhe do dia {diaLegivel(detalhe.diaIso)}.
-              </DialogDescription>
+                  </div>
+                </header>
 
-              {/* Navegação entre dias do período (se mais de 1) */}
-              {detalhe.resumo.dias.length > 1 && (
-                <div className="rh-drawer__dias">
-                  {detalhe.resumo.dias.map((d) => (
-                    <button
-                      key={d.dia}
-                      type="button"
-                      className={`rh-drawer__dia-btn ${detalhe.diaIso === d.dia ? "is-ativo" : ""}`}
-                      onClick={() => setDetalhe({ ...detalhe, diaIso: d.dia })}
-                    >
-                      {diaLegivel(d.dia)}
-                      <span className={`rh__chip rh__chip--${d.status}`}>
-                        {STATUS_DIA_LABEL[d.status]}
+                <div className="rh-drawer__corpo">
+                  <DialogDescription asChild>
+                    <p className="rh-drawer__contexto">
+                      <Calendar size={13} aria-hidden="true" />
+                      <span>
+                        Detalhe do dia{" "}
+                        <strong>{diaLegivel(detalhe.diaIso)}</strong>
                       </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="rh-drawer__batidas">
-                {TIPOS_PONTO.map(({ tipo, label }) => {
-                  const dia = detalhe.resumo.dias.find(
-                    (x) => x.dia === detalhe.diaIso,
-                  );
-                  const reg = dia?.batidas.find((b) => b.tipo === tipo);
-                  if (!reg) {
-                    return (
-                      <div key={tipo} className="rh-drawer__batida rh-drawer__batida--vazia">
-                        <span className="rh-drawer__batida-label">{label}</span>
-                        <span className="rh__mute">Sem registro</span>
-                      </div>
-                    );
-                  }
-                  const status = reg.status ?? "pendente";
-                  return (
-                    <div key={tipo} className="rh-drawer__batida">
-                      <span className="rh-drawer__batida-label">{label}</span>
-                      {reg.photo ? (
-                        <button
-                          type="button"
-                          className="rh-drawer__foto"
-                          onClick={() => setFotoAmpliada(reg.photo ?? "")}
-                          aria-label="Ampliar foto"
+                      {diaAtual && (
+                        <span
+                          className={`rh__chip rh__chip--${diaAtual.status}`}
                         >
-                          <img src={reg.photo} alt={`Selfie ${label}`} />
+                          {STATUS_DIA_LABEL[diaAtual.status]}
+                        </span>
+                      )}
+                    </p>
+                  </DialogDescription>
+
+                  {detalhe.resumo.dias.length > 1 && (
+                    <div className="rh-drawer__dias">
+                      {detalhe.resumo.dias.map((d) => (
+                        <button
+                          key={d.dia}
+                          type="button"
+                          className={`rh-drawer__dia-btn ${detalhe.diaIso === d.dia ? "is-ativo" : ""}`}
+                          onClick={() =>
+                            setDetalhe({ ...detalhe, diaIso: d.dia })
+                          }
+                        >
+                          <span>{diaLegivel(d.dia)}</span>
+                          <span className={`rh__chip rh__chip--${d.status}`}>
+                            {STATUS_DIA_LABEL[d.status]}
+                          </span>
                         </button>
-                      ) : (
-                        <span className="rh-drawer__foto rh-drawer__foto--sem">
-                          <ImageIcon size={14} aria-hidden="true" />
-                        </span>
-                      )}
-                      <strong className="rh-drawer__hora">
-                        {horaDe(reg.timestampOriginal)}
-                      </strong>
-                      <span className={`rh__chip rh__chip--${status}`}>
-                        {STATUS_PONTO_LABEL[status]}
-                      </span>
-
-                      {reprovandoId === reg.id ? (
-                        <div className="rh-drawer__reprovar">
-                          <input
-                            type="text"
-                            placeholder="Motivo da reprovação"
-                            value={motivoReprov}
-                            onChange={(e) => setMotivoReprov(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            className="rh-btn rh-btn--err"
-                            disabled={ocupado || !motivoReprov.trim()}
-                            onClick={() => void confirmarReprovacao(reg.id)}
-                          >
-                            Confirmar
-                          </button>
-                          <button
-                            type="button"
-                            className="rh-btn"
-                            onClick={() => {
-                              setReprovandoId(null);
-                              setMotivoReprov("");
-                            }}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="rh-drawer__acoes">
-                          {status !== "aprovado" && (
-                            <button
-                              type="button"
-                              className="rh-btn rh-btn--ok"
-                              disabled={ocupado}
-                              onClick={() => void aprovar(reg.id)}
-                            >
-                              Aprovar
-                            </button>
-                          )}
-                          {status !== "reprovado" && (
-                            <button
-                              type="button"
-                              className="rh-btn rh-btn--err"
-                              disabled={ocupado}
-                              onClick={() => {
-                                setReprovandoId(reg.id);
-                                setMotivoReprov("");
-                              }}
-                            >
-                              Reprovar
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {reg.motivoReprovacao && status === "reprovado" && (
-                        <span className="rh-drawer__motivo">
-                          <AlertTriangle size={12} aria-hidden="true" />
-                          {reg.motivoReprovacao}
-                        </span>
-                      )}
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
+                  )}
 
-              {detalhe.resumo.funcionario && (
-                <div className="rh-drawer__atalhos">
-                  <a
-                    className="rh-drawer__link-mes"
-                    href={`/prefeitura/${prefeituraId}/funcionarios/${detalhe.resumo.funcionario.id}/historico`}
-                  >
-                    <Calendar size={14} aria-hidden="true" />
-                    Ver histórico do mês
-                  </a>
-                  <a
-                    className="rh-drawer__link-mes"
-                    href={`/prefeitura/${prefeituraId}/funcionarios/${detalhe.resumo.funcionario.id}/editar`}
-                  >
-                    Abrir cadastro
-                  </a>
+                  <ul className="rh-drawer__batidas">
+                    {TIPOS_PONTO.map(({ tipo, label }) => {
+                      const reg = diaAtual?.batidas.find((b) => b.tipo === tipo);
+                      if (!reg) {
+                        return (
+                          <li
+                            key={tipo}
+                            className="rh-drawer__bat rh-drawer__bat--vazia"
+                          >
+                            <span className="rh-drawer__bat-label">{label}</span>
+                            <span className="rh-drawer__bat-vazio">
+                              Sem registro
+                            </span>
+                          </li>
+                        );
+                      }
+                      const status = reg.status ?? "pendente";
+                      const reprovandoEssa = reprovandoId === reg.id;
+                      return (
+                        <li
+                          key={tipo}
+                          className={`rh-drawer__bat rh-drawer__bat--${status}`}
+                        >
+                          <div className="rh-drawer__bat-linha">
+                            {reg.photo ? (
+                              <button
+                                type="button"
+                                className="rh-drawer__foto"
+                                onClick={() => setFotoAmpliada(reg.photo ?? "")}
+                                aria-label="Ampliar selfie"
+                              >
+                                <img src={reg.photo} alt={`Selfie ${label}`} />
+                              </button>
+                            ) : (
+                              <span
+                                className="rh-drawer__foto rh-drawer__foto--sem"
+                                aria-hidden="true"
+                              >
+                                <ImageIcon size={14} />
+                              </span>
+                            )}
+                            <div className="rh-drawer__bat-meio">
+                              <span className="rh-drawer__bat-label">
+                                {label}
+                              </span>
+                              <strong className="rh-drawer__bat-hora">
+                                {horaDe(reg.timestampOriginal)}
+                              </strong>
+                            </div>
+                            <span className={`rh__chip rh__chip--${status}`}>
+                              {STATUS_PONTO_LABEL[status]}
+                            </span>
+                          </div>
+
+                          {reprovandoEssa ? (
+                            <div className="rh-drawer__reprovar">
+                              <input
+                                type="text"
+                                placeholder="Motivo da reprovação"
+                                value={motivoReprov}
+                                onChange={(e) => setMotivoReprov(e.target.value)}
+                                autoFocus
+                              />
+                              <div className="rh-drawer__reprovar-acoes">
+                                <button
+                                  type="button"
+                                  className="rh-btn"
+                                  onClick={() => {
+                                    setReprovandoId(null);
+                                    setMotivoReprov("");
+                                  }}
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="rh-btn rh-btn--err"
+                                  disabled={ocupado || !motivoReprov.trim()}
+                                  onClick={() => void confirmarReprovacao(reg.id)}
+                                >
+                                  Confirmar reprovação
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rh-drawer__bat-acoes">
+                              {status === "pendente" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="rh-btn rh-btn--ok"
+                                    disabled={ocupado}
+                                    onClick={() => void aprovar(reg.id)}
+                                  >
+                                    Aprovar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="rh-btn rh-btn--err"
+                                    disabled={ocupado}
+                                    onClick={() => {
+                                      setReprovandoId(reg.id);
+                                      setMotivoReprov("");
+                                    }}
+                                  >
+                                    Reprovar
+                                  </button>
+                                </>
+                              )}
+                              {status === "aprovado" && (
+                                <button
+                                  type="button"
+                                  className="rh-drawer__rev"
+                                  disabled={ocupado}
+                                  onClick={() => {
+                                    setReprovandoId(reg.id);
+                                    setMotivoReprov("");
+                                  }}
+                                  title="Marcar esta batida como reprovada"
+                                >
+                                  Reprovar
+                                </button>
+                              )}
+                              {status === "reprovado" && (
+                                <button
+                                  type="button"
+                                  className="rh-drawer__rev"
+                                  disabled={ocupado}
+                                  onClick={() => void aprovar(reg.id)}
+                                  title="Voltar para aprovada"
+                                >
+                                  Aprovar
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          {reg.motivoReprovacao && status === "reprovado" && (
+                            <span className="rh-drawer__motivo">
+                              <AlertTriangle size={12} aria-hidden="true" />
+                              {reg.motivoReprovacao}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {diaAtual && diaAtual.previstoMin > 0 && (
+                    <div className="rh-drawer__resumo">
+                      <div>
+                        <span>Trabalhado</span>
+                        <strong>{fmtMin(diaAtual.trabalhadoMin)}</strong>
+                      </div>
+                      <div>
+                        <span>Previsto</span>
+                        <strong>{fmtMin(diaAtual.previstoMin)}</strong>
+                      </div>
+                      <div>
+                        <span>Saldo</span>
+                        <strong
+                          className={
+                            diaAtual.saldoMin < 0 ? "rh__neg" : "rh__pos"
+                          }
+                        >
+                          {diaAtual.saldoMin >= 0 ? "+" : ""}
+                          {fmtMin(diaAtual.saldoMin)}
+                        </strong>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
-          )}
+
+                {f && (
+                  <footer className="rh-drawer__rodape">
+                    <a
+                      className="rh-drawer__link rh-drawer__link--primary"
+                      href={`/prefeitura/${prefeituraId}/funcionarios/${f.id}/historico`}
+                    >
+                      <Calendar size={14} aria-hidden="true" />
+                      Ver histórico do mês
+                    </a>
+                    <a
+                      className="rh-drawer__link"
+                      href={`/prefeitura/${prefeituraId}/funcionarios/${f.id}/editar`}
+                    >
+                      Abrir cadastro
+                    </a>
+                  </footer>
+                )}
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
