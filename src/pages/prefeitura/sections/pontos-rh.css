@@ -198,7 +198,10 @@
   color: #fca5a5;
 }
 
-/* Drawer (DialogContent) com layout lateral à direita */
+/* Drawer (DialogContent) com layout lateral à direita.
+ * shadcn aplica translate-x/y[-50%] e top/left 50% via Tailwind v4. Em v4
+ * essas utilities usam a propriedade `translate` (não `transform`), então
+ * precisamos zerar AMBAS pra fixar o drawer à direita sem deslocamento. */
 .rh-drawer {
   position: fixed;
   top: 0 !important;
@@ -206,6 +209,7 @@
   left: auto !important;
   bottom: 0;
   transform: none !important;
+  translate: none !important;
   width: 100%;
   max-width: 520px;
   height: 100dvh;
