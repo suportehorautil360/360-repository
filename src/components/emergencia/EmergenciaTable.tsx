@@ -7,26 +7,18 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
+import {
+  emergencyFromUnknown,
+  emergencyStatusLabel,
+  type Emergencia,
+  type EmergencyStatus,
+} from "../../features/emergencia/domain";
 import { db } from "../../lib/firebase/firebase";
 import "./emergencia.css";
 
 interface EmergenciaTableProps {
   prefeituraId: string;
-}
-
-interface Emergencia {
-  id: string;
-  chassis: string;
-  dataHora: string | null;
-  descricaoCurta: string;
-  fotos: string[];
-  idMaquina: string;
-  localizacaoGps: string;
-  operador: string;
-  prefeituraId: string;
-  qtdFotos: number;
-  statusAtendimento: string;
-  tipoFalha: string;
 }
 
 function formatDataHora(iso: string | null): string {
@@ -42,8 +34,8 @@ function formatDataHora(iso: string | null): string {
   });
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const isResolvido = status === "Resolvido";
+function StatusBadge({ status }: { status: EmergencyStatus }) {
+  const isResolvido = status === "RESOLVIDO";
   return (
     <span
       style={{
@@ -58,7 +50,7 @@ function StatusBadge({ status }: { status: string }) {
         fontWeight: 700,
       }}
     >
-      {status}
+      {emergencyStatusLabel(status)}
     </span>
   );
 }
@@ -95,7 +87,7 @@ function EmergenciaModal({
         <p className="pf-modal-titulo" style={{ color: "#ef4444" }}>
           🚨 Emergência
         </p>
-        <p className="pf-modal-sub">{emergencia.descricaoCurta}</p>
+        <p className="pf-modal-sub">{emergencia.descricao}</p>
 
         <div className="emg-meta-grid">
           <div className="emg-meta-item">
@@ -117,7 +109,7 @@ function EmergenciaModal({
           <div className="emg-meta-item">
             <span className="emg-meta-label">Data / Hora</span>
             <span className="emg-meta-value">
-              {formatDataHora(emergencia.dataHora)}
+              {formatDataHora(emergencia.dataHoraIso)}
             </span>
           </div>
           <div className="emg-meta-item">
@@ -130,13 +122,22 @@ function EmergenciaModal({
             <span className="emg-meta-label">Localização GPS</span>
             <a
               className="emg-meta-value emg-gps-link"
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(emergencia.localizacaoGps)}`}
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(emergencia.localizacaoGps ?? "")}`}
               target="_blank"
               rel="noopener noreferrer"
             >
-              {emergencia.localizacaoGps}
+              {emergencia.localizacaoGps ?? "—"}
             </a>
           </div>
+          {emergencia.source === "checklist_auto" ? (
+            <div className="emg-meta-item emg-meta-full">
+              <span className="emg-meta-label">Origem</span>
+              <span className="emg-meta-value">
+                Checklist automático
+                {emergencia.questionLabel ? ` · ${emergencia.questionLabel}` : ""}
+              </span>
+            </div>
+          ) : null}
         </div>
 
         {emergencia.fotos.length > 0 && (
@@ -178,12 +179,16 @@ export function EmergenciaTable({ prefeituraId }: EmergenciaTableProps) {
   const [tick, setTick] = useState(0);
   const [atualizando, setAtualizando] = useState<string | null>(null);
 
-  async function handleStatusChange(id: string, novoStatus: string) {
+  async function handleStatusChange(id: string, novoStatus: EmergencyStatus) {
     setAtualizando(id);
     try {
-      await updateDoc(doc(db, "emergenciasRegistros", id), {
-        statusAtendimento: novoStatus,
-      });
+      try {
+        await emergenciasApi.atualizarStatus(id, novoStatus);
+      } catch {
+        await updateDoc(doc(db, "emergenciasRegistros", id), {
+          statusAtendimento: novoStatus,
+        });
+      }
       setRows((prev) =>
         prev.map((r) =>
           r.id === id ? { ...r, statusAtendimento: novoStatus } : r,
@@ -199,39 +204,8 @@ export function EmergenciaTable({ prefeituraId }: EmergenciaTableProps) {
   useEffect(() => {
     if (!prefeituraId) return;
     setCarregando(true);
-    getDocs(
-      //idOperadorSession seria o que liga a emergência à prefeitura.
-      query(
-        collection(db, "emergenciasRegistros"),
-        where("idOperadorSession", "==", prefeituraId),
-      ),
-    )
-      .then((snap) => {
-        const fetched: Emergencia[] = snap.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          return {
-            id: d.id,
-            chassis: String(data.chassis ?? ""),
-            dataHora:
-              typeof data.dataHoraIso === "string" ? data.dataHoraIso : null,
-            descricaoCurta: String(data.descricao ?? "—"),
-            fotos: Array.isArray(data.fotos) ? (data.fotos as string[]) : [],
-            idMaquina: String(data.idMaquina ?? "—"),
-            localizacaoGps: String(data.localizacaoGps ?? "—"),
-            operador: String(data.operador ?? "—"),
-            prefeituraId: String(data.prefeituraId ?? ""),
-            qtdFotos: Number(data.qtdFotos ?? 0),
-            statusAtendimento: String(data.statusAtendimento ?? "—"),
-            tipoFalha: String(data.tipoFalha ?? "—"),
-          };
-        });
-        fetched.sort((a, b) => {
-          const sa = a.dataHora ? new Date(a.dataHora).getTime() : 0;
-          const sb = b.dataHora ? new Date(b.dataHora).getTime() : 0;
-          return sb - sa;
-        });
-        setRows(fetched);
-      })
+    carregarEmergencias(prefeituraId)
+      .then(setRows)
       .catch((err) => {
         console.error("[Emergencia] Erro ao carregar:", err);
       })
@@ -282,23 +256,28 @@ export function EmergenciaTable({ prefeituraId }: EmergenciaTableProps) {
               rows.map((row) => (
                 <tr key={row.id}>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    {formatDataHora(row.dataHora)}
+                    {formatDataHora(row.dataHoraIso)}
                   </td>
                   <td>{row.chassis || "—"}</td>
                   <td>{row.operador}</td>
                   <td>{row.tipoFalha}</td>
-                  <td style={{ maxWidth: 220 }}>{row.descricaoCurta}</td>
+                  <td style={{ maxWidth: 220 }}>{row.descricao}</td>
                   <td>
                     <select
-                      className={`emg-status-select emg-status-select--${row.statusAtendimento === "Resolvido" ? "resolvido" : "aberto"}`}
+                      className={`emg-status-select emg-status-select--${row.statusAtendimento === "RESOLVIDO" ? "resolvido" : "aberto"}`}
                       value={row.statusAtendimento}
                       disabled={atualizando === row.id}
                       onChange={(e) =>
-                        void handleStatusChange(row.id, e.target.value)
+                        void handleStatusChange(
+                          row.id,
+                          e.target.value as EmergencyStatus,
+                        )
                       }
                     >
-                      <option value="Aberto">🔴 Aberto</option>
-                      <option value="Resolvido">🟢 Resolvido</option>
+                      <option value="ABERTO">Aberto</option>
+                      <option value="EM_ATENDIMENTO">Em atendimento</option>
+                      <option value="RESOLVIDO">Resolvido</option>
+                      <option value="CANCELADO">Cancelado</option>
                     </select>
                   </td>
                   <td>
@@ -325,4 +304,37 @@ export function EmergenciaTable({ prefeituraId }: EmergenciaTableProps) {
       )}
     </>
   );
+}
+
+async function carregarEmergencias(prefeituraId: string): Promise<Emergencia[]> {
+  try {
+    return await emergenciasApi.listar(prefeituraId);
+  } catch {
+    const porPrefeitura = await getDocs(
+      query(
+        collection(db, "emergenciasRegistros"),
+        where("prefeituraId", "==", prefeituraId),
+      ),
+    );
+    const snap = porPrefeitura.empty
+      ? await getDocs(
+          query(
+            collection(db, "emergenciasRegistros"),
+            where("idOperadorSession", "==", prefeituraId),
+          ),
+        )
+      : porPrefeitura;
+    const fetched = snap.docs.map((d) =>
+      emergencyFromUnknown({
+        ...(d.data() as Record<string, unknown>),
+        _docId: d.id,
+      }),
+    );
+    fetched.sort((a, b) => {
+      const sa = a.dataHoraIso ? new Date(a.dataHoraIso).getTime() : 0;
+      const sb = b.dataHoraIso ? new Date(b.dataHoraIso).getTime() : 0;
+      return sb - sa;
+    });
+    return fetched;
+  }
 }
