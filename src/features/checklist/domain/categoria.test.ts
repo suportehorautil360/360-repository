@@ -36,6 +36,26 @@ describe("inferirCategoriaChecklist", () => {
     );
   });
 
+  it("mapeia subtipos de caminhão para as categorias do seed", () => {
+    // O seed usa o prefixo 'Caminhão ' nos subtipos — a inferência precisa
+    // bater exatamente, senão o filtro de itens vira vazio.
+    expect(inferirCategoriaChecklist("Caminhão Pipa Volvo", "")).toBe(
+      "Caminhão Pipa",
+    );
+    expect(inferirCategoriaChecklist("Pipa 8000L", "")).toBe("Caminhão Pipa");
+    expect(inferirCategoriaChecklist("Caminhão Basculante", "")).toBe(
+      "Caminhão Basculante",
+    );
+    expect(inferirCategoriaChecklist("Basculante 6x4", "")).toBe(
+      "Caminhão Basculante",
+    );
+    expect(inferirCategoriaChecklist("Caminhão Munck", "")).toBe(
+      "Caminhão Munck",
+    );
+    // Aceita também a grafia sem 'c' que aparecia no seed antigo.
+    expect(inferirCategoriaChecklist("Munk 12T", "")).toBe("Caminhão Munck");
+  });
+
   it("usa o modelo quando o label não denuncia o tipo", () => {
     expect(inferirCategoriaChecklist("XYZ", "Escavadeira")).toBe("Escavadeira");
   });

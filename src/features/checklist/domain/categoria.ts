@@ -10,8 +10,31 @@ export function checklistCategoriaFromMaquina(catMaquina: string): string {
  * Firestore, pois o campo `linha` guarda a linha de produto (ex: "Linha
  * Amarela"), não o tipo de máquina.
  */
-export function inferirCategoriaChecklist(label: string, modelo: string): string {
-  const s = `${label} ${modelo}`.toLowerCase();
+export function inferirCategoriaChecklist(
+  label: string,
+  modelo: string,
+  contexto = "",
+): string {
+  const s = `${contexto} ${label} ${modelo}`.toLowerCase();
+  if (
+    s.includes("carro leve") ||
+    s.includes("linha leve") ||
+    s.includes("veiculo leve") ||
+    s.includes("veículo leve") ||
+    s.includes("automovel") ||
+    s.includes("automóvel")
+  )
+    return "Carro Leve";
+  // Subtipos de caminhão precisam casar com as categorias do seed
+  // (`Caminhão Munck`, `Caminhão Pipa`, `Caminhão Basculante`).
+  if (s.includes("munck") || s.includes("munk")) return "Caminhão Munck";
+  if (s.includes("pipa")) return "Caminhão Pipa";
+  if (s.includes("basculante")) return "Caminhão Basculante";
+  if (s.includes("betoneira")) return "Betoneira";
+  if (s.includes("comboio")) return "Comboio";
+  if (s.includes("ambulancia") || s.includes("ambulância"))
+    return "Ambulância";
+  if (s.includes("baú") || s.includes("bau")) return "Baú";
   if (s.includes("motoniveladora")) return "Motoniveladora";
   if (s.includes("escavadeira")) return "Escavadeira";
   if (

@@ -323,6 +323,76 @@
       "Nº": 6.9,
       "Item de Verificação": "SEGURANÇA: Testar todas as luzes, buzina e alarme de ré",
       "Tipo": "Sim/Não"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e direção hidráulica"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.3,
+      "Item de Verificação": "ÁGUA DO RADIADOR: Verificar nível e ausência de vazamentos"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.4,
+      "Item de Verificação": "PNEUS: Verificar calibragem, cortes, bolhas e aperto de porcas"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.5,
+      "Item de Verificação": "FREIOS: Testar pedal de freio, freio motor e freio de mão"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.6,
+      "Item de Verificação": "LUZES E SINALIZAÇÃO: Faróis, lanternas, setas, ré e luz de freio"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.7,
+      "Item de Verificação": "FIXAÇÃO DO TANQUE AO CHASSI: Verificar parafusos, suportes e sapatas"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.8,
+      "Item de Verificação": "ESTRUTURA DO TANQUE: Inspecionar amassos, rachaduras e ferrugem"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.9,
+      "Item de Verificação": "VÁLVULAS DE DESCARGA: Funcionamento, vedação e travas"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.1,
+      "Item de Verificação": "MANGUEIRAS E ENGATES: Estado, fixação e ausência de vazamentos"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.11,
+      "Item de Verificação": "BOMBA D'ÁGUA / SUCÇÃO: Funcionamento, ruído anormal e estanqueidade"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.12,
+      "Item de Verificação": "INDICADOR DE NÍVEL DE ÁGUA: Calibração e visualização"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.13,
+      "Item de Verificação": "EXTINTOR DE INCÊNDIO: Validade, lacre, pressão e fixação"
+    },
+    {
+      "Categoria": "Caminhão Pipa",
+      "Nº": 1.14,
+      "Item de Verificação": "DOCUMENTAÇÃO: CRLV, ARP e manifesto de transporte"
     }
   ],
   "treinamentos_video": [
@@ -512,7 +582,7 @@
     },
     {
       "ID": "CAM-MUN-01",
-      "Categoria": "Caminhão Munk",
+      "Categoria": "Caminhão Munck",
       "Marca": "Ford",
       "Modelo": "Cargo 2429",
       "Chassis": "BRCAMMUN010000000"
