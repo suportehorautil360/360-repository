@@ -99,6 +99,8 @@ export function FuncionariosSection({ prefeituraId }: { prefeituraId: string }) 
 
   return (
     <div className="func">
+      <h1 className="func__page-titulo">Funcionários</h1>
+
       <section className="func__card">
         <header className="func__card-head">
           <h2 className="func__card-titulo">

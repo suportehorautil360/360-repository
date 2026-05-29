@@ -1,6 +1,14 @@
 .func {
   color: #e8ecf6;
 }
+.func__page-titulo {
+  margin: 0 0 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8ecf6;
+}
 
 /* ===== Card "Funcionários cadastrados" ===== */
 .func__card {

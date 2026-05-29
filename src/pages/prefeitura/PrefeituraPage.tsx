@@ -15,7 +15,6 @@ import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
-import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
 import { FrotaSection } from "./sections/FrotaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import {
@@ -303,36 +302,6 @@ export function PrefeituraPage() {
               ← Hub Mestre
             </Link>
           </div>
-
-          <div className="pf-pagebar">
-            <h1 className="pf-pagebar__titulo">
-              {SECAO_LABEL[secaoAtual] ?? "Painel"}
-            </h1>
-            <div className="pf-pagebar__acoes">
-              <div className="pf-pagebar__busca">
-                <span aria-hidden="true">🔍</span>
-                <input type="search" placeholder="Buscar…" />
-              </div>
-              <Link
-                className="pf-pagebar__btn"
-                to={`/prefeitura/${prefeituraId}/cadastros`}
-              >
-                + Veículo
-              </Link>
-              <Link
-                className="pf-pagebar__btn pf-pagebar__btn--primary"
-                to={`/prefeitura/${prefeituraId}/frentes-trabalho`}
-              >
-                + Frente de Trabalho
-              </Link>
-              <SinoNotificacoes
-                destinatarioTipo="rh"
-                destinatarioId={prefeituraId}
-                variant="escuro"
-              />
-            </div>
-          </div>
-          <div className="pf-pagebar__divisor" aria-hidden="true" />
 
           {ehOutroMunicipio ? (
             <div className="pf-hub-ctx-banner" role="status">
