@@ -13,6 +13,8 @@ import { baterComFila } from "../../lib/api/pontos-fila";
 import { usePontoSync } from "./usePontoSync";
 import { escalaApi, type Escala } from "../../lib/api/escala";
 import { solicitacoesPontoApi } from "../../lib/api/solicitacoes-ponto";
+import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
+import { useOperadorSession } from "./useOperadorSession";
 import {
   Dialog,
   DialogContent,
@@ -102,6 +104,7 @@ export function PontosFolha({
   nomePadrao: string;
 }) {
   const { pendentes: pendentesSync, atualizar: atualizarSync } = usePontoSync();
+  const { session } = useOperadorSession();
   const [todas, setTodas] = useState<PontoRegistro[]>([]);
   const [escala, setEscala] = useState<Escala | null>(null);
   const [nome, setNome] = useState(nomePadrao);
@@ -468,6 +471,15 @@ export function PontosFolha({
 
   return (
     <div className="ponto-folha folha">
+      {session?.cpf && (
+        <header className="folha__topbar">
+          <SinoNotificacoes
+            destinatarioTipo="funcionario"
+            destinatarioId={session.cpf}
+            variant="claro"
+          />
+        </header>
+      )}
       <div className="folha__grid">
         <div className="folha__main">
           <section className="folha__card folha__clock">

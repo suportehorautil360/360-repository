@@ -382,6 +382,11 @@
 .folha {
   max-width: 1120px;
 }
+.folha__topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
 .folha__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;

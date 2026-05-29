@@ -15,6 +15,7 @@ import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
+import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
 import { FrotaSection } from "./sections/FrotaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import {
@@ -324,15 +325,11 @@ export function PrefeituraPage() {
               >
                 + Frente de Trabalho
               </Link>
-              <button
-                type="button"
-                className="pf-pagebar__sino"
-                aria-label="Notificações"
-                title="Notificações (em breve)"
-              >
-                🔔
-                <span className="pf-pagebar__sino-dot" aria-hidden="true" />
-              </button>
+              <SinoNotificacoes
+                destinatarioTipo="rh"
+                destinatarioId={prefeituraId}
+                variant="escuro"
+              />
             </div>
           </div>
           <div className="pf-pagebar__divisor" aria-hidden="true" />
