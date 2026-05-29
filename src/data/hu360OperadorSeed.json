@@ -1,398 +1,1508 @@
 {
   "itens_checklist": [
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão, tandem e hidráulico",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Teste de freio de serviço e estacionário (freio de mão)"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.2,
-      "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Drenagem de água dos balões de ar do freio (ou teste de hidrovácuo em leves)"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.3,
-      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar círculo de giro, articulações e pinos",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Pneus dianteiros e traseiros (sulco/TWI e sem cortes)"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.4,
-      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos e integridade das hastes",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Estado do estepe e aperto das porcas das rodas"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.5,
-      "Item de Verificação": "PNEUS: Verificar calibragem, cortes, bolhas e aperto de porcas",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Folga excessiva no volante ou estalos na direção/suspensão"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.6,
-      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar trincas no chassi e suporte da lâmina",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Faróis (alto e baixo) e luzes de seta funcionando"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.7,
-      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas em pinos e travas de segurança",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Luz de freio, luz de ré e pisca-alerta funcionando"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.8,
-      "Item de Verificação": "IMPLEMENTO: Verificar facas da lâmina, parafusos e escarificador",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Para-brisa (sem trincas na área de visão) e palhetas do limpador"
     },
     {
-      "Categoria": "Motoniveladora",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.9,
-      "Item de Verificação": "SEGURANÇA: Testar luzes, freio, buzina e sinal sonoro de ré",
-      "Tipo": "Sim/Não"
+      "Item de Verificação": "Retrovisores esquerdo/direito (sem quebras e regulados)"
     },
     {
-      "Categoria": "Escavadeira",
-      "Nº": 2.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, hidráulico e comandos finais",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.2,
-      "Item de Verificação": "FILTROS: Verificar e drenar separador de água do combustível",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.3,
-      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar pinos da lança, braço, caçamba e giro",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.4,
-      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar limpeza de hastes e vazamentos",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.5,
-      "Item de Verificação": "PARTE RODANTE: Verificar tensão da esteira, roletes e guias",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.6,
-      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassi inferior e proteção da cabine",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.7,
-      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas nos pinos de articulação e travas",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.8,
-      "Item de Verificação": "IMPLEMENTO: Verificar dentes, unhas e pinos de trava da caçamba",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Escavadeira",
-      "Nº": 2.9,
-      "Item de Verificação": "SEGURANÇA: Testar buzina, luzes de trabalho e alarme de ré",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.2,
-      "Item de Verificação": "FILTROS: Verificar e drenar filtros de combustível",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.3,
-      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulações da lâmina e do ripper",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.4,
-      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos nos cilindros de lâmina",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.5,
-      "Item de Verificação": "PARTE RODANTE: Verificar sapatas e dentes da roda motriz",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.6,
-      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassis e pinos mestres",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.7,
-      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de segurança e pinos de fixação",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.8,
-      "Item de Verificação": "IMPLEMENTO: Verificar ponteiras do ripper e bordas da lâmina",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Trator de Esteira",
-      "Nº": 3.9,
-      "Item de Verificação": "SEGURANÇA: Testar freio de estacionamento, luzes e alarme sonoro",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.2,
-      "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.3,
-      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulação central e braços da caçamba",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.4,
-      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos e hastes de levante",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.5,
-      "Item de Verificação": "PNEUS: Verificar calibragem, cortes e aperto de porcas",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.6,
-      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar trincas na articulação central",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.7,
-      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas em pinos e travas de segurança",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.8,
-      "Item de Verificação": "IMPLEMENTO: Verificar lâminas de corte e dentes da caçamba",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Pá Carregadeira",
-      "Nº": 4.9,
-      "Item de Verificação": "SEGURANÇA: Testar freio, buzina, luzes e sinal sonoro de ré",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.2,
-      "Item de Verificação": "FILTROS: Verificar e drenar filtros de combustível (Racor)",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.3,
-      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar caçamba frontal e braço traseiro",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.4,
-      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar estabilizadores e mangueiras do braço",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.5,
-      "Item de Verificação": "PNEUS: Verificar pressão e estado das carcaças",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.6,
-      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassis e suportes dos estabilizadores",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.7,
-      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de transporte do braço traseiro",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.8,
-      "Item de Verificação": "IMPLEMENTO: Verificar dentes da retro e sapatas das patolas",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Retroescavadeira",
-      "Nº": 5.9,
-      "Item de Verificação": "SEGURANÇA: Testar freio, buzina, luzes e alarme de ré",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, direção e arrefecimento",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.2,
-      "Item de Verificação": "FILTROS: Verificar e drenar filtros separadores de diesel",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.3,
-      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulações, quinta roda ou pinos de mola",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.4,
-      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar sistema de basculamento/munk/pipa",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.5,
-      "Item de Verificação": "PNEUS: Verificar calibragem, sulcos e estado geral",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.6,
-      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar grampos de fixação e chassis",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.7,
-      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de carroceria e pinos de suporte",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.8,
-      "Item de Verificação": "IMPLEMENTO: Verificar estado do tanque, caçamba ou braço munk",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhões",
-      "Nº": 6.9,
-      "Item de Verificação": "SEGURANÇA: Testar todas as luzes, buzina e alarme de ré",
-      "Tipo": "Sim/Não"
-    },
-    {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.1,
-      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e direção hidráulica"
+      "Item de Verificação": "Extintor de incêndio da cabine (validade e pressão na faixa verde)"
     },
     {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.11,
+      "Item de Verificação": "Cintos de segurança (motorista e passageiro travando)"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.12,
+      "Item de Verificação": "Triângulo de sinalização, macaco e chave de roda"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.13,
+      "Item de Verificação": "Validade da CNH do condutor e documento do veículo (CRLV)"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.14,
+      "Item de Verificação": "Nível do óleo do motor e nível do líquido de arrefecimento"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.15,
+      "Item de Verificação": "Nível do fluido de freio/embreagem e óleo da direção hidráulica"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.16,
+      "Item de Verificação": "Luzes secundárias (luz de placa, lanternas de posição/Marias)"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.17,
+      "Item de Verificação": "Marcador de combustível e funcionamento do odômetro/horímetro"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.18,
+      "Item de Verificação": "Luzes de advertência do painel de instrumentos apagadas"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.19,
+      "Item de Verificação": "Funcionamento da buzina e do ar-condicionado/ventilador"
+    },
+    {
+      "Categoria Origem": "Geral (Chassi)",
+      "Aplica A": [
+        "Caminhão Munck",
+        "Caminhão Pipa",
+        "Caminhão Basculante",
+        "Oficina",
+        "Baú",
+        "Betoneira",
+        "Comboio",
+        "Ambulância",
+        "Carro Leve",
+        "Caminhões",
+        "Motoniveladora",
+        "Escavadeira",
+        "Pá Carregadeira",
+        "Retroescavadeira",
+        "Trator de Esteira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Limpeza e higienização geral dentro da cabine"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Estado dos pistões das patolas (sem vazamento ou riscos)"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Travas mecânicas de segurança e sapatas estabilizadoras"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Vazamento hidráulico no bloco de comando ou mangueiras"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Ganchos com trava de segurança operando"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Estado dos cabos de aço (sem desfiados) ou cintas de içamento"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.6,
+      "Item de Verificação": "Presença de trincas estruturais na base, torre ou lanças"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.7,
+      "Item de Verificação": "Funcionamento do botão de parada de emergência do implemento"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.8,
+      "Item de Verificação": "Nível do óleo hidráulico no visor do tanque do munck"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.9,
+      "Item de Verificação": "Engate da tomada de força (ruídos ou dificuldades)"
+    },
+    {
+      "Categoria Origem": "Munck",
+      "Aplica A": [
+        "Caminhão Munck"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Lubrificação (graxa) nas lanças telescópicas e articulações"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Fixação do tanque ao chassi (estado dos grampos e coxins)"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Trincas na solda ou rachaduras com vazamento grave no tanque"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Registros principais e válvulas pneumáticas de abertura"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Barra de irrigação traseira (chuveirinho) e bicos desentupidos"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Funcionamento da motobomba / bomba d'água acoplada"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.6,
+      "Item de Verificação": "Canhão monitor (articulação livre e pressão do jato)"
+    },
+    {
+      "Categoria Origem": "Pipa",
+      "Aplica A": [
+        "Caminhão Pipa"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.7,
+      "Item de Verificação": "Estado das mangueiras de sucção e ferramentas de engate rápido"
+    },
+    {
+      "Categoria Origem": "Basculante",
+      "Aplica A": [
+        "Caminhão Basculante"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Pistão hidráulico central (caneco) sem vazamentos ou empenos"
+    },
+    {
+      "Categoria Origem": "Basculante",
+      "Aplica A": [
+        "Caminhão Basculante"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Trava de segurança automática de abertura da tampa traseira"
+    },
+    {
+      "Categoria Origem": "Basculante",
+      "Aplica A": [
+        "Caminhão Basculante"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Alarme sonoro e visual de caçamba erguida dentro da cabine"
+    },
+    {
+      "Categoria Origem": "Basculante",
+      "Aplica A": [
+        "Caminhão Basculante"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Pinos de articulação traseira da caçamba (presença de travas)"
+    },
+    {
+      "Categoria Origem": "Basculante",
+      "Aplica A": [
+        "Caminhão Basculante"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Presença da trava física de segurança para manutenção"
+    },
+    {
+      "Categoria Origem": "Basculante",
+      "Aplica A": [
+        "Caminhão Basculante"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.6,
+      "Item de Verificação": "Estado das chapas da caçamba e do protetor de cabine (boné)"
+    },
+    {
+      "Categoria Origem": "Oficina",
+      "Aplica A": [
+        "Oficina"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Fixação de bancadas, armários, morsas e ferramentas pesadas"
+    },
+    {
+      "Categoria Origem": "Oficina",
+      "Aplica A": [
+        "Oficina"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Isolamento da rede elétrica interna (sem fios expostos)"
+    },
+    {
+      "Categoria Origem": "Oficina",
+      "Aplica A": [
+        "Oficina"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Funcionamento do gerador de energia e nível de óleo/combustível"
+    },
+    {
+      "Categoria Origem": "Oficina",
+      "Aplica A": [
+        "Oficina"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Compressor de ar (funcionamento e drenagem do reservatório)"
+    },
+    {
+      "Categoria Origem": "Oficina",
+      "Aplica A": [
+        "Oficina"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Iluminação interna do furgão para trabalhos noturnos"
+    },
+    {
+      "Categoria Origem": "Baú",
+      "Aplica A": [
+        "Baú"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Portas traseiras/laterais fechando e travando firmemente"
+    },
+    {
+      "Categoria Origem": "Baú",
+      "Aplica A": [
+        "Baú"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Estado das borrachas de vedação contra poeira e água da chuva"
+    },
+    {
+      "Categoria Origem": "Baú",
+      "Aplica A": [
+        "Baú"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Integridade do assoalho (sem furos ou tábuas/chapas soltas)"
+    },
+    {
+      "Categoria Origem": "Baú",
+      "Aplica A": [
+        "Baú"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Faixas refletivas laterais e traseiras limpas e coladas"
+    },
+    {
+      "Categoria Origem": "Betoneira",
+      "Aplica A": [
+        "Betoneira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Rolete de apoio do balão (sem travamentos, folgas ou trincas)"
+    },
+    {
+      "Categoria Origem": "Betoneira",
+      "Aplica A": [
+        "Betoneira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Sistema de giro do redutor e motor auxiliar operando em carga"
+    },
+    {
+      "Categoria Origem": "Betoneira",
+      "Aplica A": [
+        "Betoneira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Trava mecânica de transporte das calhas de descarga traseiras"
+    },
+    {
+      "Categoria Origem": "Betoneira",
+      "Aplica A": [
+        "Betoneira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Nível do óleo do redutor de velocidade (sem vazamento)"
+    },
+    {
+      "Categoria Origem": "Betoneira",
+      "Aplica A": [
+        "Betoneira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Sistema de pressurização do tanque de água de limpeza"
+    },
+    {
+      "Categoria Origem": "Betoneira",
+      "Aplica A": [
+        "Betoneira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.6,
+      "Item de Verificação": "Limpeza de resíduos de concreto no funil, balão e calhas"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Kit de emergência ambiental completo (mantas, pá, enxada, balde)"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Extintor de pó químico do implemento e cabo de aterramento"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Vazamentos aparentes nos tanques de óleo diesel, óleos ou graxa"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Presença e legibilidade dos painéis ONU e rótulos de risco"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Bombas de abastecimento e medidores de vazão (bicos)"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.6,
+      "Item de Verificação": "Carretéis retráteis e estado de conservação das mangueiras"
+    },
+    {
+      "Categoria Origem": "Comboio",
+      "Aplica A": [
+        "Comboio"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.7,
+      "Item de Verificação": "Compressor de ar do comboio (nível de óleo e dreno do balão)"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Sinalização Sonora e Visual: Sirene e giroflex de emergência operando"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Oxigenoterapia: Cilindro principal e transporte (carga e validade)"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Rede de Gases: Fluxômetros, umidificadores e máscaras operacionais"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Maca Retrátil: Funcionamento de travas de pernas e cintos de fixação"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Equipamentos de Trauma: Prancha rígida completa e colares cervicais"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.6,
+      "Item de Verificação": "Higienização Crítica: Ausência de odores e manchas biológicas no salão"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.7,
+      "Item de Verificação": "Descarte de Perfurocortantes: Caixa coletora amarela instalada"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.8,
+      "Item de Verificação": "Climatização do Salão: Ar-condicionado traseiro regulando temperatura"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.9,
+      "Item de Verificação": "Iluminação do Salão: Luzes brancas e azul de cortesia operando"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Inversor / Rede Elétrica: Tomadas internas de 110/220V com energia"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.11,
+      "Item de Verificação": "Armários e Fixações: Portas de acrílico e malas travadas em nichos"
+    },
+    {
+      "Categoria Origem": "Ambulância",
+      "Aplica A": [
+        "Ambulância"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.12,
+      "Item de Verificação": "Suportes de Soro/Plasma: Ganchos superiores íntegros e ajustáveis"
+    },
+    {
+      "Categoria Origem": "Carro Leve",
+      "Aplica A": [
+        "Carro Leve"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "Portas, Capô e Porta-Malas: Fechamento completo, travas elétricas e trincos"
+    },
+    {
+      "Categoria Origem": "Carro Leve",
+      "Aplica A": [
+        "Carro Leve"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.2,
+      "Item de Verificação": "Palhetas e Esguicho de Água do Para-brisa (Funcionamento)"
+    },
+    {
+      "Categoria Origem": "Carro Leve",
+      "Aplica A": [
+        "Carro Leve"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.3,
+      "Item de Verificação": "Nível do Fluido do Radiador (Expansão) e Óleo de Câmbio/Direção"
+    },
+    {
+      "Categoria Origem": "Carro Leve",
+      "Aplica A": [
+        "Carro Leve"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.4,
+      "Item de Verificação": "Ar-Condicionado / Desembaçador Dianteiro e Traseiro"
+    },
+    {
+      "Categoria Origem": "Carro Leve",
+      "Aplica A": [
+        "Carro Leve"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 1.5,
+      "Item de Verificação": "Vidros Elétricos / Manuais: Abertura e fechamento total sem travamentos"
+    },
+    {
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão, tandem e hidráulico"
+    },
+    {
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.2,
       "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível"
     },
     {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.3,
-      "Item de Verificação": "ÁGUA DO RADIADOR: Verificar nível e ausência de vazamentos"
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar círculo de giro, articulações e pinos"
     },
     {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos e integridade das hastes"
+    },
+    {
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1.5,
       "Item de Verificação": "PNEUS: Verificar calibragem, cortes, bolhas e aperto de porcas"
     },
     {
-      "Categoria": "Caminhão Pipa",
-      "Nº": 1.5,
-      "Item de Verificação": "FREIOS: Testar pedal de freio, freio motor e freio de mão"
-    },
-    {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.6,
-      "Item de Verificação": "LUZES E SINALIZAÇÃO: Faróis, lanternas, setas, ré e luz de freio"
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar trincas no chassi e suporte da lâmina"
     },
     {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.7,
-      "Item de Verificação": "FIXAÇÃO DO TANQUE AO CHASSI: Verificar parafusos, suportes e sapatas"
+      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas em pinos e travas de segurança"
     },
     {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.8,
-      "Item de Verificação": "ESTRUTURA DO TANQUE: Inspecionar amassos, rachaduras e ferrugem"
+      "Item de Verificação": "IMPLEMENTO: Verificar facas da lâmina, parafusos e escarificador"
     },
     {
-      "Categoria": "Caminhão Pipa",
+      "Categoria Origem": "Motoniveladora",
+      "Aplica A": [
+        "Motoniveladora"
+      ],
+      "Severidade": "impeditivo",
       "Nº": 1.9,
-      "Item de Verificação": "VÁLVULAS DE DESCARGA: Funcionamento, vedação e travas"
+      "Item de Verificação": "SEGURANÇA: Testar luzes, freio, buzina e sinal sonoro de ré"
     },
     {
-      "Categoria": "Caminhão Pipa",
-      "Nº": 1.1,
-      "Item de Verificação": "MANGUEIRAS E ENGATES: Estado, fixação e ausência de vazamentos"
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, hidráulico e comandos finais"
     },
     {
-      "Categoria": "Caminhão Pipa",
-      "Nº": 1.11,
-      "Item de Verificação": "BOMBA D'ÁGUA / SUCÇÃO: Funcionamento, ruído anormal e estanqueidade"
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar separador de água do combustível"
     },
     {
-      "Categoria": "Caminhão Pipa",
-      "Nº": 1.12,
-      "Item de Verificação": "INDICADOR DE NÍVEL DE ÁGUA: Calibração e visualização"
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar pinos da lança, braço, caçamba e giro"
     },
     {
-      "Categoria": "Caminhão Pipa",
-      "Nº": 1.13,
-      "Item de Verificação": "EXTINTOR DE INCÊNDIO: Validade, lacre, pressão e fixação"
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar limpeza de hastes e vazamentos"
     },
     {
-      "Categoria": "Caminhão Pipa",
-      "Nº": 1.14,
-      "Item de Verificação": "DOCUMENTAÇÃO: CRLV, ARP e manifesto de transporte"
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.5,
+      "Item de Verificação": "PARTE RODANTE: Verificar tensão da esteira, roletes e guias"
+    },
+    {
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassi inferior e proteção da cabine"
+    },
+    {
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas nos pinos de articulação e travas"
+    },
+    {
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar dentes, unhas e pinos de trava da caçamba"
+    },
+    {
+      "Categoria Origem": "Escavadeira",
+      "Aplica A": [
+        "Escavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2.9,
+      "Item de Verificação": "SEGURANÇA: Testar buzina, luzes de trabalho e alarme de ré"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar filtros de combustível"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulações da lâmina e do ripper"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos nos cilindros de lâmina"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.5,
+      "Item de Verificação": "PARTE RODANTE: Verificar sapatas e dentes da roda motriz"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassis e pinos mestres"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de segurança e pinos de fixação"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar ponteiras do ripper e bordas da lâmina"
+    },
+    {
+      "Categoria Origem": "Trator de Esteira",
+      "Aplica A": [
+        "Trator de Esteira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3.9,
+      "Item de Verificação": "SEGURANÇA: Testar freio de estacionamento, luzes e alarme sonoro"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar sedimentador de combustível"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulação central e braços da caçamba"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar vazamentos e hastes de levante"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.5,
+      "Item de Verificação": "PNEUS: Verificar calibragem, cortes e aperto de porcas"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar trincas na articulação central"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar folgas em pinos e travas de segurança"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar lâminas de corte e dentes da caçamba"
+    },
+    {
+      "Categoria Origem": "Pá Carregadeira",
+      "Aplica A": [
+        "Pá Carregadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 4.9,
+      "Item de Verificação": "SEGURANÇA: Testar freio, buzina, luzes e sinal sonoro de ré"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, transmissão e hidráulico"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar filtros de combustível (Racor)"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar caçamba frontal e braço traseiro"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar estabilizadores e mangueiras do braço"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.5,
+      "Item de Verificação": "PNEUS: Verificar pressão e estado das carcaças"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar chassis e suportes dos estabilizadores"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de transporte do braço traseiro"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar dentes da retro e sapatas das patolas"
+    },
+    {
+      "Categoria Origem": "Retroescavadeira",
+      "Aplica A": [
+        "Retroescavadeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 5.9,
+      "Item de Verificação": "SEGURANÇA: Testar freio, buzina, luzes e alarme de ré"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.1,
+      "Item de Verificação": "ÓLEOS: Verificar nível do motor, direção e arrefecimento"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.2,
+      "Item de Verificação": "FILTROS: Verificar e drenar filtros separadores de diesel"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.3,
+      "Item de Verificação": "LUBRIFICAÇÃO: Engraxar articulações, quinta roda ou pinos de mola"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.4,
+      "Item de Verificação": "CILINDROS/MANGUEIRAS: Verificar sistema de basculamento/munk/pipa"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.5,
+      "Item de Verificação": "PNEUS: Verificar calibragem, sulcos e estado geral"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.6,
+      "Item de Verificação": "ESTRUTURA/CHASSIS: Verificar grampos de fixação e chassis"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.7,
+      "Item de Verificação": "PINOS/TRAVAS: Verificar travas de carroceria e pinos de suporte"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.8,
+      "Item de Verificação": "IMPLEMENTO: Verificar estado do tanque, caçamba ou braço munk"
+    },
+    {
+      "Categoria Origem": "Caminhões",
+      "Aplica A": [
+        "Caminhões"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 6.9,
+      "Item de Verificação": "SEGURANÇA: Testar todas as luzes, buzina e alarme de ré"
     }
   ],
   "treinamentos_video": [

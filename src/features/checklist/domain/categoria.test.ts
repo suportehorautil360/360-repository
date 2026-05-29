@@ -56,6 +56,16 @@ describe("inferirCategoriaChecklist", () => {
     expect(inferirCategoriaChecklist("Munk 12T", "")).toBe("Caminhão Munck");
   });
 
+  it("reconhece os demais tipos da tabela oficial", () => {
+    expect(inferirCategoriaChecklist("Oficina Móvel", "")).toBe("Oficina");
+    expect(inferirCategoriaChecklist("Baú Refrigerado", "")).toBe("Baú");
+    expect(inferirCategoriaChecklist("Betoneira 8m³", "")).toBe("Betoneira");
+    expect(inferirCategoriaChecklist("Comboio de Lubrificação", "")).toBe(
+      "Comboio",
+    );
+    expect(inferirCategoriaChecklist("Ambulância UTI", "")).toBe("Ambulância");
+  });
+
   it("usa o modelo quando o label não denuncia o tipo", () => {
     expect(inferirCategoriaChecklist("XYZ", "Escavadeira")).toBe("Escavadeira");
   });
