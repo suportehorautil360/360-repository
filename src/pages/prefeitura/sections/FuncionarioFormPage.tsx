@@ -418,9 +418,8 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
               <AlertTriangle size={14} aria-hidden="true" />
               <span>
                 Login = <strong>primeiro nome</strong> +{" "}
-                <strong>3 últimos dígitos do CPF</strong>. Senha inicial é o
-                CPF sem pontuação — o funcionário deve trocá-la no primeiro
-                acesso.
+                <strong>3 últimos dígitos do CPF</strong>. A senha é o{" "}
+                <strong>CPF sem pontuação</strong>.
               </span>
             </p>
           </div>
