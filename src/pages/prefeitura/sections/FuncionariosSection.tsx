@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Pause, Play, Plus, Search } from "lucide-react";
+import { Pencil, Pause, Play, Plus, Search, History } from "lucide-react";
 import {
   funcionariosApi,
   TIPOS_FUNCIONARIO,
@@ -78,6 +78,9 @@ export function FuncionariosSection({ prefeituraId }: { prefeituraId: string }) 
   }
   function irParaEditar(id: string) {
     navigate(`/prefeitura/${prefeituraId}/funcionarios/${id}/editar`);
+  }
+  function irParaHistorico(id: string) {
+    navigate(`/prefeitura/${prefeituraId}/funcionarios/${id}/historico`);
   }
 
   async function alternarStatus(f: Funcionario) {
@@ -239,6 +242,15 @@ export function FuncionariosSection({ prefeituraId }: { prefeituraId: string }) 
                       </td>
                       <td>
                         <div className="func__acoes">
+                          <button
+                            type="button"
+                            className="func__icone"
+                            title="Histórico de ponto"
+                            aria-label={`Ver histórico de ponto de ${f.nome}`}
+                            onClick={() => irParaHistorico(f.id)}
+                          >
+                            <History size={13} aria-hidden="true" />
+                          </button>
                           <button
                             type="button"
                             className="func__icone"

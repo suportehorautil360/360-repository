@@ -346,11 +346,16 @@
   color: #fca5a5;
   margin-top: 2px;
 }
+.rh-drawer__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 0 20px 16px;
+}
 .rh-drawer__link-mes {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 0 20px 16px;
   color: #93c5fd;
   font-size: 0.85rem;
   font-weight: 600;

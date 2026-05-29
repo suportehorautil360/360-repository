@@ -568,13 +568,21 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
               </div>
 
               {detalhe.resumo.funcionario && (
-                <a
-                  className="rh-drawer__link-mes"
-                  href={`/prefeitura/${prefeituraId}/funcionarios/${detalhe.resumo.funcionario.id}/editar`}
-                >
-                  <Calendar size={14} aria-hidden="true" />
-                  Abrir cadastro do funcionário
-                </a>
+                <div className="rh-drawer__atalhos">
+                  <a
+                    className="rh-drawer__link-mes"
+                    href={`/prefeitura/${prefeituraId}/funcionarios/${detalhe.resumo.funcionario.id}/historico`}
+                  >
+                    <Calendar size={14} aria-hidden="true" />
+                    Ver histórico do mês
+                  </a>
+                  <a
+                    className="rh-drawer__link-mes"
+                    href={`/prefeitura/${prefeituraId}/funcionarios/${detalhe.resumo.funcionario.id}/editar`}
+                  >
+                    Abrir cadastro
+                  </a>
+                </div>
               )}
             </>
           )}

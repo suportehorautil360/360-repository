@@ -242,6 +242,10 @@ export function AppRoutes() {
             path="/prefeitura/:id/funcionarios/:funcId/editar"
             element={<PrefeituraPage />}
           />
+          <Route
+            path="/prefeitura/:id/funcionarios/:funcId/historico"
+            element={<PrefeituraPage />}
+          />
           <Route path="/prefeitura/:id/:secao" element={<PrefeituraPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
