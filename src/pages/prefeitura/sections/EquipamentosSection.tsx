@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   defaultInterval,
   equipamentosApi,
@@ -136,7 +137,6 @@ export function EquipamentosSection({
   const [lista, setLista] = useState<EquipRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
   const [modalNovoAberto, setModalNovoAberto] = useState(false);
   const [form, setForm] = useState<EquipFormState>(emptyForm);
@@ -148,12 +148,11 @@ export function EquipamentosSection({
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
     setLoading(true);
-    setErro("");
     try {
       setLista(await equipamentosApi.listar(prefeituraId));
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao carregar:", err);
-      setErro("Não foi possível carregar os equipamentos.");
+      toast.error("Não foi possível carregar os equipamentos.");
     } finally {
       setLoading(false);
     }
@@ -202,16 +201,15 @@ export function EquipamentosSection({
     const chassis = form.chassis.trim();
     const placa = form.placa.trim();
     if (!nomeModelo || !chassis) {
-      setErro("Informe nome/modelo e chassi do equipamento.");
+      toast.error("Informe nome/modelo e chassi do equipamento.");
       return;
     }
     if (lista.some((eq) => eq.chassis.toLowerCase() === chassis.toLowerCase())) {
-      setErro("Já existe um equipamento com esse chassi.");
+      toast.error("Já existe um equipamento com esse chassi.");
       return;
     }
 
     setSaving(true);
-    setErro("");
     try {
       const tipo = form.tipo || "Equipamento";
       const unidade =
@@ -244,9 +242,10 @@ export function EquipamentosSection({
       );
       setForm(emptyForm);
       setModalNovoAberto(false);
+      toast.success("Equipamento cadastrado.");
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao salvar:", err);
-      setErro("Não foi possível salvar o equipamento.");
+      toast.error("Não foi possível salvar o equipamento.");
     } finally {
       setSaving(false);
     }
@@ -262,7 +261,6 @@ export function EquipamentosSection({
     if (!editando || saving) return;
     const medicaoAtual = asNumber(novaMedicao);
     setSaving(true);
-    setErro("");
     try {
       await equipamentosApi.atualizarMedicao(editando.id, medicaoAtual);
       setLista((prev) =>
@@ -271,9 +269,10 @@ export function EquipamentosSection({
         ),
       );
       setEditando(null);
+      toast.success("Medição atualizada.");
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao atualizar:", err);
-      setErro("Não foi possível atualizar a medição.");
+      toast.error("Não foi possível atualizar a medição.");
     } finally {
       setSaving(false);
     }
@@ -284,15 +283,19 @@ export function EquipamentosSection({
     const status: StatusEquipamento =
       eq.status === "bloqueado" ? "ativo" : "bloqueado";
     setSaving(true);
-    setErro("");
     try {
       await equipamentosApi.atualizarStatus(eq.id, status);
       setLista((prev) =>
         prev.map((item) => (item.id === eq.id ? { ...item, status } : item)),
       );
+      toast.success(
+        status === "bloqueado"
+          ? "Equipamento bloqueado."
+          : "Equipamento liberado.",
+      );
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao bloquear:", err);
-      setErro("Não foi possível alterar o status do equipamento.");
+      toast.error("Não foi possível alterar o status do equipamento.");
     } finally {
       setSaving(false);
     }
@@ -305,13 +308,13 @@ export function EquipamentosSection({
     );
     if (!ok) return;
     setSaving(true);
-    setErro("");
     try {
       await equipamentosApi.remover(eq.id);
       setLista((prev) => prev.filter((item) => item.id !== eq.id));
+      toast.success("Equipamento removido.");
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao remover:", err);
-      setErro("Não foi possível remover o equipamento.");
+      toast.error("Não foi possível remover o equipamento.");
     } finally {
       setSaving(false);
     }
@@ -327,11 +330,10 @@ export function EquipamentosSection({
     if (!revisando || !revForm || saving) return;
     const leitura = asNumber(revForm.leitura);
     if (leitura < revisando.medicaoAtual) {
-      setErro("A leitura não pode ser menor que a medição atual.");
+      toast.error("A leitura não pode ser menor que a medição atual.");
       return;
     }
     setSaving(true);
-    setErro("");
     try {
       await equipamentosApi.concluirRevisao(revisando, prefeituraId, {
         data: revForm.data,
@@ -355,9 +357,10 @@ export function EquipamentosSection({
       );
       setRevisando(null);
       setRevForm(null);
+      toast.success("Revisão concluída e equipamento liberado.");
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro na revisão:", err);
-      setErro(
+      toast.error(
         err instanceof Error ? err.message : "Não foi possível concluir a revisão.",
       );
     } finally {
@@ -419,17 +422,12 @@ export function EquipamentosSection({
               <button
                 className="pf-eq-primary"
                 type="button"
-                onClick={() => {
-                  setErro("");
-                  setModalNovoAberto(true);
-                }}
+                onClick={() => setModalNovoAberto(true)}
               >
                 + Equipamento
               </button>
             </div>
           </header>
-
-          {erro ? <p className="pf-eq-error">{erro}</p> : null}
 
           <div className="pf-eq-table-wrap">
             <table className="pf-eq-table">
