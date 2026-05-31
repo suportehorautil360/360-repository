@@ -43,7 +43,12 @@ import {
   startOfLocalDayIso,
 } from "../../features/checklist";
 
-type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia" | "pontos";
+type Aba =
+  | "dashboard"
+  | "checklist"
+  | "auditoria"
+  | "emergencia"
+  | "pontos";
 
 type ItemChecklist =
   | (typeof seedData.itens_checklist)[number]
@@ -51,9 +56,7 @@ type ItemChecklist =
 
 /** True se o item é classificado como `impeditivo` no seed (default = não). */
 function itemImpeditivo(it: ItemChecklist): boolean {
-  return (
-    (it as { Severidade?: string }).Severidade === "impeditivo"
-  );
+  return (it as { Severidade?: string }).Severidade === "impeditivo";
 }
 
 /** Resposta por item: «Não» exige foto ao vivo + descrição do problema; N/A não entra no cálculo. */
@@ -222,7 +225,6 @@ const ABAS: {
   { id: "emergencia", label: "Emergências", icon: "alert" },
   { id: "pontos", label: "Pontos", icon: "clock" },
 ];
-
 
 function parseRespostasChecklist(row: Record<string, unknown>): {
   total: number;
@@ -1360,8 +1362,7 @@ export function ChecklistControlePage() {
     // Não bloqueia em definitivo (o gestor decide via auditoria), mas pede
     // confirmação dupla pra evitar registro descuidado.
     const impeditivosViolados = itensFiltrados.filter(
-      (it) =>
-        itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
+      (it) => itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
     );
     if (impeditivosViolados.length > 0) {
       const lista = impeditivosViolados
@@ -1489,11 +1490,14 @@ export function ChecklistControlePage() {
         resposta: answers[String(item["Nº"])],
       }))
       .filter(
-        (row): row is {
+        (
+          row,
+        ): row is {
           item: ItemChecklist;
           key: string;
           resposta: { v: "nao"; foto: string; problema: string };
-        } => row.resposta?.v === "nao" && checklistRespostaCompleta(row.resposta),
+        } =>
+          row.resposta?.v === "nao" && checklistRespostaCompleta(row.resposta),
       );
     if (itensNao.length === 0) return;
 
@@ -2037,7 +2041,7 @@ export function ChecklistControlePage() {
                   style={{ marginTop: 16 }}
                 >
                   <label htmlFor="hu360-nome-operador-chk">
-                    Nome do operador <span style={{ color: "#dc2626" }}>*</span>
+                    Nome <span style={{ color: "#dc2626" }}>*</span>
                   </label>
                   <input
                     id="hu360-nome-operador-chk"
@@ -2634,9 +2638,7 @@ export function ChecklistControlePage() {
                   </p>
                 </div>
 
-                <label htmlFor="hu360-nome-operador-emerg">
-                  Nome do operador
-                </label>
+                <label htmlFor="hu360-nome-operador-emerg">Nome</label>
                 <input
                   id="hu360-nome-operador-emerg"
                   value={nomeOperadorEmerg}
@@ -3012,18 +3014,19 @@ export function ChecklistControlePage() {
             {pwaEstado === "manual-ios" ? (
               <div>
                 <p>No Safari do iPhone/iPad:</p>
-                <ol style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
+                <ol
+                  style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}
+                >
                   <li>
                     Toque no botão <strong>Compartilhar</strong> (□↑) na barra
                     inferior.
                   </li>
                   <li>
-                    Role e toque em{" "}
-                    <strong>Adicionar à Tela de Início</strong>.
+                    Role e toque em <strong>Adicionar à Tela de Início</strong>.
                   </li>
                   <li>
-                    Toque em <strong>Adicionar</strong>. O app vai aparecer
-                    como ícone na tela inicial.
+                    Toque em <strong>Adicionar</strong>. O app vai aparecer como
+                    ícone na tela inicial.
                   </li>
                 </ol>
               </div>
@@ -3033,10 +3036,18 @@ export function ChecklistControlePage() {
                   Abra o menu do navegador (⋮ ou ⋯) e procure por uma das
                   opções:
                 </p>
-                <ul style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
-                  <li><strong>Instalar app</strong></li>
-                  <li><strong>Adicionar à tela inicial</strong></li>
-                  <li><strong>Criar atalho</strong></li>
+                <ul
+                  style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}
+                >
+                  <li>
+                    <strong>Instalar app</strong>
+                  </li>
+                  <li>
+                    <strong>Adicionar à tela inicial</strong>
+                  </li>
+                  <li>
+                    <strong>Criar atalho</strong>
+                  </li>
                 </ul>
                 <p style={{ marginTop: 12, fontSize: "0.85rem", opacity: 0.8 }}>
                   Se nenhuma opção aparecer, abra o site em outro navegador

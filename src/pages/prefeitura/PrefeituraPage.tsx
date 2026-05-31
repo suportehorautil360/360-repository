@@ -18,6 +18,7 @@ import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
 import { FrotaSection } from "./sections/FrotaSection";
+import { RevisoesSection } from "./sections/RevisoesSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
@@ -246,6 +247,8 @@ export function PrefeituraPage() {
         );
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
+      case "revisoes":
+        return <RevisoesSection prefeituraId={prefeituraId} />;
       case "equipamentos":
         return (
           <EquipamentosSection
