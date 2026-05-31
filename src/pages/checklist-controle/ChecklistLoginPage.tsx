@@ -137,15 +137,6 @@ export function ChecklistLoginPage() {
             {loading ? "Verificando..." : "Entrar"}
           </button>
         </form>
-
-        <p className="quick-access">
-          <Link
-            to="/"
-            style={{ color: "var(--secondary, #3b82f6)", fontWeight: 600 }}
-          >
-            ← Voltar ao portal
-          </Link>
-        </p>
       </div>
     </section>
   );

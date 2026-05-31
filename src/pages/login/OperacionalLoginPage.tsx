@@ -117,16 +117,6 @@ export function OperacionalLoginPage() {
             {mensagem}
           </div>
         </form>
-
-        <p className="quick-access">
-          <Link to="/login-operacional?destino=locacao">Locadora</Link>
-          {" · "}
-          <Link to="/login-operacional?destino=oficina">Oficina</Link>
-          {" · "}
-          <Link to="/login-operacional?destino=posto">Posto</Link>
-          {" · "}
-          <Link to="/">Voltar ao portal inicial</Link>
-        </p>
       </div>
     </section>
   );
