@@ -4,6 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   COMBUSTIVEL_OPTIONS,
   defaultInterval,
   equipamentosApi,
@@ -242,20 +249,30 @@ export function EquipamentoFormPage({ prefeituraId }: Props) {
     label: string,
     options: { value: string; label: string }[],
     req?: boolean,
-  ) => (
-    <Campo label={label} req={req} erro={erros[k]}>
-      <select
-        value={String(form[k] ?? "")}
-        onChange={(e) => setCampo(k, e.target.value as never)}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </Campo>
-  );
+  ) => {
+    // Radix não aceita item com value vazio — o "" vira placeholder.
+    const placeholder = options.find((o) => o.value === "")?.label ?? "Selecione";
+    const items = options.filter((o) => o.value !== "");
+    return (
+      <Campo label={label} req={req} erro={erros[k]}>
+        <Select
+          value={String(form[k] ?? "")}
+          onValueChange={(v) => setCampo(k, v as never)}
+        >
+          <SelectTrigger className="w-full border-white/15 bg-white/[0.04] text-slate-100 data-[placeholder]:text-slate-400">
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {items.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Campo>
+    );
+  };
 
   const opts = (arr: string[]) => arr.map((v) => ({ value: v, label: v }));
 
