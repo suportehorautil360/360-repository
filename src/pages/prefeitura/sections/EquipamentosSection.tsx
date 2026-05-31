@@ -354,7 +354,16 @@ export function EquipamentosSection({
                   filtrados.map((eq) => {
                     const revisao = statusRevisao(eq);
                     return (
-                      <tr key={eq.id}>
+                      <tr
+                        key={eq.id}
+                        className="pf-eq-row-click"
+                        title="Abrir cadastro do equipamento"
+                        onClick={() =>
+                          navigate(
+                            `/prefeitura/${prefeituraId}/equipamentos/${eq.id}/editar`,
+                          )
+                        }
+                      >
                         <td>
                           <strong>{eq.descricao || eq.modelo}</strong>
                           <small>{eq.modelo || eq.linha || "Equipamento"}</small>
@@ -391,7 +400,7 @@ export function EquipamentosSection({
                             {revisao}
                           </span>
                         </td>
-                        <td>
+                        <td onClick={(e) => e.stopPropagation()}>
                           <div className="pf-eq-row-actions">
                             <button
                               type="button"

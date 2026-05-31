@@ -1034,6 +1034,13 @@
   background: #14294f;
 }
 
+.prefeitura-root .pf-eq-row-click {
+  cursor: pointer;
+}
+.prefeitura-root .pf-eq-row-click:hover td {
+  background: #1b3a6b;
+}
+
 .prefeitura-root .pf-eq-table td strong {
   display: block;
   color: #f8fafc;

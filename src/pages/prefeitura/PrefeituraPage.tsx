@@ -68,8 +68,10 @@ export function PrefeituraPage() {
     funcSubPagina === "novo" || funcSubPagina === "editar"
       ? funcSubPagina
       : null;
-  // Sub-rota dedicada de cadastro de equipamento.
+  // Sub-rotas dedicadas de equipamento: cadastro e edição.
   const equipNovo = location.pathname.endsWith("/equipamentos/novo");
+  const equipEditId =
+    location.pathname.match(/\/equipamentos\/([^/]+)\/editar$/)?.[1] ?? null;
   const { user, handleLogin: login, logout } = useLogin();
   const { obterDadosPrefeitura, prefeituraLabel } = useHU360();
 
@@ -97,13 +99,22 @@ export function PrefeituraPage() {
   // têm `secao` no useParams; aí o redirect padrão não deve disparar.
   useEffect(() => {
     if (!user || !prefeituraId) return;
-    if (funcSubPagina || equipNovo) return;
+    if (funcSubPagina || equipNovo || equipEditId) return;
     if (!idParam && user.prefeituraId) {
       navigate(`/prefeitura/${user.prefeituraId}/dashboard`, { replace: true });
     } else if (idParam && !secao) {
       navigate(`/prefeitura/${idParam}/dashboard`, { replace: true });
     }
-  }, [user, idParam, secao, prefeituraId, navigate, funcSubPagina, equipNovo]);
+  }, [
+    user,
+    idParam,
+    secao,
+    prefeituraId,
+    navigate,
+    funcSubPagina,
+    equipNovo,
+    equipEditId,
+  ]);
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
   const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
@@ -229,14 +240,17 @@ export function PrefeituraPage() {
   // continua sendo "Funcionários".
   const secaoAtual = funcSubPagina
     ? "funcionarios"
-    : equipNovo
+    : equipNovo || equipEditId
       ? "equipamentos"
       : (secao ?? "dashboard");
   const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
 
   function renderSecao() {
     if (equipNovo) {
-      return <EquipamentoFormPage prefeituraId={prefeituraId} />;
+      return <EquipamentoFormPage prefeituraId={prefeituraId} modo="novo" />;
+    }
+    if (equipEditId) {
+      return <EquipamentoFormPage prefeituraId={prefeituraId} modo="editar" />;
     }
     if (funcSubPagina === "historico" && funcId) {
       return (

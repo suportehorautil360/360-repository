@@ -276,6 +276,53 @@ function ordenar(lista: EquipRow[]): EquipRow[] {
   );
 }
 
+/**
+ * Campos comuns de criação/edição (sem `obra` e `ultimaRevisao`, que não são
+ * editados pela tela — preservados na edição).
+ */
+function montarPayload(input: NovoEquip, prefeituraId: string) {
+  const descricao = `${input.marca} ${input.modelo}`.trim() || input.modelo;
+  return {
+    prefeituraId,
+    descricao,
+    label: descricao,
+    modelo: input.modelo,
+    chassis: input.chassis,
+    placa: input.placa,
+    renavam: input.renavam,
+    numeroSerie: input.numeroSerie,
+    patrimonioBase: input.patrimonioBase,
+    marca: input.marca,
+    cor: input.cor,
+    combustivel: input.combustivel,
+    tipo: input.tipo,
+    linha: input.tipo,
+    tipoFrota: input.tipoFrota,
+    motorizacao: input.motorizacao,
+    ano: input.anoFabricacao,
+    anoFabricacao: input.anoFabricacao,
+    anoModelo: input.anoModelo,
+    capacidadeTanque: input.capacidadeTanque,
+    valorVeiculo: input.valorVeiculo,
+    status: input.status,
+    medicaoAtual: input.medicaoAtual,
+    intervaloRevisao: input.intervaloRevisao,
+    unidadeRevisao: unitForTipo(input.tipo),
+    condutorResponsavel: input.condutorResponsavel,
+    gestorResponsavel: input.gestorResponsavel,
+    centroCusto: input.centroCusto,
+    cidade: input.cidade,
+    estado: input.estado,
+    regiao: input.regiao,
+    ipva: input.ipva,
+    seguro: input.seguro,
+    licenciamento: input.licenciamento,
+    vigenciaInicio: input.vigenciaInicio,
+    vigenciaFim: input.vigenciaFim,
+    inativarAposVigencia: input.inativarAposVigencia,
+  };
+}
+
 export const equipamentosApi = {
   /** Lista os equipamentos da prefeitura (404 vira lista vazia). */
   async listar(prefeituraId: string): Promise<EquipRow[]> {
@@ -290,55 +337,24 @@ export const equipamentosApi = {
     }
   },
 
+  /** Busca um equipamento (documento bruto) pelo id. Null se não existir. */
+  async obter(id: string): Promise<Record<string, unknown> | null> {
+    try {
+      const r = await api.get<{ data: Record<string, unknown> }>(
+        `/equipamentos/item/${id}`,
+      );
+      return r.data ?? null;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  },
+
   /** Cria um equipamento e devolve a linha normalizada. */
   async criar(input: NovoEquip, prefeituraId: string): Promise<EquipRow> {
-    const descricao = `${input.marca} ${input.modelo}`.trim() || input.modelo;
-    const unidadeRevisao = unitForTipo(input.tipo);
     const payload = {
-      prefeituraId,
-      // Identificação
-      descricao,
-      label: descricao,
-      modelo: input.modelo,
-      chassis: input.chassis,
-      placa: input.placa,
-      renavam: input.renavam,
-      numeroSerie: input.numeroSerie,
-      patrimonioBase: input.patrimonioBase,
-      // Veículo
-      marca: input.marca,
-      cor: input.cor,
-      combustivel: input.combustivel,
-      tipo: input.tipo,
-      linha: input.tipo,
-      tipoFrota: input.tipoFrota,
-      motorizacao: input.motorizacao,
-      ano: input.anoFabricacao,
-      anoFabricacao: input.anoFabricacao,
-      anoModelo: input.anoModelo,
-      capacidadeTanque: input.capacidadeTanque,
-      valorVeiculo: input.valorVeiculo,
-      // Operação / revisão
-      status: input.status,
-      medicaoAtual: input.medicaoAtual,
-      intervaloRevisao: input.intervaloRevisao,
-      unidadeRevisao,
+      ...montarPayload(input, prefeituraId),
       ultimaRevisao: input.medicaoAtual,
-      condutorResponsavel: input.condutorResponsavel,
-      gestorResponsavel: input.gestorResponsavel,
-      // Localização
-      centroCusto: input.centroCusto,
-      cidade: input.cidade,
-      estado: input.estado,
-      regiao: input.regiao,
-      // Documentos
-      ipva: input.ipva,
-      seguro: input.seguro,
-      licenciamento: input.licenciamento,
-      // Locação
-      vigenciaInicio: input.vigenciaInicio,
-      vigenciaFim: input.vigenciaFim,
-      inativarAposVigencia: input.inativarAposVigencia,
       obra: "",
     };
     const r = await api.post<{ data: Record<string, unknown> }>(
@@ -347,6 +363,15 @@ export const equipamentosApi = {
     );
     const doc = r.data ?? payload;
     return normalizeEquip(String((doc as { id?: string }).id ?? ""), doc);
+  },
+
+  /** Atualiza todos os campos editáveis (preserva obra e ultimaRevisao). */
+  async atualizar(
+    id: string,
+    input: NovoEquip,
+    prefeituraId: string,
+  ): Promise<void> {
+    await api.post(`/equipamentos/update/${id}`, montarPayload(input, prefeituraId));
   },
 
   /** Atualiza a leitura atual (medição). */

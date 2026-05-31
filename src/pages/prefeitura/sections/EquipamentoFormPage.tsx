@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,7 @@ import "./funcionario-form.css";
 
 interface Props {
   prefeituraId: string;
+  modo: "novo" | "editar";
 }
 
 interface FormState {
@@ -108,13 +109,94 @@ function asNumber(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function EquipamentoFormPage({ prefeituraId }: Props) {
+function asStr(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  return String(v);
+}
+
+/** Documento bruto (banco) → estado do formulário, para o modo edição. */
+function paraFormState(d: Record<string, unknown>): FormState {
+  const num = (...vs: unknown[]) => {
+    const v = vs.find((x) => x === 0 || (x !== undefined && x !== null && x !== ""));
+    return v === undefined ? "" : String(v);
+  };
+  const st = asStr(d.status).toLowerCase();
+  return {
+    placa: asStr(d.placa),
+    chassis: asStr(d.chassis),
+    renavam: asStr(d.renavam),
+    numeroSerie: asStr(d.numeroSerie),
+    patrimonioBase: asStr(d.patrimonioBase),
+    marca: asStr(d.marca),
+    modelo: asStr(d.modelo) || asStr(d.descricao),
+    cor: asStr(d.cor),
+    combustivel: asStr(d.combustivel) || COMBUSTIVEL_OPTIONS[0],
+    tipo: asStr(d.tipo) || TIPO_OPTIONS[0],
+    tipoFrota: asStr(d.tipoFrota) || FROTA_OPTIONS[0],
+    motorizacao: asStr(d.motorizacao),
+    anoFabricacao: asStr(d.anoFabricacao) || asStr(d.ano),
+    anoModelo: asStr(d.anoModelo),
+    capacidadeTanque: num(d.capacidadeTanque),
+    valorVeiculo: num(d.valorVeiculo),
+    status:
+      st === "bloqueado" || st === "inativo"
+        ? (st as StatusEquipamento)
+        : "ativo",
+    medicaoAtual: num(d.medicaoAtual, d.currentMeter) || "0",
+    intervaloRevisao: num(d.intervaloRevisao),
+    condutorResponsavel: asStr(d.condutorResponsavel),
+    gestorResponsavel: asStr(d.gestorResponsavel),
+    centroCusto: asStr(d.centroCusto),
+    cidade: asStr(d.cidade),
+    estado: asStr(d.estado),
+    regiao: asStr(d.regiao),
+    ipva: asStr(d.ipva),
+    seguro: asStr(d.seguro),
+    licenciamento: asStr(d.licenciamento),
+    vigenciaInicio: asStr(d.vigenciaInicio),
+    vigenciaFim: asStr(d.vigenciaFim),
+    inativarAposVigencia: Boolean(d.inativarAposVigencia),
+  };
+}
+
+export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
   const navigate = useNavigate();
+  const { equipId } = useParams<{ equipId?: string }>();
   const [form, setForm] = useState<FormState>(FORM_VAZIO);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
+  const [carregando, setCarregando] = useState(modo === "editar");
 
   const ehLocada = form.tipoFrota.toLowerCase().includes("locad");
+
+  // Em "editar", carrega o equipamento e preenche o formulário.
+  useEffect(() => {
+    if (modo !== "editar" || !equipId) return;
+    let ativo = true;
+    (async () => {
+      setCarregando(true);
+      try {
+        const doc = await equipamentosApi.obter(equipId);
+        if (!ativo) return;
+        if (!doc) {
+          toast.error("Equipamento não encontrado.");
+          voltar();
+          return;
+        }
+        setForm(paraFormState(doc));
+      } catch (err) {
+        if (!ativo) return;
+        console.error("[Prefeitura Equipamentos] Erro ao carregar:", err);
+        toast.error("Não foi possível carregar o equipamento.");
+      } finally {
+        if (ativo) setCarregando(false);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modo, equipId]);
 
   function setCampo<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm((s) => ({ ...s, [k]: v }));
@@ -205,8 +287,13 @@ export function EquipamentoFormPage({ prefeituraId }: Props) {
         vigenciaFim: ehLocada ? form.vigenciaFim : "",
         inativarAposVigencia: ehLocada ? form.inativarAposVigencia : false,
       };
-      await equipamentosApi.criar(input, prefeituraId);
-      toast.success("Equipamento cadastrado.");
+      if (modo === "editar" && equipId) {
+        await equipamentosApi.atualizar(equipId, input, prefeituraId);
+        toast.success("Equipamento atualizado.");
+      } else {
+        await equipamentosApi.criar(input, prefeituraId);
+        toast.success("Equipamento cadastrado.");
+      }
       voltar();
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao cadastrar:", err);
@@ -276,13 +363,29 @@ export function EquipamentoFormPage({ prefeituraId }: Props) {
 
   const opts = (arr: string[]) => arr.map((v) => ({ value: v, label: v }));
 
+  if (carregando) {
+    return (
+      <div className="ff">
+        <div className="ff__topo">
+          <button type="button" className="ff__voltar" onClick={voltar}>
+            <ArrowLeft size={15} /> Voltar
+          </button>
+          <h1 className="ff__titulo">Editar equipamento</h1>
+        </div>
+        <p className="ff__carregando">Carregando equipamento...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="ff">
       <div className="ff__topo">
         <button type="button" className="ff__voltar" onClick={voltar}>
           <ArrowLeft size={15} /> Voltar
         </button>
-        <h1 className="ff__titulo">Novo equipamento</h1>
+        <h1 className="ff__titulo">
+          {modo === "editar" ? "Editar equipamento" : "Novo equipamento"}
+        </h1>
       </div>
 
       <section className="ff__card">
@@ -419,7 +522,12 @@ export function EquipamentoFormPage({ prefeituraId }: Props) {
           disabled={salvando}
           onClick={salvar}
         >
-          <Save size={15} /> {salvando ? "Salvando..." : "Cadastrar equipamento"}
+          <Save size={15} />{" "}
+          {salvando
+            ? "Salvando..."
+            : modo === "editar"
+              ? "Salvar alterações"
+              : "Cadastrar equipamento"}
         </button>
       </div>
     </div>
