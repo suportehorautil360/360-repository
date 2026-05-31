@@ -19,11 +19,7 @@ import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
 import { FrotaSection } from "./sections/FrotaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
-import {
-  PREFEITURA_BRAND,
-  SECAO_LABEL,
-  prefeituraNav,
-} from "./prefeituraNav";
+import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
@@ -35,15 +31,19 @@ function EmConstrucao({ titulo }: { titulo: string }) {
     <div>
       <h1>{titulo}</h1>
       <p style={{ color: "var(--text-gray)", maxWidth: "48rem" }}>
-        🚧 Esta seção ainda está em construção. A estrutura já existe no menu;
-        o conteúdo será habilitado em breve.
+        🚧 Esta seção ainda está em construção. A estrutura já existe no menu; o
+        conteúdo será habilitado em breve.
       </p>
     </div>
   );
 }
 
 export function PrefeituraPage() {
-  const { id: idParam, secao, funcId } = useParams<{
+  const {
+    id: idParam,
+    secao,
+    funcId,
+  } = useParams<{
     id?: string;
     secao?: string;
     funcId?: string;
@@ -53,17 +53,14 @@ export function PrefeituraPage() {
 
   // Sub-rotas de /funcionarios — todas dentro de /prefeitura/:id mas com
   // tela própria: /novo, /:funcId/editar, /:funcId/historico.
-  const funcSubPagina:
-    | "novo"
-    | "editar"
-    | "historico"
-    | null = location.pathname.endsWith("/funcionarios/novo")
-    ? "novo"
-    : /\/funcionarios\/[^/]+\/editar$/.test(location.pathname)
-      ? "editar"
-      : /\/funcionarios\/[^/]+\/historico$/.test(location.pathname)
-        ? "historico"
-        : null;
+  const funcSubPagina: "novo" | "editar" | "historico" | null =
+    location.pathname.endsWith("/funcionarios/novo")
+      ? "novo"
+      : /\/funcionarios\/[^/]+\/editar$/.test(location.pathname)
+        ? "editar"
+        : /\/funcionarios\/[^/]+\/historico$/.test(location.pathname)
+          ? "historico"
+          : null;
   // Compat: nome antigo usado em vários pontos do componente.
   const funcFormModo: "novo" | "editar" | null =
     funcSubPagina === "novo" || funcSubPagina === "editar"
@@ -237,17 +234,16 @@ export function PrefeituraPage() {
     }
     if (funcFormModo) {
       return (
-        <FuncionarioFormPage
-          prefeituraId={prefeituraId}
-          modo={funcFormModo}
-        />
+        <FuncionarioFormPage prefeituraId={prefeituraId} modo={funcFormModo} />
       );
     }
     switch (secaoAtual) {
       case "dashboard":
         return <DashboardSection prefeituraId={prefeituraId} />;
       case "abastecimento":
-        return <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />;
+        return (
+          <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
+        );
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
       case "equipamentos":
@@ -266,7 +262,9 @@ export function PrefeituraPage() {
       case "orcamentos":
         return <OrcamentosSection prefeituraId={prefeituraId} />;
       case "pagamentos":
-        return <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />;
+        return (
+          <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />
+        );
       case "auditoria-checklists":
         return <AuditoriaSection prefeituraId={prefeituraId} />;
       case "riscos":

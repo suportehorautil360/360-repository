@@ -1,4 +1,10 @@
 import { NavLink } from "react-router-dom";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../ui/accordion";
 import type { SidebarItem, SidebarProps } from "./types";
 import "./sidebar.css";
 
@@ -26,6 +32,10 @@ function SidebarLink({ item }: { item: SidebarItem }) {
       )}
     </NavLink>
   );
+}
+
+function groupValue(label: string | undefined, index: number) {
+  return label?.trim() || `group-${index}`;
 }
 
 /**
@@ -64,16 +74,49 @@ export function Sidebar({
       </div>
 
       <nav className="hu-sidebar__nav" aria-label="Menu principal">
-        {groups.map((group, gi) => (
-          <div className="hu-sidebar__group" key={group.label ?? `g${gi}`}>
-            {group.label && (
-              <p className="hu-sidebar__group-label">{group.label}</p>
-            )}
-            {group.items.map((item) => (
-              <SidebarLink key={item.to} item={item} />
-            ))}
-          </div>
-        ))}
+        <Accordion
+          type="multiple"
+          defaultValue={groups.map((group, gi) => groupValue(group.label, gi))}
+          className="hu-sidebar__accordion"
+        >
+          {groups.map((group, gi) => {
+            const value = groupValue(group.label, gi);
+
+            if (!group.label) {
+              return (
+                <div
+                  className="hu-sidebar__group hu-sidebar__group--plain"
+                  key={value}
+                >
+                  <div className="hu-sidebar__group-items">
+                    {group.items.map((item) => (
+                      <SidebarLink key={item.to} item={item} />
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <AccordionItem
+                className="hu-sidebar__group"
+                key={value}
+                value={value}
+              >
+                <AccordionTrigger className="hu-sidebar__group-trigger">
+                  <span className="hu-sidebar__group-label">{group.label}</span>
+                </AccordionTrigger>
+                <AccordionContent className="hu-sidebar__group-content">
+                  <div className="hu-sidebar__group-items">
+                    {group.items.map((item) => (
+                      <SidebarLink key={item.to} item={item} />
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       </nav>
 
       {(user || onLogout) && (

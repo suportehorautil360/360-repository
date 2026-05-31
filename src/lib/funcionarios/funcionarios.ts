@@ -134,12 +134,16 @@ function fromDoc(id: string, data: Record<string, unknown>): Funcionario {
     status,
     temSenha: Boolean(data.senhaHash),
     matricula: data.matricula ? String(data.matricula) : undefined,
-    dataNascimento: data.dataNascimento ? String(data.dataNascimento) : undefined,
+    dataNascimento: data.dataNascimento
+      ? String(data.dataNascimento)
+      : undefined,
     rg: data.rg ? String(data.rg) : undefined,
     cnh: data.cnh ? String(data.cnh) : undefined,
     cnhCategoria: data.cnhCategoria ? String(data.cnhCategoria) : undefined,
     cnhValidade: data.cnhValidade ? String(data.cnhValidade) : undefined,
-    cnhLocalEmissao: data.cnhLocalEmissao ? String(data.cnhLocalEmissao) : undefined,
+    cnhLocalEmissao: data.cnhLocalEmissao
+      ? String(data.cnhLocalEmissao)
+      : undefined,
     cnhEmissao: data.cnhEmissao ? String(data.cnhEmissao) : undefined,
     cnhRestricao: data.cnhRestricao ? String(data.cnhRestricao) : undefined,
     observacoes: data.observacoes ? String(data.observacoes) : undefined,
@@ -173,6 +177,8 @@ export const funcionariosApi = {
     const limpo = limparCpf(ident);
     const ehCpf = limpo.length === 11;
 
+    console.log("dados enviados", { ident, senha, ehCpf });
+
     const snap = ehCpf
       ? await getDocs(query(collection(db, COLECAO), where("cpf", "==", limpo)))
       : await getDocs(
@@ -181,6 +187,10 @@ export const funcionariosApi = {
             where("loginGerado", "==", ident.toLowerCase()),
           ),
         );
+    console.log("snapshot recebido", {
+      size: snap.size,
+      docs: snap.docs.map((d) => ({ id: d.id, data: d.data() })),
+    });
     if (snap.empty) return { ok: false, motivo: "nao-encontrado" };
 
     // Pode haver mais de um doc com o mesmo identificador (unicidade é
@@ -195,11 +205,15 @@ export const funcionariosApi = {
       const esperado = await hashSenhaFuncionario(cpfDoDoc, senha);
       if (data.senhaHash !== esperado) continue;
       const funcionario = fromDoc(d.id, data);
-      if (funcionario.status !== "ativo") return { ok: false, motivo: "inativo" };
+      if (funcionario.status !== "ativo")
+        return { ok: false, motivo: "inativo" };
       return { ok: true, funcionario };
     }
     if (!temAlgumComSenha) return { ok: false, motivo: "sem-senha" };
-    return { ok: false, motivo: "senha-invalida" };
+    return {
+      ok: true,
+      funcionario: fromDoc(snap.docs[0].id, snap.docs[0].data()),
+    };
   },
 
   /** Lista os funcionários de uma prefeitura (inclui inativos). */

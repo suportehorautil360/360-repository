@@ -34,16 +34,48 @@ function formatDataHora(iso: string | null): string {
   });
 }
 
+const STATUS_BADGE_STYLES: Record<
+  EmergencyStatus,
+  { background: string; color: string; border: string }
+> = {
+  ABERTO: {
+    background: "rgba(239,68,68,0.15)",
+    color: "#fca5a5",
+    border: "1px solid rgba(239,68,68,0.35)",
+  },
+  EM_ATENDIMENTO: {
+    background: "rgba(249,115,22,0.15)",
+    color: "#fdba74",
+    border: "1px solid rgba(249,115,22,0.35)",
+  },
+  RESOLVIDO: {
+    background: "rgba(34,197,94,0.15)",
+    color: "#86efac",
+    border: "1px solid rgba(34,197,94,0.35)",
+  },
+  CANCELADO: {
+    background: "rgba(100,116,139,0.16)",
+    color: "#cbd5e1",
+    border: "1px solid rgba(148,163,184,0.35)",
+  },
+};
+
+const STATUS_SELECT_CLASS: Record<EmergencyStatus, string> = {
+  ABERTO: "aberto",
+  EM_ATENDIMENTO: "em-atendimento",
+  RESOLVIDO: "resolvido",
+  CANCELADO: "cancelado",
+};
+
 function StatusBadge({ status }: { status: EmergencyStatus }) {
-  const isResolvido = status === "RESOLVIDO";
+  const badgeStyle = STATUS_BADGE_STYLES[status];
+
   return (
     <span
       style={{
-        background: isResolvido
-          ? "rgba(34,197,94,0.15)"
-          : "rgba(239,68,68,0.15)",
-        color: isResolvido ? "#86efac" : "#fca5a5",
-        border: `1px solid ${isResolvido ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)"}`,
+        background: badgeStyle.background,
+        color: badgeStyle.color,
+        border: badgeStyle.border,
         padding: "2px 10px",
         borderRadius: 4,
         fontSize: "0.76rem",
@@ -134,7 +166,9 @@ function EmergenciaModal({
               <span className="emg-meta-label">Origem</span>
               <span className="emg-meta-value">
                 Checklist automático
-                {emergencia.questionLabel ? ` · ${emergencia.questionLabel}` : ""}
+                {emergencia.questionLabel
+                  ? ` · ${emergencia.questionLabel}`
+                  : ""}
               </span>
             </div>
           ) : null}
@@ -264,7 +298,7 @@ export function EmergenciaTable({ prefeituraId }: EmergenciaTableProps) {
                   <td style={{ maxWidth: 220 }}>{row.descricao}</td>
                   <td>
                     <select
-                      className={`emg-status-select emg-status-select--${row.statusAtendimento === "RESOLVIDO" ? "resolvido" : "aberto"}`}
+                      className={`emg-status-select emg-status-select--${STATUS_SELECT_CLASS[row.statusAtendimento]}`}
                       value={row.statusAtendimento}
                       disabled={atualizando === row.id}
                       onChange={(e) =>
@@ -306,7 +340,9 @@ export function EmergenciaTable({ prefeituraId }: EmergenciaTableProps) {
   );
 }
 
-async function carregarEmergencias(prefeituraId: string): Promise<Emergencia[]> {
+async function carregarEmergencias(
+  prefeituraId: string,
+): Promise<Emergencia[]> {
   try {
     return await emergenciasApi.listar(prefeituraId);
   } catch {

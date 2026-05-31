@@ -112,7 +112,9 @@
 /* ============== APP SHELL ============== */
 .prefeitura-root .pf-app-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .prefeitura-root #sidebar {
@@ -179,6 +181,7 @@
 /* ============== MAIN ============== */
 .prefeitura-root #main {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 24px 30px 40px;
   color: #e2e8f0;

@@ -191,6 +191,17 @@
   border-color: rgba(239, 68, 68, 0.7);
 }
 
+.emg-status-select--em-atendimento {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fdba74;
+  border-color: rgba(249, 115, 22, 0.45);
+}
+
+.emg-status-select--em-atendimento:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: rgba(249, 115, 22, 0.7);
+}
+
 .emg-status-select--resolvido {
   background: rgba(34, 197, 94, 0.15);
   color: #86efac;
@@ -200,4 +211,15 @@
 .emg-status-select--resolvido:hover:not(:disabled) {
   background: rgba(34, 197, 94, 0.25);
   border-color: rgba(34, 197, 94, 0.7);
+}
+
+.emg-status-select--cancelado {
+  background: rgba(100, 116, 139, 0.16);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+.emg-status-select--cancelado:hover:not(:disabled) {
+  background: rgba(100, 116, 139, 0.28);
+  border-color: rgba(148, 163, 184, 0.7);
 }

@@ -14,9 +14,11 @@
   display: flex;
   flex-direction: column;
   width: 290px;
-  /* Preenche a altura da coluna do app-shell (que é fixa em 100dvh).
-     O conteúdo do menu rola só internamente (ver .hu-sidebar__nav). */
+  /* Preenche a altura da coluna do app-shell (que e fixa em 100dvh).
+     Em caso de conteúdo maior que a viewport, a barra lateral inteira rola. */
   height: 100%;
+  max-height: 100vh;
+  max-height: 100dvh;
   overflow: hidden;
   background: linear-gradient(180deg, #070b16 0%, #0f172c 100%);
   border-right: 1px solid var(--hu-sb-border);
@@ -91,20 +93,81 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 14px 12px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(147, 164, 198, 0.32) transparent;
+  scrollbar-gutter: stable;
 }
 
-.hu-sidebar__group + .hu-sidebar__group {
-  margin-top: 18px;
+.hu-sidebar__nav::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hu-sidebar__nav::-webkit-scrollbar-thumb {
+  background: rgba(147, 164, 198, 0.28);
+  border-radius: 999px;
+}
+
+.hu-sidebar__nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hu-sidebar__accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hu-sidebar__group {
+  border: 0;
+}
+
+.hu-sidebar__group--plain {
+  padding-top: 2px;
+}
+
+.hu-sidebar__group-trigger {
+  width: 100%;
+  padding: 0 8px 8px;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  color: var(--hu-sb-muted);
+}
+
+.hu-sidebar__group-trigger:hover {
+  background: transparent;
+  color: var(--hu-sb-text);
+  text-decoration: none;
+}
+
+.hu-sidebar__group-trigger[data-state="open"] {
+  background: transparent;
+  color: var(--hu-sb-text);
+}
+
+.hu-sidebar__group-trigger svg {
+  color: var(--hu-sb-muted);
+}
+
+.hu-sidebar__group-content {
+  padding: 0;
+}
+
+.hu-sidebar__group-items {
+  display: flex;
+  flex-direction: column;
 }
 
 .hu-sidebar__group-label {
-  margin: 0 8px 8px;
+  margin: 0;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--hu-sb-muted);
+  color: inherit;
 }
 
 .hu-sidebar__item {
@@ -118,7 +181,10 @@
   color: var(--hu-sb-muted);
   text-decoration: none;
   font-size: 0.92rem;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .hu-sidebar__item:hover {
@@ -200,7 +266,9 @@
   font: inherit;
   font-size: 0.9rem;
   font-weight: 700;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .hu-sidebar__logout:hover {
