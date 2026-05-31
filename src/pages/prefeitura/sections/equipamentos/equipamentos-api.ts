@@ -26,18 +26,91 @@ export interface EquipRow {
   unidadeRevisao: UnidadeRevisao;
 }
 
-/** Dados do formulário de cadastro (sem id/derivados). */
+/** Dados do formulário de cadastro completo (sem id/derivados). */
 export interface NovoEquip {
-  descricao: string;
-  chassis: string;
+  // Identificação
   placa: string;
-  tipo: string;
-  ano: string;
+  chassis: string;
+  renavam: string;
+  numeroSerie: string;
+  patrimonioBase: string;
+  // Veículo
   marca: string;
+  modelo: string;
+  cor: string;
+  combustivel: string;
+  tipo: string;
+  tipoFrota: string;
+  motorizacao: string;
+  anoFabricacao: string;
+  anoModelo: string;
+  capacidadeTanque: number;
+  valorVeiculo: number;
+  // Operação / revisão
+  status: StatusEquipamento;
   medicaoAtual: number;
   intervaloRevisao: number;
-  unidadeRevisao: UnidadeRevisao;
+  condutorResponsavel: string;
+  gestorResponsavel: string;
+  // Localização
+  centroCusto: string;
+  cidade: string;
+  estado: string;
+  regiao: string;
+  // Documentos (datas yyyy-mm-dd)
+  ipva: string;
+  seguro: string;
+  licenciamento: string;
+  // Locação
+  vigenciaInicio: string;
+  vigenciaFim: string;
+  inativarAposVigencia: boolean;
 }
+
+/** Opções dos selects do formulário. */
+export const TIPO_OPTIONS = [
+  "Carro Leve",
+  "Caminhões",
+  "Munck",
+  "Pipa",
+  "Basculante",
+  "Betoneira",
+  "Comboio",
+  "Ambulância",
+  "Baú",
+  "Motoniveladora",
+  "Escavadeira",
+  "Trator de Esteira",
+  "Retroescavadeira",
+  "Pá Carregadeira",
+  "Rolo Compactador",
+  "Trator",
+];
+
+export const COMBUSTIVEL_OPTIONS = [
+  "Diesel",
+  "Diesel S10",
+  "Gasolina",
+  "Etanol",
+  "Flex",
+  "GNV",
+  "Elétrico",
+  "Híbrido",
+];
+
+export const FROTA_OPTIONS = ["Própria", "Locada"];
+
+export const STATUS_OPTIONS: { value: StatusEquipamento; label: string }[] = [
+  { value: "ativo", label: "Ativo" },
+  { value: "bloqueado", label: "Bloqueado" },
+  { value: "inativo", label: "Inativo" },
+];
+
+export const UF_OPTIONS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+  "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+];
 
 /** Dados informados no modal de revisão. */
 export interface RevisaoEquipInput {
@@ -219,22 +292,54 @@ export const equipamentosApi = {
 
   /** Cria um equipamento e devolve a linha normalizada. */
   async criar(input: NovoEquip, prefeituraId: string): Promise<EquipRow> {
+    const descricao = `${input.marca} ${input.modelo}`.trim() || input.modelo;
+    const unidadeRevisao = unitForTipo(input.tipo);
     const payload = {
       prefeituraId,
-      descricao: input.descricao,
-      modelo: input.descricao,
+      // Identificação
+      descricao,
+      label: descricao,
+      modelo: input.modelo,
       chassis: input.chassis,
       placa: input.placa,
+      renavam: input.renavam,
+      numeroSerie: input.numeroSerie,
+      patrimonioBase: input.patrimonioBase,
+      // Veículo
+      marca: input.marca,
+      cor: input.cor,
+      combustivel: input.combustivel,
       tipo: input.tipo,
       linha: input.tipo,
-      ano: input.ano,
-      marca: input.marca,
+      tipoFrota: input.tipoFrota,
+      motorizacao: input.motorizacao,
+      ano: input.anoFabricacao,
+      anoFabricacao: input.anoFabricacao,
+      anoModelo: input.anoModelo,
+      capacidadeTanque: input.capacidadeTanque,
+      valorVeiculo: input.valorVeiculo,
+      // Operação / revisão
+      status: input.status,
       medicaoAtual: input.medicaoAtual,
       intervaloRevisao: input.intervaloRevisao,
-      unidadeRevisao: input.unidadeRevisao,
+      unidadeRevisao,
       ultimaRevisao: input.medicaoAtual,
+      condutorResponsavel: input.condutorResponsavel,
+      gestorResponsavel: input.gestorResponsavel,
+      // Localização
+      centroCusto: input.centroCusto,
+      cidade: input.cidade,
+      estado: input.estado,
+      regiao: input.regiao,
+      // Documentos
+      ipva: input.ipva,
+      seguro: input.seguro,
+      licenciamento: input.licenciamento,
+      // Locação
+      vigenciaInicio: input.vigenciaInicio,
+      vigenciaFim: input.vigenciaFim,
+      inativarAposVigencia: input.inativarAposVigencia,
       obra: "",
-      status: "ativo" as const,
     };
     const r = await api.post<{ data: Record<string, unknown> }>(
       "/equipamentos",

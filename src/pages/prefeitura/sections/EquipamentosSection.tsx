@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  defaultInterval,
   equipamentosApi,
-  unitForTipo,
   type EquipRow,
   type StatusEquipamento,
   type UnidadeRevisao,
@@ -16,18 +14,6 @@ interface EquipamentosSectionProps {
   labelMunicipio: string;
 }
 
-interface EquipFormState {
-  nomeModelo: string;
-  chassis: string;
-  placa: string;
-  tipo: string;
-  ano: string;
-  medicaoAtual: string;
-  marca: string;
-  intervaloRevisao: string;
-  unidadeRevisao: UnidadeRevisao | "auto";
-}
-
 interface RevisaoFormState {
   data: string;
   leitura: string;
@@ -36,37 +22,6 @@ interface RevisaoFormState {
   custo: string;
   notaFiscal: string;
 }
-
-const TIPO_OPTIONS = [
-  "Carro Leve",
-  "Caminhões",
-  "Munck",
-  "Pipa",
-  "Basculante",
-  "Betoneira",
-  "Comboio",
-  "Ambulância",
-  "Baú",
-  "Motoniveladora",
-  "Escavadeira",
-  "Trator de Esteira",
-  "Retroescavadeira",
-  "Pá Carregadeira",
-  "Rolo Compactador",
-  "Trator",
-];
-
-const emptyForm: EquipFormState = {
-  nomeModelo: "",
-  chassis: "",
-  placa: "",
-  tipo: "Carro",
-  ano: "",
-  medicaoAtual: "0",
-  marca: "",
-  intervaloRevisao: "0",
-  unidadeRevisao: "auto",
-};
 
 function hojeISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -134,12 +89,11 @@ export function EquipamentosSection({
   prefeituraId,
   labelMunicipio,
 }: EquipamentosSectionProps) {
+  const navigate = useNavigate();
   const [lista, setLista] = useState<EquipRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
-  const [modalNovoAberto, setModalNovoAberto] = useState(false);
-  const [form, setForm] = useState<EquipFormState>(emptyForm);
   const [editando, setEditando] = useState<EquipRow | null>(null);
   const [novaMedicao, setNovaMedicao] = useState("");
   const [revisando, setRevisando] = useState<EquipRow | null>(null);
@@ -192,64 +146,6 @@ export function EquipamentosSection({
       atencao: atencao.length,
     };
   }, [lista]);
-
-  const salvarNovo = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!prefeituraId || saving) return;
-
-    const nomeModelo = form.nomeModelo.trim();
-    const chassis = form.chassis.trim();
-    const placa = form.placa.trim();
-    if (!nomeModelo || !chassis) {
-      toast.error("Informe nome/modelo e chassi do equipamento.");
-      return;
-    }
-    if (lista.some((eq) => eq.chassis.toLowerCase() === chassis.toLowerCase())) {
-      toast.error("Já existe um equipamento com esse chassi.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const tipo = form.tipo || "Equipamento";
-      const unidade =
-        form.unidadeRevisao === "auto"
-          ? unitForTipo(tipo)
-          : form.unidadeRevisao;
-      const medicaoAtual = asNumber(form.medicaoAtual);
-      const intervaloRevisao =
-        asNumber(form.intervaloRevisao) || defaultInterval(tipo, unidade);
-
-      const nova = await equipamentosApi.criar(
-        {
-          descricao: nomeModelo,
-          chassis,
-          placa,
-          tipo,
-          ano: form.ano.trim(),
-          marca: form.marca.trim(),
-          medicaoAtual,
-          intervaloRevisao,
-          unidadeRevisao: unidade,
-        },
-        prefeituraId,
-      );
-
-      setLista((prev) =>
-        [...prev, nova].sort((a, b) =>
-          a.descricao.localeCompare(b.descricao, "pt-BR"),
-        ),
-      );
-      setForm(emptyForm);
-      setModalNovoAberto(false);
-      toast.success("Equipamento cadastrado.");
-    } catch (err) {
-      console.error("[Prefeitura Equipamentos] Erro ao salvar:", err);
-      toast.error("Não foi possível salvar o equipamento.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const abrirAtualizacao = (eq: EquipRow) => {
     setEditando(eq);
@@ -422,7 +318,9 @@ export function EquipamentosSection({
               <button
                 className="pf-eq-primary"
                 type="button"
-                onClick={() => setModalNovoAberto(true)}
+                onClick={() =>
+                  navigate(`/prefeitura/${prefeituraId}/equipamentos/novo`)
+                }
               >
                 + Equipamento
               </button>
@@ -677,145 +575,6 @@ export function EquipamentosSection({
               </button>
               <button type="submit" disabled={saving}>
                 Concluir e liberar
-              </button>
-            </footer>
-          </form>
-        </div>
-      ) : null}
-
-      {modalNovoAberto ? (
-        <div className="pf-modal-overlay pf-eq-modal-overlay">
-          <form className="pf-eq-modal pf-eq-modal-wide" onSubmit={salvarNovo}>
-            <header>
-              <h2>Adicionar equipamento</h2>
-              <button type="button" onClick={() => setModalNovoAberto(false)}>
-                ×
-              </button>
-            </header>
-            <div className="pf-eq-modal-body pf-eq-form-grid">
-              <label>
-                Nome / modelo <span className="pf-eq-required">*</span>
-                <input
-                  required
-                  value={form.nomeModelo}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      nomeModelo: event.target.value,
-                    }))
-                  }
-                  placeholder="Ex.: Scania R450"
-                />
-              </label>
-              <label>
-                Chassi <span className="pf-eq-required">*</span>
-                <input
-                  required
-                  value={form.chassis}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, chassis: event.target.value }))
-                  }
-                  placeholder="Ex.: 9BWZZZ377VT004251 ou MQ-02"
-                />
-              </label>
-              <label>
-                Placa / ID visual
-                <input
-                  value={form.placa}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, placa: event.target.value }))
-                  }
-                  placeholder="Ex.: ABC-1234"
-                />
-              </label>
-              <label>
-                Tipo <span className="pf-eq-required">*</span>
-                <select
-                  required
-                  value={form.tipo}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, tipo: event.target.value }))
-                  }
-                >
-                  {TIPO_OPTIONS.map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Ano
-                <input
-                  value={form.ano}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, ano: event.target.value }))
-                  }
-                  placeholder="2022"
-                  inputMode="numeric"
-                />
-              </label>
-              <label>
-                Km / horímetro atual
-                <input
-                  value={form.medicaoAtual}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      medicaoAtual: event.target.value,
-                    }))
-                  }
-                  inputMode="numeric"
-                />
-              </label>
-              <label>
-                Marca
-                <input
-                  value={form.marca}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, marca: event.target.value }))
-                  }
-                  placeholder="Scania, Caterpillar..."
-                />
-              </label>
-              <label>
-                Intervalo revisão
-                <input
-                  value={form.intervaloRevisao}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      intervaloRevisao: event.target.value,
-                    }))
-                  }
-                  placeholder="0 = usar padrão"
-                  inputMode="numeric"
-                />
-              </label>
-              <label>
-                Unidade revisão
-                <select
-                  value={form.unidadeRevisao}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      unidadeRevisao: event.target
-                        .value as EquipFormState["unidadeRevisao"],
-                    }))
-                  }
-                >
-                  <option value="auto">Auto (por tipo)</option>
-                  <option value="km">Km</option>
-                  <option value="h">Horas</option>
-                </select>
-              </label>
-            </div>
-            <footer>
-              <button type="button" onClick={() => setModalNovoAberto(false)}>
-                Cancelar
-              </button>
-              <button type="submit" disabled={saving}>
-                Salvar
               </button>
             </footer>
           </form>
