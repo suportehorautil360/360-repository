@@ -59,7 +59,8 @@ export function useFrota(prefeituraId: string | undefined): UseFrota {
 
   const adicionar = useCallback(
     async (data: VeiculoFrotaInput) => {
-      if (!prefeituraId) return { ok: false, message: "Selecione a prefeitura." };
+      if (!prefeituraId)
+        return { ok: false, message: "Selecione a prefeitura." };
       const placa = data.placa.trim();
       if (!placa) return { ok: false, message: "Informe a placa / código." };
       if (!data.nome.trim()) return { ok: false, message: "Informe o nome." };
@@ -128,6 +129,14 @@ export function useFrota(prefeituraId: string | undefined): UseFrota {
             : v,
         ),
       );
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("hu360:frota-revisao-atualizada", {
+            detail: { prefeituraId },
+          }),
+        );
+      }
     },
     [prefeituraId],
   );

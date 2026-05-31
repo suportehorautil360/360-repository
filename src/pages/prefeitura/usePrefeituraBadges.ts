@@ -18,34 +18,56 @@ export function usePrefeituraBadges(
 
   useEffect(() => {
     let vivo = true;
-    if (!prefeituraId) return;
+    if (!prefeituraId) {
+      setRevisoes(undefined);
+      setPontosRh(undefined);
+      return;
+    }
 
-    frotaApi
-      .listar(prefeituraId)
-      .then((lista) => {
-        if (!vivo) return;
-        const n = lista.filter(isVencido).length;
-        setRevisoes(n > 0 ? n : undefined);
-      })
-      .catch(() => {});
-
-    if (pontoAtivo) {
-      pontosApi
+    const carregarBadges = () => {
+      frotaApi
         .listar(prefeituraId)
         .then((lista) => {
           if (!vivo) return;
-          const n = lista.filter(
-            (p) => (p.status ?? "pendente") === "pendente",
-          ).length;
-          setPontosRh(n > 0 ? n : undefined);
+          const n = lista.filter(isVencido).length;
+          setRevisoes(n > 0 ? n : undefined);
         })
         .catch(() => {});
-    } else {
-      setPontosRh(undefined);
-    }
+
+      if (pontoAtivo) {
+        pontosApi
+          .listar(prefeituraId)
+          .then((lista) => {
+            if (!vivo) return;
+            const n = lista.filter(
+              (p) => (p.status ?? "pendente") === "pendente",
+            ).length;
+            setPontosRh(n > 0 ? n : undefined);
+          })
+          .catch(() => {});
+      } else {
+        setPontosRh(undefined);
+      }
+    };
+
+    const onRevisaoAtualizada = (event: Event) => {
+      const detail = (event as CustomEvent<{ prefeituraId?: string }>).detail;
+      if (detail?.prefeituraId && detail.prefeituraId !== prefeituraId) return;
+      carregarBadges();
+    };
+
+    carregarBadges();
+    window.addEventListener(
+      "hu360:frota-revisao-atualizada",
+      onRevisaoAtualizada,
+    );
 
     return () => {
       vivo = false;
+      window.removeEventListener(
+        "hu360:frota-revisao-atualizada",
+        onRevisaoAtualizada,
+      );
     };
   }, [prefeituraId, pontoAtivo]);
 

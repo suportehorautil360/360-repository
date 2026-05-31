@@ -43,7 +43,26 @@ import {
   startOfLocalDayIso,
 } from "../../features/checklist";
 
-type Aba = "dashboard" | "checklist" | "auditoria" | "emergencia" | "pontos";
+type Aba =
+  | "dashboard"
+  | "preventivas"
+  | "checklist"
+  | "auditoria"
+  | "emergencia"
+  | "pontos";
+
+type PreventivaStatus = "em_dia" | "vencida" | "proxima";
+
+type PreventivaRow = {
+  veiculo: string;
+  codigo: string;
+  servico: string;
+  controle: string;
+  intervalo: string;
+  ultima: string;
+  proxima: string;
+  status: PreventivaStatus;
+};
 
 type ItemChecklist =
   | (typeof seedData.itens_checklist)[number]
@@ -51,9 +70,7 @@ type ItemChecklist =
 
 /** True se o item é classificado como `impeditivo` no seed (default = não). */
 function itemImpeditivo(it: ItemChecklist): boolean {
-  return (
-    (it as { Severidade?: string }).Severidade === "impeditivo"
-  );
+  return (it as { Severidade?: string }).Severidade === "impeditivo";
 }
 
 /** Resposta por item: «Não» exige foto ao vivo + descrição do problema; N/A não entra no cálculo. */
@@ -214,15 +231,58 @@ function saveChecklistHistory(rows: Record<string, unknown>[]) {
 const ABAS: {
   id: Aba;
   label: string;
-  icon: "dash" | "check" | "audit" | "alert" | "clock";
+  icon: "dash" | "wrench" | "check" | "audit" | "alert" | "clock";
 }[] = [
   { id: "dashboard", label: "Dashboard", icon: "dash" },
+  { id: "preventivas", label: "Preventivas", icon: "wrench" },
   { id: "checklist", label: "Checklist", icon: "check" },
   { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
   { id: "emergencia", label: "Emergências", icon: "alert" },
   { id: "pontos", label: "Pontos", icon: "clock" },
 ];
 
+const PREVENTIVAS_EXEMPLO: PreventivaRow[] = [
+  {
+    veiculo: "Scania R450",
+    codigo: "TRK-001",
+    servico: "Troca de óleo",
+    controle: "KM",
+    intervalo: "10.000 km",
+    ultima: "120.000 km",
+    proxima: "130.000 km",
+    status: "em_dia",
+  },
+  {
+    veiculo: "Caterpillar 320",
+    codigo: "MQ-01",
+    servico: "Filtro de ar",
+    controle: "Horímetro",
+    intervalo: "500 h",
+    ultima: "750h",
+    proxima: "1250h",
+    status: "vencida",
+  },
+  {
+    veiculo: "Civic",
+    codigo: "CAR-003",
+    servico: "Revisão pneus",
+    controle: "KM",
+    intervalo: "50.000 km",
+    ultima: "0 km",
+    proxima: "50.000 km",
+    status: "proxima",
+  },
+  {
+    veiculo: "Sprinter",
+    codigo: "VAN-002",
+    servico: "Correia dentada",
+    controle: "KM",
+    intervalo: "70.000 km",
+    ultima: "0 km",
+    proxima: "70.000 km",
+    status: "proxima",
+  },
+];
 
 function parseRespostasChecklist(row: Record<string, unknown>): {
   total: number;
@@ -301,7 +361,7 @@ function firestoreDocToHistRow(
 function Hu360NavIcon({
   kind,
 }: {
-  kind: "dash" | "check" | "audit" | "alert" | "clock";
+  kind: "dash" | "wrench" | "check" | "audit" | "alert" | "clock";
 }) {
   const s = {
     width: 20,
@@ -329,6 +389,13 @@ function Hu360NavIcon({
         <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
         <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
         <path d="m9 12 2 2 4-4" />
+      </svg>
+    );
+  }
+  if (kind === "wrench") {
+    return (
+      <svg {...s} aria-hidden>
+        <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6a1.5 1.5 0 0 1-2.2-2.2z" />
       </svg>
     );
   }
@@ -1360,8 +1427,7 @@ export function ChecklistControlePage() {
     // Não bloqueia em definitivo (o gestor decide via auditoria), mas pede
     // confirmação dupla pra evitar registro descuidado.
     const impeditivosViolados = itensFiltrados.filter(
-      (it) =>
-        itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
+      (it) => itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
     );
     if (impeditivosViolados.length > 0) {
       const lista = impeditivosViolados
@@ -1489,11 +1555,14 @@ export function ChecklistControlePage() {
         resposta: answers[String(item["Nº"])],
       }))
       .filter(
-        (row): row is {
+        (
+          row,
+        ): row is {
           item: ItemChecklist;
           key: string;
           resposta: { v: "nao"; foto: string; problema: string };
-        } => row.resposta?.v === "nao" && checklistRespostaCompleta(row.resposta),
+        } =>
+          row.resposta?.v === "nao" && checklistRespostaCompleta(row.resposta),
       );
     if (itensNao.length === 0) return;
 
@@ -1955,6 +2024,92 @@ export function ChecklistControlePage() {
           </section>
         ) : null}
 
+        {aba === "preventivas" ? (
+          <section className="hu360-page">
+            <div className="hu360-preventiva-wrap">
+              <div className="hu360-preventiva-head">
+                <h2 className="hu360-preventiva-title">
+                  Plano de manutenção preventiva
+                </h2>
+                <button
+                  type="button"
+                  className="hu360-preventiva-register"
+                  onClick={() =>
+                    toast.info(
+                      "Cadastro de preventiva será integrado na próxima etapa.",
+                    )
+                  }
+                >
+                  + Registrar
+                </button>
+              </div>
+
+              <div className="hu360-preventiva-table-wrap">
+                <table className="hu360-preventiva-table">
+                  <thead>
+                    <tr>
+                      <th>Veículo</th>
+                      <th>Serviço</th>
+                      <th>Controle</th>
+                      <th>Intervalo</th>
+                      <th>Última</th>
+                      <th>Próxima</th>
+                      <th>Status</th>
+                      <th aria-label="Ações" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PREVENTIVAS_EXEMPLO.map((row) => {
+                      const statusLabel =
+                        row.status === "em_dia"
+                          ? "Em dia"
+                          : row.status === "vencida"
+                            ? "Vencida"
+                            : "Próxima";
+                      const statusClass =
+                        row.status === "em_dia"
+                          ? "is-ok"
+                          : row.status === "vencida"
+                            ? "is-overdue"
+                            : "is-next";
+                      return (
+                        <tr key={`${row.codigo}-${row.servico}`}>
+                          <td>
+                            <span className="hu360-preventiva-vehicle">
+                              {row.veiculo}
+                            </span>
+                            <small>{row.codigo}</small>
+                          </td>
+                          <td>{row.servico}</td>
+                          <td>{row.controle}</td>
+                          <td>{row.intervalo}</td>
+                          <td>{row.ultima}</td>
+                          <td>{row.proxima}</td>
+                          <td>
+                            <span
+                              className={`hu360-preventiva-status ${statusClass}`}
+                            >
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="hu360-preventiva-done"
+                            >
+                              ✓ Feito
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         {aba === "checklist" ? (
           <section className="hu360-page">
             <p className="hu360-page__lead">
@@ -2037,7 +2192,7 @@ export function ChecklistControlePage() {
                   style={{ marginTop: 16 }}
                 >
                   <label htmlFor="hu360-nome-operador-chk">
-                    Nome do operador <span style={{ color: "#dc2626" }}>*</span>
+                    Nome <span style={{ color: "#dc2626" }}>*</span>
                   </label>
                   <input
                     id="hu360-nome-operador-chk"
@@ -2634,9 +2789,7 @@ export function ChecklistControlePage() {
                   </p>
                 </div>
 
-                <label htmlFor="hu360-nome-operador-emerg">
-                  Nome do operador
-                </label>
+                <label htmlFor="hu360-nome-operador-emerg">Nome</label>
                 <input
                   id="hu360-nome-operador-emerg"
                   value={nomeOperadorEmerg}
@@ -3012,18 +3165,19 @@ export function ChecklistControlePage() {
             {pwaEstado === "manual-ios" ? (
               <div>
                 <p>No Safari do iPhone/iPad:</p>
-                <ol style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
+                <ol
+                  style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}
+                >
                   <li>
                     Toque no botão <strong>Compartilhar</strong> (□↑) na barra
                     inferior.
                   </li>
                   <li>
-                    Role e toque em{" "}
-                    <strong>Adicionar à Tela de Início</strong>.
+                    Role e toque em <strong>Adicionar à Tela de Início</strong>.
                   </li>
                   <li>
-                    Toque em <strong>Adicionar</strong>. O app vai aparecer
-                    como ícone na tela inicial.
+                    Toque em <strong>Adicionar</strong>. O app vai aparecer como
+                    ícone na tela inicial.
                   </li>
                 </ol>
               </div>
@@ -3033,10 +3187,18 @@ export function ChecklistControlePage() {
                   Abra o menu do navegador (⋮ ou ⋯) e procure por uma das
                   opções:
                 </p>
-                <ul style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}>
-                  <li><strong>Instalar app</strong></li>
-                  <li><strong>Adicionar à tela inicial</strong></li>
-                  <li><strong>Criar atalho</strong></li>
+                <ul
+                  style={{ paddingLeft: 20, margin: "8px 0", lineHeight: 1.6 }}
+                >
+                  <li>
+                    <strong>Instalar app</strong>
+                  </li>
+                  <li>
+                    <strong>Adicionar à tela inicial</strong>
+                  </li>
+                  <li>
+                    <strong>Criar atalho</strong>
+                  </li>
                 </ul>
                 <p style={{ marginTop: 12, fontSize: "0.85rem", opacity: 0.8 }}>
                   Se nenhuma opção aparecer, abra o site em outro navegador

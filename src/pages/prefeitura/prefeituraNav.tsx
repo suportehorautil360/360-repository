@@ -1,10 +1,14 @@
-import type { SidebarBrand, SidebarGroup } from "../../components/Sidebar/types";
+import type {
+  SidebarBrand,
+  SidebarGroup,
+} from "../../components/Sidebar/types";
 
 /** Slugs das seções com tela de verdade (o resto é placeholder "em construção"). */
 export const SECOES_REAIS = new Set([
   "dashboard",
   "abastecimento",
   "frota",
+  "revisoes",
   "equipamentos",
   "cadastros",
   "funcionarios",
@@ -91,7 +95,11 @@ export function prefeituraNav(
       label: "Gestão de Frota",
       items: [
         { label: "Frota", to: to("frota"), icon: "🚚" },
-        { label: "Frentes de Trabalho", to: to("frentes-trabalho"), icon: "🏗️" },
+        {
+          label: "Frentes de Trabalho",
+          to: to("frentes-trabalho"),
+          icon: "🏗️",
+        },
         { label: "Alocação", to: to("alocacao"), icon: "📋" },
       ],
     },
