@@ -4,6 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   equipamentosApi,
+  isBloqueado,
+  isVencido,
+  textoVencimento,
   type EquipRow,
   type StatusEquipamento,
   type UnidadeRevisao,
@@ -48,11 +51,8 @@ function formatMedicao(value: number, unidade: UnidadeRevisao): string {
   return `${Math.max(0, value).toLocaleString("pt-BR")} ${unidade}`;
 }
 
-function statusRevisao(eq: EquipRow): "Bloqueado" | "Atenção" | "Em dia" {
-  if (eq.status !== "ativo") return "Bloqueado";
-  if (!eq.intervaloRevisao) return "Em dia";
-  const usadoDesdeRevisao = eq.medicaoAtual - eq.ultimaRevisao;
-  return usadoDesdeRevisao >= eq.intervaloRevisao ? "Atenção" : "Em dia";
+function statusRevisao(eq: EquipRow): "Bloqueado" | "Em dia" {
+  return isBloqueado(eq) ? "Bloqueado" : "Em dia";
 }
 
 function typeIcon(tipo: string): string {
@@ -136,16 +136,16 @@ export function EquipamentosSection({
     );
   }, [busca, lista]);
 
-  const metricas = useMemo(() => {
-    const bloqueados = lista.filter((eq) => statusRevisao(eq) === "Bloqueado");
-    const atencao = lista.filter((eq) => statusRevisao(eq) === "Atenção");
-    return {
+  const metricas = useMemo(
+    () => ({
       total: lista.length,
-      ativos: lista.filter((eq) => eq.status === "ativo").length,
-      bloqueados: bloqueados.length,
-      atencao: atencao.length,
-    };
-  }, [lista]);
+      emDia: lista.filter((eq) => !isBloqueado(eq)).length,
+      vencidos: lista.filter((eq) => isVencido(eq) && eq.status === "ativo")
+        .length,
+      bloqueados: lista.filter((eq) => eq.status !== "ativo").length,
+    }),
+    [lista],
+  );
 
   const abrirAtualizacao = (eq: EquipRow) => {
     setEditando(eq);
@@ -291,12 +291,12 @@ export function EquipamentosSection({
             <strong>{metricas.total}</strong>
           </article>
           <article>
-            <span>Ativos</span>
-            <strong>{metricas.ativos}</strong>
+            <span>Em dia</span>
+            <strong>{metricas.emDia}</strong>
           </article>
           <article>
-            <span>Em atenção</span>
-            <strong>{metricas.atencao}</strong>
+            <span>Vencidos</span>
+            <strong>{metricas.vencidos}</strong>
           </article>
           <article>
             <span>Bloqueados</span>
@@ -409,13 +409,15 @@ export function EquipamentosSection({
                             >
                               Atualizar
                             </button>
-                            <button
-                              type="button"
-                              className="pf-eq-secondary"
-                              onClick={() => abrirRevisao(eq)}
-                            >
-                              Revisão
-                            </button>
+                            {isBloqueado(eq) ? (
+                              <button
+                                type="button"
+                                className="pf-eq-liberar"
+                                onClick={() => abrirRevisao(eq)}
+                              >
+                                Liberar
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               className="pf-eq-lock"
@@ -495,7 +497,7 @@ export function EquipamentosSection({
           <form className="pf-eq-modal pf-eq-modal-wide" onSubmit={concluirRevisao}>
             <header>
               <h2>
-                Revisão — {revisando.descricao} (
+                Liberar — {revisando.descricao} (
                 {revisando.chassis || "sem ID"})
               </h2>
               <button
@@ -509,6 +511,9 @@ export function EquipamentosSection({
               </button>
             </header>
             <div className="pf-eq-modal-body pf-eq-form-grid">
+              <p className="pf-eq-liberar-resumo pf-eq-form-full">
+                {textoVencimento(revisando)}
+              </p>
               <label>
                 Data da revisão
                 <input

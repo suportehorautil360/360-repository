@@ -1180,6 +1180,32 @@
   grid-column: 1 / -1;
 }
 
+.prefeitura-root .pf-eq-liberar {
+  cursor: pointer;
+  white-space: nowrap;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 900;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1a1205;
+  background: linear-gradient(180deg, #fbbf24, #f59e0b);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.28);
+}
+
+.prefeitura-root .pf-eq-liberar-resumo {
+  margin: 0 0 4px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: #fcd34d;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .prefeitura-root .pf-eq-modal label {
   display: block;
   color: #8291aa;

@@ -215,6 +215,40 @@ export function defaultInterval(tipo: string, unidade: UnidadeRevisao): number {
     : 15000;
 }
 
+// --- Domínio de revisão/liberação (alinhado à Frota) ---
+
+/** Limite da próxima revisão (leitura na última revisão + intervalo). */
+export function revisaoEm(eq: EquipRow): number {
+  return eq.ultimaRevisao + eq.intervaloRevisao;
+}
+
+/** Vencido: uso desde a última revisão atingiu/passou o intervalo. */
+export function isVencido(eq: EquipRow): boolean {
+  if (!eq.intervaloRevisao) return false;
+  return eq.medicaoAtual - eq.ultimaRevisao >= eq.intervaloRevisao;
+}
+
+/** Precisa de liberação: vencido OU bloqueado/inativo manualmente. */
+export function isBloqueado(eq: EquipRow): boolean {
+  return isVencido(eq) || eq.status !== "ativo";
+}
+
+/** Resumo exibido no modal de liberação. */
+export function textoVencimento(eq: EquipRow): string {
+  const un = eq.unidadeRevisao;
+  const cab = `${eq.tipo} · ${eq.marca || "—"}`;
+  if (!isVencido(eq)) {
+    return `${cab} · Bloqueado manualmente. Conclua uma revisão para liberar.`;
+  }
+  const limite = revisaoEm(eq);
+  const excesso = Math.abs(eq.medicaoAtual - limite);
+  return (
+    `${cab} · Revisão vencida: limite de ${limite.toLocaleString("pt-BR")} ${un}, ` +
+    `leitura atual ${eq.medicaoAtual.toLocaleString("pt-BR")} ${un} ` +
+    `(excesso de ${excesso.toLocaleString("pt-BR")} ${un}).`
+  );
+}
+
 function normalizeStatus(value: unknown): StatusEquipamento {
   const raw = asText(value).toLowerCase();
   if (raw.includes("bloq") || raw === "blocked") return "bloqueado";
