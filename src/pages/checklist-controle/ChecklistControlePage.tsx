@@ -45,24 +45,10 @@ import {
 
 type Aba =
   | "dashboard"
-  | "preventivas"
   | "checklist"
   | "auditoria"
   | "emergencia"
   | "pontos";
-
-type PreventivaStatus = "em_dia" | "vencida" | "proxima";
-
-type PreventivaRow = {
-  veiculo: string;
-  codigo: string;
-  servico: string;
-  controle: string;
-  intervalo: string;
-  ultima: string;
-  proxima: string;
-  status: PreventivaStatus;
-};
 
 type ItemChecklist =
   | (typeof seedData.itens_checklist)[number]
@@ -231,57 +217,13 @@ function saveChecklistHistory(rows: Record<string, unknown>[]) {
 const ABAS: {
   id: Aba;
   label: string;
-  icon: "dash" | "wrench" | "check" | "audit" | "alert" | "clock";
+  icon: "dash" | "check" | "audit" | "alert" | "clock";
 }[] = [
   { id: "dashboard", label: "Dashboard", icon: "dash" },
-  { id: "preventivas", label: "Preventivas", icon: "wrench" },
   { id: "checklist", label: "Checklist", icon: "check" },
   { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
   { id: "emergencia", label: "Emergências", icon: "alert" },
   { id: "pontos", label: "Pontos", icon: "clock" },
-];
-
-const PREVENTIVAS_EXEMPLO: PreventivaRow[] = [
-  {
-    veiculo: "Scania R450",
-    codigo: "TRK-001",
-    servico: "Troca de óleo",
-    controle: "KM",
-    intervalo: "10.000 km",
-    ultima: "120.000 km",
-    proxima: "130.000 km",
-    status: "em_dia",
-  },
-  {
-    veiculo: "Caterpillar 320",
-    codigo: "MQ-01",
-    servico: "Filtro de ar",
-    controle: "Horímetro",
-    intervalo: "500 h",
-    ultima: "750h",
-    proxima: "1250h",
-    status: "vencida",
-  },
-  {
-    veiculo: "Civic",
-    codigo: "CAR-003",
-    servico: "Revisão pneus",
-    controle: "KM",
-    intervalo: "50.000 km",
-    ultima: "0 km",
-    proxima: "50.000 km",
-    status: "proxima",
-  },
-  {
-    veiculo: "Sprinter",
-    codigo: "VAN-002",
-    servico: "Correia dentada",
-    controle: "KM",
-    intervalo: "70.000 km",
-    ultima: "0 km",
-    proxima: "70.000 km",
-    status: "proxima",
-  },
 ];
 
 function parseRespostasChecklist(row: Record<string, unknown>): {
@@ -361,7 +303,7 @@ function firestoreDocToHistRow(
 function Hu360NavIcon({
   kind,
 }: {
-  kind: "dash" | "wrench" | "check" | "audit" | "alert" | "clock";
+  kind: "dash" | "check" | "audit" | "alert" | "clock";
 }) {
   const s = {
     width: 20,
@@ -389,13 +331,6 @@ function Hu360NavIcon({
         <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
         <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
         <path d="m9 12 2 2 4-4" />
-      </svg>
-    );
-  }
-  if (kind === "wrench") {
-    return (
-      <svg {...s} aria-hidden>
-        <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6a1.5 1.5 0 0 1-2.2-2.2z" />
       </svg>
     );
   }
@@ -2021,92 +1956,6 @@ export function ChecklistControlePage() {
                 )}
               </div>
             ) : null}
-          </section>
-        ) : null}
-
-        {aba === "preventivas" ? (
-          <section className="hu360-page">
-            <div className="hu360-preventiva-wrap">
-              <div className="hu360-preventiva-head">
-                <h2 className="hu360-preventiva-title">
-                  Plano de manutenção preventiva
-                </h2>
-                <button
-                  type="button"
-                  className="hu360-preventiva-register"
-                  onClick={() =>
-                    toast.info(
-                      "Cadastro de preventiva será integrado na próxima etapa.",
-                    )
-                  }
-                >
-                  + Registrar
-                </button>
-              </div>
-
-              <div className="hu360-preventiva-table-wrap">
-                <table className="hu360-preventiva-table">
-                  <thead>
-                    <tr>
-                      <th>Veículo</th>
-                      <th>Serviço</th>
-                      <th>Controle</th>
-                      <th>Intervalo</th>
-                      <th>Última</th>
-                      <th>Próxima</th>
-                      <th>Status</th>
-                      <th aria-label="Ações" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PREVENTIVAS_EXEMPLO.map((row) => {
-                      const statusLabel =
-                        row.status === "em_dia"
-                          ? "Em dia"
-                          : row.status === "vencida"
-                            ? "Vencida"
-                            : "Próxima";
-                      const statusClass =
-                        row.status === "em_dia"
-                          ? "is-ok"
-                          : row.status === "vencida"
-                            ? "is-overdue"
-                            : "is-next";
-                      return (
-                        <tr key={`${row.codigo}-${row.servico}`}>
-                          <td>
-                            <span className="hu360-preventiva-vehicle">
-                              {row.veiculo}
-                            </span>
-                            <small>{row.codigo}</small>
-                          </td>
-                          <td>{row.servico}</td>
-                          <td>{row.controle}</td>
-                          <td>{row.intervalo}</td>
-                          <td>{row.ultima}</td>
-                          <td>{row.proxima}</td>
-                          <td>
-                            <span
-                              className={`hu360-preventiva-status ${statusClass}`}
-                            >
-                              {statusLabel}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="hu360-preventiva-done"
-                            >
-                              ✓ Feito
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </section>
         ) : null}
 
