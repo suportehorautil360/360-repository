@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { setAdminAuthenticated } from "../../admin/adminSession";
 import {
   type AuthMessageTone,
@@ -108,15 +108,6 @@ export function LoginView({
             {mensagemAuth}
           </div>
         </form>
-        <p className="quick-access">
-          <Link
-            to="/checklist-login"
-            style={{ color: "var(--secondary, #3b82f6)", fontWeight: 600 }}
-          >
-            Controle checklist operacional (operador)
-          </Link>
-          {" · "}
-        </p>
       </div>
     </section>
   );

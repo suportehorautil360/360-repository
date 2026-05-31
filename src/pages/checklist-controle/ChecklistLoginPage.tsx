@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getDoc, doc as firestoreDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import { funcionariosApi } from "../../lib/funcionarios/funcionarios";
@@ -137,15 +137,6 @@ export function ChecklistLoginPage() {
             {loading ? "Verificando..." : "Entrar"}
           </button>
         </form>
-
-        <p className="quick-access">
-          <Link
-            to="/"
-            style={{ color: "var(--secondary, #3b82f6)", fontWeight: 600 }}
-          >
-            ← Voltar ao portal
-          </Link>
-        </p>
       </div>
     </section>
   );
