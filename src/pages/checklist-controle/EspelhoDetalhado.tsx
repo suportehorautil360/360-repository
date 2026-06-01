@@ -20,6 +20,10 @@ interface Props {
   /** CPF do funcionário (necessário pra casar com abonos). */
   funcionarioCpf?: string;
   onVoltar: () => void;
+  /** Quando definido (contexto RH), as linhas viram clicáveis (abrir o dia). */
+  onSelecionarDia?: (dia: string, batidas: PontoRegistro[]) => void;
+  /** Dias (YYYY-MM-DD) com pendências a revisar — marca um badge na linha. */
+  diasComPendencia?: Set<string>;
 }
 
 function diaLocal(iso: string): string {
@@ -52,6 +56,8 @@ export function EspelhoDetalhado({
   abonos,
   funcionarioCpf,
   onVoltar,
+  onSelecionarDia,
+  diasComPendencia,
 }: Props) {
   const [mes, setMes] = useState(() => {
     const d = new Date();
@@ -208,8 +214,19 @@ export function EspelhoDetalhado({
                 const ehAbonado = bs.length === 0 && abonosDoMes.has(dia);
                 const trab = ehAbonado ? prev : trabBruto;
                 const saldo = trab - prev;
+                const clicavel = !!onSelecionarDia;
+                const temPendencia = diasComPendencia?.has(dia) ?? false;
                 return (
-                  <tr key={dia} className={ehAbonado ? "esp__linha-abonada" : ""}>
+                  <tr
+                    key={dia}
+                    className={`${ehAbonado ? "esp__linha-abonada" : ""}${
+                      clicavel ? " esp__linha-click" : ""
+                    }`}
+                    onClick={
+                      clicavel ? () => onSelecionarDia(dia, bs) : undefined
+                    }
+                    title={clicavel ? "Abrir detalhes do dia" : undefined}
+                  >
                     <td>
                       {dia.split("-").reverse().join("/")}
                       {ehAbonado && (
@@ -218,6 +235,11 @@ export function EspelhoDetalhado({
                           title={abonosDoMes.get(dia) ?? "Abono aprovado"}
                         >
                           Abonado
+                        </span>
+                      )}
+                      {temPendencia && (
+                        <span className="esp__chip-pendente" title="Pendências a revisar">
+                          Pendências
                         </span>
                       )}
                     </td>
