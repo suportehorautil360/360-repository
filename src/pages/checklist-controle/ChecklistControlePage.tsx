@@ -1372,18 +1372,11 @@ export function ChecklistControlePage() {
     // itens, pela tabela oficial, deveriam barrar a operação do veículo.
     // Não bloqueia em definitivo (o gestor decide via auditoria), mas pede
     // confirmação dupla pra evitar registro descuidado.
+    // Itens impeditivos marcados como "Não" → abrem um ticket de emergência
+    // automático ao salvar (sem perguntar). Calculado aqui, criado após o save.
     const impeditivosViolados = itensFiltrados.filter(
       (it) => itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
     );
-    if (impeditivosViolados.length > 0) {
-      const lista = impeditivosViolados
-        .map((it) => `• ${it["Item de Verificação"]}`)
-        .join("\n");
-      const ok = window.confirm(
-        `Atenção: ${impeditivosViolados.length} item(ns) IMPEDITIVO(s) marcado(s) como "Não":\n\n${lista}\n\nPela tabela oficial, esses itens deveriam impedir a operação. Salvar mesmo assim?`,
-      );
-      if (!ok) return;
-    }
 
     const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
     const numNa = keys.filter((k) => answers[k]?.v === "na").length;
@@ -1473,6 +1466,45 @@ export function ChecklistControlePage() {
       setCheckMsg("✅ Checklist salvo com sucesso!");
       setChecklistsHojeTick((t) => t + 1);
       setAuditoriaTick((t) => t + 1);
+
+      // Item impeditivo reprovado ("Não") → abre ticket de emergência automático.
+      if (impeditivosViolados.length > 0) {
+        try {
+          const fotosImped = impeditivosViolados
+            .map((it) => {
+              const r = answers[String(it["Nº"])];
+              return r?.v === "nao" ? r.foto : "";
+            })
+            .filter((u) => u.startsWith("data:image"));
+          const descImped = impeditivosViolados
+            .map((it) => {
+              const r = answers[String(it["Nº"])];
+              const prob = r?.v === "nao" && r.problema ? ` — ${r.problema}` : "";
+              return `• ${it["Item de Verificação"]}${prob}`;
+            })
+            .join("\n");
+          await emergenciasApi.criar({
+            prefeituraId: equipamentoAtual.prefeituraId,
+            source: "checklist_auto",
+            severity: "blocking",
+            equipamentoId: equipamentoAtual.id,
+            chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
+            operadorNome: nomeOperadorChecklist.trim() || session.nome,
+            tipoFalha: "Item impeditivo reprovado no checklist",
+            descricao: `Itens impeditivos marcados como "Não":\n${descImped}`,
+            fotos: fotosImped,
+            checklistId: id,
+          });
+          toast.warning(
+            "🚨 Ticket de emergência criado — item impeditivo reprovado.",
+          );
+        } catch (e) {
+          console.error("[Checklist] Falha ao criar emergência automática:", e);
+          toast.error(
+            "Checklist salvo, mas falhou ao abrir o ticket de emergência.",
+          );
+        }
+      }
     } catch (err) {
       console.error("[Checklist] Erro ao salvar no Firestore:", err);
       setCheckMsg(
