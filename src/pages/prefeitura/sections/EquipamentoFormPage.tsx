@@ -22,6 +22,11 @@ import {
   type NovoEquip,
   type StatusEquipamento,
 } from "./equipamentos/equipamentos-api";
+import {
+  configuracoesApi,
+  categoriaDoTipo,
+  type Configuracao,
+} from "../../../lib/api/configuracoes";
 import "./funcionario-form.css";
 
 interface Props {
@@ -166,6 +171,19 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
   const [erros, setErros] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(modo === "editar");
+  const [config, setConfig] = useState<Configuracao | null>(null);
+
+  // Intervalos de revisão padrão da prefeitura (Configurações).
+  useEffect(() => {
+    let ativo = true;
+    configuracoesApi
+      .obter(prefeituraId)
+      .then((c) => ativo && setConfig(c))
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, [prefeituraId]);
 
   const ehLocada = form.tipoFrota.toLowerCase().includes("locad");
 
@@ -253,6 +271,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
       const tipo = form.tipo;
       const intervalo =
         asNumber(form.intervaloRevisao) ||
+        config?.intervalos[categoriaDoTipo(tipo)]?.valor ||
         defaultInterval(tipo, unitForTipo(tipo));
       const input: NovoEquip = {
         placa: form.placa.trim(),
