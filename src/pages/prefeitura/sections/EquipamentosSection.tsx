@@ -1,230 +1,62 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
-  addDoc,
-  collection,
-  doc,
-  getDocs,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db } from "../../../lib/firebase/firebase";
+  equipamentosApi,
+  isBloqueado,
+  isVencido,
+  textoVencimento,
+  type EquipRow,
+  type StatusEquipamento,
+  type UnidadeRevisao,
+} from "./equipamentos/equipamentos-api";
 
 interface EquipamentosSectionProps {
   prefeituraId: string;
   labelMunicipio: string;
 }
 
-type UnidadeRevisao = "km" | "h";
-type StatusEquipamento = "ativo" | "bloqueado" | "inativo";
-
-interface EquipRow {
-  id: string;
-  descricao: string;
-  marca: string;
-  modelo: string;
-  chassis: string;
-  placa: string;
-  linha: string;
-  tipo: string;
-  ano: string;
-  obra: string;
-  status: StatusEquipamento;
-  medicaoAtual: number;
-  intervaloRevisao: number;
-  ultimaRevisao: number;
-  unidadeRevisao: UnidadeRevisao;
+interface RevisaoFormState {
+  data: string;
+  leitura: string;
+  oficina: string;
+  servicos: string;
+  custo: string;
+  notaFiscal: string;
 }
 
-interface EquipFormState {
-  nomeModelo: string;
-  chassis: string;
-  placa: string;
-  tipo: string;
-  ano: string;
-  medicaoAtual: string;
-  marca: string;
-  intervaloRevisao: string;
-  unidadeRevisao: UnidadeRevisao | "auto";
+function hojeISO(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
-const TIPO_OPTIONS = [
-  "Carro Leve",
-  "Caminhões",
-  "Munck",
-  "Pipa",
-  "Basculante",
-  "Betoneira",
-  "Comboio",
-  "Ambulância",
-  "Baú",
-  "Motoniveladora",
-  "Escavadeira",
-  "Trator de Esteira",
-  "Retroescavadeira",
-  "Pá Carregadeira",
-  "Rolo Compactador",
-  "Trator",
-];
-
-const emptyForm: EquipFormState = {
-  nomeModelo: "",
-  chassis: "",
-  placa: "",
-  tipo: "Carro",
-  ano: "",
-  medicaoAtual: "0",
-  marca: "",
-  intervaloRevisao: "0",
-  unidadeRevisao: "auto",
-};
-
-function asText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function asNumber(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const normalized = value.replace(/\./g, "").replace(",", ".");
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-function inferTipo(data: Record<string, unknown>): string {
-  const raw = `${asText(data.tipo)} ${asText(data.linha)} ${asText(
-    data.descricao,
-  )} ${asText(data.modelo)}`.toLowerCase();
-  if (
-    raw.includes("carro leve") ||
-    raw.includes("linha leve") ||
-    raw.includes("veiculo leve") ||
-    raw.includes("veículo leve") ||
-    raw.includes("automovel") ||
-    raw.includes("automóvel")
-  )
-    return "Carro Leve";
-  if (raw.includes("munck") || raw.includes("munk")) return "Munck";
-  if (raw.includes("pipa")) return "Pipa";
-  if (raw.includes("basculante")) return "Basculante";
-  if (raw.includes("betoneira")) return "Betoneira";
-  if (raw.includes("comboio")) return "Comboio";
-  if (raw.includes("ambulancia") || raw.includes("ambulância"))
-    return "Ambulância";
-  if (raw.includes("baú") || raw.includes("bau")) return "Baú";
-  if (raw.includes("motoniveladora")) return "Motoniveladora";
-  if (raw.includes("escavadeira")) return "Escavadeira";
-  if (
-    raw.includes("trator de esteira") ||
-    (raw.includes("trator") && raw.includes("esteira"))
-  )
-    return "Trator de Esteira";
-  if (raw.includes("retroescavadeira")) return "Retroescavadeira";
-  if (
-    raw.includes("pa carregadeira") ||
-    raw.includes("pá carregadeira") ||
-    raw.includes("carregadeira")
-  )
-    return "Pá Carregadeira";
-  if (raw.includes("rolo compactador") || raw.includes("compactador"))
-    return "Rolo Compactador";
-  if (/carro|leve|hatch|sedan|pickup|camionete/.test(raw)) return "Carro";
-  if (/van|sprinter|furg[aã]o/.test(raw)) return "Van";
-  if (/caminh|truck|pipa|munck|basculante|comboio|betoneira/.test(raw)) {
-    return "Caminhão";
-  }
-  if (/m[aá]quina|escav|retro|p[aá] carregadeira|trator|komatsu|caterpillar/.test(raw)) {
-    return "Máquina";
-  }
-  return asText(data.tipo) || asText(data.linha) || "Equipamento";
-}
-
-function unitForTipo(tipo: string, fallback?: string): UnidadeRevisao {
-  if (fallback === "h" || fallback === "km") return fallback;
-  return [
-    "motoniveladora",
-    "escavadeira",
-    "trator de esteira",
-    "retroescavadeira",
-    "pá carregadeira",
-    "pa carregadeira",
-    "rolo compactador",
-    "trator",
-  ].some((needle) => tipo.toLowerCase().includes(needle))
-    ? "h"
-    : "km";
-}
-
-function defaultInterval(tipo: string, unidade: UnidadeRevisao): number {
-  if (unidade === "h") return 500;
-  return tipo === "Carro" || tipo === "Carro Leve" || tipo === "Van"
-    ? 10000
-    : 15000;
-}
-
-function normalizeStatus(value: unknown): StatusEquipamento {
-  const raw = asText(value).toLowerCase();
-  if (raw.includes("bloq") || raw === "blocked") return "bloqueado";
-  if (raw.includes("inat")) return "inativo";
-  return "ativo";
-}
-
-function normalizeEquip(id: string, data: Record<string, unknown>): EquipRow {
-  const tipo = inferTipo(data);
-  const unidade = unitForTipo(tipo, asText(data.unidadeRevisao));
-  const intervaloInformado =
-    asNumber(data.intervaloRevisao) ||
-    asNumber(data.maintenanceInterval) ||
-    asNumber(data.intervaloManutencao);
-  const medicaoAtual =
-    asNumber(data.medicaoAtual) ||
-    asNumber(data.currentMeter) ||
-    asNumber(data.horimetro) ||
-    asNumber(data.odometro) ||
-    asNumber(data.kmAtual);
-
+function emptyRevisao(eq: EquipRow): RevisaoFormState {
   return {
-    id,
-    descricao: asText(data.label) || asText(data.descricao) || "Equipamento",
-    marca: asText(data.marca),
-    modelo: asText(data.modelo) || asText(data.descricao),
-    chassis: asText(data.chassis) || asText(data.placa) || asText(data.placaId),
-    placa: asText(data.placa) || asText(data.placaId),
-    linha: asText(data.linha),
-    tipo,
-    ano: asText(data.ano),
-    obra: asText(data.obra),
-    status: normalizeStatus(data.status),
-    medicaoAtual,
-    intervaloRevisao:
-      intervaloInformado > 0 ? intervaloInformado : defaultInterval(tipo, unidade),
-    ultimaRevisao:
-      asNumber(data.ultimaRevisao) ||
-      asNumber(data.lastRevisionOdometerReading) ||
-      0,
-    unidadeRevisao: unidade,
+    data: hojeISO(),
+    leitura: String(eq.medicaoAtual || ""),
+    oficina: "",
+    servicos: "",
+    custo: "",
+    notaFiscal: "",
   };
+}
+
+function asNumber(value: string): number {
+  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function formatMedicao(value: number, unidade: UnidadeRevisao): string {
   return `${Math.max(0, value).toLocaleString("pt-BR")} ${unidade}`;
 }
 
-function statusRevisao(eq: EquipRow): "Bloqueado" | "Atenção" | "Em dia" {
-  if (eq.status !== "ativo") return "Bloqueado";
-  if (!eq.intervaloRevisao) return "Em dia";
-  const usadoDesdeRevisao = eq.medicaoAtual - eq.ultimaRevisao;
-  return usadoDesdeRevisao >= eq.intervaloRevisao ? "Atenção" : "Em dia";
+function statusRevisao(eq: EquipRow): "Bloqueado" | "Em dia" {
+  return isBloqueado(eq) ? "Bloqueado" : "Em dia";
 }
 
 function typeIcon(tipo: string): string {
-  if (tipo === "Carro" || tipo === "Carro Leve" || tipo === "Van")
-    return "🚗";
+  if (tipo === "Carro" || tipo === "Carro Leve" || tipo === "Van") return "🚗";
   if (
     [
       "Caminhões",
@@ -257,35 +89,24 @@ export function EquipamentosSection({
   prefeituraId,
   labelMunicipio,
 }: EquipamentosSectionProps) {
+  const navigate = useNavigate();
   const [lista, setLista] = useState<EquipRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
-  const [modalNovoAberto, setModalNovoAberto] = useState(false);
-  const [form, setForm] = useState<EquipFormState>(emptyForm);
   const [editando, setEditando] = useState<EquipRow | null>(null);
   const [novaMedicao, setNovaMedicao] = useState("");
+  const [revisando, setRevisando] = useState<EquipRow | null>(null);
+  const [revForm, setRevForm] = useState<RevisaoFormState | null>(null);
 
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
     setLoading(true);
-    setErro("");
     try {
-      const snap = await getDocs(
-        query(
-          collection(db, "equipamentos"),
-          where("prefeituraId", "==", prefeituraId),
-        ),
-      );
-      setLista(
-        snap.docs
-          .map((d) => normalizeEquip(d.id, d.data()))
-          .sort((a, b) => a.descricao.localeCompare(b.descricao, "pt-BR")),
-      );
+      setLista(await equipamentosApi.listar(prefeituraId));
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao carregar:", err);
-      setErro("Não foi possível carregar os equipamentos.");
+      toast.error("Não foi possível carregar os equipamentos.");
     } finally {
       setLoading(false);
     }
@@ -315,82 +136,16 @@ export function EquipamentosSection({
     );
   }, [busca, lista]);
 
-  const metricas = useMemo(() => {
-    const bloqueados = lista.filter((eq) => statusRevisao(eq) === "Bloqueado");
-    const atencao = lista.filter((eq) => statusRevisao(eq) === "Atenção");
-    return {
+  const metricas = useMemo(
+    () => ({
       total: lista.length,
-      ativos: lista.filter((eq) => eq.status === "ativo").length,
-      bloqueados: bloqueados.length,
-      atencao: atencao.length,
-    };
-  }, [lista]);
-
-  const salvarNovo = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!prefeituraId || saving) return;
-
-    const nomeModelo = form.nomeModelo.trim();
-    const chassis = form.chassis.trim();
-    const placa = form.placa.trim();
-    if (!nomeModelo || !chassis) {
-      setErro("Informe nome/modelo e chassi do equipamento.");
-      return;
-    }
-    if (
-      lista.some((eq) => eq.chassis.toLowerCase() === chassis.toLowerCase())
-    ) {
-      setErro("Já existe um equipamento com esse chassi.");
-      return;
-    }
-
-    setSaving(true);
-    setErro("");
-    try {
-      const tipo = form.tipo || "Equipamento";
-      const unidade =
-        form.unidadeRevisao === "auto"
-          ? unitForTipo(tipo)
-          : form.unidadeRevisao;
-      const medicaoAtual = asNumber(form.medicaoAtual);
-      const intervaloRevisao =
-        asNumber(form.intervaloRevisao) || defaultInterval(tipo, unidade);
-      const payload = {
-        prefeituraId,
-        descricao: nomeModelo,
-        label: nomeModelo,
-        modelo: nomeModelo,
-        chassis,
-        placa,
-        tipo,
-        linha: tipo,
-        ano: form.ano.trim(),
-        marca: form.marca.trim(),
-        medicaoAtual,
-        currentMeter: medicaoAtual,
-        intervaloRevisao,
-        unidadeRevisao: unidade,
-        ultimaRevisao: medicaoAtual,
-        obra: "",
-        status: "ativo",
-        criadoEm: new Date().toISOString(),
-        createdAt: serverTimestamp(),
-      };
-      const ref = await addDoc(collection(db, "equipamentos"), payload);
-      setLista((prev) =>
-        [...prev, normalizeEquip(ref.id, payload)].sort((a, b) =>
-          a.descricao.localeCompare(b.descricao, "pt-BR"),
-        ),
-      );
-      setForm(emptyForm);
-      setModalNovoAberto(false);
-    } catch (err) {
-      console.error("[Prefeitura Equipamentos] Erro ao salvar:", err);
-      setErro("Não foi possível salvar o equipamento.");
-    } finally {
-      setSaving(false);
-    }
-  };
+      emDia: lista.filter((eq) => !isBloqueado(eq)).length,
+      vencidos: lista.filter((eq) => isVencido(eq) && eq.status === "ativo")
+        .length,
+      bloqueados: lista.filter((eq) => eq.status !== "ativo").length,
+    }),
+    [lista],
+  );
 
   const abrirAtualizacao = (eq: EquipRow) => {
     setEditando(eq);
@@ -402,23 +157,18 @@ export function EquipamentosSection({
     if (!editando || saving) return;
     const medicaoAtual = asNumber(novaMedicao);
     setSaving(true);
-    setErro("");
     try {
-      await updateDoc(doc(db, "equipamentos", editando.id), {
-        medicaoAtual,
-        currentMeter: medicaoAtual,
-        atualizadoEm: new Date().toISOString(),
-        updatedAt: serverTimestamp(),
-      });
+      await equipamentosApi.atualizarMedicao(editando.id, medicaoAtual);
       setLista((prev) =>
         prev.map((eq) =>
           eq.id === editando.id ? { ...eq, medicaoAtual } : eq,
         ),
       );
       setEditando(null);
+      toast.success("Medição atualizada.");
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao atualizar:", err);
-      setErro("Não foi possível atualizar a medição.");
+      toast.error("Não foi possível atualizar a medição.");
     } finally {
       setSaving(false);
     }
@@ -429,19 +179,86 @@ export function EquipamentosSection({
     const status: StatusEquipamento =
       eq.status === "bloqueado" ? "ativo" : "bloqueado";
     setSaving(true);
-    setErro("");
     try {
-      await updateDoc(doc(db, "equipamentos", eq.id), {
-        status,
-        atualizadoEm: new Date().toISOString(),
-        updatedAt: serverTimestamp(),
-      });
+      await equipamentosApi.atualizarStatus(eq.id, status);
       setLista((prev) =>
         prev.map((item) => (item.id === eq.id ? { ...item, status } : item)),
       );
+      toast.success(
+        status === "bloqueado"
+          ? "Equipamento bloqueado."
+          : "Equipamento liberado.",
+      );
     } catch (err) {
       console.error("[Prefeitura Equipamentos] Erro ao bloquear:", err);
-      setErro("Não foi possível alterar o status do equipamento.");
+      toast.error("Não foi possível alterar o status do equipamento.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remover = async (eq: EquipRow) => {
+    if (saving) return;
+    const ok = window.confirm(
+      `Remover o equipamento "${eq.descricao}" (${eq.chassis || "sem ID"})? Esta ação não pode ser desfeita.`,
+    );
+    if (!ok) return;
+    setSaving(true);
+    try {
+      await equipamentosApi.remover(eq.id);
+      setLista((prev) => prev.filter((item) => item.id !== eq.id));
+      toast.success("Equipamento removido.");
+    } catch (err) {
+      console.error("[Prefeitura Equipamentos] Erro ao remover:", err);
+      toast.error("Não foi possível remover o equipamento.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const abrirRevisao = (eq: EquipRow) => {
+    setRevisando(eq);
+    setRevForm(emptyRevisao(eq));
+  };
+
+  const concluirRevisao = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!revisando || !revForm || saving) return;
+    const leitura = asNumber(revForm.leitura);
+    if (leitura < revisando.medicaoAtual) {
+      toast.error("A leitura não pode ser menor que a medição atual.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await equipamentosApi.concluirRevisao(revisando, prefeituraId, {
+        data: revForm.data,
+        leitura,
+        oficina: revForm.oficina,
+        servicos: revForm.servicos,
+        custo: asNumber(revForm.custo),
+        notaFiscal: revForm.notaFiscal,
+      });
+      setLista((prev) =>
+        prev.map((item) =>
+          item.id === revisando.id
+            ? {
+                ...item,
+                medicaoAtual: leitura,
+                ultimaRevisao: leitura,
+                status: "ativo",
+              }
+            : item,
+        ),
+      );
+      setRevisando(null);
+      setRevForm(null);
+      toast.success("Revisão concluída e equipamento liberado.");
+    } catch (err) {
+      console.error("[Prefeitura Equipamentos] Erro na revisão:", err);
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível concluir a revisão.",
+      );
     } finally {
       setSaving(false);
     }
@@ -474,12 +291,12 @@ export function EquipamentosSection({
             <strong>{metricas.total}</strong>
           </article>
           <article>
-            <span>Ativos</span>
-            <strong>{metricas.ativos}</strong>
+            <span>Em dia</span>
+            <strong>{metricas.emDia}</strong>
           </article>
           <article>
-            <span>Em atenção</span>
-            <strong>{metricas.atencao}</strong>
+            <span>Vencidos</span>
+            <strong>{metricas.vencidos}</strong>
           </article>
           <article>
             <span>Bloqueados</span>
@@ -501,17 +318,14 @@ export function EquipamentosSection({
               <button
                 className="pf-eq-primary"
                 type="button"
-                onClick={() => {
-                  setErro("");
-                  setModalNovoAberto(true);
-                }}
+                onClick={() =>
+                  navigate(`/prefeitura/${prefeituraId}/equipamentos/novo`)
+                }
               >
                 + Equipamento
               </button>
             </div>
           </header>
-
-          {erro ? <p className="pf-eq-error">{erro}</p> : null}
 
           <div className="pf-eq-table-wrap">
             <table className="pf-eq-table">
@@ -540,7 +354,16 @@ export function EquipamentosSection({
                   filtrados.map((eq) => {
                     const revisao = statusRevisao(eq);
                     return (
-                      <tr key={eq.id}>
+                      <tr
+                        key={eq.id}
+                        className="pf-eq-row-click"
+                        title="Abrir cadastro do equipamento"
+                        onClick={() =>
+                          navigate(
+                            `/prefeitura/${prefeituraId}/equipamentos/${eq.id}/editar`,
+                          )
+                        }
+                      >
                         <td>
                           <strong>{eq.descricao || eq.modelo}</strong>
                           <small>{eq.modelo || eq.linha || "Equipamento"}</small>
@@ -560,7 +383,9 @@ export function EquipamentosSection({
                         </td>
                         <td>{eq.marca || "—"}</td>
                         <td>{eq.ano || "—"}</td>
-                        <td>{formatMedicao(eq.medicaoAtual, eq.unidadeRevisao)}</td>
+                        <td>
+                          {formatMedicao(eq.medicaoAtual, eq.unidadeRevisao)}
+                        </td>
                         <td className={!eq.obra ? "pf-eq-muted" : undefined}>
                           {eq.obra || "Disponível"}
                         </td>
@@ -575,7 +400,7 @@ export function EquipamentosSection({
                             {revisao}
                           </span>
                         </td>
-                        <td>
+                        <td onClick={(e) => e.stopPropagation()}>
                           <div className="pf-eq-row-actions">
                             <button
                               type="button"
@@ -584,6 +409,15 @@ export function EquipamentosSection({
                             >
                               Atualizar
                             </button>
+                            {isBloqueado(eq) ? (
+                              <button
+                                type="button"
+                                className="pf-eq-liberar"
+                                onClick={() => abrirRevisao(eq)}
+                              >
+                                Liberar
+                              </button>
+                            ) : null}
                             <button
                               type="button"
                               className="pf-eq-lock"
@@ -595,6 +429,14 @@ export function EquipamentosSection({
                               onClick={() => alternarBloqueio(eq)}
                             >
                               {eq.status === "bloqueado" ? "🔓" : "🔒"}
+                            </button>
+                            <button
+                              type="button"
+                              className="pf-eq-lock"
+                              title="Remover equipamento"
+                              onClick={() => remover(eq)}
+                            >
+                              🗑️
                             </button>
                           </div>
                         </td>
@@ -650,139 +492,103 @@ export function EquipamentosSection({
         </div>
       ) : null}
 
-      {modalNovoAberto ? (
+      {revisando && revForm ? (
         <div className="pf-modal-overlay pf-eq-modal-overlay">
-          <form className="pf-eq-modal pf-eq-modal-wide" onSubmit={salvarNovo}>
+          <form className="pf-eq-modal pf-eq-modal-wide" onSubmit={concluirRevisao}>
             <header>
-              <h2>Adicionar veículo</h2>
-              <button type="button" onClick={() => setModalNovoAberto(false)}>
+              <h2>
+                Liberar — {revisando.descricao} (
+                {revisando.chassis || "sem ID"})
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setRevisando(null);
+                  setRevForm(null);
+                }}
+              >
                 ×
               </button>
             </header>
             <div className="pf-eq-modal-body pf-eq-form-grid">
+              <p className="pf-eq-liberar-resumo pf-eq-form-full">
+                {textoVencimento(revisando)}
+              </p>
               <label>
-                Nome / modelo <span className="pf-eq-required">*</span>
+                Data da revisão
                 <input
-                  required
-                  value={form.nomeModelo}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      nomeModelo: event.target.value,
-                    }))
+                  type="date"
+                  value={revForm.data}
+                  onChange={(e) =>
+                    setRevForm((p) => p && { ...p, data: e.target.value })
                   }
-                  placeholder="Ex.: Scania R450"
                 />
               </label>
               <label>
-                Chassi <span className="pf-eq-required">*</span>
+                Leitura na revisão ({revisando.unidadeRevisao})
                 <input
-                  required
-                  value={form.chassis}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, chassis: event.target.value }))
-                  }
-                  placeholder="Ex.: 9BWZZZ377VT004251 ou MQ-02"
-                />
-              </label>
-              <label>
-                Placa / ID visual
-                <input
-                  value={form.placa}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, placa: event.target.value }))
-                  }
-                  placeholder="Ex.: ABC-1234"
-                />
-              </label>
-              <label>
-                Tipo <span className="pf-eq-required">*</span>
-                <select
-                  required
-                  value={form.tipo}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, tipo: event.target.value }))
-                  }
-                >
-                  {TIPO_OPTIONS.map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Ano
-                <input
-                  value={form.ano}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, ano: event.target.value }))
-                  }
-                  placeholder="2022"
                   inputMode="numeric"
+                  value={revForm.leitura}
+                  onChange={(e) =>
+                    setRevForm((p) => p && { ...p, leitura: e.target.value })
+                  }
+                  placeholder={String(revisando.medicaoAtual)}
                 />
               </label>
               <label>
-                Km / horímetro atual
+                Oficina / mecânico
                 <input
-                  value={form.medicaoAtual}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      medicaoAtual: event.target.value,
-                    }))
+                  value={revForm.oficina}
+                  onChange={(e) =>
+                    setRevForm((p) => p && { ...p, oficina: e.target.value })
                   }
+                  placeholder="Oficina Central"
+                />
+              </label>
+              <label>
+                Custo (R$)
+                <input
                   inputMode="numeric"
+                  value={revForm.custo}
+                  onChange={(e) =>
+                    setRevForm((p) => p && { ...p, custo: e.target.value })
+                  }
+                  placeholder="0,00"
                 />
               </label>
               <label>
-                Marca
+                Nota fiscal
                 <input
-                  value={form.marca}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, marca: event.target.value }))
+                  value={revForm.notaFiscal}
+                  onChange={(e) =>
+                    setRevForm((p) => p && { ...p, notaFiscal: e.target.value })
                   }
-                  placeholder="Scania, Caterpillar..."
+                  placeholder="NF-0394"
                 />
               </label>
-              <label>
-                Intervalo revisão
+              <label className="pf-eq-form-full">
+                Serviços executados
                 <input
-                  value={form.intervaloRevisao}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      intervaloRevisao: event.target.value,
-                    }))
+                  value={revForm.servicos}
+                  onChange={(e) =>
+                    setRevForm((p) => p && { ...p, servicos: e.target.value })
                   }
-                  placeholder="0 = usar padrão"
-                  inputMode="numeric"
+                  placeholder="Troca de óleo e filtros"
                 />
-              </label>
-              <label>
-                Unidade revisão
-                <select
-                  value={form.unidadeRevisao}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      unidadeRevisao: event.target
-                        .value as EquipFormState["unidadeRevisao"],
-                    }))
-                  }
-                >
-                  <option value="auto">Auto (por tipo)</option>
-                  <option value="km">Km</option>
-                  <option value="h">Horas</option>
-                </select>
               </label>
             </div>
             <footer>
-              <button type="button" onClick={() => setModalNovoAberto(false)}>
+              <button
+                type="button"
+                onClick={() => {
+                  setRevisando(null);
+                  setRevForm(null);
+                }}
+              >
                 Cancelar
               </button>
               <button type="submit" disabled={saving}>
-                Salvar
+                Concluir e liberar
               </button>
             </footer>
           </form>

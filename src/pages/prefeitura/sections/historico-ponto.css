@@ -131,3 +131,240 @@
 .hist__espelho-wrap .esp__vazio {
   color: #93a4c6;
 }
+/* Badge de pendência e hover da linha no tema escuro do RH. */
+.hist__espelho-wrap .esp__chip-pendente {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fcd34d;
+}
+.hist__espelho-wrap .esp__linha-click:hover td {
+  background: #1b3a6b;
+}
+
+/* --- Modal de detalhes do dia (aprovação) --- */
+.prefeitura-root .dia-pt {
+  width: min(640px, 100%);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f1f3d;
+  border: 1px solid rgba(64, 112, 204, 0.45);
+  border-radius: 14px;
+  overflow: hidden;
+  color: #e8ecf6;
+}
+.prefeitura-root .dia-pt__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #122a52;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.35);
+}
+.prefeitura-root .dia-pt__head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.prefeitura-root .dia-pt__sub {
+  color: #9fb0cc;
+  font-size: 0.82rem;
+}
+.prefeitura-root .dia-pt__head button {
+  background: none;
+  border: none;
+  color: #9fb0cc;
+  cursor: pointer;
+}
+.prefeitura-root .dia-pt__body {
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+.prefeitura-root .dia-pt__abono {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-size: 0.86rem;
+}
+.prefeitura-root .dia-pt__bloco {
+  margin-bottom: 16px;
+}
+.prefeitura-root .dia-pt__bloco h3 {
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9fb0cc;
+}
+.prefeitura-root .dia-pt__vazio {
+  color: #7f8da4;
+  font-size: 0.84rem;
+  margin: 0;
+}
+.prefeitura-root .dia-pt__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prefeitura-root .dia-pt__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(64, 112, 204, 0.3);
+  border-radius: 8px;
+  background: #122a52;
+}
+.prefeitura-root .dia-pt__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.prefeitura-root .dia-pt__item-info strong {
+  font-size: 0.9rem;
+}
+.prefeitura-root .dia-pt__item-info small {
+  color: #9fb0cc;
+  font-size: 0.76rem;
+}
+.prefeitura-root .dia-pt__status {
+  width: fit-content;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.prefeitura-root .dia-pt__status.is-pendente {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+.prefeitura-root .dia-pt__status.is-aprovado {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+}
+.prefeitura-root .dia-pt__status.is-reprovado,
+.prefeitura-root .dia-pt__status.is-cancelado {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+.prefeitura-root .dia-pt__acoes {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.prefeitura-root .dia-pt__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e8ecf6;
+  border-radius: 7px;
+  padding: 6px 11px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.prefeitura-root .dia-pt__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.prefeitura-root .dia-pt__btn--ok {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #86efac;
+}
+.prefeitura-root .dia-pt__btn--no {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+.prefeitura-root .dia-pt__btn--ghost {
+  background: none;
+}
+.prefeitura-root .dia-pt__reprova {
+  padding: 14px 18px;
+  border-top: 1px solid rgba(64, 112, 204, 0.35);
+  background: #122a52;
+}
+.prefeitura-root .dia-pt__reprova label {
+  display: block;
+  font-size: 0.74rem;
+  color: #9fb0cc;
+  font-weight: 700;
+}
+.prefeitura-root .dia-pt__reprova textarea {
+  width: 100%;
+  margin-top: 5px;
+  min-height: 56px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8ecf6;
+  padding: 8px 10px;
+  font-family: inherit;
+  resize: vertical;
+}
+.prefeitura-root .dia-pt__reprova-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Variante de PÁGINA (tela dedicada do dia, não modal). */
+.prefeitura-root .dia-pt--page {
+  width: 100%;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.prefeitura-root .dia-pt--page .dia-pt__head {
+  background: transparent;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.3);
+  padding: 0 0 12px;
+  margin-bottom: 8px;
+}
+.prefeitura-root .dia-pt--page .dia-pt__body {
+  padding: 4px 0 0;
+  overflow: visible;
+}
+.prefeitura-root .dia-pt--page .dia-pt__reprova {
+  background: transparent;
+  padding: 14px 0 0;
+}
+.prefeitura-root .dia-pt__head-id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.prefeitura-root .dia-pt__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.prefeitura-root .dia-pt__voltar:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

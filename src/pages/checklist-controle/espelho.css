@@ -166,6 +166,24 @@
 .esp__linha-abonada {
   background: rgba(59, 130, 246, 0.06);
 }
+.esp__chip-pendente {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #b45309;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.esp__linha-click {
+  cursor: pointer;
+}
+.esp__linha-click:hover td {
+  background: rgba(59, 130, 246, 0.08);
+}
 
 @media (max-width: 560px) {
   .esp__totais {

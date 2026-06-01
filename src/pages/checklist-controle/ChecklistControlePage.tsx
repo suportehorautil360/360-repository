@@ -34,7 +34,6 @@ import { PontosFolha } from "./PontosFolha";
 import { checklistsApi } from "../../features/checklist/api/checklists-api";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
-  CHECKLIST_DOCUMENTO_ITENS,
   type ChecklistDocumentoItem,
   dataLongaPtBr,
   inferirCategoriaChecklist,
@@ -1104,19 +1103,31 @@ export function ChecklistControlePage() {
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Novo schema do seed: cada item declara `Aplica A: string[]` listando
-    // os tipos de equipamento aos quais ele se aplica. "Geral (Chassi)"
-    // aparece em todos. Subtipos específicos só nos próprios.
-    // Fallback p/ docs antigos sem `Aplica A` continua casando por Categoria.
-    const legacy = seedData.itens_checklist.filter((it) => {
+    // Fonte ÚNICA: o seed `itens_checklist` (schema novo: Aplica A + Severidade),
+    // que já cobre os itens gerais e os de cada categoria. Antes concatenávamos
+    // também o CHECKLIST_DOCUMENTO_ITENS, mas ele repetia os gerais do seed —
+    // gerando perguntas duplicadas e numeração misturada (G.x + 1.x).
+    // Cada item declara `Aplica A: string[]` (fallback p/ Categoria).
+    const norm = (s: unknown) =>
+      String(s ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const vistos = new Set<string>();
+    return seedData.itens_checklist.filter((it) => {
       const aplicaA = (it as { "Aplica A"?: string[] })["Aplica A"];
-      if (Array.isArray(aplicaA)) return aplicaA.includes(cat);
-      return (it as { Categoria?: string }).Categoria === cat;
+      const aplica = Array.isArray(aplicaA)
+        ? aplicaA.includes(cat)
+        : (it as { Categoria?: string }).Categoria === cat;
+      if (!aplica) return false;
+      // Dedup de segurança: não repete a mesma pergunta (por texto normalizado).
+      const t = norm((it as { "Item de Verificação"?: unknown })["Item de Verificação"]);
+      if (!t || vistos.has(t)) return false;
+      vistos.add(t);
+      return true;
     });
-    const documento = CHECKLIST_DOCUMENTO_ITENS.filter(
-      (it) => it.Categoria === "Geral (Chassi)" || it.Categoria === cat,
-    );
-    return [...documento, ...legacy];
   }, [equipamentoAtual]);
 
   function handleLogin(e: FormEvent) {
@@ -1361,18 +1372,11 @@ export function ChecklistControlePage() {
     // itens, pela tabela oficial, deveriam barrar a operação do veículo.
     // Não bloqueia em definitivo (o gestor decide via auditoria), mas pede
     // confirmação dupla pra evitar registro descuidado.
+    // Itens impeditivos marcados como "Não" → abrem um ticket de emergência
+    // automático ao salvar (sem perguntar). Calculado aqui, criado após o save.
     const impeditivosViolados = itensFiltrados.filter(
       (it) => itemImpeditivo(it) && answers[String(it["Nº"])]?.v === "nao",
     );
-    if (impeditivosViolados.length > 0) {
-      const lista = impeditivosViolados
-        .map((it) => `• ${it["Nº"]} — ${it["Item de Verificação"]}`)
-        .join("\n");
-      const ok = window.confirm(
-        `Atenção: ${impeditivosViolados.length} item(ns) IMPEDITIVO(s) marcado(s) como "Não":\n\n${lista}\n\nPela tabela oficial, esses itens deveriam impedir a operação. Salvar mesmo assim?`,
-      );
-      if (!ok) return;
-    }
 
     const numSim = keys.filter((k) => answers[k]?.v === "sim").length;
     const numNa = keys.filter((k) => answers[k]?.v === "na").length;
@@ -1462,6 +1466,67 @@ export function ChecklistControlePage() {
       setCheckMsg("✅ Checklist salvo com sucesso!");
       setChecklistsHojeTick((t) => t + 1);
       setAuditoriaTick((t) => t + 1);
+
+      // Item impeditivo reprovado ("Não") → abre ticket de emergência automático.
+      if (impeditivosViolados.length > 0) {
+        try {
+          const fotosImped = impeditivosViolados
+            .map((it) => {
+              const r = answers[String(it["Nº"])];
+              return r?.v === "nao" ? r.foto : "";
+            })
+            .filter((u) => u.startsWith("data:image"));
+          const descImped = impeditivosViolados
+            .map((it) => {
+              const r = answers[String(it["Nº"])];
+              const prob = r?.v === "nao" && r.problema ? ` — ${r.problema}` : "";
+              return `• ${it["Item de Verificação"]}${prob}`;
+            })
+            .join("\n");
+          const emergPayload = {
+            prefeituraId: equipamentoAtual.prefeituraId,
+            source: "checklist_auto" as const,
+            severity: "blocking" as const,
+            equipamentoId: equipamentoAtual.id,
+            chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
+            operadorNome: nomeOperadorChecklist.trim() || session.nome,
+            tipoFalha: "Item impeditivo reprovado no checklist",
+            descricao: `Itens impeditivos marcados como "Não":\n${descImped}`,
+            localizacaoGps: null,
+            fotos: fotosImped,
+            checklistId: id,
+          };
+          // Backend (visão do admin/RH) — best effort, pode falhar offline.
+          try {
+            await emergenciasApi.criar(emergPayload);
+          } catch (e) {
+            console.error("[Checklist] Backend de emergência indisponível:", e);
+          }
+          // Firestore `emergenciasRegistros` — store que a aba de Emergências do
+          // operador lê (offline-first). Sem isso, o ticket não aparece lá.
+          await addDoc(collection(db, "emergenciasRegistros"), {
+            id: crypto.randomUUID(),
+            ...emergPayload,
+            idOperadorSession: session.idCliente,
+            idMaquina: equipamentoAtual.id,
+            modelo: equipamentoAtual.label,
+            operador: emergPayload.operadorNome,
+            statusAtendimento: "ABERTO",
+            qtdFotos: fotosImped.length,
+            criadoEm: serverTimestamp(),
+            dataHoraIso: dataHora,
+          });
+          setEmergTick((t) => t + 1);
+          toast.warning(
+            "🚨 Ticket de emergência criado — item impeditivo reprovado.",
+          );
+        } catch (e) {
+          console.error("[Checklist] Falha ao criar emergência automática:", e);
+          toast.error(
+            "Checklist salvo, mas falhou ao abrir o ticket de emergência.",
+          );
+        }
+      }
     } catch (err) {
       console.error("[Checklist] Erro ao salvar no Firestore:", err);
       setCheckMsg(
@@ -2221,7 +2286,7 @@ export function ChecklistControlePage() {
                     }
                     style={{ marginTop: 18 }}
                   >
-                    {itensFiltrados.map((it) => {
+                    {itensFiltrados.map((it, idx) => {
                       const key = String(it["Nº"]);
                       const cur = answers[key];
                       const bloq = !checklistItensLiberados;
@@ -2243,7 +2308,7 @@ export function ChecklistControlePage() {
                           className={`hu360-check-block ${alertaImped ? "is-imped-violado" : ""}`}
                         >
                           <div className="hu360-check-row">
-                            <span className="hu360-check-num">{key}</span>
+                            <span className="hu360-check-num">{idx + 1}</span>
                             <div style={{ flex: "1 1 220px" }}>
                               <div
                                 style={{

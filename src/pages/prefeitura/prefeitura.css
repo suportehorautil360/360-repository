@@ -894,11 +894,11 @@
   border-radius: 8px;
   background: #162a55;
   color: #edf4ff;
-  padding: 9px 14px;
+  padding: 7px 11px;
   text-decoration: none;
   text-transform: uppercase;
   font-weight: 900;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
@@ -930,7 +930,7 @@
   display: block;
   margin-top: 4px;
   color: #f8fafc;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
 }
 
 .prefeitura-root .pf-eq-panel {
@@ -1006,23 +1006,24 @@
 }
 
 .prefeitura-root .pf-eq-table {
-  min-width: 1120px;
+  min-width: 1040px;
   border: 0;
   border-radius: 0;
   background: transparent;
+  font-size: 0.9rem;
 }
 
 .prefeitura-root .pf-eq-table th {
   color: #7f8da4;
   background: #182f5d;
   border-bottom-color: rgba(47, 90, 168, 0.62);
-  padding: 13px 14px;
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
+  padding: 9px 11px;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
 }
 
 .prefeitura-root .pf-eq-table td {
-  padding: 15px 14px;
+  padding: 10px 11px;
   border-bottom-color: rgba(47, 90, 168, 0.54);
   background: #10254b;
   color: #d7e1ee;
@@ -1033,30 +1034,37 @@
   background: #14294f;
 }
 
+.prefeitura-root .pf-eq-row-click {
+  cursor: pointer;
+}
+.prefeitura-root .pf-eq-row-click:hover td {
+  background: #1b3a6b;
+}
+
 .prefeitura-root .pf-eq-table td strong {
   display: block;
   color: #f8fafc;
-  font-size: 0.95rem;
+  font-size: 0.86rem;
 }
 
 .prefeitura-root .pf-eq-table td small {
   display: block;
   margin-top: 2px;
   color: #7f8da4;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .prefeitura-root .pf-eq-plate {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
+  min-height: 24px;
   border: 1px solid rgba(70, 119, 216, 0.78);
   border-radius: 7px;
   background: #193665;
   color: #f8fafc;
-  padding: 3px 10px;
+  padding: 2px 8px;
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
 }
 
 .prefeitura-root .pf-eq-type {
@@ -1069,10 +1077,11 @@
 
 .prefeitura-root .pf-eq-status {
   display: inline-flex;
+  white-space: nowrap;
   border-radius: 999px;
-  padding: 5px 11px;
+  padding: 4px 9px;
   font-weight: 900;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
 }
 
 .prefeitura-root .pf-eq-status-em-dia {
@@ -1093,17 +1102,18 @@
 .prefeitura-root .pf-eq-row-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .prefeitura-root .pf-eq-secondary {
   cursor: pointer;
-  padding: 9px 13px;
+  padding: 6px 9px;
+  white-space: nowrap;
 }
 
 .prefeitura-root .pf-eq-lock {
-  min-width: 48px;
-  padding: 9px 12px;
+  min-width: 34px;
+  padding: 6px 9px;
 }
 
 .prefeitura-root .pf-eq-empty {
@@ -1164,6 +1174,36 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
   gap: 14px 16px;
+}
+
+.prefeitura-root .pf-eq-form-full {
+  grid-column: 1 / -1;
+}
+
+.prefeitura-root .pf-eq-liberar {
+  cursor: pointer;
+  white-space: nowrap;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 900;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #1a1205;
+  background: linear-gradient(180deg, #fbbf24, #f59e0b);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.28);
+}
+
+.prefeitura-root .pf-eq-liberar-resumo {
+  margin: 0 0 4px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: #fcd34d;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .prefeitura-root .pf-eq-modal label {

@@ -20,10 +20,20 @@ import {
   type FuncionarioTipo,
 } from "../../../lib/funcionarios/funcionarios";
 import { cpfValido, formatarCpf, limparCpf } from "../../../lib/funcionarios/cpf";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import "./funcionario-form.css";
 
+const SELECT_TRIGGER_CLS =
+  "w-full border-white/15 bg-white/[0.04] text-slate-100 data-[placeholder]:text-slate-400";
+
 const CARGOS = [
-  "Operador de Máquinas",
+  "Operador",
   "Motorista",
   "Mecânico",
   "Supervisor",
@@ -320,27 +330,37 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
           </Campo>
 
           <Campo label="Cargo" obrig erro={erros.cargo} wide={2}>
-            <select
+            <Select
               value={form.cargo}
-              onChange={(e) => setCampo("cargo", e.target.value)}
+              onValueChange={(v) => setCampo("cargo", v)}
             >
-              {CARGOS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {CARGOS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Campo>
           <Campo label="Status" wide={1}>
-            <select
+            <Select
               value={form.status}
-              onChange={(e) =>
-                setCampo("status", e.target.value as FuncionarioStatus)
+              onValueChange={(v) =>
+                setCampo("status", v as FuncionarioStatus)
               }
             >
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-            </select>
+              <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ativo">Ativo</SelectItem>
+                <SelectItem value="inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
           </Campo>
         </div>
       </section>
@@ -364,17 +384,24 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
               />
             </Campo>
             <Campo label="Categoria CNH" wide={1}>
-              <select
-                value={form.cnhCategoria}
-                onChange={(e) => setCampo("cnhCategoria", e.target.value)}
+              <Select
+                value={form.cnhCategoria || "__none__"}
+                onValueChange={(v) =>
+                  setCampo("cnhCategoria", v === "__none__" ? "" : v)
+                }
               >
-                <option value="">Sem CNH</option>
-                {CNH_CATEGORIAS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                  <SelectValue placeholder="Sem CNH" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem CNH</SelectItem>
+                  {CNH_CATEGORIAS.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Campo>
 
             <Campo label="Local de Emissão CNH" wide={1}>
@@ -467,18 +494,21 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
               wide={2}
               icone={<UserCog size={14} aria-hidden="true" />}
             >
-              <select
+              <Select
                 value={form.tipo}
-                onChange={(e) =>
-                  setCampo("tipo", e.target.value as FuncionarioTipo)
-                }
+                onValueChange={(v) => setCampo("tipo", v as FuncionarioTipo)}
               >
-                {TIPOS_FUNCIONARIO.map((t) => (
-                  <option key={t.tipo} value={t.tipo}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_FUNCIONARIO.map((t) => (
+                    <SelectItem key={t.tipo} value={t.tipo}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Campo>
           </div>
 

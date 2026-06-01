@@ -1,301 +1,425 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase/firebase";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Truck,
+  Fuel,
+  Lock,
+  Wrench,
+  Banknote,
+  HardHat,
+  BarChart3,
+} from "lucide-react";
+import {
+  equipamentosApi,
+  isBloqueado,
+  isVencido,
+  revisaoEm,
+  type EquipRow,
+} from "./equipamentos/equipamentos-api";
+import {
+  abastecimentosApi,
+  type Abastecimento,
+} from "../../../lib/api/abastecimentos";
+import { categoriaDoTipo } from "../../../lib/api/configuracoes";
+import "./painel.css";
 
-interface DashboardSectionProps {
-  prefeituraId: string;
+const GraficoBarras = lazy(() =>
+  import("./PainelCharts").then((m) => ({ default: m.GraficoBarras })),
+);
+
+const MESES = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
+function fmtBRL(v: number): string {
+  return v.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  });
+}
+function fmtKBRL(v: number): string {
+  if (v >= 1000) return `R$${(v / 1000).toFixed(1)}k`;
+  return `R$${Math.round(v)}`;
+}
+function mesChave(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function diasEntre(a: Date, b: Date): number {
+  return Math.floor((a.getTime() - b.getTime()) / 86400000);
 }
 
-function formatBRL(v: number): string {
-  if (v >= 1000) return `R$ ${(v / 1000).toFixed(1)}k`;
-  return `R$ ${v.toFixed(0)}`;
-}
-
-function MaxBars({
-  values,
-  labels,
-  alt,
-  fmt,
-}: {
-  values: number[];
-  labels: string[];
-  alt?: boolean;
-  fmt?: (v: number) => string;
-}) {
-  const max = Math.max(...values, 1);
-  return (
-    <div className="pf-bars-wrap">
-      <div className="pf-bars">
-        {values.map((v, i) => (
-          <div
-            key={i}
-            className={`bar ${alt ? "alt" : ""}`}
-            style={{ height: `${Math.max(8, (v / max) * 140)}px` }}
-          >
-            <span className="bar-label">{fmt ? fmt(v) : v}</span>
-            <span className="bar-foot">{labels[i] ?? ""}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Retorna semana do mês (0-based) a partir de um timestamp em segundos
-function semanaDoMes(seconds: number): number {
-  const d = new Date(seconds * 1000);
-  return Math.min(3, Math.floor((d.getDate() - 1) / 7));
-}
-
-const SEMANA_LABELS = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
-
-export function DashboardSection({ prefeituraId }: DashboardSectionProps) {
-  const [ativos, setAtivos] = useState<number | null>(null);
-  const [checklists, setChecklists] = useState<number | null>(null);
-  const [manutencao, setManutencao] = useState<number | null>(null);
-  const [custoAcumulado, setCustoAcumulado] = useState<number | null>(null);
-
-  const [gastosReais, setGastosReais] = useState<number[]>([0, 0, 0, 0]);
-  const [checklistSemanas, setChecklistSemanas] = useState<number[]>([
-    0, 0, 0, 0,
-  ]);
-  const [topOficinas, setTopOficinas] = useState<
-    { nome: string; total: number }[]
-  >([]);
-  const [tituloPeriodo, setTituloPeriodo] = useState("");
-
-  const loadDashboard = useCallback(async () => {
-    if (!prefeituraId) return;
-
-    const agora = new Date();
-    const anoAtual = agora.getFullYear();
-    const mesAtual = agora.getMonth(); // 0-based
-
-    const meses = [
-      "janeiro",
-      "fevereiro",
-      "março",
-      "abril",
-      "maio",
-      "junho",
-      "julho",
-      "agosto",
-      "setembro",
-      "outubro",
-      "novembro",
-      "dezembro",
-    ];
-    setTituloPeriodo(`Mês atual: ${meses[mesAtual]} de ${anoAtual}`);
-
-    try {
-      const [equipSnap, checkDevSnap, registrosSnap, ordemSnap] =
-        await Promise.all([
-          getDocs(
-            query(
-              collection(db, "equipamentos"),
-              where("prefeituraId", "==", prefeituraId),
-            ),
-          ),
-          getDocs(
-            query(
-              collection(db, "checklistsDevolucao"),
-              where("prefeituraId", "==", prefeituraId),
-            ),
-          ),
-          getDocs(
-            query(
-              collection(db, "checklistsRegistros"),
-              where("prefeituraId", "==", prefeituraId),
-            ),
-          ),
-          getDocs(
-            query(
-              collection(db, "ordensServico"),
-              where("prefeituraId", "==", prefeituraId),
-              where("status", "==", "aprovado"),
-            ),
-          ),
-        ]);
-
-      setAtivos(equipSnap.size);
-      setChecklists(checkDevSnap.size + registrosSnap.size);
-
-      // IDs de ordens que já têm checklist de devolução
-      const ordemIdsComChecklist = new Set(
-        checkDevSnap.docs
-          .map(
-            (d) =>
-              (d.data() as { ordemServicoId?: string | null }).ordemServicoId,
-          )
-          .filter(Boolean) as string[],
-      );
-
-      // Gastos por semana do mês atual
-      const gastosSem = [0, 0, 0, 0];
-      let custo = 0;
-      let emManutencao = 0;
-      for (const d of ordemSnap.docs) {
-        const data = d.data() as {
-          valorTotal?: number;
-          criadoEm?: { seconds: number } | null;
-        };
-        const valor = data.valorTotal ?? 0;
-        custo += valor;
-        if (!ordemIdsComChecklist.has(d.id)) emManutencao++;
-        if (data.criadoEm) {
-          const ts = data.criadoEm.seconds;
-          const docDate = new Date(ts * 1000);
-          if (
-            docDate.getFullYear() === anoAtual &&
-            docDate.getMonth() === mesAtual
-          ) {
-            gastosSem[semanaDoMes(ts)] += valor;
-          }
-        }
-      }
-      setCustoAcumulado(custo);
-      setManutencao(emManutencao);
-      setGastosReais([...gastosSem]);
-
-      // Checklists por semana: combina checklistsDevolucao + checklistsRegistros
-      const ckSem = [0, 0, 0, 0];
-      const rankMap = new Map<string, number>();
-
-      for (const d of checkDevSnap.docs) {
-        const data = d.data() as {
-          criadoEm?: { seconds: number } | null;
-          oficinaNome?: string;
-        };
-        const nome = data.oficinaNome ?? "Desconhecida";
-        rankMap.set(nome, (rankMap.get(nome) ?? 0) + 1);
-        if (data.criadoEm) {
-          const ts = data.criadoEm.seconds;
-          const docDate = new Date(ts * 1000);
-          if (
-            docDate.getFullYear() === anoAtual &&
-            docDate.getMonth() === mesAtual
-          ) {
-            ckSem[semanaDoMes(ts)]++;
-          }
-        }
-      }
-
-      for (const d of registrosSnap.docs) {
-        const data = d.data() as {
-          dataHoraIso?: string;
-          operador?: string;
-        };
-        // Adiciona operador ao ranking
-        const nome = data.operador?.trim() || "Desconhecido";
-        rankMap.set(nome, (rankMap.get(nome) ?? 0) + 1);
-        // Parse "YYYY-MM-DD HH:MM" or ISO string
-        if (data.dataHoraIso) {
-          const docDate = new Date(data.dataHoraIso.replace(" ", "T"));
-          if (
-            !isNaN(docDate.getTime()) &&
-            docDate.getFullYear() === anoAtual &&
-            docDate.getMonth() === mesAtual
-          ) {
-            const dia = docDate.getDate();
-            const sem = Math.min(3, Math.floor((dia - 1) / 7));
-            ckSem[sem]++;
-          }
-        }
-      }
-
-      setChecklistSemanas([...ckSem]);
-
-      const ranking = Array.from(rankMap.entries())
-        .map(([nome, total]) => ({ nome, total }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
-      setTopOficinas(ranking);
-    } catch {
-      // silently fail
-    }
-  }, [prefeituraId]);
+export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
+  const navigate = useNavigate();
+  const [equipamentos, setEquipamentos] = useState<EquipRow[]>([]);
+  const [abastecimentos, setAbastecimentos] = useState<Abastecimento[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    void loadDashboard();
-  }, [loadDashboard]);
+    let ativo = true;
+    (async () => {
+      setCarregando(true);
+      const [eqs, abs] = await Promise.all([
+        equipamentosApi.listar(prefeituraId).catch(() => []),
+        abastecimentosApi.listar(prefeituraId).catch(() => []),
+      ]);
+      if (!ativo) return;
+      setEquipamentos(eqs);
+      setAbastecimentos(abs);
+      setCarregando(false);
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [prefeituraId]);
 
-  const custoLabel = useMemo(() => {
-    if (custoAcumulado === null) return "—";
-    return custoAcumulado >= 1000
-      ? `R$ ${(custoAcumulado / 1000).toFixed(1)}k`
-      : `R$ ${custoAcumulado.toFixed(0)}`;
-  }, [custoAcumulado]);
+  const m = useMemo(() => {
+    const hoje = new Date();
+    const mesAtual = mesChave(hoje);
+    const restante = (eq: EquipRow) => revisaoEm(eq) - eq.medicaoAtual;
+
+    let carros = 0,
+      caminhoes = 0,
+      maquinas = 0;
+    for (const eq of equipamentos) {
+      const cat = categoriaDoTipo(eq.tipo);
+      if (cat === "caminhao") caminhoes++;
+      else if (cat === "maquina") maquinas++;
+      else carros++;
+    }
+
+    const bloqueados = equipamentos.filter(isBloqueado);
+    const pendentes = equipamentos.filter(
+      (eq) => eq.intervaloRevisao > 0 && restante(eq) <= eq.intervaloRevisao * 0.1,
+    );
+
+    const noMes = abastecimentos.filter((a) => a.data.startsWith(mesAtual));
+    const litrosMes = noMes.reduce((s, a) => s + a.litros, 0);
+    const valorMes = noMes.reduce((s, a) => s + a.valor, 0);
+    const totalGeral = abastecimentos.reduce((s, a) => s + a.valor, 0);
+
+    const porTipo = new Map<string, number>();
+    let litrosTotal = 0;
+    for (const a of abastecimentos) {
+      porTipo.set(a.combustivel, (porTipo.get(a.combustivel) ?? 0) + a.litros);
+      litrosTotal += a.litros;
+    }
+    const consumo = [...porTipo.entries()]
+      .map(([tipo, litros]) => ({
+        tipo,
+        pct: litrosTotal ? Math.round((litros / litrosTotal) * 100) : 0,
+      }))
+      .sort((a, b) => b.pct - a.pct);
+
+    const gastos: { label: string; valor: number }[] = [];
+    for (let i = 4; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const chave = mesChave(d);
+      const valor = abastecimentos
+        .filter((a) => a.data.startsWith(chave))
+        .reduce((s, a) => s + a.valor, 0);
+      gastos.push({ label: MESES[d.getMonth()], valor });
+    }
+
+    const semanas = Array.from({ length: 7 }, (_, i) => ({
+      label: `S${i + 1}`,
+      valor: 0,
+    }));
+    for (const a of abastecimentos) {
+      if (!a.data) continue;
+      const dd = new Date(a.data + "T00:00:00");
+      const wk = Math.floor(diasEntre(hoje, dd) / 7);
+      if (wk >= 0 && wk < 7) semanas[6 - wk].valor += 1;
+    }
+
+    const proximas = [...equipamentos]
+      .filter((eq) => eq.intervaloRevisao > 0)
+      .sort((a, b) => restante(a) - restante(b))
+      .slice(0, 5);
+
+    const frentes = new Map<string, number>();
+    for (const eq of equipamentos) {
+      const f = eq.obra?.trim() || "Disponível";
+      frentes.set(f, (frentes.get(f) ?? 0) + 1);
+    }
+    const porFrente = [...frentes.entries()]
+      .map(([frente, qtd]) => ({ frente, qtd }))
+      .sort((a, b) => b.qtd - a.qtd)
+      .slice(0, 6);
+
+    return {
+      frota: equipamentos.length,
+      carros,
+      caminhoes,
+      maquinas,
+      bloqueados,
+      pendentes: pendentes.length,
+      litrosMes,
+      valorMes,
+      totalGeral,
+      ultimos: abastecimentos.slice(0, 5),
+      consumo,
+      gastos,
+      semanas,
+      proximas,
+      porFrente,
+      restante,
+    };
+  }, [equipamentos, abastecimentos]);
+
+  function abrirEquipamento(eq: EquipRow) {
+    navigate(`/prefeitura/${prefeituraId}/equipamentos/${eq.id}/editar`);
+  }
+
+  if (carregando) {
+    return <p className="pnl__loading">Carregando painel…</p>;
+  }
 
   return (
-    <>
-      <h1>Dashboard Estratégica</h1>
-
-      <div className="card-grid">
-        <article className="card">
-          <h3>Total de Ativos</h3>
-          <p>{ativos ?? "—"}</p>
+    <div className="pnl">
+      <div className="pnl__kpis">
+        <article className="pnl__kpi">
+          <span className="pnl__kpi-top">
+            <Truck size={13} /> Veículos na frota
+          </span>
+          <strong>{m.frota}</strong>
+          <small>
+            {m.carros} carros · {m.caminhoes} cam. · {m.maquinas} máq.
+          </small>
         </article>
-        <article className="card">
-          <h3>Checklists Recebidos</h3>
-          <p>{checklists ?? "—"}</p>
+        <article className="pnl__kpi">
+          <span className="pnl__kpi-top">
+            <Fuel size={13} /> Combustível (mês)
+          </span>
+          <strong>{fmtBRL(m.valorMes)}</strong>
+          <small>{Math.round(m.litrosMes)} L abastecidos</small>
         </article>
-        <article className="card">
-          <h3>Em Manutenção</h3>
-          <p>{manutencao ?? "—"}</p>
+        <article className="pnl__kpi pnl__kpi--alerta">
+          <span className="pnl__kpi-top">
+            <Lock size={13} /> Bloqueados
+          </span>
+          <strong className="pnl__num-alerta">{m.bloqueados.length}</strong>
+          <small>Revisão vencida</small>
         </article>
-        <article className="card">
-          <h3>Custo Acumulado</h3>
-          <p>{custoLabel}</p>
+        <article className="pnl__kpi">
+          <span className="pnl__kpi-top">
+            <Wrench size={13} /> Manutenções pendentes
+          </span>
+          <strong className="pnl__num-alerta">{m.pendentes}</strong>
+        </article>
+        <article className="pnl__kpi">
+          <span className="pnl__kpi-top">
+            <Banknote size={13} /> Total gasto geral
+          </span>
+          <strong>{fmtBRL(m.totalGeral)}</strong>
         </article>
       </div>
 
-      <p
-        className="topbar-user"
-        style={{ margin: "0 0 10px", fontSize: "0.82rem" }}
-      >
-        {tituloPeriodo}
-      </p>
-      <div className="dash-graficos-grid">
-        <article className="card chart-wrap">
-          <h3>Gastos com manutenção</h3>
-          <p className="chart-sub">
-            Orçamentos aprovados no mês (R$) por semana
-          </p>
-          <MaxBars
-            values={gastosReais}
-            labels={SEMANA_LABELS}
-            fmt={formatBRL}
-          />
-        </article>
-        <article className="card chart-wrap">
-          <h3>Checklists recebidos</h3>
-          <p className="chart-sub">Volume recebido no mês por semana</p>
-          <MaxBars values={checklistSemanas} labels={SEMANA_LABELS} alt />
-        </article>
-        <article className="card chart-wrap wide">
-          <h3>Top 5 — mais checklists realizados</h3>
-          <p className="chart-sub">
-            Ranking por quantidade de checklists recebidos (operadores e
-            oficinas)
-          </p>
-          {topOficinas.length === 0 ? (
-            <p style={{ color: "var(--text-gray)", fontSize: "0.88rem" }}>
-              Nenhum checklist recebido ainda.
-            </p>
+      <div className="pnl__grid2">
+        <section className="pnl__card">
+          <header className="pnl__card-head">
+            <h2>⛽ Últimos abastecimentos</h2>
+          </header>
+          <div className="pnl__tab-wrap">
+            <table className="pnl__tabela">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Veículo</th>
+                  <th>Combustível</th>
+                  <th>Litros</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {m.ultimos.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="pnl__vazio">
+                      Nenhum abastecimento registrado.
+                    </td>
+                  </tr>
+                ) : (
+                  m.ultimos.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.data.split("-").reverse().join("/")}</td>
+                      <td>
+                        <span className="pnl__placa">
+                          {a.placa || a.veiculo || "—"}
+                        </span>
+                      </td>
+                      <td>{a.combustivel}</td>
+                      <td>{a.litros} L</td>
+                      <td>{fmtBRL(a.valor)}</td>
+                      <td>
+                        <span
+                          className={`pnl__st pnl__st--${a.status || "aprovado"}`}
+                        >
+                          {a.status || "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div className="pnl__col">
+          <section className="pnl__card">
+            <header className="pnl__card-head">
+              <h2>🔒 Bloqueios por revisão</h2>
+              <span className="pnl__badge">{m.bloqueados.length}</span>
+            </header>
+            {m.bloqueados.length === 0 ? (
+              <p className="pnl__vazio">Nenhum equipamento bloqueado. 🎉</p>
+            ) : (
+              <ul className="pnl__lista">
+                {m.bloqueados.map((eq) => {
+                  const excesso = Math.max(0, eq.medicaoAtual - revisaoEm(eq));
+                  return (
+                    <li key={eq.id} className="pnl__bloq">
+                      <div className="pnl__bloq-txt">
+                        <strong>
+                          {eq.chassis || eq.placa || "—"} — {eq.descricao}
+                        </strong>
+                        <small>
+                          +{excesso.toLocaleString("pt-BR")} {eq.unidadeRevisao}{" "}
+                          vencidos
+                        </small>
+                      </div>
+                      <button
+                        type="button"
+                        className="pnl__liberar"
+                        onClick={() => abrirEquipamento(eq)}
+                      >
+                        <Lock size={12} /> Liberar
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section className="pnl__card">
+            <header className="pnl__card-head">
+              <h2>🔧 Próximas manutenções</h2>
+            </header>
+            {m.proximas.length === 0 ? (
+              <p className="pnl__vazio">Sem manutenções programadas.</p>
+            ) : (
+              <ul className="pnl__lista">
+                {m.proximas.map((eq) => {
+                  const r = m.restante(eq);
+                  const vencida = isVencido(eq);
+                  return (
+                    <li key={eq.id} className="pnl__manut">
+                      <span
+                        className={`pnl__dot ${vencida ? "is-red" : "is-amber"}`}
+                      />
+                      <div className="pnl__manut-txt">
+                        <strong>
+                          {eq.descricao} — {eq.chassis || eq.placa}
+                        </strong>
+                        <small>
+                          {eq.unidadeRevisao === "h" ? "Horímetro" : "KM"}
+                        </small>
+                      </div>
+                      <span
+                        className={`pnl__manut-val ${vencida ? "is-red" : "is-amber"}`}
+                      >
+                        {vencida
+                          ? "Vencida"
+                          : `${r.toLocaleString("pt-BR")} ${eq.unidadeRevisao}`}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
+
+      <div className="pnl__grid2">
+        <section className="pnl__card">
+          <header className="pnl__card-head">
+            <h2>
+              <HardHat size={14} /> Equipamentos por frente de trabalho
+            </h2>
+          </header>
+          {m.porFrente.length === 0 ? (
+            <p className="pnl__vazio">Sem equipamentos alocados.</p>
           ) : (
-            <ol className="pf-rank-list">
-              {topOficinas.map((op, i) => (
-                <li key={op.nome}>
-                  <span>
-                    <span className="rank-pos">{i + 1}.</span> {op.nome}
-                  </span>
-                  <span className="rank-vals">{op.total} checklist(s)</span>
+            <ul className="pnl__frentes">
+              {m.porFrente.map((f) => (
+                <li key={f.frente}>
+                  <span>{f.frente}</span>
+                  <strong>{f.qtd} equip.</strong>
                 </li>
               ))}
-            </ol>
+            </ul>
           )}
-        </article>
+          <h3 className="pnl__sub">Gastos mensais</h3>
+          <div className="pnl__grafico-fill">
+            <Suspense fallback={<div className="pnl__grafico-ph" />}>
+              <GraficoBarras
+                dados={m.gastos}
+                formato={fmtKBRL}
+                destacarUltimo
+                altura="100%"
+              />
+            </Suspense>
+          </div>
+        </section>
+
+        <section className="pnl__card">
+          <header className="pnl__card-head">
+            <h2>
+              <BarChart3 size={14} /> Consumo combustível
+            </h2>
+          </header>
+          {m.consumo.length === 0 ? (
+            <p className="pnl__vazio">Sem dados de consumo.</p>
+          ) : (
+            <ul className="pnl__consumo">
+              {m.consumo.map((c) => (
+                <li key={c.tipo}>
+                  <span className="pnl__consumo-lbl">{c.tipo}</span>
+                  <span className="pnl__consumo-bar">
+                    <span style={{ width: `${c.pct}%` }} />
+                  </span>
+                  <span className="pnl__consumo-pct">{c.pct}%</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <h3 className="pnl__sub">Abastecimentos / semana</h3>
+          <div className="pnl__grafico-fill">
+            <Suspense fallback={<div className="pnl__grafico-ph" />}>
+              <GraficoBarras
+                dados={m.semanas}
+                formato={(v) => String(v)}
+                destacarUltimo
+                altura="100%"
+              />
+            </Suspense>
+          </div>
+        </section>
       </div>
-    </>
+    </div>
   );
 }

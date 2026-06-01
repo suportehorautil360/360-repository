@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import {
@@ -8,7 +8,12 @@ import {
 import { pontosApi, type PontoRegistro } from "../../../lib/api/pontos";
 import { escalaApi, type Escala } from "../../../lib/api/escala";
 import { abonosApi, type Abono } from "../../../lib/api/abonos";
+import {
+  solicitacoesPontoApi,
+  type SolicitacaoPonto,
+} from "../../../lib/api/solicitacoes-ponto";
 import { EspelhoDetalhado } from "../../checklist-controle/EspelhoDetalhado";
+import { diaLocal, diaDaSolicitacao } from "./ponto-dia-utils";
 import { formatarCpf } from "../../../lib/funcionarios/cpf";
 import "./historico-ponto.css";
 
@@ -34,6 +39,7 @@ export function HistoricoPontoSection({
   const [batidas, setBatidas] = useState<PontoRegistro[]>([]);
   const [escala, setEscala] = useState<Escala | null>(null);
   const [abonos, setAbonos] = useState<Abono[]>([]);
+  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoPonto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -42,11 +48,12 @@ export function HistoricoPontoSection({
     setCarregando(true);
     setErro("");
     try {
-      const [f, ptos, esc, abs] = await Promise.all([
+      const [f, ptos, esc, abs, sols] = await Promise.all([
         funcionariosApi.obter(funcId),
         pontosApi.listar(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
         abonosApi.listar(prefeituraId).catch(() => []),
+        solicitacoesPontoApi.listar(prefeituraId).catch(() => []),
       ]);
       if (!f) {
         setErro("Funcionário não encontrado.");
@@ -56,6 +63,7 @@ export function HistoricoPontoSection({
       setBatidas(ptos);
       setEscala(esc);
       setAbonos(abs);
+      setSolicitacoes(sols);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
@@ -66,6 +74,25 @@ export function HistoricoPontoSection({
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  const nome = funcionario?.nome ?? "";
+  const diasComPendencia = useMemo(() => {
+    const set = new Set<string>();
+    const alvo = nome.trim().toLowerCase();
+    if (!alvo) return set;
+    for (const b of batidas) {
+      if ((b.status ?? "pendente") !== "pendente") continue;
+      if ((b.name ?? "").trim().toLowerCase() !== alvo) continue;
+      set.add(diaLocal(b.timestampOriginal));
+    }
+    for (const s of solicitacoes) {
+      if (s.status !== "pendente") continue;
+      if ((s.name ?? "").trim().toLowerCase() !== alvo) continue;
+      const d = diaDaSolicitacao(s, batidas);
+      if (d) set.add(d);
+    }
+    return set;
+  }, [nome, batidas, solicitacoes]);
 
   function voltarParaLista() {
     navigate(`/prefeitura/${prefeituraId}/funcionarios`);
@@ -112,6 +139,12 @@ export function HistoricoPontoSection({
           abonos={abonos}
           funcionarioCpf={funcionario.cpf}
           onVoltar={voltarParaLista}
+          onSelecionarDia={(dia) =>
+            navigate(
+              `/prefeitura/${prefeituraId}/funcionarios/${funcId}/historico/${dia}`,
+            )
+          }
+          diasComPendencia={diasComPendencia}
         />
       </div>
     </div>
