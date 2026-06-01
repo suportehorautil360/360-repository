@@ -374,9 +374,16 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
             </ul>
           )}
           <h3 className="pnl__sub">Gastos mensais</h3>
-          <Suspense fallback={<div className="pnl__grafico-ph" />}>
-            <GraficoBarras dados={m.gastos} formato={fmtKBRL} destacarUltimo />
-          </Suspense>
+          <div className="pnl__grafico-fill">
+            <Suspense fallback={<div className="pnl__grafico-ph" />}>
+              <GraficoBarras
+                dados={m.gastos}
+                formato={fmtKBRL}
+                destacarUltimo
+                altura="100%"
+              />
+            </Suspense>
+          </div>
         </section>
 
         <section className="pnl__card">
@@ -401,13 +408,16 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
             </ul>
           )}
           <h3 className="pnl__sub">Abastecimentos / semana</h3>
-          <Suspense fallback={<div className="pnl__grafico-ph" />}>
-            <GraficoBarras
-              dados={m.semanas}
-              formato={(v) => String(v)}
-              destacarUltimo
-            />
-          </Suspense>
+          <div className="pnl__grafico-fill">
+            <Suspense fallback={<div className="pnl__grafico-ph" />}>
+              <GraficoBarras
+                dados={m.semanas}
+                formato={(v) => String(v)}
+                destacarUltimo
+                altura="100%"
+              />
+            </Suspense>
+          </div>
         </section>
       </div>
     </div>

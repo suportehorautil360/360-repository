@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Preenche a altura do #main para não sobrar vácuo embaixo. */
+  min-height: calc(100dvh - 120px);
 }
 .pnl__loading {
   color: #93a4c6;
@@ -60,7 +62,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+}
+/* A última linha cresce e ocupa o espaço que sobra. */
+.pnl__grid2:last-of-type {
+  flex: 1;
 }
 .pnl__col {
   display: flex;
@@ -77,6 +83,21 @@
   border: 1px solid rgba(64, 112, 204, 0.32);
   border-radius: 14px;
   padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+}
+/* Cards da última linha ocupam a altura toda da linha. */
+.pnl__grid2:last-of-type .pnl__card {
+  height: 100%;
+}
+/* Área de gráfico que cresce para preencher o card. */
+.pnl__grafico-fill {
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+}
+.pnl__grafico-fill > div {
+  width: 100%;
 }
 .pnl__card-head {
   display: flex;

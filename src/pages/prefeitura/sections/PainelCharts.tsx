@@ -25,7 +25,7 @@ export function GraficoBarras({
   dados: PontoGrafico[];
   formato?: (v: number) => string;
   destacarUltimo?: boolean;
-  altura?: number;
+  altura?: number | string;
 }) {
   return (
     <ResponsiveContainer width="100%" height={altura}>
