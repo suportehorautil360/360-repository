@@ -234,3 +234,89 @@
     grid-template-columns: 1fr 90px 88px;
   }
 }
+
+/* Escala da jornada */
+.cfg__escala-atual {
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: #86efac;
+  font-size: 0.82rem;
+}
+.cfg__escala-atual strong {
+  color: #bbf7d0;
+}
+.cfg__escala-atual.is-off {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: #fcd34d;
+}
+.cfg__escala-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+.cfg__escala-campos label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #93a4c6;
+  font-weight: 600;
+}
+.cfg__escala-campos input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  color: #e8ecf6;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color-scheme: dark;
+}
+.cfg__escala-campos input:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.cfg__escala-rotulo {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 0.72rem;
+  color: #93a4c6;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cfg__escala-dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cfg__dia {
+  min-width: 48px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: #93a4c6;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.cfg__dia:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.cfg__dia.is-on {
+  background: linear-gradient(180deg, #ff981a, #f97316);
+  border-color: transparent;
+  color: #1a1205;
+}
+@media (max-width: 560px) {
+  .cfg__escala-campos {
+    grid-template-columns: 1fr;
+  }
+}
