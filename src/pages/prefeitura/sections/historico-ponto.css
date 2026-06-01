@@ -322,3 +322,49 @@
   gap: 8px;
   margin-top: 10px;
 }
+
+/* Variante de PÁGINA (tela dedicada do dia, não modal). */
+.prefeitura-root .dia-pt--page {
+  width: 100%;
+  max-height: none;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.prefeitura-root .dia-pt--page .dia-pt__head {
+  background: transparent;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.3);
+  padding: 0 0 12px;
+  margin-bottom: 8px;
+}
+.prefeitura-root .dia-pt--page .dia-pt__body {
+  padding: 4px 0 0;
+  overflow: visible;
+}
+.prefeitura-root .dia-pt--page .dia-pt__reprova {
+  background: transparent;
+  padding: 14px 0 0;
+}
+.prefeitura-root .dia-pt__head-id {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.prefeitura-root .dia-pt__voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.prefeitura-root .dia-pt__voltar:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

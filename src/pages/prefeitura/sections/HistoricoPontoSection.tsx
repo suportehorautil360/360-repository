@@ -13,11 +13,7 @@ import {
   type SolicitacaoPonto,
 } from "../../../lib/api/solicitacoes-ponto";
 import { EspelhoDetalhado } from "../../checklist-controle/EspelhoDetalhado";
-import {
-  DiaPontoModal,
-  diaLocal,
-  diaDaSolicitacao,
-} from "./DiaPontoModal";
+import { diaLocal, diaDaSolicitacao } from "./ponto-dia-utils";
 import { formatarCpf } from "../../../lib/funcionarios/cpf";
 import "./historico-ponto.css";
 
@@ -46,7 +42,6 @@ export function HistoricoPontoSection({
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoPonto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
-  const [diaSel, setDiaSel] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     if (!prefeituraId || !funcId) return;
@@ -144,24 +139,14 @@ export function HistoricoPontoSection({
           abonos={abonos}
           funcionarioCpf={funcionario.cpf}
           onVoltar={voltarParaLista}
-          onSelecionarDia={(dia) => setDiaSel(dia)}
+          onSelecionarDia={(dia) =>
+            navigate(
+              `/prefeitura/${prefeituraId}/funcionarios/${funcId}/historico/${dia}`,
+            )
+          }
           diasComPendencia={diasComPendencia}
         />
       </div>
-
-      {diaSel && (
-        <DiaPontoModal
-          prefeituraId={prefeituraId}
-          dia={diaSel}
-          nome={funcionario.nome}
-          funcionarioCpf={funcionario.cpf}
-          batidas={batidas}
-          solicitacoes={solicitacoes}
-          abonos={abonos}
-          onClose={() => setDiaSel(null)}
-          onMudou={carregar}
-        />
-      )}
     </div>
   );
 }

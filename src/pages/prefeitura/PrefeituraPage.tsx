@@ -7,6 +7,7 @@ import { AuditoriaSection } from "./sections/AuditoriaSection";
 import { RiscosSection } from "./sections/RiscosSection";
 import { EquipamentosSection } from "./sections/EquipamentosSection";
 import { EquipamentoFormPage } from "./sections/EquipamentoFormPage";
+import { DiaPontoSection } from "./sections/DiaPontoSection";
 import { CadastrosSection } from "./sections/CadastrosSection";
 import { FuncionariosSection } from "./sections/FuncionariosSection";
 import { FuncionarioFormPage } from "./sections/FuncionarioFormPage";
@@ -72,6 +73,11 @@ export function PrefeituraPage() {
   const equipNovo = location.pathname.endsWith("/equipamentos/novo");
   const equipEditId =
     location.pathname.match(/\/equipamentos\/([^/]+)\/editar$/)?.[1] ?? null;
+  // Tela dedicada de um dia de ponto: /funcionarios/:funcId/historico/:dia
+  const pontoDiaMatch = location.pathname.match(
+    /\/funcionarios\/([^/]+)\/historico\/([^/]+)$/,
+  );
+  const ehPontoDia = !!pontoDiaMatch;
   const { user, handleLogin: login, logout } = useLogin();
   const { obterDadosPrefeitura, prefeituraLabel } = useHU360();
 
@@ -99,7 +105,7 @@ export function PrefeituraPage() {
   // têm `secao` no useParams; aí o redirect padrão não deve disparar.
   useEffect(() => {
     if (!user || !prefeituraId) return;
-    if (funcSubPagina || equipNovo || equipEditId) return;
+    if (funcSubPagina || equipNovo || equipEditId || ehPontoDia) return;
     if (!idParam && user.prefeituraId) {
       navigate(`/prefeitura/${user.prefeituraId}/dashboard`, { replace: true });
     } else if (idParam && !secao) {
@@ -114,6 +120,7 @@ export function PrefeituraPage() {
     funcSubPagina,
     equipNovo,
     equipEditId,
+    ehPontoDia,
   ]);
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
@@ -238,14 +245,24 @@ export function PrefeituraPage() {
   const ehOutroMunicipio = idParam && idParam !== user.prefeituraId;
   // Quando estamos numa rota dedicada de funcionário, o item ativo do menu
   // continua sendo "Funcionários".
-  const secaoAtual = funcSubPagina
-    ? "funcionarios"
-    : equipNovo || equipEditId
-      ? "equipamentos"
-      : (secao ?? "dashboard");
+  const secaoAtual =
+    funcSubPagina || ehPontoDia
+      ? "funcionarios"
+      : equipNovo || equipEditId
+        ? "equipamentos"
+        : (secao ?? "dashboard");
   const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
 
   function renderSecao() {
+    if (pontoDiaMatch) {
+      return (
+        <DiaPontoSection
+          prefeituraId={prefeituraId}
+          funcId={pontoDiaMatch[1]}
+          dia={pontoDiaMatch[2]}
+        />
+      );
+    }
     if (equipNovo) {
       return <EquipamentoFormPage prefeituraId={prefeituraId} modo="novo" />;
     }
