@@ -69,6 +69,9 @@ export default defineConfig({
           // SheetJS (xlsx) só é usado na importação de funcionários (admin/
           // prefeitura) — fora do fluxo do operador, não precacheia.
           "**/xlsx-*.js",
+          // recharts (gráficos do painel da prefeitura) — fora do checklist.
+          "**/PainelCharts-*.js",
+          "**/recharts-*.js",
           "**/AdminPage-*.{js,css}",
           "**/DashboardSection-*.{js,css}",
           "**/PortalPostoSection-*.{js,css}",

@@ -1,0 +1,322 @@
+/* Painel da prefeitura — tema escuro, layout da referência. */
+.pnl {
+  color: #e8ecf6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pnl__loading {
+  color: #93a4c6;
+  padding: 24px 0;
+}
+
+/* KPIs */
+.pnl__kpis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.pnl__kpi {
+  background: rgba(18, 38, 76, 0.55);
+  border: 1px solid rgba(64, 112, 204, 0.4);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pnl__kpi--alerta {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.pnl__kpi-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #93a4c6;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.pnl__kpi strong {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f1f5f9;
+}
+.pnl__num-alerta {
+  color: #f87171 !important;
+}
+.pnl__kpi small {
+  color: #7f8da4;
+  font-size: 0.76rem;
+}
+@media (max-width: 1100px) {
+  .pnl__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Cards e grid */
+.pnl__grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.pnl__col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (max-width: 1000px) {
+  .pnl__grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+.pnl__card {
+  background: rgba(18, 38, 76, 0.4);
+  border: 1px solid rgba(64, 112, 204, 0.32);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.pnl__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pnl__card-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #cbd5e1;
+}
+.pnl__badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+.pnl__sub {
+  margin: 16px 0 4px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #93a4c6;
+}
+.pnl__vazio {
+  color: #7f8da4;
+  font-size: 0.86rem;
+  padding: 14px 0;
+  text-align: center;
+}
+
+/* Tabela de abastecimentos */
+.pnl__tab-wrap {
+  overflow-x: auto;
+}
+.pnl__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.pnl__tabela th {
+  text-align: left;
+  color: #7f8da4;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.3);
+}
+.pnl__tabela td {
+  padding: 11px 10px;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.16);
+  color: #d7e1ee;
+}
+.pnl__placa {
+  display: inline-block;
+  border: 1px solid rgba(70, 119, 216, 0.7);
+  border-radius: 6px;
+  background: #193665;
+  padding: 2px 8px;
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+.pnl__st {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.pnl__st--pendente {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+.pnl__st--aprovado {
+  background: rgba(34, 197, 94, 0.16);
+  color: #4ade80;
+}
+.pnl__st--irregular {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+}
+
+/* Listas (bloqueios / manutenções) */
+.pnl__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pnl__bloq {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.16);
+}
+.pnl__bloq:last-child,
+.pnl__manut:last-child {
+  border-bottom: none;
+}
+.pnl__bloq-txt strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+}
+.pnl__bloq-txt small {
+  color: #f87171;
+  font-size: 0.78rem;
+}
+.pnl__liberar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ff981a, #f97316);
+  color: #1a1205;
+  padding: 7px 14px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.pnl__manut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.16);
+}
+.pnl__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pnl__dot.is-red {
+  background: #f87171;
+}
+.pnl__dot.is-amber {
+  background: #fbbf24;
+}
+.pnl__manut-txt {
+  flex: 1;
+  min-width: 0;
+}
+.pnl__manut-txt strong {
+  display: block;
+  font-size: 0.86rem;
+  color: #f1f5f9;
+}
+.pnl__manut-txt small {
+  color: #7f8da4;
+  font-size: 0.74rem;
+}
+.pnl__manut-val {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.pnl__manut-val.is-red {
+  color: #f87171;
+}
+.pnl__manut-val.is-amber {
+  color: #fbbf24;
+}
+
+/* Equipamentos por frente */
+.pnl__frentes {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+}
+.pnl__frentes li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.16);
+  font-size: 0.88rem;
+}
+.pnl__frentes strong {
+  color: #93a4c6;
+  font-weight: 700;
+}
+
+/* Consumo combustível (barras CSS) */
+.pnl__consumo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.pnl__consumo li {
+  display: grid;
+  grid-template-columns: 100px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+}
+.pnl__consumo-lbl {
+  color: #cbd5e1;
+}
+.pnl__consumo-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.pnl__consumo-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fb923c, #f59e0b);
+}
+.pnl__consumo-pct {
+  text-align: right;
+  color: #93a4c6;
+  font-weight: 700;
+}
+
+.pnl__grafico-ph {
+  height: 200px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
