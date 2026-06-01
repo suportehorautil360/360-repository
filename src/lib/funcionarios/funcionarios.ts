@@ -7,19 +7,9 @@
  *
  * Tudo via Firestore (offline-first, persistentLocalCache). Sem backend.
  */
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../firebase/firebase";
+import { api, ApiError } from "../api/client";
 import { hashSenha } from "../../utils/hashSenha";
 import { limparCpf } from "./cpf";
 
@@ -162,6 +152,17 @@ export type AutenticacaoResultado =
       motivo: "nao-encontrado" | "sem-senha" | "senha-invalida" | "inativo";
     };
 
+/** Resultado da importação em massa. */
+export interface ImportResultado {
+  criados: number;
+  ignorados: number;
+  erros: { linha: number; nome: string; cpf: string; motivo: string }[];
+}
+
+interface DocResponse {
+  data: (Record<string, unknown> & { id?: string }) | null;
+}
+
 export const funcionariosApi = {
   /**
    * Autentica um funcionário por CPF **ou** login gerado + senha.
@@ -216,30 +217,13 @@ export const funcionariosApi = {
     };
   },
 
-  /** Lista os funcionários de uma prefeitura (inclui inativos). */
+  /** Lista os funcionários de uma prefeitura (inclui inativos). Via NestJS. */
   async listar(prefeituraId: string): Promise<Funcionario[]> {
     if (!prefeituraId) return [];
-    const snap = await getDocs(
-      query(
-        collection(db, COLECAO),
-        where("prefeituraId", "==", prefeituraId),
-        orderBy("createdAt", "desc"),
-      ),
-    );
-    // Backfill oportunístico: docs antigos não têm `loginGerado` salvo
-    // (foram criados antes do campo existir). Sem isso a query por login
-    // na autenticação retorna vazio. Regrava fire-and-forget — o load
-    // continua rápido e a próxima tentativa de login já funciona.
-    for (const d of snap.docs) {
-      const data = d.data();
-      if (data.loginGerado || !data.nome || !data.cpf) continue;
-      const loginGerado = gerarLogin(String(data.nome), String(data.cpf));
-      if (!loginGerado) continue;
-      void updateDoc(doc(db, COLECAO, d.id), { loginGerado }).catch(() => {
-        /* ignora falha de backfill — não bloqueia a tela */
-      });
-    }
-    return snap.docs.map((d) => fromDoc(d.id, d.data()));
+    const r = await api.get<{
+      data: (Record<string, unknown> & { id?: string })[];
+    }>(`/funcionarios/${prefeituraId}`);
+    return (r.data ?? []).map((d) => fromDoc(String(d.id ?? ""), d));
   },
 
   /**
@@ -253,106 +237,51 @@ export const funcionariosApi = {
   ): Promise<boolean> {
     const limpo = limparCpf(cpf);
     if (!limpo) return false;
-    const snap = await getDocs(
-      query(
-        collection(db, COLECAO),
-        where("prefeituraId", "==", prefeituraId),
-        where("cpf", "==", limpo),
-      ),
+    const q = ignorarId ? `?ignorarId=${encodeURIComponent(ignorarId)}` : "";
+    const r = await api.get<{ data: { emUso: boolean } }>(
+      `/funcionarios/cpf-em-uso/${prefeituraId}/${limpo}${q}`,
     );
-    return snap.docs.some((d) => d.id !== ignorarId);
+    return r.data?.emUso ?? false;
   },
 
   async criar(prefeituraId: string, input: FuncionarioInput): Promise<void> {
-    const cpf = limparCpf(input.cpf);
-    // Padrão enterprise: se a senha não foi escolhida, o CPF vira a senha
-    // inicial (operador troca depois). Garante que todo funcionário criado
-    // já pode logar.
-    const senhaInicial = input.senha || cpf;
-    const loginGerado = gerarLogin(input.nome, cpf);
-    const payload: Record<string, unknown> = {
-      prefeituraId,
-      nome: input.nome.trim(),
-      cpf,
-      loginGerado,
-      cargo: input.cargo.trim(),
-      telefone: input.telefone?.trim() || null,
-      tipo: input.tipo,
-      status: input.status,
-      matricula: input.matricula?.trim() || null,
-      dataNascimento: input.dataNascimento?.trim() || null,
-      rg: input.rg?.trim() || null,
-      cnh: input.cnh?.replace(/\D/g, "") || null,
-      cnhCategoria: input.cnhCategoria?.trim() || null,
-      cnhValidade: input.cnhValidade?.trim() || null,
-      cnhLocalEmissao: input.cnhLocalEmissao?.trim() || null,
-      cnhEmissao: input.cnhEmissao?.trim() || null,
-      cnhRestricao: input.cnhRestricao?.trim() || null,
-      observacoes: input.observacoes?.trim() || null,
-      senhaHash: await hashSenhaFuncionario(cpf, senhaInicial),
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-    await addDoc(collection(db, COLECAO), payload);
+    await api.post(`/funcionarios/${prefeituraId}`, input);
   },
 
   async atualizar(id: string, input: FuncionarioInput): Promise<void> {
-    const cpf = limparCpf(input.cpf);
-    const loginGerado = gerarLogin(input.nome, cpf);
-    const payload: Record<string, unknown> = {
-      nome: input.nome.trim(),
-      cpf,
-      loginGerado,
-      cargo: input.cargo.trim(),
-      telefone: input.telefone?.trim() || null,
-      tipo: input.tipo,
-      status: input.status,
-      matricula: input.matricula?.trim() || null,
-      dataNascimento: input.dataNascimento?.trim() || null,
-      rg: input.rg?.trim() || null,
-      cnh: input.cnh?.replace(/\D/g, "") || null,
-      cnhCategoria: input.cnhCategoria?.trim() || null,
-      cnhValidade: input.cnhValidade?.trim() || null,
-      cnhLocalEmissao: input.cnhLocalEmissao?.trim() || null,
-      cnhEmissao: input.cnhEmissao?.trim() || null,
-      cnhRestricao: input.cnhRestricao?.trim() || null,
-      observacoes: input.observacoes?.trim() || null,
-      updatedAt: serverTimestamp(),
-    };
-    if (input.senha) {
-      payload.senhaHash = await hashSenhaFuncionario(cpf, input.senha);
-    }
-    await updateDoc(doc(db, COLECAO, id), payload);
+    await api.post(`/funcionarios/update/${id}`, input);
   },
 
-  /** Carrega um funcionário pelo id (página de edição). */
+  /** Carrega um funcionário pelo id (página de edição). Via NestJS. */
   async obter(id: string): Promise<Funcionario | null> {
-    const ref = doc(db, COLECAO, id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    return fromDoc(snap.id, snap.data());
+    try {
+      const r = await api.get<DocResponse>(`/funcionarios/item/${id}`);
+      return r.data ? fromDoc(String(r.data.id ?? id), r.data) : null;
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
   },
 
-  /**
-   * Reseta a senha do funcionário para o CPF (ação do gestor).
-   * Útil quando o operador esqueceu a senha OU quando o doc foi criado
-   * com uma senha que ninguém lembra. Não há fluxo de troca pelo operador.
-   */
+  /** Reseta a senha do funcionário para o CPF (ação do gestor). */
   async resetarSenha(id: string): Promise<void> {
-    const ref = doc(db, COLECAO, id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error("Funcionário não encontrado.");
-    const cpf = limparCpf(String(snap.data().cpf ?? ""));
-    if (!cpf) throw new Error("CPF não definido — não dá pra resetar.");
-    const senhaHash = await hashSenhaFuncionario(cpf, cpf);
-    await updateDoc(ref, { senhaHash, updatedAt: serverTimestamp() });
+    await api.post(`/funcionarios/reset-senha/${id}`);
   },
 
   /** Ativa/inativa sem mexer no resto do cadastro. */
   async definirStatus(id: string, status: FuncionarioStatus): Promise<void> {
-    await updateDoc(doc(db, COLECAO, id), {
-      status,
-      updatedAt: serverTimestamp(),
+    await api.post(`/funcionarios/status/${id}`, { status });
+  },
+
+  /** Importa vários funcionários de uma planilha (via NestJS). */
+  async importar(
+    prefeituraId: string,
+    funcionarios: FuncionarioInput[],
+  ): Promise<ImportResultado> {
+    const r = await api.post<{ data: ImportResultado }>(`/funcionarios/import`, {
+      prefeituraId,
+      funcionarios,
     });
+    return r.data;
   },
 };
