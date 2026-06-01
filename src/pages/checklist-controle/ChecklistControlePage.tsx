@@ -1483,18 +1483,40 @@ export function ChecklistControlePage() {
               return `• ${it["Item de Verificação"]}${prob}`;
             })
             .join("\n");
-          await emergenciasApi.criar({
+          const emergPayload = {
             prefeituraId: equipamentoAtual.prefeituraId,
-            source: "checklist_auto",
-            severity: "blocking",
+            source: "checklist_auto" as const,
+            severity: "blocking" as const,
             equipamentoId: equipamentoAtual.id,
             chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
             operadorNome: nomeOperadorChecklist.trim() || session.nome,
             tipoFalha: "Item impeditivo reprovado no checklist",
             descricao: `Itens impeditivos marcados como "Não":\n${descImped}`,
+            localizacaoGps: null,
             fotos: fotosImped,
             checklistId: id,
+          };
+          // Backend (visão do admin/RH) — best effort, pode falhar offline.
+          try {
+            await emergenciasApi.criar(emergPayload);
+          } catch (e) {
+            console.error("[Checklist] Backend de emergência indisponível:", e);
+          }
+          // Firestore `emergenciasRegistros` — store que a aba de Emergências do
+          // operador lê (offline-first). Sem isso, o ticket não aparece lá.
+          await addDoc(collection(db, "emergenciasRegistros"), {
+            id: crypto.randomUUID(),
+            ...emergPayload,
+            idOperadorSession: session.idCliente,
+            idMaquina: equipamentoAtual.id,
+            modelo: equipamentoAtual.label,
+            operador: emergPayload.operadorNome,
+            statusAtendimento: "ABERTO",
+            qtdFotos: fotosImped.length,
+            criadoEm: serverTimestamp(),
+            dataHoraIso: dataHora,
           });
+          setEmergTick((t) => t + 1);
           toast.warning(
             "🚨 Ticket de emergência criado — item impeditivo reprovado.",
           );
