@@ -34,7 +34,6 @@ import { PontosFolha } from "./PontosFolha";
 import { checklistsApi } from "../../features/checklist/api/checklists-api";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
-  CHECKLIST_DOCUMENTO_ITENS,
   type ChecklistDocumentoItem,
   dataLongaPtBr,
   inferirCategoriaChecklist,
@@ -1104,19 +1103,31 @@ export function ChecklistControlePage() {
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Novo schema do seed: cada item declara `Aplica A: string[]` listando
-    // os tipos de equipamento aos quais ele se aplica. "Geral (Chassi)"
-    // aparece em todos. Subtipos específicos só nos próprios.
-    // Fallback p/ docs antigos sem `Aplica A` continua casando por Categoria.
-    const legacy = seedData.itens_checklist.filter((it) => {
+    // Fonte ÚNICA: o seed `itens_checklist` (schema novo: Aplica A + Severidade),
+    // que já cobre os itens gerais e os de cada categoria. Antes concatenávamos
+    // também o CHECKLIST_DOCUMENTO_ITENS, mas ele repetia os gerais do seed —
+    // gerando perguntas duplicadas e numeração misturada (G.x + 1.x).
+    // Cada item declara `Aplica A: string[]` (fallback p/ Categoria).
+    const norm = (s: unknown) =>
+      String(s ?? "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    const vistos = new Set<string>();
+    return seedData.itens_checklist.filter((it) => {
       const aplicaA = (it as { "Aplica A"?: string[] })["Aplica A"];
-      if (Array.isArray(aplicaA)) return aplicaA.includes(cat);
-      return (it as { Categoria?: string }).Categoria === cat;
+      const aplica = Array.isArray(aplicaA)
+        ? aplicaA.includes(cat)
+        : (it as { Categoria?: string }).Categoria === cat;
+      if (!aplica) return false;
+      // Dedup de segurança: não repete a mesma pergunta (por texto normalizado).
+      const t = norm((it as { "Item de Verificação"?: unknown })["Item de Verificação"]);
+      if (!t || vistos.has(t)) return false;
+      vistos.add(t);
+      return true;
     });
-    const documento = CHECKLIST_DOCUMENTO_ITENS.filter(
-      (it) => it.Categoria === "Geral (Chassi)" || it.Categoria === cat,
-    );
-    return [...documento, ...legacy];
   }, [equipamentoAtual]);
 
   function handleLogin(e: FormEvent) {
@@ -1366,7 +1377,7 @@ export function ChecklistControlePage() {
     );
     if (impeditivosViolados.length > 0) {
       const lista = impeditivosViolados
-        .map((it) => `• ${it["Nº"]} — ${it["Item de Verificação"]}`)
+        .map((it) => `• ${it["Item de Verificação"]}`)
         .join("\n");
       const ok = window.confirm(
         `Atenção: ${impeditivosViolados.length} item(ns) IMPEDITIVO(s) marcado(s) como "Não":\n\n${lista}\n\nPela tabela oficial, esses itens deveriam impedir a operação. Salvar mesmo assim?`,
@@ -2221,7 +2232,7 @@ export function ChecklistControlePage() {
                     }
                     style={{ marginTop: 18 }}
                   >
-                    {itensFiltrados.map((it) => {
+                    {itensFiltrados.map((it, idx) => {
                       const key = String(it["Nº"]);
                       const cur = answers[key];
                       const bloq = !checklistItensLiberados;
@@ -2243,7 +2254,7 @@ export function ChecklistControlePage() {
                           className={`hu360-check-block ${alertaImped ? "is-imped-violado" : ""}`}
                         >
                           <div className="hu360-check-row">
-                            <span className="hu360-check-num">{key}</span>
+                            <span className="hu360-check-num">{idx + 1}</span>
                             <div style={{ flex: "1 1 220px" }}>
                               <div
                                 style={{
