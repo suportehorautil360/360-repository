@@ -252,3 +252,141 @@
     width: 100%;
   }
 }
+
+/* --- Modal de importação de planilha --- */
+.prefeitura-root .func-imp {
+  width: min(720px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f1f3d;
+  border: 1px solid rgba(64, 112, 204, 0.45);
+  border-radius: 14px;
+  overflow: hidden;
+  color: #e8ecf6;
+}
+.prefeitura-root .func-imp__head,
+.prefeitura-root .func-imp__foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: #122a52;
+}
+.prefeitura-root .func-imp__head {
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.35);
+}
+.prefeitura-root .func-imp__head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1rem;
+}
+.prefeitura-root .func-imp__head button {
+  background: none;
+  border: none;
+  color: #9fb0cc;
+  cursor: pointer;
+}
+.prefeitura-root .func-imp__foot {
+  justify-content: flex-end;
+  border-top: 1px solid rgba(64, 112, 204, 0.35);
+}
+.prefeitura-root .func-imp__body {
+  padding: 18px;
+  overflow-y: auto;
+}
+.prefeitura-root .func-imp__intro {
+  color: #9fb0cc;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.prefeitura-root .func-imp__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 26px;
+  border: 1.5px dashed rgba(120, 160, 230, 0.5);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 700;
+}
+.prefeitura-root .func-imp__drop:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.prefeitura-root .func-imp__drop input {
+  display: none;
+}
+.prefeitura-root .func-imp__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: #ff981a;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+.prefeitura-root .func-imp__resumo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 0.92rem;
+}
+.prefeitura-root .func-imp__aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fbbf24;
+  font-size: 0.8rem;
+}
+.prefeitura-root .func-imp__previa {
+  border: 1px solid rgba(64, 112, 204, 0.35);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.prefeitura-root .func-imp__previa table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.prefeitura-root .func-imp__previa th,
+.prefeitura-root .func-imp__previa td {
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(64, 112, 204, 0.22);
+}
+.prefeitura-root .func-imp__previa th {
+  background: #16315c;
+  color: #9fb0cc;
+}
+.prefeitura-root .func-imp__previa tr.tem-aviso td {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fcd34d;
+}
+.prefeitura-root .func-imp__mais {
+  margin: 0;
+  padding: 8px 10px;
+  color: #9fb0cc;
+  font-size: 0.78rem;
+}
+.prefeitura-root .func-imp__erros {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: #fca5a5;
+}
+.prefeitura-root .func-imp__erros ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 220px;
+  overflow-y: auto;
+}

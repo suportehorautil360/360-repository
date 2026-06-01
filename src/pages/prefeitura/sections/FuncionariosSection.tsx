@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, Pause, Play, Plus, Search, History } from "lucide-react";
+import {
+  Pencil,
+  Pause,
+  Play,
+  Plus,
+  Search,
+  History,
+  Upload,
+} from "lucide-react";
 import {
   funcionariosApi,
   TIPOS_FUNCIONARIO,
@@ -10,6 +18,7 @@ import {
   type FuncionarioTipo,
 } from "../../../lib/funcionarios/funcionarios";
 import { formatarCpf, limparCpf } from "../../../lib/funcionarios/cpf";
+import { ImportarFuncionariosModal } from "./ImportarFuncionariosModal";
 import "./funcionarios.css";
 
 const TIPO_LABEL: Record<FuncionarioTipo, string> = {
@@ -39,6 +48,7 @@ export function FuncionariosSection({ prefeituraId }: { prefeituraId: string }) 
   );
   const [filtroTipo, setFiltroTipo] = useState<"todos" | FuncionarioTipo>("todos");
   const [ocupadoId, setOcupadoId] = useState<string | null>(null);
+  const [importarAberto, setImportarAberto] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
@@ -144,6 +154,14 @@ export function FuncionariosSection({ prefeituraId }: { prefeituraId: string }) 
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              className="func__btn"
+              onClick={() => setImportarAberto(true)}
+            >
+              <Upload size={14} aria-hidden="true" />
+              Importar planilha
+            </button>
             <button
               type="button"
               className="func__btn func__btn--primary"
@@ -290,6 +308,14 @@ export function FuncionariosSection({ prefeituraId }: { prefeituraId: string }) 
           </table>
         </div>
       </section>
+
+      {importarAberto && (
+        <ImportarFuncionariosModal
+          prefeituraId={prefeituraId}
+          onClose={() => setImportarAberto(false)}
+          onImportado={() => void carregar()}
+        />
+      )}
     </div>
   );
 }
