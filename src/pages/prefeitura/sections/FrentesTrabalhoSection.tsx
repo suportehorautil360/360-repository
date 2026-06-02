@@ -17,18 +17,8 @@ import {
 } from "./frentes/frentes-api";
 import { NovaFrenteModal } from "./frentes/NovaFrenteModal";
 import { equipamentosApi, type EquipRow } from "./equipamentos/equipamentos-api";
+import { iconeTipo } from "./equipamentos/icone";
 import "./frentes.css";
-
-function iconeTipo(tipo: string): string {
-  const t = tipo.toLowerCase();
-  if (/escav|retro|trator|carregadeira|motonivel|rolo|m[aá]quina/.test(t))
-    return "🚜";
-  if (/caminh|truck|basculante|pipa|munck|comboio|betoneira|ba[uú]/.test(t))
-    return "🚚";
-  if (/van|sprinter|furg/.test(t)) return "🚐";
-  if (/ambul/.test(t)) return "🚑";
-  return "🚗";
-}
 
 const STATUS_CLASSE: Record<FrenteStatus, string> = {
   Ativa: "ft-badge--ativa",

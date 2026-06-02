@@ -35,7 +35,13 @@ const frenteRaw = {
   endDate: "2026-09-30T00:00:00.000Z",
   createdAt: "2026-01-01T00:00:00.000Z",
   equipamentos: [
-    { id: "al1", vehicleId: "v1", plate: "CAR-001", function: "Transporte" },
+    {
+      id: "al1",
+      vehicleId: "v1",
+      plate: "CAR-001",
+      function: "Transporte",
+      startDate: "10/01/2026",
+    },
   ],
 };
 
@@ -62,6 +68,7 @@ describe("frentesApi.listar", () => {
       vehicleId: "v1",
       placa: "CAR-001",
       funcao: "Transporte",
+      desde: "10/01/2026",
     });
   });
 
@@ -196,6 +203,31 @@ describe("frentesApi.alocar / desalocar", () => {
       currentWorkFront: { id: "wf1", name: "Obra X" },
     });
     expect(body.startDate).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
+  });
+
+  it("alocar converte a data informada (yyyy-mm-dd) para DD/MM/YYYY", async () => {
+    postMock.mockResolvedValue({});
+    await frentesApi.alocar({
+      frente: {
+        id: "wf1",
+        nome: "Obra X",
+        endereco: "",
+        responsavel: "",
+        status: "Ativa",
+        custo: 0,
+        inicio: "",
+        fim: "",
+        criadoEm: "",
+        equipamentos: [],
+      },
+      vehicleId: "v1",
+      placa: "CAR-001",
+      funcao: "Transporte",
+      prefeituraId: "pref1",
+      dataAlocacao: "2026-06-02",
+    });
+    const [, body] = postMock.mock.calls[0];
+    expect(body.startDate).toBe("02/06/2026");
   });
 
   it("desalocar chama DELETE com o id da alocação", async () => {

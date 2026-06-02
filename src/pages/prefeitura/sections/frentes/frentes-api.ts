@@ -21,6 +21,8 @@ export interface FrenteEquip {
   vehicleId: string;
   placa: string;
   funcao: string;
+  /** Data de início da alocação (DD/MM/YYYY, como gravada no backend). */
+  desde: string;
   /** Nome do equipamento, resolvido pela lista de equipamentos. */
   nome: string;
 }
@@ -88,6 +90,7 @@ function normalizeEquip(raw: Record<string, unknown>): FrenteEquip {
     vehicleId: asText(raw.vehicleId),
     placa: asText(raw.plate),
     funcao: asText(raw.function),
+    desde: asText(raw.startDate),
     nome: asText(raw.name) || asText(raw.plate) || "Equipamento",
   };
 }
@@ -164,21 +167,27 @@ export const frentesApi = {
     await api.del(`/work-front/${frenteId}`);
   },
 
-  /** Aloca um equipamento a uma frente. */
+  /**
+   * Aloca um equipamento a uma frente. O backend trata "mover" (encerra a
+   * alocação ativa anterior) e sincroniza o `obra` do equipamento.
+   */
   async alocar(params: {
     frente: Frente;
     vehicleId: string;
     placa: string;
     funcao: string;
     prefeituraId: string;
+    /** Data da alocação (yyyy-mm-dd). Padrão: hoje. */
+    dataAlocacao?: string;
   }): Promise<void> {
-    const { frente, vehicleId, placa, funcao, prefeituraId } = params;
+    const { frente, vehicleId, placa, funcao, prefeituraId, dataAlocacao } =
+      params;
     await api.post("/allocation", {
       vehicleId,
       workFrontId: frente.id,
       plate: placa,
       workFrontName: frente.nome,
-      startDate: formatBR(new Date()),
+      startDate: dataAlocacao ? dateInputToBR(dataAlocacao) : formatBR(new Date()),
       function: funcao.trim(),
       prefeituraId,
       currentWorkFront: { id: frente.id, name: frente.nome },
@@ -196,6 +205,12 @@ function formatBR(d: Date): string {
   const dia = String(d.getDate()).padStart(2, "0");
   const mes = String(d.getMonth() + 1).padStart(2, "0");
   return `${dia}/${mes}/${d.getFullYear()}`;
+}
+
+/** yyyy-mm-dd (input date) → DD/MM/YYYY. "" quando vazio/ inválido. */
+function dateInputToBR(value: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
 }
 
 /** ISO/data → DD/MM/YYYY para exibição (— quando vazio/ inválido). */

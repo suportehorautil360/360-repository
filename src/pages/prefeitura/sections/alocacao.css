@@ -1,0 +1,139 @@
+/* Alocação de equipamentos — design system da prefeitura (navy + laranja).
+   Reaproveita os botões .ft-btn-* e o modal .ft-* de frentes.css. */
+
+.al-page {
+  color: #e8ecf6;
+}
+
+.al-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.al-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.al-card {
+  border: 1px solid rgba(64, 112, 204, 0.35);
+  background: linear-gradient(180deg, #122a52 0%, #0f2348 100%);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.al-card__title {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cfe0ff;
+}
+
+.al-empty {
+  color: #93a4c6;
+  padding: 10px 2px;
+}
+
+/* Tabela */
+.al-table-wrap {
+  overflow-x: auto;
+}
+
+.al-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.al-table thead th {
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #7d92ba;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(82, 124, 200, 0.3);
+}
+
+.al-table tbody td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(82, 124, 200, 0.16);
+  color: #dbe6fb;
+}
+
+.al-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.al-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.al-equip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.al-plate {
+  display: inline-block;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #cdd9f1;
+  background: rgba(20, 44, 84, 0.9);
+  border: 1px solid rgba(82, 124, 200, 0.5);
+  border-radius: 7px;
+  padding: 3px 9px;
+}
+
+.al-badge {
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 4px 12px;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+/* Chips de disponíveis */
+.al-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.al-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(20, 44, 84, 0.9);
+  border: 1px solid rgba(82, 124, 200, 0.5);
+  color: #dbe6fb;
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.al-chip__plate {
+  color: #93a4c6;
+  font-style: normal;
+  font-weight: 500;
+}
