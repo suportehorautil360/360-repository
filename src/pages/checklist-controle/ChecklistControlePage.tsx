@@ -3067,7 +3067,10 @@ export function ChecklistControlePage() {
               Folha de ponto do dia — entrada, almoço, volta e saída. Cada
               batida registra uma selfie; o horário pode ser corrigido.
             </p>
-            <PontosFolha prefeituraId={session.idCliente} nomePadrao="" />
+            <PontosFolha
+              prefeituraId={session.idCliente}
+              nomePadrao={session.nome}
+            />
           </section>
         ) : null}
       </main>
