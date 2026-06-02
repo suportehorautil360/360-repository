@@ -3,12 +3,14 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PontoRegistro } from "./ponto-api";
 import type { Escala } from "../../lib/api/escala";
 import type { Abono } from "../../lib/api/abonos";
-import { limparCpf } from "../../lib/funcionarios/cpf";
+import { formatarCpf, limparCpf } from "../../lib/funcionarios/cpf";
 import {
   fmtMin,
   minutosPrevistos,
   minutosTrabalhados,
 } from "../prefeitura/sections/horasPonto";
+import { baixarPDFTabela } from "../../lib/export/pdf-tabela";
+import { Download } from "lucide-react";
 import "./espelho.css";
 
 interface Props {
@@ -131,6 +133,64 @@ export function EspelhoDetalhado({
     );
   }
 
+  function exportarPdf() {
+    const linhas = diasMes.map(([dia, bs]) => {
+      const tipos: Record<string, string> = {};
+      for (const b of bs) tipos[b.tipo] = horaDe(b.timestampOriginal);
+      const trabBruto = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
+      const prev = minutosPrevistos(escala, dia);
+      const ehAbonado = bs.length === 0 && abonosDoMes.has(dia);
+      const trab = ehAbonado ? prev : trabBruto;
+      const saldo = trab - prev;
+      return [
+        dia.split("-").reverse().join("/") + (ehAbonado ? " (Abonado)" : ""),
+        tipos.entrada ?? "—",
+        tipos.almoco ?? "—",
+        tipos.volta ?? "—",
+        tipos.saida ?? "—",
+        fmtMin(trab),
+        fmtMin(prev),
+        (saldo >= 0 ? "+" : "") + fmtMin(saldo),
+      ];
+    });
+    const subtitulo = [
+      funcionarioCpf ? `CPF ${formatarCpf(funcionarioCpf)}` : null,
+      rotuloMes(mes),
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const arquivo = `espelho-${(nome || "funcionario")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")}-${mes}`;
+    baixarPDFTabela(arquivo, {
+      titulo: `Espelho de ponto — ${nome || "—"}`,
+      subtitulo,
+      colunas: [
+        "Dia",
+        "Entrada",
+        "Almoço",
+        "Volta",
+        "Saída",
+        "Trab.",
+        "Prev.",
+        "Saldo",
+      ],
+      linhas,
+      totais: [
+        "TOTAIS",
+        "",
+        "",
+        "",
+        "",
+        fmtMin(totais.trab),
+        fmtMin(totais.prev),
+        (totais.saldo >= 0 ? "+" : "") + fmtMin(totais.saldo),
+      ],
+      pesos: [3, 2, 2, 2, 2, 2, 2, 2],
+    });
+  }
+
   return (
     <div className="esp">
       <header className="esp__topo">
@@ -139,6 +199,15 @@ export function EspelhoDetalhado({
           Voltar
         </button>
         <h2 className="esp__titulo">Espelho detalhado · {nome || "—"}</h2>
+        <button
+          type="button"
+          className="esp__exportar"
+          onClick={exportarPdf}
+          disabled={diasMes.length === 0}
+        >
+          <Download size={14} aria-hidden="true" />
+          Exportar PDF
+        </button>
       </header>
 
       <section className="esp__mes-bar">

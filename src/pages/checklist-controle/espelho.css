@@ -35,6 +35,30 @@
   font-weight: 800;
   color: #0f172a;
 }
+.esp__exportar {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #ff981a, #f97316);
+  border: none;
+  color: #1a1207;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.esp__exportar:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.esp__exportar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* Mês */
 .esp__mes-bar {
