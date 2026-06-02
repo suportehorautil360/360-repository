@@ -1536,14 +1536,12 @@ export function ChecklistControlePage() {
             fotos: fotosImped,
             checklistId: id,
           };
-          // Backend (visão do admin/RH) — best effort, pode falhar offline.
-          try {
-            await emergenciasApi.criar(emergPayload);
-          } catch (e) {
-            console.error("[Checklist] Backend de emergência indisponível:", e);
-          }
-          // Firestore `emergenciasRegistros` — store que a aba de Emergências do
-          // operador lê (offline-first). Sem isso, o ticket não aparece lá.
+          // Grava só no Firestore `emergenciasRegistros`. O backend NestJS
+          // de emergências usa ESSA MESMA coleção, então a tela da prefeitura
+          // (emergenciasApi.listar) já enxerga este doc — não chamar
+          // emergenciasApi.criar evita o ticket duplicado. E o addDoc carrega
+          // idOperadorSession/funcionarioId (que o create do backend não seta),
+          // necessários para a tela do operador.
           await addDoc(collection(db, "emergenciasRegistros"), {
             id: crypto.randomUUID(),
             ...emergPayload,
