@@ -18,6 +18,7 @@ import {
 import { NovaFrenteModal } from "./frentes/NovaFrenteModal";
 import { equipamentosApi, type EquipRow } from "./equipamentos/equipamentos-api";
 import { iconeTipo } from "./equipamentos/icone";
+import { montarAlocacoes } from "./alocacao/alocacao-model";
 import "./frentes.css";
 
 const STATUS_CLASSE: Record<FrenteStatus, string> = {
@@ -46,6 +47,12 @@ export function FrentesTrabalhoSection({
     equipamentos.forEach((e) => m.set(e.id, e));
     return m;
   }, [equipamentos]);
+
+  // Só equipamentos sem alocação podem ser alocados (evita duplicar).
+  const equipamentosDisponiveis = useMemo(
+    () => montarAlocacoes(frentes, equipamentos).disponiveis,
+    [frentes, equipamentos],
+  );
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -271,12 +278,19 @@ export function FrentesTrabalhoSection({
                   <Select
                     value={draft.vehicleId}
                     onValueChange={(v) => setDraft(f.id, { vehicleId: v })}
+                    disabled={equipamentosDisponiveis.length === 0}
                   >
                     <SelectTrigger className="ft-select-trigger ft-alocar__select">
-                      <SelectValue placeholder="Selecione um equipamento..." />
+                      <SelectValue
+                        placeholder={
+                          equipamentosDisponiveis.length === 0
+                            ? "Nenhum equipamento disponível"
+                            : "Selecione um equipamento..."
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {equipamentos.map((e) => (
+                      {equipamentosDisponiveis.map((e) => (
                         <SelectItem key={e.id} value={e.id}>
                           {e.descricao}
                           {e.placa ? ` (${e.placa})` : ""}
