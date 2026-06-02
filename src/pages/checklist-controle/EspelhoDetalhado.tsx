@@ -3,12 +3,25 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PontoRegistro } from "./ponto-api";
 import type { Escala } from "../../lib/api/escala";
 import type { Abono } from "../../lib/api/abonos";
-import { limparCpf } from "../../lib/funcionarios/cpf";
+import { formatarCpf, limparCpf } from "../../lib/funcionarios/cpf";
 import {
   fmtMin,
   minutosPrevistos,
   minutosTrabalhados,
 } from "../prefeitura/sections/horasPonto";
+import { baixarPDFTabela } from "../../lib/export/pdf-tabela";
+import {
+  ESPELHO_COLUNAS,
+  ESPELHO_PESOS,
+  abonosNoPeriodo,
+  construirEspelho,
+  dataBr,
+  diasNoIntervalo,
+  diasNoPeriodo,
+  intervaloPreset,
+  type PeriodoPreset,
+} from "./espelho-export";
+import { Download } from "lucide-react";
 import "./espelho.css";
 
 interface Props {
@@ -63,6 +76,23 @@ export function EspelhoDetalhado({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  // Modal de exportação por período (intervalo de datas).
+  const [expAberto, setExpAberto] = useState(false);
+  const [expDe, setExpDe] = useState("");
+  const [expAte, setExpAte] = useState("");
+
+  const presetsRange = useMemo(() => {
+    const hoje = new Date();
+    return (
+      [
+        { key: "hoje", label: "Hoje" },
+        { key: "semana", label: "Esta semana" },
+        { key: "mes", label: "Este mês" },
+        { key: "mes-anterior", label: "Mês anterior" },
+      ] as { key: PeriodoPreset; label: string }[]
+    ).map((p) => ({ ...p, ...intervaloPreset(p.key, hoje) }));
+  }, []);
 
   const minhasBatidas = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
@@ -131,6 +161,46 @@ export function EspelhoDetalhado({
     );
   }
 
+  function abrirExport() {
+    const [y, m] = mes.split("-").map(Number);
+    const ultimo = new Date(y, m, 0).getDate();
+    setExpDe(`${mes}-01`);
+    setExpAte(`${mes}-${String(ultimo).padStart(2, "0")}`);
+    setExpAberto(true);
+  }
+
+  function gerarExport() {
+    const de = expDe;
+    const ate = expAte;
+    if (!de || !ate || de > ate) return;
+    const abonosDias = abonosNoPeriodo(abonos, funcionarioCpf, de, ate);
+    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate);
+    const { linhas, totais: totaisLinha } = construirEspelho(
+      dias,
+      abonosDias,
+      escala,
+    );
+    const subtitulo = [
+      funcionarioCpf ? `CPF ${formatarCpf(funcionarioCpf)}` : null,
+      `Período: ${dataBr(de)} a ${dataBr(ate)}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const arquivo = `espelho-${(nome || "funcionario")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")}-${de}_a_${ate}`;
+    baixarPDFTabela(arquivo, {
+      titulo: `Espelho de ponto — ${nome || "—"}`,
+      subtitulo,
+      colunas: ESPELHO_COLUNAS,
+      linhas,
+      totais: totaisLinha,
+      pesos: ESPELHO_PESOS,
+    });
+    setExpAberto(false);
+  }
+
   return (
     <div className="esp">
       <header className="esp__topo">
@@ -139,6 +209,14 @@ export function EspelhoDetalhado({
           Voltar
         </button>
         <h2 className="esp__titulo">Espelho detalhado · {nome || "—"}</h2>
+        <button
+          type="button"
+          className="esp__exportar"
+          onClick={abrirExport}
+        >
+          <Download size={14} aria-hidden="true" />
+          Exportar PDF
+        </button>
       </header>
 
       <section className="esp__mes-bar">
@@ -260,6 +338,96 @@ export function EspelhoDetalhado({
           </tbody>
         </table>
       </div>
+
+      {expAberto &&
+        (() => {
+          const presetAtivo =
+            presetsRange.find((p) => p.de === expDe && p.ate === expAte)?.key ??
+            null;
+          const totalDias = diasNoIntervalo(expDe, expAte);
+          return (
+            <div
+              className="esp__modal-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Exportar espelho em PDF"
+              onClick={() => setExpAberto(false)}
+            >
+              <div className="esp__modal" onClick={(e) => e.stopPropagation()}>
+                <h3 className="esp__modal-titulo">Exportar PDF</h3>
+                <p className="esp__modal-sub">
+                  Escolha um atalho ou um período personalizado.
+                </p>
+
+                <div className="esp__chips">
+                  {presetsRange.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      className={`esp__chip${
+                        presetAtivo === p.key ? " is-active" : ""
+                      }`}
+                      onClick={() => {
+                        setExpDe(p.de);
+                        setExpAte(p.ate);
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="esp__modal-campos">
+                  <label className="esp__modal-campo">
+                    <span>De</span>
+                    <input
+                      type="date"
+                      value={expDe}
+                      max={expAte || undefined}
+                      onChange={(e) => setExpDe(e.target.value)}
+                    />
+                  </label>
+                  <label className="esp__modal-campo">
+                    <span>Até</span>
+                    <input
+                      type="date"
+                      value={expAte}
+                      min={expDe || undefined}
+                      onChange={(e) => setExpAte(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <p className="esp__modal-resumo">
+                  {totalDias > 0
+                    ? `${dataBr(expDe)} a ${dataBr(expAte)} · ${totalDias} ${
+                        totalDias === 1 ? "dia" : "dias"
+                      }`
+                    : "Selecione um período válido."}
+                </p>
+
+                <div className="esp__modal-acoes">
+                  <button
+                    type="button"
+                    className="esp__modal-cancelar"
+                    onClick={() => setExpAberto(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="esp__exportar"
+                    onClick={gerarExport}
+                    disabled={totalDias === 0}
+                  >
+                    <Download size={14} aria-hidden="true" />
+                    Gerar PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }
