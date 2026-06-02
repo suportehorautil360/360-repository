@@ -122,7 +122,7 @@ export function NovaFrenteModal({
                 <SelectTrigger className="ft-select-trigger w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[70]">
                   {STATUS_FRENTE_OPTIONS.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
