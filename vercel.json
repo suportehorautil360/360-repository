@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://back-360-production.up.railway.app/:path*"
+      "destination": "https://back-liart-psi.vercel.app/:path*"
     },
     { "source": "/(.*)", "destination": "/" }
   ]
