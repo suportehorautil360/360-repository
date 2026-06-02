@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction } from "react";
 import { jsPDF } from "jspdf";
 import seedData from "../../data/hu360OperadorSeed.json";
 import { HU360_HIST_ITEM_LABELS } from "./checklistAppToHistoricoRow";
+import { linkGoogleMaps } from "../../lib/geo/maps";
 import "./checklistHistoricoLista.css";
 
 function checklistCategoriaFromMaquina(catMaquina: string): string {
@@ -759,6 +760,20 @@ export function ListaChecklistHistoricoLocal({
                   Horímetro:{" "}
                   <strong>{String(row.Horimetro_Final ?? "—")}</strong>
                 </p>
+                {typeof row.Localizacao_GPS === "string" &&
+                row.Localizacao_GPS.trim() ? (
+                  <p style={{ margin: "0 0 8px", fontSize: "0.88rem" }}>
+                    📍 Localização:{" "}
+                    <a
+                      href={linkGoogleMaps(row.Localizacao_GPS)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: "#2563eb", fontWeight: 600 }}
+                    >
+                      {row.Localizacao_GPS}
+                    </a>
+                  </p>
+                ) : null}
                 {typeof row.Foto_Horimetro === "string" &&
                 row.Foto_Horimetro.startsWith("data:image") ? (
                   <div className="hu360-dash-chk-detail__hori">
