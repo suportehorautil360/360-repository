@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   STATUS_FRENTE_OPTIONS,
   isoParaDateInput,
@@ -29,9 +30,7 @@ export function NovaFrenteModal({
   const [endereco, setEndereco] = useState(frente?.endereco ?? "");
   const [responsavel, setResponsavel] = useState(frente?.responsavel ?? "");
   const [status, setStatus] = useState<FrenteStatus>(frente?.status ?? "Ativa");
-  const [custo, setCusto] = useState<string>(
-    frente ? String(frente.custo || "") : "",
-  );
+  const [custo, setCusto] = useState<number>(frente?.custo ?? 0);
   const [inicio, setInicio] = useState(isoParaDateInput(frente?.inicio ?? ""));
   const [fim, setFim] = useState(isoParaDateInput(frente?.fim ?? ""));
   const [salvando, setSalvando] = useState(false);
@@ -51,7 +50,7 @@ export function NovaFrenteModal({
         endereco,
         responsavel,
         status,
-        custo: Number(custo) || 0,
+        custo,
         inicio,
         fim,
       });
@@ -136,14 +135,10 @@ export function NovaFrenteModal({
 
           <label className="ft-field">
             <span className="ft-field__label">Custo estimado (R$)</span>
-            <input
-              type="number"
-              min={0}
-              step={1}
+            <CurrencyInput
               className="ft-input"
               value={custo}
-              onChange={(e) => setCusto(e.target.value)}
-              placeholder="0"
+              onValueChange={setCusto}
             />
           </label>
 

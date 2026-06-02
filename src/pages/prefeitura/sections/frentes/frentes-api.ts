@@ -4,6 +4,7 @@
  * Traduz o documento cru do banco para o modelo de UI.
  */
 import { api, ApiError } from "../../../../lib/api/client";
+import { formatBRL } from "../../../../utils/moeda";
 
 export type FrenteStatus = "Ativa" | "Pausada" | "Concluída";
 
@@ -211,7 +212,7 @@ export function isoParaDateInput(iso: string): string {
   return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
 }
 
-/** Custo numérico → "R$ 1.234" para o card. */
+/** Custo numérico (reais) → "R$ 1.234,56" para o card. */
 export function formatCustoBR(custo: number): string {
-  return `R$ ${(custo || 0).toLocaleString("pt-BR")}`;
+  return formatBRL(custo);
 }
