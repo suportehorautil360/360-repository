@@ -338,17 +338,24 @@ export function PontosFolha({
       ]);
       setTodas(lista);
       setEscala(esc);
-      // Prefill do nome a partir da entrada de hoje, se houver.
-      const entradaHoje = lista.find(
-        (p) => p.tipo === "entrada" && ehHoje(p.timestampOriginal),
-      );
+      // Prefill do nome só a partir da entrada de hoje DO PRÓPRIO operador
+      // (nunca pega o nome de outro funcionário que bateu antes na prefeitura).
+      const alvo = nomePadrao.trim().toLowerCase();
+      const entradaHoje = alvo
+        ? lista.find(
+            (p) =>
+              p.tipo === "entrada" &&
+              ehHoje(p.timestampOriginal) &&
+              (p.name ?? "").trim().toLowerCase() === alvo,
+          )
+        : undefined;
       if (entradaHoje?.name) setNome((n) => n || entradaHoje.name);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
       setCarregando(false);
     }
-  }, [prefeituraId]);
+  }, [prefeituraId, nomePadrao]);
 
   useEffect(() => {
     void carregar();
