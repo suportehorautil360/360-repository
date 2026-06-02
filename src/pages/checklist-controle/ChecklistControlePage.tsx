@@ -1430,12 +1430,19 @@ export function ChecklistControlePage() {
     hist.unshift(reg);
     saveChecklistHistory(hist);
 
+    // prefeituraId do registro: o do equipamento e, se vazio, o da sessão do
+    // operador. Sem isso, checklist/emergência ficam com prefeituraId "" e
+    // somem das telas da prefeitura (Auditoria/Triagem/Emergências, que
+    // filtram por prefeituraId). Mesmo fallback do fluxo de emergência manual.
+    const prefeituraIdChecklist =
+      equipamentoAtual.prefeituraId || session.idCliente;
+
     // Salva no Firestore
     setSalvandoChecklist(true);
     try {
       await addDoc(collection(db, "checklistsRegistros"), {
         id,
-        prefeituraId: equipamentoAtual.prefeituraId,
+        prefeituraId: prefeituraIdChecklist,
         equipamentoId: equipamentoAtual.id,
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         modelo: equipamentoAtual.label,
@@ -1484,7 +1491,7 @@ export function ChecklistControlePage() {
             })
             .join("\n");
           const emergPayload = {
-            prefeituraId: equipamentoAtual.prefeituraId,
+            prefeituraId: prefeituraIdChecklist,
             source: "checklist_auto" as const,
             severity: "blocking" as const,
             equipamentoId: equipamentoAtual.id,
@@ -1573,7 +1580,7 @@ export function ChecklistControlePage() {
         `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
       );
       const run = await checklistsApi.iniciar({
-        prefeituraId: equipamentoAtual.prefeituraId,
+        prefeituraId: equipamentoAtual.prefeituraId || session?.idCliente || "",
         definitionId: `seed:${categoria}`,
         definitionVersion: 1,
         equipamentoId: equipamentoAtual.id,
