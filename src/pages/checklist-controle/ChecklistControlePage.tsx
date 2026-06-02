@@ -21,6 +21,7 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { registroDoOperador } from "./registro-operador";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -903,6 +904,9 @@ export function ChecklistControlePage() {
     )
       .then((snap) => {
         const rows = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
           .map((d) =>
             firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
           )
@@ -931,9 +935,13 @@ export function ChecklistControlePage() {
       ),
     )
       .then((snap) => {
-        const rows = snap.docs.map((d) =>
-          firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-        );
+        const rows = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
+          .map((d) =>
+            firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
+          );
         rows.sort((a, b) =>
           String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
         );
@@ -955,10 +963,14 @@ export function ChecklistControlePage() {
       ),
     )
       .then((snap) => {
-        const rows: Record<string, unknown>[] = snap.docs.map((d) => ({
-          ...(d.data() as Record<string, unknown>),
-          _docId: d.id,
-        }));
+        const rows: Record<string, unknown>[] = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
+          .map((d) => ({
+            ...(d.data() as Record<string, unknown>),
+            _docId: d.id,
+          }));
         rows.sort((a, b) =>
           String(b["dataHoraIso"] ?? "").localeCompare(
             String(a["dataHoraIso"] ?? ""),
@@ -1454,6 +1466,8 @@ export function ChecklistControlePage() {
         ),
         operador: nomeOperadorChecklist.trim(),
         idOperadorSession: session.idCliente,
+        funcionarioId: session.funcionarioId ?? "",
+        funcionarioCpf: session.cpf ?? "",
         horimetro: horimetro.trim(),
         fotoHorimetro: fotoHorimetroDataUrl,
         assinaturaOperador: assinaturaDataUrl,
@@ -1515,6 +1529,8 @@ export function ChecklistControlePage() {
             id: crypto.randomUUID(),
             ...emergPayload,
             idOperadorSession: session.idCliente,
+            funcionarioId: session.funcionarioId ?? "",
+            funcionarioCpf: session.cpf ?? "",
             idMaquina: equipamentoAtual.id,
             modelo: equipamentoAtual.label,
             operador: emergPayload.operadorNome,
@@ -1718,6 +1734,8 @@ export function ChecklistControlePage() {
           id,
           ...payload,
           idOperadorSession: session.idCliente,
+          funcionarioId: session.funcionarioId ?? "",
+          funcionarioCpf: session.cpf ?? "",
           idMaquina: mid,
           modelo: maquinaDaSessao
             ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
