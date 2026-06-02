@@ -1157,7 +1157,12 @@ export function ChecklistControlePage() {
       if (!t || vistos.has(t)) return false;
       vistos.add(t);
       return true;
-    });
+    })
+      // O `Nº` do seed se repete entre itens (ex.: vários "1.1") e era usado
+      // como CHAVE de `answers` — fazia uma resposta refletir em outro item.
+      // Renumera sequencialmente (1..N), igual ao número exibido, garantindo
+      // chave única por item.
+      .map((it, i) => ({ ...it, "Nº": i + 1 }));
   }, [equipamentoAtual]);
 
   function handleLogin(e: FormEvent) {
