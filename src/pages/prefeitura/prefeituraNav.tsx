@@ -9,6 +9,7 @@ export const SECOES_REAIS = new Set([
   "abastecimento",
   "frota",
   "revisoes",
+  "preventiva",
   "equipamentos",
   "cadastros",
   "funcionarios",
