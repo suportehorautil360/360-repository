@@ -10,6 +10,14 @@ import {
   minutosTrabalhados,
 } from "../prefeitura/sections/horasPonto";
 import { baixarPDFTabela } from "../../lib/export/pdf-tabela";
+import {
+  ESPELHO_COLUNAS,
+  ESPELHO_PESOS,
+  abonosNoPeriodo,
+  construirEspelho,
+  dataBr,
+  diasNoPeriodo,
+} from "./espelho-export";
 import { Download } from "lucide-react";
 import "./espelho.css";
 
@@ -65,6 +73,11 @@ export function EspelhoDetalhado({
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  // Modal de exportação por período (intervalo de datas).
+  const [expAberto, setExpAberto] = useState(false);
+  const [expDe, setExpDe] = useState("");
+  const [expAte, setExpAte] = useState("");
 
   const minhasBatidas = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
@@ -133,62 +146,44 @@ export function EspelhoDetalhado({
     );
   }
 
-  function exportarPdf() {
-    const linhas = diasMes.map(([dia, bs]) => {
-      const tipos: Record<string, string> = {};
-      for (const b of bs) tipos[b.tipo] = horaDe(b.timestampOriginal);
-      const trabBruto = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
-      const prev = minutosPrevistos(escala, dia);
-      const ehAbonado = bs.length === 0 && abonosDoMes.has(dia);
-      const trab = ehAbonado ? prev : trabBruto;
-      const saldo = trab - prev;
-      return [
-        dia.split("-").reverse().join("/") + (ehAbonado ? " (Abonado)" : ""),
-        tipos.entrada ?? "—",
-        tipos.almoco ?? "—",
-        tipos.volta ?? "—",
-        tipos.saida ?? "—",
-        fmtMin(trab),
-        fmtMin(prev),
-        (saldo >= 0 ? "+" : "") + fmtMin(saldo),
-      ];
-    });
+  function abrirExport() {
+    const [y, m] = mes.split("-").map(Number);
+    const ultimo = new Date(y, m, 0).getDate();
+    setExpDe(`${mes}-01`);
+    setExpAte(`${mes}-${String(ultimo).padStart(2, "0")}`);
+    setExpAberto(true);
+  }
+
+  function gerarExport() {
+    const de = expDe;
+    const ate = expAte;
+    if (!de || !ate || de > ate) return;
+    const abonosDias = abonosNoPeriodo(abonos, funcionarioCpf, de, ate);
+    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate);
+    const { linhas, totais: totaisLinha } = construirEspelho(
+      dias,
+      abonosDias,
+      escala,
+    );
     const subtitulo = [
       funcionarioCpf ? `CPF ${formatarCpf(funcionarioCpf)}` : null,
-      rotuloMes(mes),
+      `Período: ${dataBr(de)} a ${dataBr(ate)}`,
     ]
       .filter(Boolean)
       .join(" · ");
     const arquivo = `espelho-${(nome || "funcionario")
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, "-")}-${mes}`;
+      .replace(/\s+/g, "-")}-${de}_a_${ate}`;
     baixarPDFTabela(arquivo, {
       titulo: `Espelho de ponto — ${nome || "—"}`,
       subtitulo,
-      colunas: [
-        "Dia",
-        "Entrada",
-        "Almoço",
-        "Volta",
-        "Saída",
-        "Trab.",
-        "Prev.",
-        "Saldo",
-      ],
+      colunas: ESPELHO_COLUNAS,
       linhas,
-      totais: [
-        "TOTAIS",
-        "",
-        "",
-        "",
-        "",
-        fmtMin(totais.trab),
-        fmtMin(totais.prev),
-        (totais.saldo >= 0 ? "+" : "") + fmtMin(totais.saldo),
-      ],
-      pesos: [3, 2, 2, 2, 2, 2, 2, 2],
+      totais: totaisLinha,
+      pesos: ESPELHO_PESOS,
     });
+    setExpAberto(false);
   }
 
   return (
@@ -202,8 +197,7 @@ export function EspelhoDetalhado({
         <button
           type="button"
           className="esp__exportar"
-          onClick={exportarPdf}
-          disabled={diasMes.length === 0}
+          onClick={abrirExport}
         >
           <Download size={14} aria-hidden="true" />
           Exportar PDF
@@ -329,6 +323,58 @@ export function EspelhoDetalhado({
           </tbody>
         </table>
       </div>
+
+      {expAberto && (
+        <div
+          className="esp__modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Exportar espelho em PDF"
+          onClick={() => setExpAberto(false)}
+        >
+          <div className="esp__modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="esp__modal-titulo">Exportar PDF por período</h3>
+            <div className="esp__modal-campos">
+              <label className="esp__modal-campo">
+                <span>De</span>
+                <input
+                  type="date"
+                  value={expDe}
+                  max={expAte || undefined}
+                  onChange={(e) => setExpDe(e.target.value)}
+                />
+              </label>
+              <label className="esp__modal-campo">
+                <span>Até</span>
+                <input
+                  type="date"
+                  value={expAte}
+                  min={expDe || undefined}
+                  onChange={(e) => setExpAte(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="esp__modal-acoes">
+              <button
+                type="button"
+                className="esp__modal-cancelar"
+                onClick={() => setExpAberto(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="esp__exportar"
+                onClick={gerarExport}
+                disabled={!expDe || !expAte || expDe > expAte}
+              >
+                <Download size={14} aria-hidden="true" />
+                Gerar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
