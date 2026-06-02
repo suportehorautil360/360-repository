@@ -22,6 +22,7 @@ import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { registroDoOperador } from "./registro-operador";
+import { obterLocalizacao } from "./geolocalizacao";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -474,6 +475,22 @@ export function ChecklistControlePage() {
   const [gpsEmerg, setGpsEmerg] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsErro, setGpsErro] = useState("");
+  // Localização capturada ao abrir o checklist (salva no checklist e na
+  // emergência automática do item impeditivo).
+  const [gpsChecklist, setGpsChecklist] = useState("");
+
+  // Captura a localização sempre que o operador abre um checklist por chassi
+  // (recaptura ao trocar de equipamento).
+  useEffect(() => {
+    if (!equipamentoAtual) return;
+    let ativo = true;
+    void obterLocalizacao().then((r) => {
+      if (ativo) setGpsChecklist(r.texto);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [equipamentoAtual]);
   const [fotosEmergencia, setFotosEmergencia] = useState<string[]>([""]);
   const [emergCameraSlot, setEmergCameraSlot] = useState<number | null>(null);
   const [emergMsg, setEmergMsg] = useState("");
@@ -1468,6 +1485,7 @@ export function ChecklistControlePage() {
         idOperadorSession: session.idCliente,
         funcionarioId: session.funcionarioId ?? "",
         funcionarioCpf: session.cpf ?? "",
+        localizacaoGps: gpsChecklist.trim() || null,
         horimetro: horimetro.trim(),
         fotoHorimetro: fotoHorimetroDataUrl,
         assinaturaOperador: assinaturaDataUrl,
@@ -1513,7 +1531,7 @@ export function ChecklistControlePage() {
             operadorNome: nomeOperadorChecklist.trim() || session.nome,
             tipoFalha: "Item impeditivo reprovado no checklist",
             descricao: `Itens impeditivos marcados como "Não":\n${descImped}`,
-            localizacaoGps: null,
+            localizacaoGps: gpsChecklist.trim() || null,
             fotos: fotosImped,
             checklistId: id,
           };
