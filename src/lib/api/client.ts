@@ -1,10 +1,11 @@
 /**
  * Client HTTP fino para a API do backend NestJS (back-360-).
- * Base configurável por VITE_API_URL; em dev cai no proxy `/api` do Vite,
- * que encaminha para o backend (ver vite.config.ts).
+ * Base configuravel por VITE_API_URL; em dev chama direto o backend local.
  */
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "/api";
+const BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  (import.meta.env.DEV ? "http://localhost:3000" : "/api");
 
 export class ApiError extends Error {
   status: number;

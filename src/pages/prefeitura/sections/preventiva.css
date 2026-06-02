@@ -48,14 +48,36 @@
 
 .pv-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #1f4b86 #0b1b3a;
   border: 1px solid rgba(67, 112, 181, 0.54);
   border-radius: 9px;
   background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
 }
 
+.pv-table-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.pv-table-wrap::-webkit-scrollbar-track {
+  background: #0b1b3a;
+  border-radius: 999px;
+}
+
+.pv-table-wrap::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2b5f9f 0%, #1f4b86 100%);
+  border-radius: 999px;
+  border: 2px solid #0b1b3a;
+}
+
+.pv-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #3a78c2 0%, #2b5f9f 100%);
+}
+
 .pv-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 1400px;
   border-collapse: collapse;
 }
 
@@ -74,6 +96,11 @@
   border-top: 1px solid rgba(96, 165, 250, 0.18);
   color: #e6efff;
   font-size: 0.88rem;
+}
+
+.pv-table thead th,
+.pv-table tbody td {
+  white-space: nowrap;
 }
 
 .pv-vehicle {
@@ -114,6 +141,9 @@
 }
 
 .pv-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid rgba(59, 130, 246, 0.6);
   border-radius: 7px;
   background: rgba(20, 55, 118, 0.45);
@@ -145,6 +175,6 @@
   }
 
   .pv-table {
-    min-width: 820px;
+    min-width: 1400px;
   }
 }

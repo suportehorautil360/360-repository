@@ -189,7 +189,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
                       setLiberando(v);
                     }}
                   >
-                    Registrar revisão e liberar
+                    Registrar revisão
                   </button>
                 </footer>
               </article>

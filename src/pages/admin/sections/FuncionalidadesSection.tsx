@@ -27,9 +27,7 @@ function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
       const flags = await featureFlagsApi.obter(id);
       await featureFlagsApi.salvar(id, { ...flags, ponto: novo });
       setPonto(novo);
-      toast.success(
-        `Ponto ${novo ? "ativado" : "desativado"} para ${nome}.`,
-      );
+      toast.success(`Ponto ${novo ? "ativado" : "desativado"} para ${nome}.`);
     } catch {
       toast.error("Não foi possível salvar. Tente novamente.");
     } finally {

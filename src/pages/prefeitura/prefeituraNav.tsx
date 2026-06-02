@@ -99,6 +99,23 @@ export function prefeituraNav(
       ],
     },
     {
+      label: "Manutenção",
+      items: [
+        {
+          label: "Revisões",
+          to: to("revisoes"),
+          icon: "🔧",
+          badge: badges.revisoes,
+          badgeTone: "warning" as const,
+        },
+        {
+          label: "Preventiva",
+          to: to("preventiva"),
+          icon: "🛠️",
+        },
+      ],
+    },
+    {
       label: "Pessoas / RH",
       items: [
         { label: "Funcionários", to: to("funcionarios"), icon: "👷" },
