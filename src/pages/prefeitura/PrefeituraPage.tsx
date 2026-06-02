@@ -22,6 +22,7 @@ import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
 import { FrotaSection } from "./sections/FrotaSection";
 import { FrentesTrabalhoSection } from "./sections/FrentesTrabalhoSection";
 import { AlocacaoSection } from "./sections/AlocacaoSection";
+import { RelatoriosSection } from "./sections/RelatoriosSection";
 import { RevisoesSection } from "./sections/RevisoesSection";
 import { PreventivaSection } from "./sections/PreventivaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
@@ -295,6 +296,8 @@ export function PrefeituraPage() {
         return <FrentesTrabalhoSection prefeituraId={prefeituraId} />;
       case "alocacao":
         return <AlocacaoSection prefeituraId={prefeituraId} />;
+      case "relatorios":
+        return <RelatoriosSection prefeituraId={prefeituraId} />;
       case "revisoes":
         return <RevisoesSection prefeituraId={prefeituraId} />;
       case "preventiva":
