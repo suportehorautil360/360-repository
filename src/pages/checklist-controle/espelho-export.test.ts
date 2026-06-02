@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   abonosNoPeriodo,
   construirEspelho,
+  diasNoIntervalo,
   diasNoPeriodo,
+  intervaloPreset,
 } from "./espelho-export";
 import type { PontoRegistro } from "./ponto-api";
 import type { Abono } from "../../lib/api/abonos";
@@ -64,6 +66,45 @@ describe("diasNoPeriodo", () => {
     ]);
     const dias = diasNoPeriodo(batidas, abonos, "2026-06-01", "2026-06-30");
     expect(dias.map((d) => d[0])).toEqual(["2026-06-03", "2026-06-05"]);
+  });
+});
+
+describe("intervaloPreset", () => {
+  // Quarta-feira, 2026-06-17 (semana 15→21).
+  const hoje = new Date(2026, 5, 17);
+
+  it("hoje", () => {
+    expect(intervaloPreset("hoje", hoje)).toEqual({
+      de: "2026-06-17",
+      ate: "2026-06-17",
+    });
+  });
+
+  it("semana (segunda a domingo)", () => {
+    expect(intervaloPreset("semana", hoje)).toEqual({
+      de: "2026-06-15",
+      ate: "2026-06-21",
+    });
+  });
+
+  it("mês e mês anterior", () => {
+    expect(intervaloPreset("mes", hoje)).toEqual({
+      de: "2026-06-01",
+      ate: "2026-06-30",
+    });
+    expect(intervaloPreset("mes-anterior", hoje)).toEqual({
+      de: "2026-05-01",
+      ate: "2026-05-31",
+    });
+  });
+});
+
+describe("diasNoIntervalo", () => {
+  it("conta inclusivo e trata inválido", () => {
+    expect(diasNoIntervalo("2026-06-01", "2026-06-30")).toBe(30);
+    expect(diasNoIntervalo("2026-06-10", "2026-06-10")).toBe(1);
+    expect(diasNoIntervalo("2026-06-10", "2026-06-09")).toBe(0);
+    expect(diasNoIntervalo("", "2026-06-10")).toBe(0);
   });
 });
 

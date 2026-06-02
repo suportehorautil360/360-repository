@@ -129,3 +129,48 @@ export function dataBr(iso: string): string {
     ? iso.split("-").reverse().join("/")
     : iso;
 }
+
+function isoData(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
+}
+
+export type PeriodoPreset = "hoje" | "semana" | "mes" | "mes-anterior";
+
+/** Intervalo [de, ate] (yyyy-mm-dd) de um atalho, relativo a `hoje`. */
+export function intervaloPreset(
+  preset: PeriodoPreset,
+  hoje: Date,
+): { de: string; ate: string } {
+  const y = hoje.getFullYear();
+  const m = hoje.getMonth();
+  const d = hoje.getDate();
+  switch (preset) {
+    case "hoje": {
+      const s = isoData(hoje);
+      return { de: s, ate: s };
+    }
+    case "semana": {
+      // Semana de segunda a domingo contendo `hoje`.
+      const dow = (hoje.getDay() + 6) % 7; // 0 = segunda
+      return {
+        de: isoData(new Date(y, m, d - dow)),
+        ate: isoData(new Date(y, m, d - dow + 6)),
+      };
+    }
+    case "mes":
+      return { de: isoData(new Date(y, m, 1)), ate: isoData(new Date(y, m + 1, 0)) };
+    case "mes-anterior":
+      return { de: isoData(new Date(y, m - 1, 1)), ate: isoData(new Date(y, m, 0)) };
+  }
+}
+
+/** Quantidade de dias no intervalo [de, ate] inclusivo (0 se inválido). */
+export function diasNoIntervalo(de: string, ate: string): number {
+  if (!de || !ate || de > ate) return 0;
+  const a = new Date(`${de}T00:00:00`);
+  const b = new Date(`${ate}T00:00:00`);
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000) + 1;
+}

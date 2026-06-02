@@ -80,11 +80,45 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
 }
 .esp__modal-titulo {
-  margin: 0 0 16px;
-  font-size: 1.05rem;
+  margin: 0 0 4px;
+  font-size: 1.1rem;
   font-weight: 800;
   color: #0f172a;
 }
+.esp__modal-sub {
+  margin: 0 0 16px;
+  font-size: 0.86rem;
+  color: #64748b;
+}
+
+/* Chips de atalho */
+.esp__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.esp__chip {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.esp__chip:hover {
+  border-color: #f9a04f;
+  background: #fff7ed;
+}
+.esp__chip.is-active {
+  background: linear-gradient(180deg, #ff981a, #f97316);
+  border-color: transparent;
+  color: #1a1207;
+}
+
 .esp__modal-campos {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -103,16 +137,27 @@
   color: #64748b;
 }
 .esp__modal-campo input {
+  /* Força o controle nativo no tema claro (a prefeitura usa color-scheme dark,
+     que escurecia o input e deixava o texto ilegível). */
+  color-scheme: light;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  padding: 9px 12px;
-  font-size: 0.92rem;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
   color: #0f172a;
+  background: #ffffff;
   outline: none;
 }
 .esp__modal-campo input:focus {
   border-color: #f97316;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+}
+.esp__modal-resumo {
+  margin: 14px 0 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #475569;
 }
 .esp__modal-acoes {
   display: flex;
