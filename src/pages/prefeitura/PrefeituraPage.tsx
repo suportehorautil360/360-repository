@@ -298,7 +298,7 @@ export function PrefeituraPage() {
       case "revisoes":
         return <RevisoesSection prefeituraId={prefeituraId} />;
       case "preventiva":
-        return <PreventivaSection />;
+        return <PreventivaSection prefeituraId={prefeituraId} />;
       case "equipamentos":
         return (
           <EquipamentosSection
