@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useHU360 } from "../../../lib/hu360";
 import { useFrota } from "./frota/use-frota";
 import {
-  FROTA_EXEMPLO,
   TIPO_ICON,
   TIPO_LABEL,
   isBloqueado,
@@ -148,14 +147,6 @@ export function FrotaSection({
               onClick={() => setModalAdd(true)}
             >
               + Adicionar veículo
-            </button>
-            <button
-              type="button"
-              className="frota-btn frota-btn--secundario"
-              style={{ margin: 0, width: "auto" }}
-              onClick={() => void frota.adicionarLote(FROTA_EXEMPLO)}
-            >
-              Popular com exemplos
             </button>
           </div>
         </div>

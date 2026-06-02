@@ -1,87 +1,95 @@
 /**
- * Tradução entre o modelo de UI (VeiculoFrota) e os DTOs do backend NestJS,
- * e as chamadas aos endpoints de `vehicles` e `revision`.
+ * Camada de dados da Frota/Revisões. A frota é a MESMA coleção de
+ * `equipamentos` (fonte da verdade) — esta camada é só um adaptador que
+ * traduz o documento de `equipamentos` para o modelo de UI `VeiculoFrota`.
+ * A coleção `vehicles` foi aposentada.
  */
 import { api, ApiError } from "../../../../lib/api/client";
 import {
-  maintenanceUnitDe,
+  normalizeEquip,
+  type EquipRow,
+} from "../equipamentos/equipamentos-api";
+import {
   type RevisaoInput,
   type TipoVeiculo,
   type VeiculoFrota,
   type VeiculoFrotaInput,
 } from "./types";
 
-/** Veículo como o backend devolve/armazena (coleção `vehicles`). */
-interface VehicleApi {
-  id: string;
-  name: string;
-  plate: string;
-  type: string;
-  year: number;
-  currentMeter: number;
-  brand: string;
-  maintenanceInterval: number;
-  maintenanceUnit: "km" | "hours";
-  prefeituraId: string;
-  lastRevisionOdometerReading: number;
-  obra?: string;
-  status?: string;
-}
-
 interface ListaResponse {
-  data: VehicleApi[];
+  data: Array<Record<string, unknown> & { id?: string }>;
   message: string;
 }
 
-const TIPOS_VALIDOS: TipoVeiculo[] = ["carro", "caminhao", "van", "maquina"];
+/** Texto de tipo enviado ao backend (round-trip com inferTipo/unidade). */
+const TIPO_TXT: Record<TipoVeiculo, string> = {
+  carro: "Carro",
+  caminhao: "Caminhão",
+  van: "Van",
+  maquina: "Máquina",
+};
 
-function tipoFromBackend(type: string): TipoVeiculo {
-  const t = (type ?? "").toLowerCase();
-  if ((TIPOS_VALIDOS as string[]).includes(t)) return t as TipoVeiculo;
-  if (t.includes("camin")) return "caminhao";
-  if (t.includes("van")) return "van";
-  if (t.includes("máqu") || t.includes("maqu")) return "maquina";
+/** Equipamento (h = horímetro) → tipo da Frota. */
+function tipoDeEquip(eq: EquipRow): TipoVeiculo {
+  if (eq.unidadeRevisao === "h") return "maquina";
+  const t = `${eq.tipo} ${eq.descricao}`.toLowerCase();
+  if (/van|sprinter|furg/.test(t)) return "van";
+  if (/camin|truck|basculante|pipa|munck|comboio|betoneira|ba[uú]/.test(t))
+    return "caminhao";
+  if (/escav|retro|trator|carregadeira|rolo|motonivel|m[aá]quina/.test(t))
+    return "maquina";
   return "carro";
 }
 
-function toVeiculo(v: VehicleApi): VeiculoFrota {
+/** Documento de equipamento normalizado → modelo de UI da Frota. */
+function toVeiculo(eq: EquipRow): VeiculoFrota {
   return {
-    id: v.id,
-    placa: v.plate ?? "",
-    nome: v.name ?? "",
-    marca: v.brand ?? "",
-    tipo: tipoFromBackend(v.type),
-    ano: v.year ?? 0,
-    medicaoAtual: v.currentMeter ?? 0,
-    intervaloRevisao: v.maintenanceInterval ?? 0,
-    ultimaRevisao: v.lastRevisionOdometerReading ?? 0,
-    obra: v.obra?.trim() ? v.obra : "Disponível",
-    status: v.status === "bloqueado" ? "bloqueado" : "ativo",
+    id: eq.id,
+    placa: eq.placa || eq.chassis || "",
+    nome: eq.descricao || "",
+    marca: eq.marca || "",
+    tipo: tipoDeEquip(eq),
+    ano: Number(eq.ano) || 0,
+    medicaoAtual: eq.medicaoAtual,
+    intervaloRevisao: eq.intervaloRevisao,
+    ultimaRevisao: eq.ultimaRevisao,
+    obra: eq.obra?.trim() ? eq.obra : "Disponível",
+    status: eq.status === "ativo" ? "ativo" : "bloqueado",
   };
 }
 
-function toCreateDto(input: VeiculoFrotaInput, prefeituraId: string) {
+/** Modelo de UI → payload de criação/edição de `equipamentos`. */
+function toEquipPayload(input: VeiculoFrotaInput, prefeituraId: string) {
+  const descricao = input.nome.trim() || input.marca.trim() || "Equipamento";
+  const placa = input.placa.trim();
   return {
-    name: input.nome.trim(),
-    plate: input.placa.trim(),
-    type: input.tipo,
-    year: input.ano,
-    currentMeter: input.medicaoAtual,
-    brand: input.marca.trim(),
-    maintenanceInterval: input.intervaloRevisao,
-    maintenanceUnit: maintenanceUnitDe(input.tipo),
     prefeituraId,
-    lastRevisionOdometerReading: input.ultimaRevisao,
-    obra: input.obra.trim() || "Disponível",
+    descricao,
+    label: descricao,
+    modelo: descricao,
+    marca: input.marca.trim(),
+    placa,
+    chassis: placa,
+    tipo: TIPO_TXT[input.tipo],
+    linha: TIPO_TXT[input.tipo],
+    ano: input.ano ? String(input.ano) : "",
+    medicaoAtual: input.medicaoAtual,
+    intervaloRevisao: input.intervaloRevisao,
+    unidadeRevisao: input.tipo === "maquina" ? "h" : "km",
+    ultimaRevisao: input.ultimaRevisao,
+    status: "ativo",
+    obra: input.obra.trim(),
   };
 }
 
 export const frotaApi = {
-  /** Lista os veículos da prefeitura. 404 (sem veículos) vira lista vazia. */
+  /** Lista os equipamentos da prefeitura. 404 (sem itens) vira lista vazia. */
   async listar(prefeituraId: string): Promise<VeiculoFrota[]> {
     try {
-      const r = await api.get<ListaResponse>(`/vehicles/${prefeituraId}`);
-      return r.data.map(toVeiculo);
+      const r = await api.get<ListaResponse>(`/equipamentos/${prefeituraId}`);
+      return (r.data ?? []).map((d) =>
+        toVeiculo(normalizeEquip(String(d.id ?? ""), d)),
+      );
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) return [];
       throw e;
@@ -92,17 +100,20 @@ export const frotaApi = {
     input: VeiculoFrotaInput,
     prefeituraId: string,
   ): Promise<VeiculoFrota> {
-    const dto = toCreateDto(input, prefeituraId);
-    const novo = await api.post<VehicleApi>("/vehicles", dto);
-    return toVeiculo(novo);
+    const payload = { ...toEquipPayload(input, prefeituraId) };
+    const r = await api.post<{ data: Record<string, unknown> & { id?: string } }>(
+      "/equipamentos",
+      payload,
+    );
+    const doc = r.data ?? payload;
+    return toVeiculo(
+      normalizeEquip(String((doc as { id?: string }).id ?? ""), doc),
+    );
   },
 
-  /** Atualiza o veículo (o backend espera o DTO completo). */
-  async atualizar(
-    veiculo: VeiculoFrota,
-    prefeituraId: string,
-  ): Promise<void> {
-    const dto = toCreateDto(
+  /** Atualiza os campos editáveis do equipamento. */
+  async atualizar(veiculo: VeiculoFrota, prefeituraId: string): Promise<void> {
+    const payload = toEquipPayload(
       {
         placa: veiculo.placa,
         nome: veiculo.nome,
@@ -116,20 +127,23 @@ export const frotaApi = {
       },
       prefeituraId,
     );
-    await api.post(`/vehicles/update/${veiculo.id}`, dto);
+    await api.post(`/equipamentos/update/${veiculo.id}`, payload);
   },
 
   async remover(id: string): Promise<void> {
-    await api.del(`/vehicles/${id}`);
+    await api.del(`/equipamentos/${id}`);
   },
 
-  /** Registra a revisão como concluída e libera o veículo (POST /revision/complete). */
+  /**
+   * Registra a revisão como concluída e libera o equipamento
+   * (POST /equipamentos/revision/complete).
+   */
   async concluirRevisao(
     veiculo: VeiculoFrota,
     prefeituraId: string,
     dados: RevisaoInput,
   ): Promise<void> {
-    await api.post("/revision/complete", {
+    await api.post("/equipamentos/revision/complete", {
       revisionDate: new Date(dados.data).toISOString(),
       odometerReading: dados.hodometro,
       mechanicOrOfficeName: dados.oficina.trim(),
@@ -137,7 +151,7 @@ export const frotaApi = {
       revisionCost: dados.custo,
       invoiceNumber: dados.notaFiscal.trim(),
       prefeituraId,
-      vehicleId: veiculo.id,
+      equipamentoId: veiculo.id,
     });
   },
 };
