@@ -30,24 +30,35 @@ export interface Frente {
   endereco: string;
   responsavel: string;
   status: FrenteStatus;
+  custo: number;
   inicio: string; // ISO
   fim: string; // ISO ou ""
   criadoEm: string; // ISO
   equipamentos: FrenteEquip[];
 }
 
-/** Dados informados no modal de cadastro. */
+/** Dados informados no modal de cadastro/edição. */
 export interface NovaFrenteInput {
   nome: string;
   endereco: string;
   responsavel: string;
   status: FrenteStatus;
+  custo: number;
   inicio: string; // yyyy-mm-dd
   fim: string; // yyyy-mm-dd ou ""
 }
 
 function asText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function asNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
 }
 
 function normalizeStatus(value: unknown): FrenteStatus {
@@ -93,6 +104,7 @@ function normalizeFrente(
     endereco: asText(data.address),
     responsavel: asText(data.responsible),
     status: normalizeStatus(data.status),
+    custo: asNumber(data.cost),
     inicio: asText(data.startDate),
     fim: asText(data.endDate),
     criadoEm: asText(data.createdAt),
@@ -127,6 +139,20 @@ export const frentesApi = {
       responsible: input.responsavel.trim(),
       equipaments: [],
       status: input.status,
+      cost: input.custo,
+      startDate: dateInputToISO(input.inicio),
+      ...(input.fim ? { endDate: dateInputToISO(input.fim) } : {}),
+    });
+  },
+
+  /** Atualiza os campos editáveis de uma frente (não toca nas alocações). */
+  async atualizar(frenteId: string, input: NovaFrenteInput): Promise<void> {
+    await api.patch(`/work-front/${frenteId}`, {
+      name: input.nome.trim(),
+      address: input.endereco.trim(),
+      responsible: input.responsavel.trim(),
+      status: input.status,
+      cost: input.custo,
       startDate: dateInputToISO(input.inicio),
       ...(input.fim ? { endDate: dateInputToISO(input.fim) } : {}),
     });
@@ -176,4 +202,16 @@ export function formatDataBR(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "—" : formatBR(d);
+}
+
+/** ISO → yyyy-mm-dd (valor de <input type="date">), "" quando inválido. */
+export function isoParaDateInput(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+/** Custo numérico → "R$ 1.234" para o card. */
+export function formatCustoBR(custo: number): string {
+  return `R$ ${(custo || 0).toLocaleString("pt-BR")}`;
 }

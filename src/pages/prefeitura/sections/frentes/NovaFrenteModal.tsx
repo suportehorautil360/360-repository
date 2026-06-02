@@ -8,23 +8,32 @@ import {
 } from "@/components/ui/select";
 import {
   STATUS_FRENTE_OPTIONS,
+  isoParaDateInput,
+  type Frente,
   type FrenteStatus,
   type NovaFrenteInput,
 } from "./frentes-api";
 
 export function NovaFrenteModal({
+  frente,
   onFechar,
   onSalvar,
 }: {
+  /** Quando informado, o modal abre em modo edição. */
+  frente?: Frente | null;
   onFechar: () => void;
   onSalvar: (dados: NovaFrenteInput) => Promise<void>;
 }) {
-  const [nome, setNome] = useState("");
-  const [endereco, setEndereco] = useState("");
-  const [responsavel, setResponsavel] = useState("");
-  const [status, setStatus] = useState<FrenteStatus>("Ativa");
-  const [inicio, setInicio] = useState("");
-  const [fim, setFim] = useState("");
+  const editando = !!frente;
+  const [nome, setNome] = useState(frente?.nome ?? "");
+  const [endereco, setEndereco] = useState(frente?.endereco ?? "");
+  const [responsavel, setResponsavel] = useState(frente?.responsavel ?? "");
+  const [status, setStatus] = useState<FrenteStatus>(frente?.status ?? "Ativa");
+  const [custo, setCusto] = useState<string>(
+    frente ? String(frente.custo || "") : "",
+  );
+  const [inicio, setInicio] = useState(isoParaDateInput(frente?.inicio ?? ""));
+  const [fim, setFim] = useState(isoParaDateInput(frente?.fim ?? ""));
   const [salvando, setSalvando] = useState(false);
 
   const podeSalvar =
@@ -37,7 +46,15 @@ export function NovaFrenteModal({
     if (!podeSalvar || salvando) return;
     setSalvando(true);
     try {
-      await onSalvar({ nome, endereco, responsavel, status, inicio, fim });
+      await onSalvar({
+        nome,
+        endereco,
+        responsavel,
+        status,
+        custo: Number(custo) || 0,
+        inicio,
+        fim,
+      });
     } finally {
       setSalvando(false);
     }
@@ -48,12 +65,12 @@ export function NovaFrenteModal({
       className="ft-modal-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Nova frente de trabalho"
+      aria-label={editando ? "Editar frente de trabalho" : "Nova frente de trabalho"}
       onClick={onFechar}
     >
       <div className="ft-modal" onClick={(e) => e.stopPropagation()}>
         <header className="ft-modal__head">
-          <h2>Nova Frente de Trabalho</h2>
+          <h2>{editando ? "Editar Frente de Trabalho" : "Nova Frente de Trabalho"}</h2>
           <button
             type="button"
             className="ft-modal__close"
@@ -116,6 +133,19 @@ export function NovaFrenteModal({
               </Select>
             </label>
           </div>
+
+          <label className="ft-field">
+            <span className="ft-field__label">Custo estimado (R$)</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              className="ft-input"
+              value={custo}
+              onChange={(e) => setCusto(e.target.value)}
+              placeholder="0"
+            />
+          </label>
 
           <div className="ft-field-row">
             <label className="ft-field">

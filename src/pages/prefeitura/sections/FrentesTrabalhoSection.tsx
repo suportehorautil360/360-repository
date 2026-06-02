@@ -10,8 +10,10 @@ import {
 import {
   frentesApi,
   formatDataBR,
+  formatCustoBR,
   type Frente,
   type FrenteStatus,
+  type NovaFrenteInput,
 } from "./frentes/frentes-api";
 import { NovaFrenteModal } from "./frentes/NovaFrenteModal";
 import { equipamentosApi, type EquipRow } from "./equipamentos/equipamentos-api";
@@ -42,7 +44,8 @@ export function FrentesTrabalhoSection({
   const [frentes, setFrentes] = useState<Frente[]>([]);
   const [equipamentos, setEquipamentos] = useState<EquipRow[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [novaAberta, setNovaAberta] = useState(false);
+  // null = fechado; { frente: null } = nova; { frente: Frente } = editar
+  const [modal, setModal] = useState<{ frente: Frente | null } | null>(null);
   // Rascunho de alocação por frente: { [frenteId]: { vehicleId, funcao } }
   const [rascunho, setRascunho] = useState<
     Record<string, { vehicleId: string; funcao: string }>
@@ -84,14 +87,24 @@ export function FrentesTrabalhoSection({
     void carregar();
   }, [carregar]);
 
-  async function handleCriar(dados: Parameters<typeof frentesApi.criar>[0]) {
+  async function handleSalvar(dados: NovaFrenteInput) {
+    const emEdicao = modal?.frente ?? null;
     try {
-      await frentesApi.criar(dados, prefeituraId);
-      toast.success("Frente de trabalho criada.");
-      setNovaAberta(false);
+      if (emEdicao) {
+        await frentesApi.atualizar(emEdicao.id, dados);
+        toast.success("Frente de trabalho atualizada.");
+      } else {
+        await frentesApi.criar(dados, prefeituraId);
+        toast.success("Frente de trabalho criada.");
+      }
+      setModal(null);
       await carregar();
     } catch {
-      toast.error("Não foi possível criar a frente de trabalho.");
+      toast.error(
+        emEdicao
+          ? "Não foi possível atualizar a frente de trabalho."
+          : "Não foi possível criar a frente de trabalho.",
+      );
     }
   }
 
@@ -179,7 +192,7 @@ export function FrentesTrabalhoSection({
         <button
           type="button"
           className="ft-btn-primary ft-btn-primary--lg"
-          onClick={() => setNovaAberta(true)}
+          onClick={() => setModal({ frente: null })}
         >
           + Nova Frente de Trabalho
         </button>
@@ -205,20 +218,30 @@ export function FrentesTrabalhoSection({
                       📍 {f.endereco || "—"} · Resp: {f.responsavel || "—"}
                     </p>
                     <p className="ft-card__meta">
-                      📅 {formatDataBR(f.inicio)} → {formatDataBR(f.fim)}
+                      📅 {formatDataBR(f.inicio)} → {formatDataBR(f.fim)} ·
+                      Custo: <strong>{formatCustoBR(f.custo)}</strong>
                     </p>
                   </div>
                   <div className="ft-card__actions">
                     <span className={`ft-badge ${STATUS_CLASSE[f.status]}`}>
                       {f.status}
                     </span>
-                    <button
-                      type="button"
-                      className="ft-btn-danger"
-                      onClick={() => handleRemover(f)}
-                    >
-                      🗑 Remover
-                    </button>
+                    <div className="ft-card__btns">
+                      <button
+                        type="button"
+                        className="ft-btn-edit"
+                        onClick={() => setModal({ frente: f })}
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="ft-btn-danger"
+                        onClick={() => handleRemover(f)}
+                      >
+                        🗑 Remover
+                      </button>
+                    </div>
                   </div>
                 </header>
 
@@ -291,10 +314,11 @@ export function FrentesTrabalhoSection({
         </div>
       )}
 
-      {novaAberta && (
+      {modal && (
         <NovaFrenteModal
-          onFechar={() => setNovaAberta(false)}
-          onSalvar={handleCriar}
+          frente={modal.frente}
+          onFechar={() => setModal(null)}
+          onSalvar={handleSalvar}
         />
       )}
     </section>

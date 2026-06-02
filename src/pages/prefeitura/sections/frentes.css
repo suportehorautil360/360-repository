@@ -66,6 +66,28 @@
   background: rgba(255, 255, 255, 0.09);
 }
 
+.ft-card__btns {
+  display: flex;
+  gap: 8px;
+}
+
+.ft-btn-edit {
+  border: 1px solid rgba(120, 150, 200, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cdd9f1;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ft-btn-edit:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .ft-btn-danger {
   border: 1px solid rgba(248, 113, 113, 0.6);
   background: rgba(248, 113, 113, 0.08);
