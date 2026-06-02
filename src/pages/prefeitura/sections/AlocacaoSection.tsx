@@ -84,6 +84,14 @@ export function AlocacaoSection({ prefeituraId }: { prefeituraId: string }) {
         ) : (
           <div className="al-table-wrap">
             <table className="al-table">
+              <colgroup>
+                <col style={{ width: "22%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "27%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "9%" }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Equipamento</th>
