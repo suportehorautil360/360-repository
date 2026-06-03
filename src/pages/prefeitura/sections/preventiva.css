@@ -62,7 +62,8 @@
 /* Container da tabela: scroll vertical interno + horizontal, scrollbars
    sempre visíveis (importante no Windows). */
 .pv-table-scroll {
-  overflow: scroll;
+  overflow-x: auto;
+  overflow-y: scroll;
   max-height: 60vh;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: auto;
@@ -70,6 +71,12 @@
   border: 1px solid rgba(67, 112, 181, 0.54);
   border-radius: 0 0 9px 9px;
   background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
+}
+
+/* A rolagem horizontal usa só a barra do TOPO — esconde a de baixo da tabela
+   (mantém a vertical). A rolagem lateral continua funcionando. */
+.pv-table-scroll::-webkit-scrollbar:horizontal {
+  height: 0;
 }
 
 /* Scrollbars custom sempre visíveis (topo + tabela). */
