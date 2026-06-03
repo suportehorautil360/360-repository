@@ -22,6 +22,8 @@ export interface PreventivaRow {
   leituraAtual: string;
   restanteParaVencer: string;
   status: StatusRevisao;
+  /** Frente/obra atual do equipamento (para filtro). */
+  frente: string;
 }
 
 function fmt(valor: number, unidade: string): string {
@@ -45,7 +47,52 @@ export function toPreventivaRow(v: VeiculoFrota): PreventivaRow {
         ? fmt(restante, unidade)
         : `vencido ${fmt(Math.abs(restante), unidade)}`,
     status: statusRevisao(v),
+    frente: v.obra?.trim() ? v.obra : "Disponível",
   };
+}
+
+export interface PreventivaFiltros {
+  status: StatusRevisao | "todos";
+  busca: string;
+  medidor: "todos" | "KM" | "Horímetro";
+  frente: string; // "todas" ou uma frente específica
+}
+
+export const FILTROS_PREVENTIVA_PADRAO: PreventivaFiltros = {
+  status: "todos",
+  busca: "",
+  medidor: "todos",
+  frente: "todas",
+};
+
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+/** Aplica os filtros (status, busca por chassi/placa/nome, medidor, frente). */
+export function filtrarPreventivas(
+  rows: PreventivaRow[],
+  f: PreventivaFiltros,
+): PreventivaRow[] {
+  const q = norm(f.busca.trim());
+  return rows.filter((r) => {
+    if (f.status !== "todos" && r.status !== f.status) return false;
+    if (f.medidor !== "todos" && r.tipoMedidor !== f.medidor) return false;
+    if (f.frente !== "todas" && r.frente !== f.frente) return false;
+    if (q && !norm(`${r.idChassiPlaca} ${r.nomeEquipamento}`).includes(q))
+      return false;
+    return true;
+  });
+}
+
+/** Frentes distintas presentes nas linhas (para o select de filtro). */
+export function frentesDistintas(rows: PreventivaRow[]): string[] {
+  return [...new Set(rows.map((r) => r.frente))].sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
 }
 
 /** Lista ordenada: vencidas primeiro, depois próximas, depois em dia. */
