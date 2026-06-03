@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction } from "react";
 import { jsPDF } from "jspdf";
 import seedData from "../../data/hu360OperadorSeed.json";
 import { HU360_HIST_ITEM_LABELS } from "./checklistAppToHistoricoRow";
+import { itensDaCategoria } from "../../features/checklist/domain/itens";
 import { linkGoogleMaps } from "../../lib/geo/maps";
 import "./checklistHistoricoLista.css";
 
@@ -14,17 +15,21 @@ function checklistItemLabelFromSeed(
   numKey: string,
   categoriaMaquina: string,
 ): string {
-  const cat = checklistCategoriaFromMaquina(String(categoriaMaquina ?? ""));
-  // Schema novo usa `Aplica A` (array). Mantemos fallback para o `Categoria`
-  // antigo caso ainda apareça em algum item residual / persistido.
-  const it = seedData.itens_checklist.find((x) => {
+  const catRaw = String(categoriaMaquina ?? "");
+  // Novo: chave sequencial (1..N) da MESMA lista usada na captura.
+  const bySeq = itensDaCategoria(catRaw).find(
+    (x) => String(x["Nº"]) === String(numKey),
+  );
+  if (bySeq) return String(bySeq["Item de Verificação"] ?? numKey);
+  // Legado: a chave era o `Nº` original do seed (ex.: "1.1").
+  const cat = checklistCategoriaFromMaquina(catRaw);
+  const byOrig = seedData.itens_checklist.find((x) => {
     if (String(x["Nº"]) !== String(numKey)) return false;
     const aplicaA = (x as { "Aplica A"?: string[] })["Aplica A"];
     if (Array.isArray(aplicaA)) return aplicaA.includes(cat);
-    const catLegacy = (x as { Categoria?: string }).Categoria;
-    return catLegacy === cat;
+    return (x as { Categoria?: string }).Categoria === cat;
   });
-  return it ? String(it["Item de Verificação"] ?? numKey) : `Item ${numKey}`;
+  return byOrig ? String(byOrig["Item de Verificação"] ?? numKey) : `Item ${numKey}`;
 }
 
 export function sortChavesRespostasChecklist(keys: string[]): string[] {
@@ -90,7 +95,11 @@ function readItemLabels(
 function formatDataHoraCell(raw: string): string {
   const s = String(raw ?? "");
   if (!s) return "—";
-  return s.slice(0, 19).replace("T", " ");
+  // O timestamp é gravado em ISO/UTC; exibe no fuso local (não cortar a string).
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s.slice(0, 19).replace("T", " ");
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
 function fileSafe(text: string): string {

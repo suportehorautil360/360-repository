@@ -23,6 +23,7 @@ import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { registroDoOperador } from "./registro-operador";
 import { obterLocalizacao } from "./geolocalizacao";
+import { itensDaCategoria } from "../../features/checklist/domain/itens";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -1133,36 +1134,10 @@ export function ChecklistControlePage() {
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Fonte ÚNICA: o seed `itens_checklist` (schema novo: Aplica A + Severidade),
-    // que já cobre os itens gerais e os de cada categoria. Antes concatenávamos
-    // também o CHECKLIST_DOCUMENTO_ITENS, mas ele repetia os gerais do seed —
-    // gerando perguntas duplicadas e numeração misturada (G.x + 1.x).
-    // Cada item declara `Aplica A: string[]` (fallback p/ Categoria).
-    const norm = (s: unknown) =>
-      String(s ?? "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
-    const vistos = new Set<string>();
-    return seedData.itens_checklist.filter((it) => {
-      const aplicaA = (it as { "Aplica A"?: string[] })["Aplica A"];
-      const aplica = Array.isArray(aplicaA)
-        ? aplicaA.includes(cat)
-        : (it as { Categoria?: string }).Categoria === cat;
-      if (!aplica) return false;
-      // Dedup de segurança: não repete a mesma pergunta (por texto normalizado).
-      const t = norm((it as { "Item de Verificação"?: unknown })["Item de Verificação"]);
-      if (!t || vistos.has(t)) return false;
-      vistos.add(t);
-      return true;
-    })
-      // O `Nº` do seed se repete entre itens (ex.: vários "1.1") e era usado
-      // como CHAVE de `answers` — fazia uma resposta refletir em outro item.
-      // Renumera sequencialmente (1..N), igual ao número exibido, garantindo
-      // chave única por item.
-      .map((it, i) => ({ ...it, "Nº": i + 1 }));
+    // Fonte ÚNICA e compartilhada com a auditoria (resolução do nome do item):
+    // filtra pela categoria, remove duplicados e renumera o `Nº` de 1..N
+    // (o `Nº` do seed se repete, e ele é a chave de `answers`).
+    return itensDaCategoria(cat);
   }, [equipamentoAtual]);
 
   function handleLogin(e: FormEvent) {
