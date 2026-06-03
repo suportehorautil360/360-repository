@@ -182,7 +182,7 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
     const e: Record<string, string> = {};
     if (!form.nome.trim()) e.nome = "Informe o nome completo.";
     if (!cpfValido(form.cpf)) e.cpf = "CPF inválido.";
-    if (!form.matricula.trim()) e.matricula = "Informe a matrícula.";
+    // Matrícula é opcional.
     if (!form.dataNascimento) e.dataNascimento = "Informe a data de nascimento.";
     if (!form.cargo.trim()) e.cargo = "Informe o cargo.";
     setErros(e);
@@ -263,12 +263,7 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
           <h2>Dados Pessoais</h2>
         </header>
         <div className="ff__grid">
-          <Campo
-            label="Matrícula"
-            obrig
-            erro={erros.matricula}
-            wide={1}
-          >
+          <Campo label="Matrícula" erro={erros.matricula} wide={1}>
             <input
               type="text"
               placeholder="Ex: 001"
