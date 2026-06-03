@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import {
   frentesApi,
   formatDataBR,
@@ -275,29 +269,26 @@ export function FrentesTrabalhoSection({
                 </div>
 
                 <div className="ft-alocar">
-                  <Select
+                  <Combobox
+                    className="ft-select-trigger ft-alocar__select"
                     value={draft.vehicleId}
                     onValueChange={(v) => setDraft(f.id, { vehicleId: v })}
                     disabled={equipamentosDisponiveis.length === 0}
-                  >
-                    <SelectTrigger className="ft-select-trigger ft-alocar__select">
-                      <SelectValue
-                        placeholder={
-                          equipamentosDisponiveis.length === 0
-                            ? "Nenhum equipamento disponível"
-                            : "Selecione um equipamento..."
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {equipamentosDisponiveis.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>
-                          {e.descricao}
-                          {e.placa ? ` (${e.placa})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder={
+                      equipamentosDisponiveis.length === 0
+                        ? "Nenhum equipamento disponível"
+                        : "Selecione um equipamento..."
+                    }
+                    searchPlaceholder="Buscar por chassi, placa ou nome..."
+                    emptyText="Nenhum equipamento encontrado."
+                    options={equipamentosDisponiveis.map((e) => ({
+                      value: e.id,
+                      label: `${e.descricao}${e.placa ? ` (${e.placa})` : ""}`,
+                      keywords: [e.chassis, e.placa, e.descricao].filter(
+                        Boolean,
+                      ),
+                    }))}
+                  />
                   <input
                     className="ft-input ft-alocar__func"
                     value={draft.funcao}

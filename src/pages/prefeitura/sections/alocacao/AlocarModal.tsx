@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import type { Frente } from "../frentes/frentes-api";
 import type { EquipRow } from "../equipamentos/equipamentos-api";
 
@@ -73,19 +74,20 @@ export function AlocarModal({
         <div className="ft-modal__body">
           <label className="ft-field">
             <span className="ft-field__label">Equipamento</span>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
-              <SelectTrigger className="ft-select-trigger w-full">
-                <SelectValue placeholder="Selecione um equipamento..." />
-              </SelectTrigger>
-              <SelectContent className="z-[70]">
-                {equipamentos.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.descricao}
-                    {e.placa ? ` (${e.placa})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              className="ft-select-trigger"
+              contentClassName="z-[70]"
+              value={vehicleId}
+              onValueChange={setVehicleId}
+              placeholder="Selecione um equipamento..."
+              searchPlaceholder="Buscar por chassi, placa ou nome..."
+              emptyText="Nenhum equipamento encontrado."
+              options={equipamentos.map((e) => ({
+                value: e.id,
+                label: `${e.descricao}${e.placa ? ` (${e.placa})` : ""}`,
+                keywords: [e.chassis, e.placa, e.descricao].filter(Boolean),
+              }))}
+            />
           </label>
 
           <label className="ft-field">
