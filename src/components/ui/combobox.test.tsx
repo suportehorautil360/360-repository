@@ -36,11 +36,14 @@ describe("Combobox", () => {
     expect(screen.getByText("Golf")).toBeInTheDocument();
   });
 
-  it("filtra por nome", async () => {
+  it("filtra por nome E exibe o texto digitado no input", async () => {
     const user = userEvent.setup();
     render(<Wrapper />);
     await user.click(screen.getByRole("combobox"));
-    await user.type(screen.getByPlaceholderText(/buscar/i), "esc");
+    const input = screen.getByPlaceholderText(/buscar/i);
+    await user.type(input, "esc");
+    // O input controlado deve refletir o que foi digitado.
+    expect(input).toHaveValue("esc");
     expect(await screen.findByText("Escavadeira")).toBeInTheDocument();
     expect(screen.queryByText("Civic")).not.toBeInTheDocument();
     expect(screen.queryByText("Golf")).not.toBeInTheDocument();

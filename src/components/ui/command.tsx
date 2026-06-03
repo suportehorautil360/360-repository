@@ -33,8 +33,10 @@ function CommandInput({
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          // Sem preflight do Tailwind no projeto: zera borda/aparência do UA.
-          "placeholder:text-muted-foreground flex h-10 w-full appearance-none rounded-md border-0 bg-transparent py-3 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50",
+          // Sem preflight do Tailwind no projeto: zera borda/aparência do UA e
+          // fixa a cor (senão o texto digitado fica invisível no dropdown claro
+          // quando o SO está em dark — input herdava cor clara).
+          "text-popover-foreground placeholder:text-muted-foreground flex h-10 w-full appearance-none rounded-md border-0 bg-transparent py-3 text-sm outline-none [color-scheme:light] focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}
