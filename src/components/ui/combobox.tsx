@@ -37,6 +37,12 @@ export interface ComboboxProps {
  * Select com busca (Radix Popover + cmdk), no padrão do design system.
  * Use para listas longas/buscáveis; o `Select` continua para listas curtas.
  */
+const normalizar = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+
 export function Combobox({
   options,
   value,
@@ -49,10 +55,26 @@ export function Combobox({
   contentClassName,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [busca, setBusca] = React.useState("");
   const selected = options.find((o) => o.value === value);
 
+  // Filtra manualmente (substring em label + keywords). O filtro nativo do
+  // cmdk usava o `value` do item (aqui um id/uuid), causando matches errados.
+  const filtradas = React.useMemo(() => {
+    const q = normalizar(busca.trim());
+    if (!q) return options;
+    return options.filter((o) =>
+      normalizar(`${o.label} ${(o.keywords ?? []).join(" ")}`).includes(q),
+    );
+  }, [options, busca]);
+
+  function handleOpenChange(aberto: boolean) {
+    setOpen(aberto);
+    if (!aberto) setBusca("");
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -77,12 +99,16 @@ export function Combobox({
           contentClassName,
         )}
       >
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={false}>
+          <CommandInput
+            value={busca}
+            onValueChange={setBusca}
+            placeholder={searchPlaceholder}
+          />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
-              {options.map((o) => (
+              {filtradas.map((o) => (
                 <CommandItem
                   key={o.value}
                   value={o.value}
