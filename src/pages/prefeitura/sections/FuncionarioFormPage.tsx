@@ -40,6 +40,9 @@ const CARGOS = [
   "Outro",
 ];
 
+/** Cargos predefinidos (sem o "Outro", que abre digitação livre). */
+const CARGOS_PREDEF = CARGOS.filter((c) => c !== "Outro");
+
 type Modo = "novo" | "editar";
 
 interface FormState {
@@ -326,8 +329,16 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
 
           <Campo label="Cargo" obrig erro={erros.cargo} wide={2}>
             <Select
-              value={form.cargo}
-              onValueChange={(v) => setCampo("cargo", v)}
+              value={CARGOS_PREDEF.includes(form.cargo) ? form.cargo : "Outro"}
+              onValueChange={(v) => {
+                // "Outro" → entra em digitação livre (limpa só se vinha de um
+                // cargo predefinido, pra não apagar o que já foi digitado).
+                if (v === "Outro") {
+                  if (CARGOS_PREDEF.includes(form.cargo)) setCampo("cargo", "");
+                } else {
+                  setCampo("cargo", v);
+                }
+              }}
             >
               <SelectTrigger className={SELECT_TRIGGER_CLS}>
                 <SelectValue placeholder="Selecione" />
@@ -340,6 +351,15 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
                 ))}
               </SelectContent>
             </Select>
+            {!CARGOS_PREDEF.includes(form.cargo) && (
+              <input
+                type="text"
+                placeholder="Digite o cargo"
+                value={form.cargo}
+                onChange={(e) => setCampo("cargo", e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+            )}
           </Campo>
           <Campo label="Status" wide={1}>
             <Select
