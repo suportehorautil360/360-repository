@@ -15,6 +15,7 @@ import {
   type EmergencyStatus,
 } from "../../features/emergencia/domain";
 import { db } from "../../lib/firebase/firebase";
+import { linkGoogleMaps } from "../../lib/geo/maps";
 import "./emergencia.css";
 
 interface EmergenciaTableProps {
@@ -152,14 +153,18 @@ function EmergenciaModal({
           </div>
           <div className="emg-meta-item emg-meta-full">
             <span className="emg-meta-label">Localização GPS</span>
-            <a
-              className="emg-meta-value emg-gps-link"
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(emergencia.localizacaoGps ?? "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {emergencia.localizacaoGps ?? "—"}
-            </a>
+            {emergencia.localizacaoGps?.trim() ? (
+              <a
+                className="emg-meta-value emg-gps-link"
+                href={linkGoogleMaps(emergencia.localizacaoGps)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                📍 {emergencia.localizacaoGps}
+              </a>
+            ) : (
+              <span className="emg-meta-value">—</span>
+            )}
           </div>
           {emergencia.source === "checklist_auto" ? (
             <div className="emg-meta-item emg-meta-full">

@@ -21,6 +21,9 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { registroDoOperador } from "./registro-operador";
+import { obterLocalizacao } from "./geolocalizacao";
+import { itensDaCategoria } from "../../features/checklist/domain/itens";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -295,6 +298,7 @@ function firestoreDocToHistRow(
     Pontuacao: data.pontuacao ?? 0,
     ID_Cliente: data.idOperadorSession ?? "",
     prefeituraId: data.prefeituraId ?? "",
+    Localizacao_GPS: data.localizacaoGps ?? null,
     Obs: data.obs ?? null,
   };
 }
@@ -473,6 +477,22 @@ export function ChecklistControlePage() {
   const [gpsEmerg, setGpsEmerg] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsErro, setGpsErro] = useState("");
+  // Localização capturada ao abrir o checklist (salva no checklist e na
+  // emergência automática do item impeditivo).
+  const [gpsChecklist, setGpsChecklist] = useState("");
+
+  // Captura a localização sempre que o operador abre um checklist por chassi
+  // (recaptura ao trocar de equipamento).
+  useEffect(() => {
+    if (!equipamentoAtual) return;
+    let ativo = true;
+    void obterLocalizacao().then((r) => {
+      if (ativo) setGpsChecklist(r.texto);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [equipamentoAtual]);
   const [fotosEmergencia, setFotosEmergencia] = useState<string[]>([""]);
   const [emergCameraSlot, setEmergCameraSlot] = useState<number | null>(null);
   const [emergMsg, setEmergMsg] = useState("");
@@ -903,6 +923,9 @@ export function ChecklistControlePage() {
     )
       .then((snap) => {
         const rows = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
           .map((d) =>
             firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
           )
@@ -931,9 +954,13 @@ export function ChecklistControlePage() {
       ),
     )
       .then((snap) => {
-        const rows = snap.docs.map((d) =>
-          firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-        );
+        const rows = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
+          .map((d) =>
+            firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
+          );
         rows.sort((a, b) =>
           String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
         );
@@ -955,10 +982,14 @@ export function ChecklistControlePage() {
       ),
     )
       .then((snap) => {
-        const rows: Record<string, unknown>[] = snap.docs.map((d) => ({
-          ...(d.data() as Record<string, unknown>),
-          _docId: d.id,
-        }));
+        const rows: Record<string, unknown>[] = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
+          .map((d) => ({
+            ...(d.data() as Record<string, unknown>),
+            _docId: d.id,
+          }));
         rows.sort((a, b) =>
           String(b["dataHoraIso"] ?? "").localeCompare(
             String(a["dataHoraIso"] ?? ""),
@@ -1103,31 +1134,10 @@ export function ChecklistControlePage() {
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Fonte ÚNICA: o seed `itens_checklist` (schema novo: Aplica A + Severidade),
-    // que já cobre os itens gerais e os de cada categoria. Antes concatenávamos
-    // também o CHECKLIST_DOCUMENTO_ITENS, mas ele repetia os gerais do seed —
-    // gerando perguntas duplicadas e numeração misturada (G.x + 1.x).
-    // Cada item declara `Aplica A: string[]` (fallback p/ Categoria).
-    const norm = (s: unknown) =>
-      String(s ?? "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
-    const vistos = new Set<string>();
-    return seedData.itens_checklist.filter((it) => {
-      const aplicaA = (it as { "Aplica A"?: string[] })["Aplica A"];
-      const aplica = Array.isArray(aplicaA)
-        ? aplicaA.includes(cat)
-        : (it as { Categoria?: string }).Categoria === cat;
-      if (!aplica) return false;
-      // Dedup de segurança: não repete a mesma pergunta (por texto normalizado).
-      const t = norm((it as { "Item de Verificação"?: unknown })["Item de Verificação"]);
-      if (!t || vistos.has(t)) return false;
-      vistos.add(t);
-      return true;
-    });
+    // Fonte ÚNICA e compartilhada com a auditoria (resolução do nome do item):
+    // filtra pela categoria, remove duplicados e renumera o `Nº` de 1..N
+    // (o `Nº` do seed se repete, e ele é a chave de `answers`).
+    return itensDaCategoria(cat);
   }, [equipamentoAtual]);
 
   function handleLogin(e: FormEvent) {
@@ -1430,12 +1440,19 @@ export function ChecklistControlePage() {
     hist.unshift(reg);
     saveChecklistHistory(hist);
 
+    // prefeituraId do registro: o do equipamento e, se vazio, o da sessão do
+    // operador. Sem isso, checklist/emergência ficam com prefeituraId "" e
+    // somem das telas da prefeitura (Auditoria/Triagem/Emergências, que
+    // filtram por prefeituraId). Mesmo fallback do fluxo de emergência manual.
+    const prefeituraIdChecklist =
+      equipamentoAtual.prefeituraId || session.idCliente;
+
     // Salva no Firestore
     setSalvandoChecklist(true);
     try {
       await addDoc(collection(db, "checklistsRegistros"), {
         id,
-        prefeituraId: equipamentoAtual.prefeituraId,
+        prefeituraId: prefeituraIdChecklist,
         equipamentoId: equipamentoAtual.id,
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         modelo: equipamentoAtual.label,
@@ -1447,6 +1464,9 @@ export function ChecklistControlePage() {
         ),
         operador: nomeOperadorChecklist.trim(),
         idOperadorSession: session.idCliente,
+        funcionarioId: session.funcionarioId ?? "",
+        funcionarioCpf: session.cpf ?? "",
+        localizacaoGps: gpsChecklist.trim() || null,
         horimetro: horimetro.trim(),
         fotoHorimetro: fotoHorimetroDataUrl,
         assinaturaOperador: assinaturaDataUrl,
@@ -1484,7 +1504,7 @@ export function ChecklistControlePage() {
             })
             .join("\n");
           const emergPayload = {
-            prefeituraId: equipamentoAtual.prefeituraId,
+            prefeituraId: prefeituraIdChecklist,
             source: "checklist_auto" as const,
             severity: "blocking" as const,
             equipamentoId: equipamentoAtual.id,
@@ -1492,22 +1512,22 @@ export function ChecklistControlePage() {
             operadorNome: nomeOperadorChecklist.trim() || session.nome,
             tipoFalha: "Item impeditivo reprovado no checklist",
             descricao: `Itens impeditivos marcados como "Não":\n${descImped}`,
-            localizacaoGps: null,
+            localizacaoGps: gpsChecklist.trim() || null,
             fotos: fotosImped,
             checklistId: id,
           };
-          // Backend (visão do admin/RH) — best effort, pode falhar offline.
-          try {
-            await emergenciasApi.criar(emergPayload);
-          } catch (e) {
-            console.error("[Checklist] Backend de emergência indisponível:", e);
-          }
-          // Firestore `emergenciasRegistros` — store que a aba de Emergências do
-          // operador lê (offline-first). Sem isso, o ticket não aparece lá.
+          // Grava só no Firestore `emergenciasRegistros`. O backend NestJS
+          // de emergências usa ESSA MESMA coleção, então a tela da prefeitura
+          // (emergenciasApi.listar) já enxerga este doc — não chamar
+          // emergenciasApi.criar evita o ticket duplicado. E o addDoc carrega
+          // idOperadorSession/funcionarioId (que o create do backend não seta),
+          // necessários para a tela do operador.
           await addDoc(collection(db, "emergenciasRegistros"), {
             id: crypto.randomUUID(),
             ...emergPayload,
             idOperadorSession: session.idCliente,
+            funcionarioId: session.funcionarioId ?? "",
+            funcionarioCpf: session.cpf ?? "",
             idMaquina: equipamentoAtual.id,
             modelo: equipamentoAtual.label,
             operador: emergPayload.operadorNome,
@@ -1573,7 +1593,7 @@ export function ChecklistControlePage() {
         `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
       );
       const run = await checklistsApi.iniciar({
-        prefeituraId: equipamentoAtual.prefeituraId,
+        prefeituraId: equipamentoAtual.prefeituraId || session?.idCliente || "",
         definitionId: `seed:${categoria}`,
         definitionVersion: 1,
         equipamentoId: equipamentoAtual.id,
@@ -1711,6 +1731,8 @@ export function ChecklistControlePage() {
           id,
           ...payload,
           idOperadorSession: session.idCliente,
+          funcionarioId: session.funcionarioId ?? "",
+          funcionarioCpf: session.cpf ?? "",
           idMaquina: mid,
           modelo: maquinaDaSessao
             ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
