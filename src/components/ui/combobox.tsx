@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -106,9 +105,13 @@ export function Combobox({
             placeholder={searchPlaceholder}
           />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {filtradas.map((o) => (
+            {filtradas.length === 0 ? (
+              <div className="text-muted-foreground py-6 text-center text-sm">
+                {emptyText}
+              </div>
+            ) : (
+              <CommandGroup>
+                {filtradas.map((o) => (
                 <CommandItem
                   key={o.value}
                   value={o.value}
@@ -124,10 +127,11 @@ export function Combobox({
                       value === o.value ? "opacity-100" : "opacity-0",
                     )}
                   />
-                  <span className="truncate">{o.label}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+                    <span className="truncate">{o.label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
