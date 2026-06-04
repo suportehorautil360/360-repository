@@ -1540,6 +1540,24 @@ export function ChecklistControlePage() {
           toast.warning(
             "🚨 Ticket de emergência criado — item impeditivo reprovado.",
           );
+          // A emergência foi gravada direto no Firestore (não passou pelo
+          // create do backend), então disparamos a notificação de WhatsApp à
+          // parte. Best-effort: nunca atrapalha o checklist.
+          try {
+            await emergenciasApi.notificarWhatsApp({
+              prefeituraId: prefeituraIdChecklist,
+              severity: emergPayload.severity,
+              chassis: emergPayload.chassis,
+              idMaquina: equipamentoAtual.id,
+              tipoFalha: emergPayload.tipoFalha,
+              descricao: emergPayload.descricao,
+              operadorNome: emergPayload.operadorNome,
+              localizacaoGps: emergPayload.localizacaoGps,
+              dataHoraIso: dataHora,
+            });
+          } catch (e) {
+            console.warn("[Checklist] WhatsApp não disparado:", e);
+          }
         } catch (e) {
           console.error("[Checklist] Falha ao criar emergência automática:", e);
           toast.error(
