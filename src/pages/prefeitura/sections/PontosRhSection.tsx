@@ -114,7 +114,9 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   const [motivoReprov, setMotivoReprov] = useState("");
   const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [ocupado, setOcupado] = useState(false);
-  const [gerandoAfd, setGerandoAfd] = useState(false);
+  const [gerandoArquivo, setGerandoArquivo] = useState<"AFD" | "AEJ" | null>(
+    null,
+  );
 
   const intervalo = useMemo(() => intervaloDoPeriodo(periodo), [periodo]);
 
@@ -236,26 +238,25 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   }
 
   /**
-   * Exporta o AFD (Portaria 671) do período selecionado. O backend gera o
-   * conteúdo; aqui montamos o download em ISO-8859-1 (cada byte = charCode).
+   * Exporta o AFD (fiscal) ou o AEJ (tratado) do período selecionado. O backend
+   * gera o conteúdo; aqui montamos o download em ISO-8859-1 (byte = charCode) e,
+   * se houver, a assinatura ICP-Brasil destacada (.p7s).
    */
-  async function exportarAfd() {
-    if (gerandoAfd) return;
-    setGerandoAfd(true);
+  async function exportarArquivo(tipo: "AFD" | "AEJ") {
+    if (gerandoArquivo) return;
+    setGerandoArquivo(tipo);
     try {
-      const r = await pontosApi.exportarAFD(
-        prefeituraId,
-        intervalo.inicio,
-        intervalo.fim,
-      );
+      const r =
+        tipo === "AFD"
+          ? await pontosApi.exportarAFD(prefeituraId, intervalo.inicio, intervalo.fim)
+          : await pontosApi.exportarAEJ(prefeituraId, intervalo.inicio, intervalo.fim);
+
       const bytes = new Uint8Array(r.conteudo.length);
       for (let i = 0; i < r.conteudo.length; i++) {
         bytes[i] = r.conteudo.charCodeAt(i) & 0xff;
       }
       baixarBytes(bytes, r.nome, "text/plain;charset=ISO-8859-1");
 
-      // Assinatura ICP-Brasil destacada (.p7s), quando o certificado está
-      // configurado no backend (Portaria 671 §3.3).
       if (r.assinado && r.assinaturaP7sBase64) {
         const bin = atob(r.assinaturaP7sBase64);
         const p7s = new Uint8Array(bin.length);
@@ -264,18 +265,16 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
       }
 
       toast.success(
-        `AFD gerado: ${r.totalMarcacoes} marcação(ões).` +
+        `${tipo} gerado: ${r.totalMarcacoes} marcação(ões).` +
           (r.assinado ? " Assinado (ICP-Brasil)." : " Sem assinatura.") +
           (r.semCpf ? ` ⚠ ${r.semCpf} sem CPF (tratar).` : ""),
       );
     } catch (e) {
       const msg =
-        e instanceof ApiError
-          ? e.message
-          : "Não foi possível gerar o AFD.";
+        e instanceof ApiError ? e.message : `Não foi possível gerar o ${tipo}.`;
       toast.error(msg);
     } finally {
-      setGerandoAfd(false);
+      setGerandoArquivo(null);
     }
   }
 
@@ -362,12 +361,22 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
         <button
           type="button"
           className="rh__afd-btn"
-          onClick={() => void exportarAfd()}
-          disabled={gerandoAfd}
-          title="Exportar o Arquivo Fonte de Dados (Portaria 671) do período"
+          onClick={() => void exportarArquivo("AFD")}
+          disabled={gerandoArquivo !== null}
+          title="Exportar o Arquivo Fonte de Dados (cru) — Portaria 671"
         >
           <Download size={14} aria-hidden="true" />
-          {gerandoAfd ? "Gerando AFD…" : "Exportar AFD (fiscal)"}
+          {gerandoArquivo === "AFD" ? "Gerando AFD…" : "Exportar AFD (fiscal)"}
+        </button>
+        <button
+          type="button"
+          className="rh__afd-btn"
+          onClick={() => void exportarArquivo("AEJ")}
+          disabled={gerandoArquivo !== null}
+          title="Exportar o Arquivo Eletrônico de Jornada (tratado) — Portaria 671"
+        >
+          <Download size={14} aria-hidden="true" />
+          {gerandoArquivo === "AEJ" ? "Gerando AEJ…" : "Exportar AEJ (tratado)"}
         </button>
       </div>
 

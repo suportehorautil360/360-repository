@@ -141,6 +141,25 @@ export const pontosApi = {
     );
     return r.data;
   },
+
+  /**
+   * Gera o AEJ (Arquivo Eletrônico de Jornada — tratado, Portaria 671) da
+   * prefeitura no período [de, ate]. Mesmo formato de retorno do AFD.
+   */
+  async exportarAEJ(
+    prefeituraId: string,
+    de?: string,
+    ate?: string,
+  ): Promise<AejResultado> {
+    const qs = new URLSearchParams();
+    if (de) qs.set("de", de);
+    if (ate) qs.set("ate", ate);
+    const sufixo = qs.toString() ? `?${qs.toString()}` : "";
+    const r = await api.get<{ data: AejResultado; message: string }>(
+      `/time-records/aej/${prefeituraId}${sufixo}`,
+    );
+    return r.data;
+  },
 };
 
 export interface AfdResultado {
@@ -156,3 +175,6 @@ export interface AfdResultado {
   /** Assinatura destacada (.p7s) em base64, quando assinado. */
   assinaturaP7sBase64?: string;
 }
+
+/** O AEJ (tratado) tem o mesmo formato de retorno do AFD. */
+export type AejResultado = AfdResultado;
