@@ -21,6 +21,7 @@ const empresa = {
   cidade: "Três Lagoas",
   estado: "MS",
   emailAlertas: "x@y.com",
+  whatsappNumero: "",
 };
 
 describe("montarCRPT", () => {
