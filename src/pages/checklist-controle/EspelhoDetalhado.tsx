@@ -190,7 +190,10 @@ export function EspelhoDetalhado({
     const ate = expAte;
     if (!de || !ate || de > ate) return;
     const abonosDias = abonosNoPeriodo(abonos, funcionarioCpf, de, ate);
-    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate);
+    const ag = new Date();
+    const hojeIso = `${ag.getFullYear()}-${String(ag.getMonth() + 1).padStart(2, "0")}-${String(ag.getDate()).padStart(2, "0")}`;
+    // Inclui as faltas (dias sem batida até hoje), igual à tela.
+    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate, hojeIso);
     const { linhas, totais: totaisLinha } = construirEspelho(
       dias,
       abonosDias,

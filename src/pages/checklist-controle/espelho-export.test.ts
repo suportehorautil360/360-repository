@@ -58,6 +58,25 @@ describe("diasNoPeriodo", () => {
     expect(dias[0][1]).toHaveLength(2);
   });
 
+  it("com `hoje`, pré-popula todos os dias até hoje (faltas aparecem)", () => {
+    const batidas = [bat({ timestampOriginal: "2026-06-02T08:00:00" })];
+    const dias = diasNoPeriodo(
+      batidas,
+      new Map(),
+      "2026-06-01",
+      "2026-06-30",
+      "2026-06-03",
+    );
+    // 01 (falta), 02 (com batida), 03 (falta) — não inclui 04..30 (futuro).
+    expect(dias.map((d) => d[0])).toEqual([
+      "2026-06-01",
+      "2026-06-02",
+      "2026-06-03",
+    ]);
+    expect(dias[0][1]).toHaveLength(0); // 01 sem batida
+    expect(dias[1][1]).toHaveLength(1); // 02 com batida
+  });
+
   it("inclui dias só com abono dentro do intervalo, ordenado", () => {
     const batidas = [bat({ timestampOriginal: "2026-06-05T08:00:00" })];
     const abonos = new Map<string, unknown>([
