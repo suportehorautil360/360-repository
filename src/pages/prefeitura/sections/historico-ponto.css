@@ -216,12 +216,56 @@
 .prefeitura-root .dia-pt__item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid rgba(64, 112, 204, 0.3);
   border-radius: 8px;
   background: #122a52;
+}
+.prefeitura-root .dia-pt__acoes {
+  margin-left: auto;
+}
+.prefeitura-root .dia-pt__foto {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(64, 112, 204, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0d1f3d;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7a99;
+}
+.prefeitura-root .dia-pt__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.prefeitura-root .dia-pt__foto--sem {
+  cursor: default;
+}
+.prefeitura-root .dia-pt__foto-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+}
+.prefeitura-root .dia-pt__foto-modal img {
+  max-width: min(92vw, 520px);
+  max-height: 88vh;
+  border-radius: 10px;
+  object-fit: contain;
 }
 .prefeitura-root .dia-pt__item-info {
   display: flex;
