@@ -65,8 +65,20 @@ export function diasNoPeriodo(
   abonosDias: Map<string, unknown>,
   de: string,
   ate: string,
+  /** Quando informado (yyyy-mm-dd), pré-popula todos os dias do período até
+   * essa data — assim as faltas (dias sem batida) aparecem no relatório. */
+  hoje?: string,
 ): [string, PontoRegistro[]][] {
   const map = new Map<string, PontoRegistro[]>();
+  if (hoje) {
+    const fim = hoje < ate ? hoje : ate;
+    const cur = new Date(`${de}T00:00:00`);
+    const end = new Date(`${fim}T00:00:00`);
+    while (cur <= end) {
+      map.set(isoData(cur), []);
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
   for (const b of batidas) {
     const dia = diaLocal(b.timestampOriginal);
     if (dia < de || dia > ate) continue;

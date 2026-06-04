@@ -124,6 +124,22 @@ export function EspelhoDetalhado({
    */
   const diasMes = useMemo(() => {
     const map = new Map<string, PontoRegistro[]>();
+
+    // Pré-popula TODOS os dias do mês até hoje (mês atual) ou até o fim (mês
+    // passado) — assim faltas aparecem mesmo sem batida. Mês futuro: não.
+    const [ano, mesNum] = mes.split("-").map(Number);
+    const agora = new Date();
+    const ehFuturo =
+      ano > agora.getFullYear() ||
+      (ano === agora.getFullYear() && mesNum > agora.getMonth() + 1);
+    const ehMesAtual =
+      ano === agora.getFullYear() && mesNum === agora.getMonth() + 1;
+    const ultimoDia = new Date(ano, mesNum, 0).getDate();
+    const diaLimite = ehFuturo ? 0 : ehMesAtual ? agora.getDate() : ultimoDia;
+    for (let d = 1; d <= diaLimite; d++) {
+      map.set(`${mes}-${String(d).padStart(2, "0")}`, []);
+    }
+
     for (const b of minhasBatidas) {
       const dia = diaLocal(b.timestampOriginal);
       if (!dia.startsWith(mes)) continue;
@@ -131,7 +147,7 @@ export function EspelhoDetalhado({
       arr.push(b);
       map.set(dia, arr);
     }
-    // Inclui dias que não têm batida, mas têm abono — só assim aparecem.
+    // Inclui dias com abono (caso fora do range pré-populado).
     for (const data of abonosDoMes.keys()) {
       if (!map.has(data)) map.set(data, []);
     }
@@ -174,7 +190,10 @@ export function EspelhoDetalhado({
     const ate = expAte;
     if (!de || !ate || de > ate) return;
     const abonosDias = abonosNoPeriodo(abonos, funcionarioCpf, de, ate);
-    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate);
+    const ag = new Date();
+    const hojeIso = `${ag.getFullYear()}-${String(ag.getMonth() + 1).padStart(2, "0")}-${String(ag.getDate()).padStart(2, "0")}`;
+    // Inclui as faltas (dias sem batida até hoje), igual à tela.
+    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate, hojeIso);
     const { linhas, totais: totaisLinha } = construirEspelho(
       dias,
       abonosDias,
