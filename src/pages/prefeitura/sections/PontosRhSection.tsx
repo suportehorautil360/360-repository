@@ -70,6 +70,20 @@ function diaLegivel(diaIso: string): string {
   });
 }
 
+/** Dispara o download de um array de bytes com o nome e mime informados. */
+function baixarBytes(
+  bytes: Uint8Array<ArrayBuffer>,
+  nome: string,
+  mime: string,
+): void {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Iniciais de uma pessoa para o avatar (até 2 caracteres). */
 function iniciaisDe(nome: string): string {
   const partes = nome.trim().split(/\s+/).filter(Boolean);
@@ -238,16 +252,20 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
       for (let i = 0; i < r.conteudo.length; i++) {
         bytes[i] = r.conteudo.charCodeAt(i) & 0xff;
       }
-      const url = URL.createObjectURL(
-        new Blob([bytes], { type: "text/plain;charset=ISO-8859-1" }),
-      );
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = r.nome;
-      a.click();
-      URL.revokeObjectURL(url);
+      baixarBytes(bytes, r.nome, "text/plain;charset=ISO-8859-1");
+
+      // Assinatura ICP-Brasil destacada (.p7s), quando o certificado está
+      // configurado no backend (Portaria 671 §3.3).
+      if (r.assinado && r.assinaturaP7sBase64) {
+        const bin = atob(r.assinaturaP7sBase64);
+        const p7s = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) p7s[i] = bin.charCodeAt(i);
+        baixarBytes(p7s, `${r.nome}.p7s`, "application/pkcs7-signature");
+      }
+
       toast.success(
         `AFD gerado: ${r.totalMarcacoes} marcação(ões).` +
+          (r.assinado ? " Assinado (ICP-Brasil)." : " Sem assinatura.") +
           (r.semCpf ? ` ⚠ ${r.semCpf} sem CPF (tratar).` : ""),
       );
     } catch (e) {

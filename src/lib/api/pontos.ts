@@ -151,4 +151,8 @@ export interface AfdResultado {
   totalMarcacoes: number;
   /** Marcações exportadas sem CPF (legado) — devem ser tratadas. */
   semCpf: number;
+  /** Se o AFD foi assinado com certificado ICP-Brasil. */
+  assinado: boolean;
+  /** Assinatura destacada (.p7s) em base64, quando assinado. */
+  assinaturaP7sBase64?: string;
 }
