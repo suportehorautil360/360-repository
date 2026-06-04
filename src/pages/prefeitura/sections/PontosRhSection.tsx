@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, AlertTriangle, Calendar, Image as ImageIcon } from "lucide-react";
+import {
+  Search,
+  AlertTriangle,
+  Calendar,
+  Image as ImageIcon,
+  Download,
+} from "lucide-react";
+import { toast } from "sonner";
 import {
   pontosApi,
   TIPOS_PONTO,
   type PontoRegistro,
 } from "../../../lib/api/pontos";
+import { ApiError } from "../../../lib/api/client";
 import { escalaApi, type Escala } from "../../../lib/api/escala";
 import {
   agruparPorFuncionario,
@@ -92,6 +100,7 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   const [motivoReprov, setMotivoReprov] = useState("");
   const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [gerandoAfd, setGerandoAfd] = useState(false);
 
   const intervalo = useMemo(() => intervaloDoPeriodo(periodo), [periodo]);
 
@@ -212,6 +221,46 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
     }
   }
 
+  /**
+   * Exporta o AFD (Portaria 671) do período selecionado. O backend gera o
+   * conteúdo; aqui montamos o download em ISO-8859-1 (cada byte = charCode).
+   */
+  async function exportarAfd() {
+    if (gerandoAfd) return;
+    setGerandoAfd(true);
+    try {
+      const r = await pontosApi.exportarAFD(
+        prefeituraId,
+        intervalo.inicio,
+        intervalo.fim,
+      );
+      const bytes = new Uint8Array(r.conteudo.length);
+      for (let i = 0; i < r.conteudo.length; i++) {
+        bytes[i] = r.conteudo.charCodeAt(i) & 0xff;
+      }
+      const url = URL.createObjectURL(
+        new Blob([bytes], { type: "text/plain;charset=ISO-8859-1" }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = r.nome;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(
+        `AFD gerado: ${r.totalMarcacoes} marcação(ões).` +
+          (r.semCpf ? ` ⚠ ${r.semCpf} sem CPF (tratar).` : ""),
+      );
+    } catch (e) {
+      const msg =
+        e instanceof ApiError
+          ? e.message
+          : "Não foi possível gerar o AFD.";
+      toast.error(msg);
+    } finally {
+      setGerandoAfd(false);
+    }
+  }
+
   if (carregando) {
     return <p className="rh-msg">Carregando registros de ponto…</p>;
   }
@@ -292,6 +341,16 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
           <option value="incompleto">Incompletos</option>
           <option value="ok">Só OK</option>
         </select>
+        <button
+          type="button"
+          className="rh__afd-btn"
+          onClick={() => void exportarAfd()}
+          disabled={gerandoAfd}
+          title="Exportar o Arquivo Fonte de Dados (Portaria 671) do período"
+        >
+          <Download size={14} aria-hidden="true" />
+          {gerandoAfd ? "Gerando AFD…" : "Exportar AFD (fiscal)"}
+        </button>
       </div>
 
       <div className="rh__tabela-wrap">

@@ -121,4 +121,34 @@ export const pontosApi = {
   async reprovar(id: string, motivo: string): Promise<void> {
     await api.post(`/time-records/${id}/reprovar`, { motivo });
   },
+
+  /**
+   * Gera o AFD (Arquivo Fonte de Dados — Portaria 671) da prefeitura no período
+   * [de, ate] (YYYY-MM-DD, opcionais). Retorna o conteúdo textual e o nome do
+   * arquivo; o front monta o download em ISO-8859-1.
+   */
+  async exportarAFD(
+    prefeituraId: string,
+    de?: string,
+    ate?: string,
+  ): Promise<AfdResultado> {
+    const qs = new URLSearchParams();
+    if (de) qs.set("de", de);
+    if (ate) qs.set("ate", ate);
+    const sufixo = qs.toString() ? `?${qs.toString()}` : "";
+    const r = await api.get<{ data: AfdResultado; message: string }>(
+      `/time-records/afd/${prefeituraId}${sufixo}`,
+    );
+    return r.data;
+  },
 };
+
+export interface AfdResultado {
+  /** Conteúdo do arquivo (linhas terminadas em CRLF). */
+  conteudo: string;
+  /** Nome sugerido do arquivo (AFD…REP_P.txt). */
+  nome: string;
+  totalMarcacoes: number;
+  /** Marcações exportadas sem CPF (legado) — devem ser tratadas. */
+  semCpf: number;
+}
