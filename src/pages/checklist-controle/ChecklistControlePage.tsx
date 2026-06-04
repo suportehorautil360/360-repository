@@ -1554,6 +1554,7 @@ export function ChecklistControlePage() {
               operadorNome: emergPayload.operadorNome,
               localizacaoGps: emergPayload.localizacaoGps,
               dataHoraIso: dataHora,
+              fotos: fotosImped,
             });
           } catch (e) {
             console.warn("[Checklist] WhatsApp não disparado:", e);
