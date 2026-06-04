@@ -16,6 +16,7 @@ import { baterComFila } from "../../lib/api/pontos-fila";
 import { usePontoSync } from "./usePontoSync";
 import { escalaApi, type Escala } from "../../lib/api/escala";
 import { configuracoesApi, type Configuracao } from "../../lib/api/configuracoes";
+import { abonosApi, type Abono } from "../../lib/api/abonos";
 import {
   baixarCRPT,
   montarCRPT,
@@ -120,6 +121,7 @@ export function PontosFolha({
   const [todas, setTodas] = useState<PontoRegistro[]>([]);
   const [escala, setEscala] = useState<Escala | null>(null);
   const [empresa, setEmpresa] = useState<Configuracao["empresa"] | null>(null);
+  const [abonos, setAbonos] = useState<Abono[]>([]);
   const [nome, setNome] = useState(nomePadrao);
   const [carregando, setCarregando] = useState(true);
 
@@ -350,14 +352,16 @@ export function PontosFolha({
     if (!prefeituraId) return;
     setCarregando(true);
     try {
-      const [lista, esc, cfg] = await Promise.all([
+      const [lista, esc, cfg, abs] = await Promise.all([
         pontoApi.listar(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
         configuracoesApi.obter(prefeituraId).catch(() => null),
+        abonosApi.listar(prefeituraId).catch(() => []),
       ]);
       setTodas(lista);
       setEscala(esc);
       setEmpresa(cfg?.empresa ?? null);
+      setAbonos(abs);
       // Prefill do nome só a partir da entrada de hoje DO PRÓPRIO operador
       // (nunca pega o nome de outro funcionário que bateu antes na prefeitura).
       const alvo = nomePadrao.trim().toLowerCase();
@@ -521,6 +525,8 @@ export function PontosFolha({
             batidas={todas}
             escala={escala}
             nome={nome}
+            abonos={abonos}
+            funcionarioCpf={session?.cpf}
             onVoltar={() => setModoEspelho(false)}
             onSelecionarDia={(dia, bs) => setDiaDetalhe({ dia, batidas: bs })}
           />
