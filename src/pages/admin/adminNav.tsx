@@ -78,6 +78,12 @@ export const ADMIN_NAV: SidebarGroup[] = [
         id: "nav-hub-funcionalidades",
       },
       {
+        label: "Conexão WhatsApp",
+        to: "/admin/whatsapp",
+        icon: "📱",
+        id: "nav-hub-whatsapp",
+      },
+      {
         label: "Equipamentos locação",
         to: "/admin/equipamentos-locacao",
         icon: "🚜",

@@ -25,6 +25,8 @@ export interface Configuracao {
     cidade: string;
     estado: string;
     emailAlertas: string;
+    /** WhatsApp que recebe as notificações de emergência. */
+    whatsappNumero: string;
   };
   alertas: {
     bloqueioRevisaoVencida: boolean;
@@ -32,6 +34,8 @@ export interface Configuracao {
     abastecimentoIrregular: boolean;
     cnhProximaVencimento: boolean;
     relatorioSemanal: boolean;
+    /** Notificar emergências por WhatsApp. */
+    notificacaoWhatsapp: boolean;
   };
   intervalos: Record<CategoriaIntervalo, ConfigIntervalo>;
   bloqueio: {
@@ -52,6 +56,7 @@ export function configPadrao(prefeituraId: string): Configuracao {
       cidade: "",
       estado: "",
       emailAlertas: "",
+      whatsappNumero: "",
     },
     alertas: {
       bloqueioRevisaoVencida: true,
@@ -59,6 +64,7 @@ export function configPadrao(prefeituraId: string): Configuracao {
       abastecimentoIrregular: true,
       cnhProximaVencimento: true,
       relatorioSemanal: false,
+      notificacaoWhatsapp: false,
     },
     intervalos: {
       carro: { valor: 1000, unidade: "km" },

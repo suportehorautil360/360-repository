@@ -238,6 +238,17 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
                   placeholder="gestor@empresa.com.br"
                 />
               </label>
+              <label className="cfg__col-span">
+                WhatsApp para emergências{" "}
+                <span className="cfg__opt">(com DDD)</span>
+                <input
+                  type="tel"
+                  value={config.empresa.whatsappNumero}
+                  onChange={(e) => setEmpresa("whatsappNumero", e.target.value)}
+                  placeholder="67 99999-9999"
+                  inputMode="tel"
+                />
+              </label>
             </div>
             <div className="cfg__card-foot">
               <button
@@ -362,6 +373,12 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               sub="Resumo toda segunda-feira às 08h"
               on={config.alertas.relatorioSemanal}
               onChange={(v) => setAlerta("relatorioSemanal", v)}
+            />
+            <ToggleRow
+              titulo="Notificar emergências por WhatsApp"
+              sub="Dispara para o WhatsApp cadastrado quando uma emergência é criada"
+              on={config.alertas.notificacaoWhatsapp}
+              onChange={(v) => setAlerta("notificacaoWhatsapp", v)}
             />
             <div className="cfg__card-foot">
               <button

@@ -30,4 +30,23 @@ export const emergenciasApi = {
   async atualizarStatus(id: string, status: EmergencyStatus): Promise<void> {
     await api.post(`/emergencies/${id}/status`, { status });
   },
+
+  /**
+   * Dispara a notificação de WhatsApp de uma emergência (best-effort). Usado
+   * pelo checklist, que grava a emergência direto no Firestore — então o
+   * gatilho do backend (no create) não roda e chamamos a notificação à parte.
+   */
+  async notificarWhatsApp(input: {
+    prefeituraId: string;
+    severity: string;
+    chassis?: string | null;
+    idMaquina?: string | null;
+    tipoFalha: string;
+    descricao: string;
+    operadorNome?: string | null;
+    localizacaoGps?: string | null;
+    dataHoraIso: string;
+  }): Promise<void> {
+    await api.post("/emergencies/notificar-whatsapp", input);
+  },
 };
