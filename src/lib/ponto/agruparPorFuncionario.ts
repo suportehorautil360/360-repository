@@ -218,7 +218,12 @@ export function agruparPorFuncionario(
       const trab = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
       const prev = minutosPrevistos(escala, diaIso);
       const temAbono = meusAbonos?.has(diaIso) ?? false;
-      const status = statusDoDia(bs, escala, diaIso, temAbono);
+      let status = statusDoDia(bs, escala, diaIso, temAbono);
+      // Abono cobre o déficit do dia: vale mesmo quando há batida incompleta
+      // (não só em falta total), desde que o trabalhado fique abaixo do previsto.
+      if (temAbono && status !== "sem-jornada" && trab < prev) {
+        status = "abonado";
+      }
       // "Pendência" agora = correção aguardando aprovação do RH (não há mais
       // status mutável na batida; a original é sempre válida — Portaria 671).
       const pend = bs.filter((b) => b.ajustePendente).length;
