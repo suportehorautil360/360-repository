@@ -440,6 +440,7 @@ export function PontosFolha({
         prefeituraId,
         timestampOriginal: agora.toISOString(),
         tipo: batendo,
+        cpf: session?.cpf,
       });
       setBatendo(null);
       setFoto("");

@@ -65,7 +65,8 @@ export function montarCRPT(
   return {
     empregador: {
       razaoSocial: empresa?.razaoSocial?.trim() || NAO_INFORMADO,
-      cnpj: empresa?.cnpj?.trim() || NAO_INFORMADO,
+      // CNPJ ou, na falta, CAEPF/CEI (empregador sem CNPJ — Portaria 671).
+      cnpj: empresa?.cnpj?.trim() || empresa?.caepf?.trim() || NAO_INFORMADO,
       municipio: municipio || NAO_INFORMADO,
     },
     trabalhador: {
@@ -99,7 +100,7 @@ export function baixarCRPT(crpt: CRPT): void {
         titulo: "Empregador",
         itens: [
           { rotulo: "Razão social", valor: crpt.empregador.razaoSocial },
-          { rotulo: "CNPJ", valor: crpt.empregador.cnpj },
+          { rotulo: "CNPJ/CAEPF", valor: crpt.empregador.cnpj },
           { rotulo: "Município/UF", valor: crpt.empregador.municipio },
         ],
       },

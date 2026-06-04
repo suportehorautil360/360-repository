@@ -78,6 +78,7 @@ export function PontoPage() {
         prefeituraId,
         timestampOriginal: hora.toISOString(),
         tipo: "entrada",
+        cpf: session?.cpf,
       });
       if (session) marcarBatidaHoje(session);
       atualizar();

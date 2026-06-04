@@ -17,6 +17,7 @@ const registro: PontoRegistro = {
 const empresa = {
   razaoSocial: "Transportes ABC Ltda.",
   cnpj: "12.345.678/0001-90",
+  caepf: "",
   cidade: "Três Lagoas",
   estado: "MS",
   emailAlertas: "x@y.com",
@@ -45,6 +46,15 @@ describe("montarCRPT", () => {
     expect(c.empregador.cnpj).toBe("Não informado");
     expect(c.empregador.municipio).toBe("Não informado");
     expect(c.trabalhador.cpf).toBe("Não informado");
+  });
+
+  it("usa CAEPF quando não há CNPJ", () => {
+    const c = montarCRPT(registro, {
+      ...empresa,
+      cnpj: "",
+      caepf: "12.345.678/901",
+    });
+    expect(c.empregador.cnpj).toBe("12.345.678/901");
   });
 
   it("podeEmitirCRPT exige NSR e hash (batida selada)", () => {

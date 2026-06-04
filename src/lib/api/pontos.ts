@@ -29,6 +29,11 @@ export interface BaterPontoInput {
   /** Horário da batida no dispositivo (ISO 8601). */
   timestampOriginal: string;
   tipo: TipoPonto;
+  /**
+   * CPF do trabalhador (da sessão de login por CPF). Identifica a marcação no
+   * ledger/AFD e no comprovante (CRPT) — Portaria 671.
+   */
+  cpf?: string;
 }
 
 /**

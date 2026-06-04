@@ -20,6 +20,8 @@ export interface Configuracao {
   empresa: {
     razaoSocial: string;
     cnpj: string;
+    /** CAEPF/CEI — inscrição alternativa para empregador sem CNPJ (órgão público). */
+    caepf: string;
     cidade: string;
     estado: string;
     emailAlertas: string;
@@ -46,6 +48,7 @@ export function configPadrao(prefeituraId: string): Configuracao {
     empresa: {
       razaoSocial: "",
       cnpj: "",
+      caepf: "",
       cidade: "",
       estado: "",
       emailAlertas: "",
@@ -89,6 +92,16 @@ function normalizar(prefeituraId: string, raw: unknown): Configuracao {
     },
     bloqueio: { ...base.bloqueio, ...(d.bloqueio ?? {}) },
   };
+}
+
+/**
+ * Os dados do empregador estão completos para emissão legal (CRPT/AFD —
+ * Portaria 671)? Exige razão social e ao menos uma inscrição (CNPJ ou CAEPF).
+ */
+export function empresaCompleta(empresa: Configuracao["empresa"]): boolean {
+  const temRazao = !!empresa.razaoSocial?.trim();
+  const temInscricao = !!empresa.cnpj?.trim() || !!empresa.caepf?.trim();
+  return temRazao && temInscricao;
 }
 
 /** Mapeia o tipo do equipamento para a categoria de intervalo da config. */
