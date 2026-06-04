@@ -707,3 +707,56 @@
     align-items: flex-start;
   }
 }
+
+/* Detalhe do dia (operador): cabeçalho + selfie por batida */
+.folha__card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.dia-det__foto {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #d8e0ec;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5fb;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.dia-det__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dia-det__foto--sem {
+  cursor: default;
+  opacity: 0.6;
+}
+.dia-det__foto + .folha__reg-label {
+  margin-right: auto;
+}
+.dia-det__foto-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+}
+.dia-det__foto-modal img {
+  max-width: min(92vw, 520px);
+  max-height: 88vh;
+  border-radius: 10px;
+  object-fit: contain;
+}

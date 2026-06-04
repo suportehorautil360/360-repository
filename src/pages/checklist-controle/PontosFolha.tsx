@@ -25,6 +25,7 @@ import { solicitacoesPontoApi } from "../../lib/api/solicitacoes-ponto";
 import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
 import { useOperadorSession } from "./useOperadorSession";
 import { EspelhoDetalhado } from "./EspelhoDetalhado";
+import { DiaDetalheOperador } from "./DiaDetalheOperador";
 import { MinhasSolicitacoes } from "./MinhasSolicitacoes";
 import {
   Dialog,
@@ -164,6 +165,10 @@ export function PontosFolha({
 
   // Espelho detalhado: toggle dentro da própria folha.
   const [modoEspelho, setModoEspelho] = useState(false);
+  const [diaDetalhe, setDiaDetalhe] = useState<{
+    dia: string;
+    batidas: PontoRegistro[];
+  } | null>(null);
   const [modoMinhas, setModoMinhas] = useState(false);
 
   function abrirIncluir() {
@@ -501,12 +506,21 @@ export function PontosFolha({
   if (modoEspelho) {
     return (
       <div className="ponto-folha folha">
-        <EspelhoDetalhado
-          batidas={todas}
-          escala={escala}
-          nome={nome}
-          onVoltar={() => setModoEspelho(false)}
-        />
+        {diaDetalhe ? (
+          <DiaDetalheOperador
+            dia={diaDetalhe.dia}
+            batidas={diaDetalhe.batidas}
+            onVoltar={() => setDiaDetalhe(null)}
+          />
+        ) : (
+          <EspelhoDetalhado
+            batidas={todas}
+            escala={escala}
+            nome={nome}
+            onVoltar={() => setModoEspelho(false)}
+            onSelecionarDia={(dia, bs) => setDiaDetalhe({ dia, batidas: bs })}
+          />
+        )}
       </div>
     );
   }
