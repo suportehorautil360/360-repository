@@ -3,9 +3,12 @@ import {
   pontoApi,
   TIPOS_PONTO,
   type PontoRegistro,
-  type StatusPonto,
   type TipoPonto,
 } from "./ponto-api";
+import {
+  resolverLedger,
+  type BatidaEfetiva,
+} from "../../lib/ponto/resolverLedger";
 import { toast } from "sonner";
 import { CameraSelfie } from "./CameraSelfie";
 import { RelogioAoVivo } from "./RelogioAoVivo";
@@ -30,15 +33,14 @@ import {
 } from "../prefeitura/sections/horasPonto";
 import "./ponto.css";
 
-const STATUS_LABEL: Record<StatusPonto, string> = {
-  pendente: "Pendente",
-  aprovado: "Aprovado",
-  reprovado: "Reprovado",
-  cancelado: "Cancelada",
-};
-
-function statusDe(r: PontoRegistro): StatusPonto {
-  return r.status ?? "pendente";
+/**
+ * Selo de exibição de uma batida efetiva (Portaria 671). A marcação original é
+ * sempre válida; só há "pendência" quando existe uma correção aguardando o RH.
+ */
+function seloDe(r: BatidaEfetiva): { label: string; classe: string } {
+  if (r.ajustePendente)
+    return { label: "Ajuste pendente", classe: "pendente" };
+  return { label: "Registrado", classe: "aprovado" };
 }
 
 function horaDe(iso: string): string {
@@ -361,15 +363,21 @@ export function PontosFolha({
     void carregar();
   }, [carregar]);
 
-  /** Batidas de hoje (a folha em si). */
+  /**
+   * Visão efetiva do ledger (Portaria 671): aplica correções/cancelamentos
+   * aprovados e descarta canceladas, sem alterar os registros de origem.
+   */
+  const efetivas = useMemo(() => resolverLedger(todas), [todas]);
+
+  /** Batidas efetivas de hoje (a folha em si). */
   const batidasDia = useMemo(
-    () => todas.filter((p) => ehHoje(p.timestampOriginal)),
-    [todas],
+    () => efetivas.filter((p) => ehHoje(p.timestampOriginal)),
+    [efetivas],
   );
 
-  /** Última batida registrada de cada tipo (hoje). */
+  /** Última batida efetiva de cada tipo (hoje). */
   const porTipo = useMemo(() => {
-    const m = new Map<TipoPonto, PontoRegistro>();
+    const m = new Map<TipoPonto, BatidaEfetiva>();
     for (const b of batidasDia) m.set(b.tipo, b);
     return m;
   }, [batidasDia]);
@@ -381,8 +389,8 @@ export function PontosFolha({
   const banco = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
     if (!alvo) return { saldoMin: 0, dias: 0 };
-    const porDia = new Map<string, PontoRegistro[]>();
-    for (const b of todas) {
+    const porDia = new Map<string, BatidaEfetiva[]>();
+    for (const b of efetivas) {
       if ((b.name ?? "").trim().toLowerCase() !== alvo) continue;
       const dia = diaDe(b.timestampOriginal);
       const arr = porDia.get(dia) ?? [];
@@ -395,7 +403,7 @@ export function PontosFolha({
       saldoMin += trab - minutosPrevistos(escala, dia);
     }
     return { saldoMin, dias: porDia.size };
-  }, [todas, nome, escala]);
+  }, [efetivas, nome, escala]);
 
   function iniciarBater(tipo: TipoPonto) {
     setFoto("");
@@ -559,13 +567,13 @@ export function PontosFolha({
                         </strong>
                         {reg ? (
                           <span
-                            className={`ponto-status ponto-status--${statusDe(reg)}`}
+                            className={`ponto-status ponto-status--${seloDe(reg).classe}`}
                           >
-                            {STATUS_LABEL[statusDe(reg)]}
+                            {seloDe(reg).label}
                           </span>
                         ) : (
                           <span className="ponto-status ponto-status--pendente">
-                            Pendente
+                            Sem registro
                           </span>
                         )}
                         {reg ? (
@@ -589,13 +597,12 @@ export function PontosFolha({
                       </span>
                     </div>
 
-                    {reg &&
-                      statusDe(reg) === "reprovado" &&
-                      reg.motivoReprovacao && (
-                        <span className="ponto-slot__motivo">
-                          Reprovado: {reg.motivoReprovacao}
-                        </span>
-                      )}
+                    {reg?.ajustePendente && reg.horarioAjustePendente && (
+                      <span className="ponto-slot__motivo">
+                        Correção para {horaDe(reg.horarioAjustePendente)}{" "}
+                        aguardando aprovação do RH. Vale o horário original até lá.
+                      </span>
+                    )}
 
                     {batendo === tipo && (
                       <div className="ponto-slot__bater">

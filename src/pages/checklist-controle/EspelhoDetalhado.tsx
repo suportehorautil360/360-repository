@@ -22,6 +22,7 @@ import {
   type PeriodoPreset,
 } from "./espelho-export";
 import { Download } from "lucide-react";
+import { resolverLedger } from "../../lib/ponto/resolverLedger";
 import "./espelho.css";
 
 interface Props {
@@ -97,11 +98,10 @@ export function EspelhoDetalhado({
   const minhasBatidas = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
     if (!alvo) return [];
-    // Ignora batidas canceladas (vieram de aprovação de solicitação tipo=cancelar).
-    return batidas.filter(
-      (b) =>
-        b.status !== "cancelado" &&
-        (b.name ?? "").trim().toLowerCase() === alvo,
+    // Resolve o ledger (Portaria 671): aplica correções/cancelamentos
+    // aprovados e descarta canceladas, sem alterar os registros de origem.
+    return resolverLedger(batidas).filter(
+      (b) => (b.name ?? "").trim().toLowerCase() === alvo,
     );
   }, [batidas, nome]);
 

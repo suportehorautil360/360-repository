@@ -31,6 +31,15 @@ export interface BaterPontoInput {
   tipo: TipoPonto;
 }
 
+/**
+ * Natureza do registro no ledger imutável (Portaria 671).
+ * - `original`: marcação feita pelo trabalhador — nunca alterada/apagada.
+ * - `ajuste`: correção de horário (refNsr/refId apontam a original) OU inclusão
+ *   de batida esquecida (sem refNsr). Vale na folha só quando `aplicado`.
+ * - `cancelamento`: anula uma original na folha (sem apagá-la do ledger).
+ */
+export type RegistroLedger = "original" | "ajuste" | "cancelamento";
+
 export interface PontoRegistro {
   id: string;
   name: string;
@@ -38,9 +47,28 @@ export interface PontoRegistro {
   timestampOriginal: string;
   tipo: TipoPonto;
   photo?: string;
+  /** @deprecated status legado de batida; o modelo atual usa o ledger. */
   status?: StatusPonto;
   motivoReprovacao?: string;
   createdAt?: string;
+  /** CPF/PIS do trabalhador (quando capturado). */
+  cpf?: string | null;
+  // --- Ledger (Portaria 671) ---
+  /** Número Sequencial de Registro (por prefeitura). Ausente em dados legados. */
+  nsr?: number;
+  /** Hash SHA-256 encadeado ao registro anterior. */
+  hash?: string;
+  hashAnterior?: string;
+  /** Natureza no ledger. Ausente = `original` (compat. legado). */
+  registro?: RegistroLedger;
+  /** Para ajuste/cancelamento: NSR da batida original alvo. */
+  refNsr?: number | null;
+  /** Para ajuste/cancelamento: id da batida original alvo (fallback do NSR). */
+  refId?: string;
+  /** Ajuste/cancelamento aplicado à folha pelo RH. */
+  aplicado?: boolean;
+  /** Motivo da correção informado pelo trabalhador (em registros de ajuste). */
+  motivo?: string | null;
 }
 
 interface RespostaLista {

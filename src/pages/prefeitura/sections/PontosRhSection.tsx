@@ -4,7 +4,6 @@ import {
   pontosApi,
   TIPOS_PONTO,
   type PontoRegistro,
-  type StatusPonto,
 } from "../../../lib/api/pontos";
 import { escalaApi, type Escala } from "../../../lib/api/escala";
 import {
@@ -44,13 +43,6 @@ const STATUS_DIA_LABEL: Record<StatusDia, string> = {
   falta: "Falta",
   abonado: "Abonado",
   "sem-jornada": "—",
-};
-
-const STATUS_PONTO_LABEL: Record<StatusPonto, string> = {
-  pendente: "Pendente",
-  aprovado: "Aprovada",
-  reprovado: "Reprovada",
-  cancelado: "Cancelada",
 };
 
 type FiltroSituacao = "todos" | StatusDia | "com-pendencia";
@@ -541,12 +533,20 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                           </li>
                         );
                       }
-                      const status = reg.status ?? "pendente";
-                      const reprovandoEssa = reprovandoId === reg.id;
+                      // A marcação original é sempre válida e read-only
+                      // (Portaria 671). O RH só decide sobre uma CORREÇÃO
+                      // pendente, quando existe.
+                      const temPendencia =
+                        !!reg.ajustePendente && !!reg.ajustePendenteId;
+                      const ajusteId = reg.ajustePendenteId ?? "";
+                      const reprovandoEssa =
+                        !!ajusteId && reprovandoId === ajusteId;
                       return (
                         <li
                           key={tipo}
-                          className={`rh-sheet__bat rh-sheet__bat--${status}`}
+                          className={`rh-sheet__bat rh-sheet__bat--${
+                            temPendencia ? "pendente" : "aprovado"
+                          }`}
                         >
                           <div className="rh-sheet__bat-linha">
                             {reg.photo ? (
@@ -574,99 +574,80 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                                 {horaDe(reg.timestampOriginal)}
                               </strong>
                             </div>
-                            <span className={`rh__chip rh__chip--${status}`}>
-                              {STATUS_PONTO_LABEL[status]}
+                            <span className="rh__chip rh__chip--aprovado">
+                              Registrado
                             </span>
                           </div>
 
-                          {reprovandoEssa ? (
-                            <div className="rh-sheet__reprovar">
-                              <input
-                                type="text"
-                                placeholder="Motivo da reprovação"
-                                value={motivoReprov}
-                                onChange={(e) => setMotivoReprov(e.target.value)}
-                                autoFocus
-                              />
-                              <div className="rh-sheet__reprovar-acoes">
-                                <button
-                                  type="button"
-                                  className="rh-btn"
-                                  onClick={() => {
-                                    setReprovandoId(null);
-                                    setMotivoReprov("");
-                                  }}
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                  type="button"
-                                  className="rh-btn rh-btn--err"
-                                  disabled={ocupado || !motivoReprov.trim()}
-                                  onClick={() => void confirmarReprovacao(reg.id)}
-                                >
-                                  Confirmar reprovação
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="rh-sheet__bat-acoes">
-                              {status === "pendente" && (
-                                <>
+                          {temPendencia && (
+                            <>
+                              <span className="rh-sheet__motivo">
+                                <AlertTriangle size={12} aria-hidden="true" />
+                                Correção solicitada para{" "}
+                                {horaDe(reg.horarioAjustePendente ?? "")}
+                                {reg.motivoAjustePendente
+                                  ? ` — ${reg.motivoAjustePendente}`
+                                  : ""}
+                              </span>
+
+                              {reprovandoEssa ? (
+                                <div className="rh-sheet__reprovar">
+                                  <input
+                                    type="text"
+                                    placeholder="Motivo da reprovação"
+                                    value={motivoReprov}
+                                    onChange={(e) =>
+                                      setMotivoReprov(e.target.value)
+                                    }
+                                    autoFocus
+                                  />
+                                  <div className="rh-sheet__reprovar-acoes">
+                                    <button
+                                      type="button"
+                                      className="rh-btn"
+                                      onClick={() => {
+                                        setReprovandoId(null);
+                                        setMotivoReprov("");
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="rh-btn rh-btn--err"
+                                      disabled={ocupado || !motivoReprov.trim()}
+                                      onClick={() =>
+                                        void confirmarReprovacao(ajusteId)
+                                      }
+                                    >
+                                      Confirmar reprovação
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="rh-sheet__bat-acoes">
                                   <button
                                     type="button"
                                     className="rh-btn rh-btn--ok"
                                     disabled={ocupado}
-                                    onClick={() => void aprovar(reg.id)}
+                                    onClick={() => void aprovar(ajusteId)}
                                   >
-                                    Aprovar
+                                    Aprovar correção
                                   </button>
                                   <button
                                     type="button"
                                     className="rh-btn rh-btn--err"
                                     disabled={ocupado}
                                     onClick={() => {
-                                      setReprovandoId(reg.id);
+                                      setReprovandoId(ajusteId);
                                       setMotivoReprov("");
                                     }}
                                   >
                                     Reprovar
                                   </button>
-                                </>
+                                </div>
                               )}
-                              {status === "aprovado" && (
-                                <button
-                                  type="button"
-                                  className="rh-sheet__rev"
-                                  disabled={ocupado}
-                                  onClick={() => {
-                                    setReprovandoId(reg.id);
-                                    setMotivoReprov("");
-                                  }}
-                                  title="Marcar esta batida como reprovada"
-                                >
-                                  Reprovar
-                                </button>
-                              )}
-                              {status === "reprovado" && (
-                                <button
-                                  type="button"
-                                  className="rh-sheet__rev"
-                                  disabled={ocupado}
-                                  onClick={() => void aprovar(reg.id)}
-                                  title="Voltar para aprovada"
-                                >
-                                  Aprovar
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          {reg.motivoReprovacao && status === "reprovado" && (
-                            <span className="rh-sheet__motivo">
-                              <AlertTriangle size={12} aria-hidden="true" />
-                              {reg.motivoReprovacao}
-                            </span>
+                            </>
                           )}
                         </li>
                       );

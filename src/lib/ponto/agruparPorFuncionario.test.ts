@@ -194,10 +194,24 @@ describe("agruparPorFuncionario", () => {
     expect(r[1].nome).toBe("Ana");
   });
 
-  it("conta batidas pendentes no agregado", () => {
-    const batidas = [
-      b("X", "2026-05-27T08:00:00", "entrada", "pendente"),
-      b("X", "2026-05-27T18:00:00", "saida", "aprovado"),
+  it("conta correções pendentes no agregado (ledger)", () => {
+    const entrada = b("X", "2026-05-27T08:00:00", "entrada");
+    entrada.nsr = 1;
+    const batidas: PontoRegistro[] = [
+      entrada,
+      b("X", "2026-05-27T18:00:00", "saida"),
+      // Correção da entrada aguardando o RH → conta como 1 pendência.
+      {
+        id: "X-ajuste",
+        name: "X",
+        prefeituraId: "p1",
+        timestampOriginal: "2026-05-27T08:30:00",
+        tipo: "entrada",
+        registro: "ajuste",
+        refNsr: 1,
+        aplicado: false,
+        nsr: 3,
+      },
     ];
     const r = agruparPorFuncionario(batidas, [], ["2026-05-27"], ESCALA);
     expect(r[0].totais.pendentes).toBe(1);
