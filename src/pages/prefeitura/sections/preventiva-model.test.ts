@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { montarPreventivas, toPreventivaRow } from "./preventiva-model";
+import {
+  FILTROS_PREVENTIVA_PADRAO,
+  filtrarPreventivas,
+  frentesDistintas,
+  montarPreventivas,
+  toPreventivaRow,
+} from "./preventiva-model";
 import type { VeiculoFrota } from "./frota/types";
 
 function veic(p: Partial<VeiculoFrota>): VeiculoFrota {
@@ -58,5 +64,52 @@ describe("montarPreventivas", () => {
     const vencida = veic({ id: "venc", medicaoAtual: 1400 }); // < 0
     const rows = montarPreventivas([emDia, proxima, vencida]);
     expect(rows.map((r) => r.id)).toEqual(["venc", "prox", "ok"]);
+  });
+});
+
+describe("filtrarPreventivas", () => {
+  const rows = montarPreventivas([
+    veic({ id: "a", placa: "MQ-01", nome: "Caterpillar 320", obra: "Obra A", medicaoAtual: 1300 }), // vencida, h
+    veic({ id: "b", placa: "CAR-002", nome: "Onix", tipo: "carro", obra: "Obra B", medicaoAtual: 5000, intervaloRevisao: 10000, ultimaRevisao: 0 }), // em dia, km
+    veic({ id: "c", placa: "MQ-03", nome: "Escavadeira", obra: "Obra A", medicaoAtual: 1240 }), // proxima, h
+  ]);
+
+  it("sem filtro retorna tudo", () => {
+    expect(filtrarPreventivas(rows, FILTROS_PREVENTIVA_PADRAO)).toHaveLength(3);
+  });
+
+  it("filtra por status", () => {
+    const r = filtrarPreventivas(rows, { ...FILTROS_PREVENTIVA_PADRAO, status: "vencida" });
+    expect(r.map((x) => x.id)).toEqual(["a"]);
+  });
+
+  it("filtra por busca (chassi/placa/nome, sem acento)", () => {
+    expect(
+      filtrarPreventivas(rows, { ...FILTROS_PREVENTIVA_PADRAO, busca: "car-002" }).map((x) => x.id),
+    ).toEqual(["b"]);
+    expect(
+      filtrarPreventivas(rows, { ...FILTROS_PREVENTIVA_PADRAO, busca: "escavadeira" }).map((x) => x.id),
+    ).toEqual(["c"]);
+  });
+
+  it("filtra por medidor e por frente", () => {
+    expect(
+      filtrarPreventivas(rows, { ...FILTROS_PREVENTIVA_PADRAO, medidor: "KM" }).map((x) => x.id),
+    ).toEqual(["b"]);
+    expect(
+      filtrarPreventivas(rows, { ...FILTROS_PREVENTIVA_PADRAO, frente: "Obra A" }).map((x) => x.id).sort(),
+    ).toEqual(["a", "c"]);
+  });
+});
+
+describe("frentesDistintas", () => {
+  it("lista frentes únicas ordenadas", () => {
+    const rows = montarPreventivas([
+      veic({ id: "a", obra: "Obra B" }),
+      veic({ id: "b", obra: "Obra A" }),
+      veic({ id: "c", obra: "Obra A" }),
+      veic({ id: "d", obra: "" }),
+    ]);
+    expect(frentesDistintas(rows)).toEqual(["Disponível", "Obra A", "Obra B"]);
   });
 });
