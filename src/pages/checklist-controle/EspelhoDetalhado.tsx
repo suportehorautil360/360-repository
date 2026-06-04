@@ -160,9 +160,9 @@ export function EspelhoDetalhado({
     for (const [dia, bs] of diasMes) {
       const trabBruto = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
       const previsto = minutosPrevistos(escala, dia);
-      // Dia abonado (sem batidas, mas com abono): considera as previstas
-      // como cumpridas — saldo do dia fica neutro.
-      const abonado = bs.length === 0 && abonosDoMes.has(dia);
+      // Dia abonado: o abono cobre o déficit (vale mesmo com batida incompleta),
+      // considerando as previstas como cumpridas — saldo do dia fica neutro.
+      const abonado = abonosDoMes.has(dia) && trabBruto < previsto;
       trab += abonado ? previsto : trabBruto;
       prev += previsto;
     }
@@ -308,7 +308,7 @@ export function EspelhoDetalhado({
                   escala?.almocoMinutos ?? 0,
                 );
                 const prev = minutosPrevistos(escala, dia);
-                const ehAbonado = bs.length === 0 && abonosDoMes.has(dia);
+                const ehAbonado = abonosDoMes.has(dia) && trabBruto < prev;
                 const trab = ehAbonado ? prev : trabBruto;
                 const saldo = trab - prev;
                 const clicavel = !!onSelecionarDia;

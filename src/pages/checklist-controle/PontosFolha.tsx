@@ -234,6 +234,7 @@ export function PontosFolha({
         tipo: "cancelar",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         batidaId: cancelarBatidaId,
         observacao: cancelarMotivo.trim(),
       });
@@ -258,6 +259,7 @@ export function PontosFolha({
         tipo: "abono",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         data: abonoData,
         observacao: abonoMotivo.trim(),
         anexoDataUrl,
@@ -282,6 +284,7 @@ export function PontosFolha({
         tipo: "mensagem",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         observacao: mensagemTexto.trim(),
       });
       toast.success("Mensagem enviada ao gestor.");
@@ -325,6 +328,7 @@ export function PontosFolha({
         tipo: "incluir",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         data: incData,
         timestampOriginal,
         observacao: incObs.trim() || undefined,

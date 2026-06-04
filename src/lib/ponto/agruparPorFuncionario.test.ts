@@ -302,6 +302,30 @@ describe("agruparPorFuncionario", () => {
     expect(r[0].totais.abonados).toBe(0);
   });
 
+  it("abono cobre dia INCOMPLETO (batida parcial) → abonado e saldo neutro", () => {
+    const abono: Abono = {
+      id: "ab1",
+      prefeituraId: "p1",
+      funcionarioCpf: "11122233344",
+      funcionarioNome: "João Silva",
+      data: "2026-05-27",
+      motivo: "Saiu mais cedo (justificado)",
+      createdAt: "2026-05-27T10:00:00Z",
+    };
+    // Só entrada, sem saída → dia incompleto, trabalhado < previsto.
+    const batidas = [b("João Silva", "2026-05-27T08:00:00", "entrada")];
+    const r = agruparPorFuncionario(
+      batidas,
+      [FUNCIONARIO_JOAO],
+      ["2026-05-27"],
+      ESCALA,
+      [abono],
+    );
+    expect(r[0].dias[0].status).toBe("abonado");
+    expect(r[0].dias[0].saldoMin).toBe(0);
+    expect(r[0].totais.abonados).toBe(1);
+  });
+
   it("abono sem CPF casado (funcionário não cadastrado) não é aplicado", () => {
     const abono: Abono = {
       id: "ab1",
