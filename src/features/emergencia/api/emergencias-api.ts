@@ -46,6 +46,8 @@ export const emergenciasApi = {
     operadorNome?: string | null;
     localizacaoGps?: string | null;
     dataHoraIso: string;
+    /** Fotos do impeditivo (data URL/base64) — enviadas como imagem no zap. */
+    fotos?: string[] | null;
   }): Promise<void> {
     await api.post("/emergencies/notificar-whatsapp", input);
   },
