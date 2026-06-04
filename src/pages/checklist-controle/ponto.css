@@ -213,6 +213,12 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+.ponto-recibo__nsr {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
 
 /* Chip de status (base = tema escuro) */
 .ponto-status {

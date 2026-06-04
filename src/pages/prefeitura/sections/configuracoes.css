@@ -45,6 +45,21 @@
   letter-spacing: inherit;
   color: inherit;
 }
+.cfg__aviso {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #5b4a1e;
+  background: #2a2410;
+  color: #e6c878;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.cfg__opt {
+  color: #93a4c6;
+  font-weight: 400;
+  font-size: 0.85em;
+}
 .cfg__card-sub {
   color: #93a4c6;
   font-size: 0.82rem;

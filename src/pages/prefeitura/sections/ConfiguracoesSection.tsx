@@ -5,9 +5,11 @@ import { escalaApi, type Escala } from "../../../lib/api/escala";
 import {
   configuracoesApi,
   configPadrao,
+  empresaCompleta,
   type CategoriaIntervalo,
   type Configuracao,
 } from "../../../lib/api/configuracoes";
+import { cnpjValido, formatarCnpj } from "../../../lib/funcionarios/cnpj";
 import {
   Select,
   SelectContent,
@@ -116,6 +118,16 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     }
   }
 
+  /** Salva os dados da empresa validando o CNPJ (quando preenchido). */
+  async function salvarEmpresa() {
+    const cnpj = config.empresa.cnpj.trim();
+    if (cnpj && !cnpjValido(cnpj)) {
+      toast.error("CNPJ inválido. Confira os dígitos.");
+      return;
+    }
+    await salvar("Dados da empresa salvos.");
+  }
+
   // Helpers de atualização imutável.
   const setEmpresa = (k: keyof Configuracao["empresa"], v: string) =>
     setConfig((c) => ({ ...c, empresa: { ...c.empresa, [k]: v } }));
@@ -165,6 +177,14 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               <Building2 size={15} aria-hidden="true" />
               <h2>Dados da empresa</h2>
             </header>
+            {!empresaCompleta(config.empresa) && (
+              <p className="cfg__aviso" role="status">
+                Dados fiscais incompletos para emissão legal (Portaria 671):
+                informe a <strong>razão social</strong> e o{" "}
+                <strong>CNPJ ou CAEPF/CEI</strong>. Sem isso o comprovante (CRPT)
+                e o AFD saem sem identificar o empregador.
+              </p>
+            )}
             <div className="cfg__form-grid">
               <label>
                 Razão social
@@ -178,8 +198,19 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
                 CNPJ
                 <input
                   value={config.empresa.cnpj}
-                  onChange={(e) => setEmpresa("cnpj", e.target.value)}
+                  onChange={(e) =>
+                    setEmpresa("cnpj", formatarCnpj(e.target.value))
+                  }
                   placeholder="12.345.678/0001-90"
+                  inputMode="numeric"
+                />
+              </label>
+              <label>
+                CAEPF/CEI <span className="cfg__opt">(se não houver CNPJ)</span>
+                <input
+                  value={config.empresa.caepf}
+                  onChange={(e) => setEmpresa("caepf", e.target.value)}
+                  placeholder="Inscrição do empregador"
                 />
               </label>
               <label>
@@ -213,7 +244,7 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
                 type="button"
                 className="cfg__btn cfg__btn--primary"
                 disabled={salvando}
-                onClick={() => void salvar("Dados da empresa salvos.")}
+                onClick={() => void salvarEmpresa()}
               >
                 <Save size={14} /> Salvar
               </button>

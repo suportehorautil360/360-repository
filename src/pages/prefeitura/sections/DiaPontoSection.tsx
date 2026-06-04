@@ -17,6 +17,7 @@ import {
   type TipoSolicitacao,
 } from "../../../lib/api/solicitacoes-ponto";
 import { abonosApi, type Abono } from "../../../lib/api/abonos";
+import { resolverLedger } from "../../../lib/ponto/resolverLedger";
 import { limparCpf } from "../../../lib/funcionarios/cpf";
 import { diaLocal, diaDaSolicitacao } from "./ponto-dia-utils";
 import "./historico-ponto.css";
@@ -89,7 +90,7 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
 
   const batidasDoDia = useMemo(
     () =>
-      batidas
+      resolverLedger(batidas)
         .filter(
           (b) =>
             mesmoNome(b.name, nome) && diaLocal(b.timestampOriginal) === dia,
@@ -205,7 +206,10 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
               ) : (
                 <ul className="dia-pt__lista">
                   {batidasDoDia.map((b) => {
-                    const st = b.status ?? "pendente";
+                    // Marcação original é sempre válida e read-only (Portaria
+                    // 671). O RH só decide sobre uma CORREÇÃO pendente.
+                    const pend = !!b.ajustePendente && !!b.ajustePendenteId;
+                    const ajusteId = b.ajustePendenteId ?? "";
                     return (
                       <li key={b.id} className="dia-pt__item">
                         <div className="dia-pt__item-info">
@@ -213,12 +217,23 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
                             {TIPO_PONTO_LABEL[b.tipo] ?? b.tipo} ·{" "}
                             {hora(b.timestampOriginal)}
                           </strong>
-                          <span className={`dia-pt__status is-${st}`}>{st}</span>
-                          {st === "reprovado" && b.motivoReprovacao && (
-                            <small>Motivo: {b.motivoReprovacao}</small>
+                          <span
+                            className={`dia-pt__status is-${
+                              pend ? "pendente" : "aprovado"
+                            }`}
+                          >
+                            {pend ? "ajuste pendente" : "registrado"}
+                          </span>
+                          {pend && b.horarioAjustePendente && (
+                            <small>
+                              Correção para {hora(b.horarioAjustePendente)}
+                              {b.motivoAjustePendente
+                                ? ` — ${b.motivoAjustePendente}`
+                                : ""}
+                            </small>
                           )}
                         </div>
-                        {st === "pendente" && (
+                        {pend && (
                           <div className="dia-pt__acoes">
                             <button
                               type="button"
@@ -226,19 +241,19 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
                               disabled={enviando}
                               onClick={() =>
                                 void executar(
-                                  () => pontosApi.aprovar(b.id),
-                                  "Batida aprovada.",
+                                  () => pontosApi.aprovar(ajusteId),
+                                  "Correção aprovada.",
                                 )
                               }
                             >
-                              <Check size={13} /> Aprovar
+                              <Check size={13} /> Aprovar correção
                             </button>
                             <button
                               type="button"
                               className="dia-pt__btn dia-pt__btn--no"
                               disabled={enviando}
                               onClick={() =>
-                                setReprovando({ tipo: "batida", id: b.id })
+                                setReprovando({ tipo: "batida", id: ajusteId })
                               }
                             >
                               <Ban size={13} /> Recusar

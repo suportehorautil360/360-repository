@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, AlertTriangle, Calendar, Image as ImageIcon } from "lucide-react";
+import {
+  Search,
+  AlertTriangle,
+  Calendar,
+  Image as ImageIcon,
+  Download,
+} from "lucide-react";
+import { toast } from "sonner";
 import {
   pontosApi,
   TIPOS_PONTO,
   type PontoRegistro,
-  type StatusPonto,
 } from "../../../lib/api/pontos";
+import { ApiError } from "../../../lib/api/client";
 import { escalaApi, type Escala } from "../../../lib/api/escala";
 import {
   agruparPorFuncionario,
@@ -46,13 +53,6 @@ const STATUS_DIA_LABEL: Record<StatusDia, string> = {
   "sem-jornada": "—",
 };
 
-const STATUS_PONTO_LABEL: Record<StatusPonto, string> = {
-  pendente: "Pendente",
-  aprovado: "Aprovada",
-  reprovado: "Reprovada",
-  cancelado: "Cancelada",
-};
-
 type FiltroSituacao = "todos" | StatusDia | "com-pendencia";
 
 function horaDe(iso: string): string {
@@ -68,6 +68,20 @@ function diaLegivel(diaIso: string): string {
     day: "2-digit",
     month: "2-digit",
   });
+}
+
+/** Dispara o download de um array de bytes com o nome e mime informados. */
+function baixarBytes(
+  bytes: Uint8Array<ArrayBuffer>,
+  nome: string,
+  mime: string,
+): void {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /** Iniciais de uma pessoa para o avatar (até 2 caracteres). */
@@ -100,6 +114,9 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
   const [motivoReprov, setMotivoReprov] = useState("");
   const [fotoAmpliada, setFotoAmpliada] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [gerandoArquivo, setGerandoArquivo] = useState<"AFD" | "AEJ" | null>(
+    null,
+  );
 
   const intervalo = useMemo(() => intervaloDoPeriodo(periodo), [periodo]);
 
@@ -220,6 +237,47 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
     }
   }
 
+  /**
+   * Exporta o AFD (fiscal) ou o AEJ (tratado) do período selecionado. O backend
+   * gera o conteúdo; aqui montamos o download em ISO-8859-1 (byte = charCode) e,
+   * se houver, a assinatura ICP-Brasil destacada (.p7s).
+   */
+  async function exportarArquivo(tipo: "AFD" | "AEJ") {
+    if (gerandoArquivo) return;
+    setGerandoArquivo(tipo);
+    try {
+      const r =
+        tipo === "AFD"
+          ? await pontosApi.exportarAFD(prefeituraId, intervalo.inicio, intervalo.fim)
+          : await pontosApi.exportarAEJ(prefeituraId, intervalo.inicio, intervalo.fim);
+
+      const bytes = new Uint8Array(r.conteudo.length);
+      for (let i = 0; i < r.conteudo.length; i++) {
+        bytes[i] = r.conteudo.charCodeAt(i) & 0xff;
+      }
+      baixarBytes(bytes, r.nome, "text/plain;charset=ISO-8859-1");
+
+      if (r.assinado && r.assinaturaP7sBase64) {
+        const bin = atob(r.assinaturaP7sBase64);
+        const p7s = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) p7s[i] = bin.charCodeAt(i);
+        baixarBytes(p7s, `${r.nome}.p7s`, "application/pkcs7-signature");
+      }
+
+      toast.success(
+        `${tipo} gerado: ${r.totalMarcacoes} marcação(ões).` +
+          (r.assinado ? " Assinado (ICP-Brasil)." : " Sem assinatura.") +
+          (r.semCpf ? ` ⚠ ${r.semCpf} sem CPF (tratar).` : ""),
+      );
+    } catch (e) {
+      const msg =
+        e instanceof ApiError ? e.message : `Não foi possível gerar o ${tipo}.`;
+      toast.error(msg);
+    } finally {
+      setGerandoArquivo(null);
+    }
+  }
+
   if (carregando) {
     return <p className="rh-msg">Carregando registros de ponto…</p>;
   }
@@ -300,6 +358,26 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
           <option value="incompleto">Incompletos</option>
           <option value="ok">Só OK</option>
         </select>
+        <button
+          type="button"
+          className="rh__afd-btn"
+          onClick={() => void exportarArquivo("AFD")}
+          disabled={gerandoArquivo !== null}
+          title="Exportar o Arquivo Fonte de Dados (cru) — Portaria 671"
+        >
+          <Download size={14} aria-hidden="true" />
+          {gerandoArquivo === "AFD" ? "Gerando AFD…" : "Exportar AFD (fiscal)"}
+        </button>
+        <button
+          type="button"
+          className="rh__afd-btn"
+          onClick={() => void exportarArquivo("AEJ")}
+          disabled={gerandoArquivo !== null}
+          title="Exportar o Arquivo Eletrônico de Jornada (tratado) — Portaria 671"
+        >
+          <Download size={14} aria-hidden="true" />
+          {gerandoArquivo === "AEJ" ? "Gerando AEJ…" : "Exportar AEJ (tratado)"}
+        </button>
       </div>
 
       <div className="rh__tabela-wrap">
@@ -541,12 +619,20 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                           </li>
                         );
                       }
-                      const status = reg.status ?? "pendente";
-                      const reprovandoEssa = reprovandoId === reg.id;
+                      // A marcação original é sempre válida e read-only
+                      // (Portaria 671). O RH só decide sobre uma CORREÇÃO
+                      // pendente, quando existe.
+                      const temPendencia =
+                        !!reg.ajustePendente && !!reg.ajustePendenteId;
+                      const ajusteId = reg.ajustePendenteId ?? "";
+                      const reprovandoEssa =
+                        !!ajusteId && reprovandoId === ajusteId;
                       return (
                         <li
                           key={tipo}
-                          className={`rh-sheet__bat rh-sheet__bat--${status}`}
+                          className={`rh-sheet__bat rh-sheet__bat--${
+                            temPendencia ? "pendente" : "aprovado"
+                          }`}
                         >
                           <div className="rh-sheet__bat-linha">
                             {reg.photo ? (
@@ -574,99 +660,80 @@ export function PontosRhSection({ prefeituraId }: { prefeituraId: string }) {
                                 {horaDe(reg.timestampOriginal)}
                               </strong>
                             </div>
-                            <span className={`rh__chip rh__chip--${status}`}>
-                              {STATUS_PONTO_LABEL[status]}
+                            <span className="rh__chip rh__chip--aprovado">
+                              Registrado
                             </span>
                           </div>
 
-                          {reprovandoEssa ? (
-                            <div className="rh-sheet__reprovar">
-                              <input
-                                type="text"
-                                placeholder="Motivo da reprovação"
-                                value={motivoReprov}
-                                onChange={(e) => setMotivoReprov(e.target.value)}
-                                autoFocus
-                              />
-                              <div className="rh-sheet__reprovar-acoes">
-                                <button
-                                  type="button"
-                                  className="rh-btn"
-                                  onClick={() => {
-                                    setReprovandoId(null);
-                                    setMotivoReprov("");
-                                  }}
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                  type="button"
-                                  className="rh-btn rh-btn--err"
-                                  disabled={ocupado || !motivoReprov.trim()}
-                                  onClick={() => void confirmarReprovacao(reg.id)}
-                                >
-                                  Confirmar reprovação
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="rh-sheet__bat-acoes">
-                              {status === "pendente" && (
-                                <>
+                          {temPendencia && (
+                            <>
+                              <span className="rh-sheet__motivo">
+                                <AlertTriangle size={12} aria-hidden="true" />
+                                Correção solicitada para{" "}
+                                {horaDe(reg.horarioAjustePendente ?? "")}
+                                {reg.motivoAjustePendente
+                                  ? ` — ${reg.motivoAjustePendente}`
+                                  : ""}
+                              </span>
+
+                              {reprovandoEssa ? (
+                                <div className="rh-sheet__reprovar">
+                                  <input
+                                    type="text"
+                                    placeholder="Motivo da reprovação"
+                                    value={motivoReprov}
+                                    onChange={(e) =>
+                                      setMotivoReprov(e.target.value)
+                                    }
+                                    autoFocus
+                                  />
+                                  <div className="rh-sheet__reprovar-acoes">
+                                    <button
+                                      type="button"
+                                      className="rh-btn"
+                                      onClick={() => {
+                                        setReprovandoId(null);
+                                        setMotivoReprov("");
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="rh-btn rh-btn--err"
+                                      disabled={ocupado || !motivoReprov.trim()}
+                                      onClick={() =>
+                                        void confirmarReprovacao(ajusteId)
+                                      }
+                                    >
+                                      Confirmar reprovação
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="rh-sheet__bat-acoes">
                                   <button
                                     type="button"
                                     className="rh-btn rh-btn--ok"
                                     disabled={ocupado}
-                                    onClick={() => void aprovar(reg.id)}
+                                    onClick={() => void aprovar(ajusteId)}
                                   >
-                                    Aprovar
+                                    Aprovar correção
                                   </button>
                                   <button
                                     type="button"
                                     className="rh-btn rh-btn--err"
                                     disabled={ocupado}
                                     onClick={() => {
-                                      setReprovandoId(reg.id);
+                                      setReprovandoId(ajusteId);
                                       setMotivoReprov("");
                                     }}
                                   >
                                     Reprovar
                                   </button>
-                                </>
+                                </div>
                               )}
-                              {status === "aprovado" && (
-                                <button
-                                  type="button"
-                                  className="rh-sheet__rev"
-                                  disabled={ocupado}
-                                  onClick={() => {
-                                    setReprovandoId(reg.id);
-                                    setMotivoReprov("");
-                                  }}
-                                  title="Marcar esta batida como reprovada"
-                                >
-                                  Reprovar
-                                </button>
-                              )}
-                              {status === "reprovado" && (
-                                <button
-                                  type="button"
-                                  className="rh-sheet__rev"
-                                  disabled={ocupado}
-                                  onClick={() => void aprovar(reg.id)}
-                                  title="Voltar para aprovada"
-                                >
-                                  Aprovar
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          {reg.motivoReprovacao && status === "reprovado" && (
-                            <span className="rh-sheet__motivo">
-                              <AlertTriangle size={12} aria-hidden="true" />
-                              {reg.motivoReprovacao}
-                            </span>
+                            </>
                           )}
                         </li>
                       );
