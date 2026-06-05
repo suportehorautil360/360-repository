@@ -1,6 +1,7 @@
 import "react-phone-number-input/style.css";
 import "./phone-input.css";
 import PhoneInputLib, { type Value } from "react-phone-number-input";
+import { cn } from "@/lib/utils";
 
 export interface PhoneInputProps {
   /** Número em E.164 (`+55…`) ou `undefined` quando vazio. */
@@ -9,6 +10,7 @@ export interface PhoneInputProps {
   id?: string;
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
 }
 
 /**
@@ -21,6 +23,7 @@ export function PhoneInput({
   id,
   placeholder,
   disabled,
+  className,
 }: PhoneInputProps) {
   return (
     <PhoneInputLib
@@ -31,7 +34,7 @@ export function PhoneInput({
       id={id}
       placeholder={placeholder}
       disabled={disabled}
-      className="hu-phone"
+      className={cn("hu-phone", className)}
     />
   );
 }

@@ -12,6 +12,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { whatsappApi, type WhatsappOverview } from "@/lib/api/whatsapp";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { HubCard, Skeleton } from "./ui";
 import { formatarDataHora, tempoRelativo } from "./format";
 
@@ -35,8 +37,8 @@ export function WhatsappConnectionCard({
 
   async function enviarTeste() {
     const num = numeroTeste.trim();
-    if (num.replace(/\D/g, "").length < 10) {
-      toast.error("Informe um número válido com DDD.");
+    if (!num || !isValidPhoneNumber(num)) {
+      toast.error("Informe um número válido com DDI e DDD.");
       return;
     }
     setEnviando(true);
@@ -162,14 +164,13 @@ export function WhatsappConnectionCard({
         <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
           Enviar mensagem de teste
         </div>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <input
-            type="tel"
-            inputMode="tel"
-            placeholder="Número com DDD (ex.: 67 99999-9999)"
-            value={numeroTeste}
-            onChange={(e) => setNumeroTeste(e.target.value)}
-            className="flex-1 rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-[#f97316] focus:outline-none"
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <PhoneInput
+            value={numeroTeste || undefined}
+            onChange={(v) => setNumeroTeste(v ?? "")}
+            placeholder="Número com DDI"
+            disabled={enviando}
+            className="flex-1"
           />
           <Button
             onClick={() => void enviarTeste()}
