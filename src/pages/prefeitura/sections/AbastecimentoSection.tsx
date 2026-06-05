@@ -49,7 +49,7 @@ function parseValorBR(v: string): number {
 }
 
 function fmtBRL(v: number): string {
-  return v.toLocaleString("pt-BR", {
+  return (Number(v) || 0).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
@@ -541,7 +541,7 @@ export function AbastecimentoSection({
                     <td>{r.motorista}</td>
                     <td>{r.postoNome}</td>
                     <td>{r.combustivel}</td>
-                    <td>{r.litros.toLocaleString("pt-BR")}</td>
+                    <td>{(Number(r.litros) || 0).toLocaleString("pt-BR")}</td>
                     <td>{r.valorTotal}</td>
                     <td>{r.km}</td>
                     <td>{r.cupomFiscal}</td>
