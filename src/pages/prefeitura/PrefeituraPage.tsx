@@ -29,7 +29,10 @@ import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
-import { usePontoAtivo } from "../../lib/api/feature-flags";
+import {
+  usePontoAtivo,
+  useAbastecimentoAtivo,
+} from "../../lib/api/feature-flags";
 import { usePrefeituraBadges } from "./usePrefeituraBadges";
 
 /** Placeholder das seções da referência que ainda não têm tela. */
@@ -128,6 +131,7 @@ export function PrefeituraPage() {
   ]);
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
+  const { ativo: abastecimentoAtivo } = useAbastecimentoAtivo(prefeituraId);
   const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
 
   const dados = useMemo(
@@ -255,7 +259,11 @@ export function PrefeituraPage() {
       : equipNovo || equipEditId
         ? "equipamentos"
         : (secao ?? "dashboard");
-  const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
+  const navGroups = prefeituraNav(prefeituraId, {
+    pontoAtivo,
+    abastecimentoAtivo,
+    badges,
+  });
 
   function renderSecao() {
     if (pontoDiaMatch) {
@@ -287,8 +295,10 @@ export function PrefeituraPage() {
       case "dashboard":
         return <DashboardSection prefeituraId={prefeituraId} />;
       case "abastecimento":
-        return (
+        return abastecimentoAtivo ? (
           <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
+        ) : (
+          <EmConstrucao titulo="Abastecimentos" />
         );
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
