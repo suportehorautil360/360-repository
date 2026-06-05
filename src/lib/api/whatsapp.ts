@@ -49,10 +49,51 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return json.data;
 }
 
+export interface WhatsappSessao {
+  numeroConectado: string | null;
+  nomeSessao: string | null;
+  conectadoDesde: string | null;
+  ultimaAtividade: string | null;
+  versaoSessao: string | null;
+  ambiente: "dev" | "prod";
+}
+export interface WhatsappDisponibilidade {
+  percentual: number;
+  desde: string;
+  janelaCompleta: boolean;
+}
+export interface WhatsappKpis {
+  empresasUtilizando: number;
+  mensagensHoje: number;
+  mensagens30d: number;
+  disponibilidade: WhatsappDisponibilidade;
+}
+export type TipoEventoWhats =
+  | "sessao_iniciada"
+  | "qr_gerado"
+  | "conectado"
+  | "queda"
+  | "sessao_encerrada";
+export type StatusEventoWhats = "sucesso" | "aviso" | "erro";
+export interface EventoWhats {
+  id: string;
+  tipo: TipoEventoWhats;
+  status: StatusEventoWhats;
+  timestamp: string;
+}
+export interface WhatsappOverview {
+  status: WhatsAppStatus;
+  qrImagem?: string;
+  sessao: WhatsappSessao;
+  kpis: WhatsappKpis;
+  eventos: EventoWhats[];
+}
+
 export const whatsappApi = {
   status: () => req<WhatsAppStatusResp>("GET", "/status"),
   conectar: () => req<WhatsAppStatusResp>("POST", "/connect"),
   desconectar: () => req<unknown>("POST", "/logout"),
   enviarTeste: (numero: string) =>
     req<unknown>("POST", "/enviar-teste", { numero }),
+  overview: () => req<WhatsappOverview>("GET", "/overview"),
 };
