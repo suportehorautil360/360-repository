@@ -17,6 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { toE164 } from "@/lib/phone";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { EscalaConfig } from "./EscalaConfig";
 import "./configuracoes.css";
 
@@ -92,7 +95,15 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
         configuracoesApi.obter(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
       ]);
-      setConfig(cfg);
+      // Migra número legado (sem DDI) para E.164 uma única vez, na carga.
+      setConfig({
+        ...cfg,
+        empresa: {
+          ...cfg.empresa,
+          whatsappNumero:
+            toE164(cfg.empresa.whatsappNumero) ?? cfg.empresa.whatsappNumero,
+        },
+      });
       setEscala(esc);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível carregar.");
@@ -123,6 +134,11 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     const cnpj = config.empresa.cnpj.trim();
     if (cnpj && !cnpjValido(cnpj)) {
       toast.error("CNPJ inválido. Confira os dígitos.");
+      return;
+    }
+    const wpp = config.empresa.whatsappNumero.trim();
+    if (wpp && !isValidPhoneNumber(wpp)) {
+      toast.error("WhatsApp inválido. Confira o DDI, DDD e o número.");
       return;
     }
     await salvar("Dados da empresa salvos.");
@@ -240,13 +256,11 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               </label>
               <label className="cfg__col-span">
                 WhatsApp para emergências{" "}
-                <span className="cfg__opt">(com DDD)</span>
-                <input
-                  type="tel"
-                  value={config.empresa.whatsappNumero}
-                  onChange={(e) => setEmpresa("whatsappNumero", e.target.value)}
-                  placeholder="67 99999-9999"
-                  inputMode="tel"
+                <span className="cfg__opt">(código do país + DDD)</span>
+                <PhoneInput
+                  value={config.empresa.whatsappNumero || undefined}
+                  onChange={(v) => setEmpresa("whatsappNumero", v ?? "")}
+                  placeholder="Número com DDI"
                 />
               </label>
             </div>

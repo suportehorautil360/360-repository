@@ -1,0 +1,47 @@
+/*
+ * Tema dark do react-phone-number-input, casado com os inputs de formulário
+ * (prefeitura/admin). Usa as CSS variables da própria lib para a bandeira/seta
+ * e estiliza o input interno no mesmo tom dos demais campos.
+ */
+.hu-phone {
+  --PhoneInputCountryFlag-borderColor: rgba(255, 255, 255, 0.25);
+  --PhoneInputCountryFlag-borderColor--focus: var(--main-orange, #f97316);
+  --PhoneInputCountrySelectArrow-color: #93a4c6;
+  --PhoneInputCountrySelectArrow-color--focus: var(--main-orange, #f97316);
+  --PhoneInputCountrySelectArrow-opacity: 0.8;
+  --PhoneInput-color--focus: var(--main-orange, #f97316);
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hu-phone .PhoneInputInput {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  color: #e8ecf6;
+  padding: 8px 10px;
+  font-size: 0.86rem;
+  font-family: inherit;
+}
+
+.hu-phone .PhoneInputInput::placeholder {
+  color: #6b7a99;
+}
+
+.hu-phone .PhoneInputInput:focus {
+  outline: 2px solid var(--main-orange, #f97316);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+/* O seletor de país é um <select> nativo sobreposto à bandeira. As opções do
+ * dropdown são renderizadas pelo SO (fundo claro) — forçamos texto escuro. */
+.hu-phone .PhoneInputCountrySelect option {
+  color: #0f172a;
+}
+
+.hu-phone .PhoneInputCountryIcon--border {
+  box-shadow: none;
+}
