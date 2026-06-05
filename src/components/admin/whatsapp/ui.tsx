@@ -35,16 +35,16 @@ export function Kpi({
 }) {
   return (
     <HubCard>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
         {rotulo}
-      </p>
+      </div>
       {carregando ? (
-        <Skeleton className="mt-2 h-8 w-20" />
+        <Skeleton className="mt-2 h-7 w-20" />
       ) : (
-        <p className="mt-1 text-3xl font-semibold text-slate-100">{valor}</p>
+        <div className="mt-1 text-2xl font-semibold text-slate-100">{valor}</div>
       )}
       {legenda && !carregando && (
-        <p className="mt-1 text-xs text-slate-500">{legenda}</p>
+        <div className="mt-1 text-xs text-slate-500">{legenda}</div>
       )}
     </HubCard>
   );

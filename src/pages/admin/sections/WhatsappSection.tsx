@@ -6,7 +6,6 @@ import { WhatsappHubHeader } from "@/components/admin/whatsapp/WhatsappHubHeader
 import { WhatsappStats } from "@/components/admin/whatsapp/WhatsappStats";
 import { WhatsappConnectionCard } from "@/components/admin/whatsapp/WhatsappConnectionCard";
 import { WhatsappStatusCard } from "@/components/admin/whatsapp/WhatsappStatusCard";
-import { WhatsappEventsTable } from "@/components/admin/whatsapp/WhatsappEventsTable";
 import { WhatsappQrSheet } from "@/components/admin/whatsapp/WhatsappQrSheet";
 
 export function WhatsappSection() {
@@ -29,10 +28,10 @@ export function WhatsappSection() {
       <WhatsappHubHeader status={data?.status} carregando={carregando} />
 
       {erro && (
-        <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
           Não foi possível atualizar agora — exibindo os últimos dados
           conhecidos.
-        </p>
+        </div>
       )}
 
       <WhatsappStats data={data} carregando={carregando} />
@@ -46,8 +45,6 @@ export function WhatsappSection() {
         />
         <WhatsappStatusCard data={data} carregando={carregando} />
       </div>
-
-      <WhatsappEventsTable data={data} carregando={carregando} />
 
       <WhatsappQrSheet
         aberto={sheetAberto}

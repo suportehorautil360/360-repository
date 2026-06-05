@@ -52,7 +52,6 @@ describe("WhatsappSection", () => {
     expect(screen.getByText("99.8%")).toBeInTheDocument(); // disponibilidade
     expect(screen.getByText("WhatsApp Conectado")).toBeInTheDocument();
     expect(screen.getAllByText("5567999999999").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Conectado").length).toBeGreaterThan(0); // evento na tabela
   });
 
   it("mostra empty-state desconectado", async () => {
@@ -74,7 +73,6 @@ describe("WhatsappSection", () => {
     expect(
       screen.getByRole("button", { name: "Conectar WhatsApp" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Nenhum evento registrado ainda.")).toBeInTheDocument();
   });
 
   it("mantém a tela em pé se o overview falhar", async () => {

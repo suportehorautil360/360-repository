@@ -12,13 +12,13 @@ export function WhatsappHubHeader({
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-100">
+        <div className="text-xl font-semibold text-slate-100">
           Hub Mestre WhatsApp
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-400">
+        </div>
+        <div className="mt-1 max-w-2xl text-sm text-slate-400">
           Canal central de comunicação responsável pelo envio de notificações,
           alertas e mensagens automáticas da plataforma.
-        </p>
+        </div>
       </div>
       {!carregando && (
         <StatusBadge tom={online ? "ok" : "off"}>

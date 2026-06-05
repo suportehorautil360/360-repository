@@ -77,13 +77,13 @@ export function WhatsappConnectionCard({
     return (
       <HubCard className="flex flex-col gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-100">
+          <div className="text-base font-semibold text-slate-100">
             WhatsApp Desconectado
-          </h2>
-          <p className="mt-1 text-sm text-slate-400">
+          </div>
+          <div className="mt-1 text-sm text-slate-400">
             Nenhuma sessão ativa encontrada. Sem uma sessão ativa, as empresas da
             plataforma não conseguirão enviar notificações automáticas.
-          </p>
+          </div>
         </div>
         <Button
           onClick={onConectar}
@@ -98,9 +98,9 @@ export function WhatsappConnectionCard({
   return (
     <HubCard className="flex flex-col gap-5">
       <div>
-        <h2 className="text-lg font-semibold text-slate-100">
+        <div className="text-base font-semibold text-slate-100">
           WhatsApp Conectado
-        </h2>
+        </div>
         <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
           <Campo rotulo="Número" valor={data?.sessao.numeroConectado ?? "—"} />
           <Campo rotulo="Sessão" valor={data?.sessao.nomeSessao ?? "—"} />
@@ -159,9 +159,9 @@ export function WhatsappConnectionCard({
       </div>
 
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        <div className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
           Enviar mensagem de teste
-        </p>
+        </div>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
           <input
             type="tel"
@@ -180,9 +180,9 @@ export function WhatsappConnectionCard({
           </Button>
         </div>
         {ultimoTeste && (
-          <p className="mt-2 text-xs text-slate-500">
+          <div className="mt-2 text-xs text-slate-500">
             Última enviada {tempoRelativo(ultimoTeste)}.
-          </p>
+          </div>
         )}
       </div>
     </HubCard>
@@ -192,8 +192,10 @@ export function WhatsappConnectionCard({
 function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{rotulo}</p>
-      <p className="text-sm font-medium text-slate-200">{valor}</p>
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">
+        {rotulo}
+      </div>
+      <div className="text-sm font-medium text-slate-200">{valor}</div>
     </div>
   );
 }
