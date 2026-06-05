@@ -6,33 +6,14 @@ import {
   configuracoesApi,
   configPadrao,
   empresaCompleta,
-  type CategoriaIntervalo,
   type Configuracao,
 } from "../../../lib/api/configuracoes";
 import { cnpjValido, formatarCnpj } from "../../../lib/funcionarios/cnpj";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { toE164 } from "@/lib/phone";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { EscalaConfig } from "./EscalaConfig";
 import "./configuracoes.css";
-
-const SELECT_TRIGGER_CLS =
-  "w-full border-white/15 bg-white/[0.04] text-slate-100 data-[placeholder]:text-slate-400";
-
-const CATEGORIAS: { key: CategoriaIntervalo; label: string; icon: string }[] = [
-  { key: "carro", label: "Carro", icon: "🚗" },
-  { key: "caminhao", label: "Caminhão", icon: "🚚" },
-  { key: "maquina", label: "Máquina", icon: "⚙️" },
-  { key: "ambulancia", label: "Ambulância", icon: "🚑" },
-  { key: "van", label: "Van / Outros", icon: "🚐" },
-];
 
 function Switch({
   on,
@@ -151,21 +132,6 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     setConfig((c) => ({ ...c, alertas: { ...c.alertas, [k]: v } }));
   const setBloqueio = (k: keyof Configuracao["bloqueio"], v: boolean) =>
     setConfig((c) => ({ ...c, bloqueio: { ...c.bloqueio, [k]: v } }));
-  const setIntervalo = (
-    cat: CategoriaIntervalo,
-    campo: "valor" | "unidade",
-    v: string,
-  ) =>
-    setConfig((c) => ({
-      ...c,
-      intervalos: {
-        ...c.intervalos,
-        [cat]: {
-          ...c.intervalos[cat],
-          [campo]: campo === "valor" ? Number(v.replace(/\D/g, "")) || 0 : v,
-        },
-      },
-    }));
 
   if (carregando) {
     return (
@@ -181,7 +147,7 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
       <h1 className="cfg__page-titulo">Configurações</h1>
       <p className="cfg__lead">
         Parâmetros operacionais da prefeitura — dados da empresa, alertas,
-        intervalos de revisão e a escala da jornada.
+        bloqueio por revisão e a escala da jornada.
       </p>
 
       <div className="cfg__grid">
@@ -276,48 +242,17 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
             </div>
           </section>
 
-          {/* Intervalos de revisão + comportamento do bloqueio */}
+          {/* Comportamento do bloqueio por revisão */}
           <section className="cfg__card">
             <header className="cfg__card-head">
               <Wrench size={15} aria-hidden="true" />
-              <h2>Intervalos de revisão por tipo</h2>
+              <h2>Comportamento do bloqueio</h2>
             </header>
             <p className="cfg__card-sub">
-              Define o intervalo padrão por tipo. Cada equipamento pode ter valor
-              personalizado.
+              Defina quando bloquear o abastecimento e alertar sobre revisões
+              vencidas.
             </p>
 
-            <div className="cfg__intervalos">
-              {CATEGORIAS.map((cat) => (
-                <div key={cat.key} className="cfg__intervalo-row">
-                  <span className="cfg__intervalo-nome">
-                    {cat.icon} {cat.label}
-                  </span>
-                  <input
-                    className="cfg__intervalo-valor"
-                    inputMode="numeric"
-                    value={String(config.intervalos[cat.key].valor)}
-                    onChange={(e) =>
-                      setIntervalo(cat.key, "valor", e.target.value)
-                    }
-                  />
-                  <Select
-                    value={config.intervalos[cat.key].unidade}
-                    onValueChange={(v) => setIntervalo(cat.key, "unidade", v)}
-                  >
-                    <SelectTrigger className={`${SELECT_TRIGGER_CLS} cfg__intervalo-un`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="km">km</SelectItem>
-                      <SelectItem value="horas">horas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
-
-            <h3 className="cfg__sub-titulo">Comportamento do bloqueio</h3>
             <ToggleRow
               titulo="Bloquear abastecimento ao vencer"
               sub="Impede até o gestor registrar revisão e liberar"
