@@ -15,7 +15,7 @@ import { HistoricoPontoSection } from "./sections/HistoricoPontoSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
-import { AbastecimentoSection } from "./sections/AbastecimentoSection";
+import { AbastecimentosListSection } from "./sections/AbastecimentosListSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
@@ -296,7 +296,7 @@ export function PrefeituraPage() {
         return <DashboardSection prefeituraId={prefeituraId} />;
       case "abastecimento":
         return abastecimentoAtivo ? (
-          <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
+          <AbastecimentosListSection prefeituraId={prefeituraId} />
         ) : (
           <EmConstrucao titulo="Abastecimentos" />
         );
