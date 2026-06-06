@@ -23,7 +23,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex w-fit items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1",
+        "inline-flex w-fit items-center gap-0.5 rounded-full border border-white/10 bg-white/[0.04] p-1",
         className,
       )}
       {...props}
@@ -39,7 +39,10 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-slate-400 transition-colors hover:text-slate-200 data-[state=active]:bg-white/10 data-[state=active]:text-slate-100",
+        // reset da aparência nativa do <button> (projeto sem preflight do Tailwind)
+        "inline-flex cursor-pointer appearance-none items-center justify-center rounded-full border-0 bg-transparent px-4 py-1.5 text-sm font-medium text-slate-400 outline-none transition-colors",
+        "hover:text-slate-200 focus-visible:ring-2 focus-visible:ring-[#f97316]/40",
+        "data-[state=active]:bg-white/12 data-[state=active]:text-slate-50 data-[state=active]:shadow-sm",
         className,
       )}
       {...props}
