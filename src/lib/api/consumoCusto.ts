@@ -46,6 +46,14 @@ export interface IntervaloHistorico {
   custoLabel: string;
 }
 
+export interface AbastecimentoHistorico {
+  id: string;
+  dateTimeLabel: string;
+  litrosLabel: string;
+  leituraLabel: string;
+  gastoLabel: string;
+}
+
 export interface VeiculoConsumoCusto {
   id: string;
   nome: string;
@@ -64,6 +72,7 @@ export interface VeiculoConsumoCusto {
   litrosLabel: string;
   gastoLabel: string;
   intervalos: IntervaloHistorico[];
+  abastecimentos: AbastecimentoHistorico[];
 }
 
 export interface ConsumoCustoCalculoTela {
@@ -168,6 +177,445 @@ function montarTitulo(raw: Record<string, unknown>, equipmentId: string) {
   };
 }
 
+function normalizarAbastecimento(
+  raw: unknown,
+  index: number,
+  equipmentId: string,
+): AbastecimentoHistorico | null {
+  if (!raw || typeof raw !== "object") return null;
+  const ab = raw as Record<string, unknown>;
+
+  const litros = ab.litros;
+  const litrosLabel =
+    labelOuTraco(asStr(ab.litrosLabel)) !== "—"
+      ? labelOuTraco(asStr(ab.litrosLabel))
+      : typeof litros === "number" && Number.isFinite(litros)
+        ? `${litros.toLocaleString("pt-BR")} L`
+        : "—";
+
+  const gasto = ab.gasto;
+  const gastoLabel =
+    labelOuTraco(asStr(ab.gastoLabel)) !== "—"
+      ? labelOuTraco(asStr(ab.gastoLabel))
+      : typeof gasto === "number" && Number.isFinite(gasto)
+        ? gasto.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          })
+        : "—";
+
+  return {
+    id: asStr(ab.id) || `${equipmentId}-ab-${index}`,
+    dateTimeLabel: labelOuTraco(
+      asStr(ab.dateTime ?? ab.dataHora ?? ab.data ?? ab.createdAt),
+    ),
+    litrosLabel,
+    leituraLabel: (() => {
+      const fromApi = labelOuTraco(asStr(ab.leituraLabel ?? ab.leitura));
+      if (fromApi !== "—") return fromApi;
+      const reading = ab.currentReading;
+      if (typeof reading === "number" && Number.isFinite(reading)) {
+        return reading.toLocaleString("pt-BR");
+      }
+      return "—";
+    })(),
+    gastoLabel,
+  };
+}
+
+interface AbastecimentoBrutoOrdenado {
+  id: string;
+  dateTime: string;
+  createdAt: string;
+  litros: number | null;
+  currentReading: number | null;
+  previousReading: number | null;
+  gasto: number | null;
+}
+
+function ordenarAbastecimentosBrutos(brutos: unknown[]): AbastecimentoBrutoOrdenado[] {
+  return brutos
+    .filter((raw): raw is Record<string, unknown> => !!raw && typeof raw === "object")
+    .map((ab, index) => ({
+      id: asStr(ab.id) || `ab-${index}`,
+      dateTime: asStr(ab.dateTime ?? ab.dataHora ?? ab.data),
+      createdAt: asStr(ab.createdAt),
+      litros: typeof ab.litros === "number" && Number.isFinite(ab.litros) ? ab.litros : null,
+      currentReading:
+        typeof ab.currentReading === "number" && Number.isFinite(ab.currentReading)
+          ? ab.currentReading
+          : null,
+      previousReading:
+        typeof ab.previousReading === "number" && Number.isFinite(ab.previousReading)
+          ? ab.previousReading
+          : typeof ab.leituraAnterior === "number" && Number.isFinite(ab.leituraAnterior)
+            ? ab.leituraAnterior
+            : null,
+      gasto: typeof ab.gasto === "number" && Number.isFinite(ab.gasto) ? ab.gasto : null,
+    }))
+    .sort((a, b) => {
+      const ta = a.createdAt || a.dateTime;
+      const tb = b.createdAt || b.dateTime;
+      return ta.localeCompare(tb);
+    });
+}
+
+interface IntervaloCalculado {
+  id: string;
+  inicio: AbastecimentoBrutoOrdenado;
+  fim: AbastecimentoBrutoOrdenado;
+  litros: number;
+  gasto: number | null;
+  diff: number;
+}
+
+function fmtConsumoIntervalo(litros: number, diff: number, porHora: boolean): string {
+  const taxa = litros / diff;
+  return `${taxa.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ${porHora ? "L/h" : "L/km"}`;
+}
+
+function fmtCustoIntervalo(gasto: number, diff: number, porHora: boolean): string {
+  const taxa = gasto / diff;
+  const moeda = taxa.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${moeda}${porHora ? "/h" : "/km"}`;
+}
+
+/**
+ * Consumo = litros ÷ (leitura atual − leitura anterior).
+ * Abastecimentos com a mesma leitura acumulam litros até a próxima leitura diferente.
+ */
+function intervalosCalculadosDeAbastecimentos(
+  brutos: unknown[],
+): IntervaloCalculado[] {
+  const ordenados = ordenarAbastecimentosBrutos(brutos);
+  const intervalos: IntervaloCalculado[] = [];
+  let litrosAcumulados = 0;
+  let gastoAcumulado = 0;
+  let temGasto = false;
+  let inicioChain: AbastecimentoBrutoOrdenado | null = null;
+
+  for (let i = 1; i < ordenados.length; i++) {
+    const prev = ordenados[i - 1];
+    const curr = ordenados[i];
+    if (inicioChain == null) inicioChain = prev;
+
+    const diff =
+      curr.currentReading != null && prev.currentReading != null
+        ? curr.currentReading - prev.currentReading
+        : null;
+
+    if (diff == null || diff <= 0) {
+      const diffAnterior =
+        curr.previousReading != null && curr.currentReading != null
+          ? curr.currentReading - curr.previousReading
+          : null;
+
+      if (
+        diffAnterior != null &&
+        diffAnterior > 0 &&
+        curr.litros != null &&
+        labelOuTraco(curr.dateTime) !== "—"
+      ) {
+        intervalos.push({
+          id: `${curr.id}-leitura-anterior`,
+          inicio: prev,
+          fim: curr,
+          litros: curr.litros + litrosAcumulados,
+          gasto: temGasto ? (curr.gasto ?? 0) + gastoAcumulado : curr.gasto,
+          diff: diffAnterior,
+        });
+        litrosAcumulados = 0;
+        gastoAcumulado = 0;
+        temGasto = false;
+        inicioChain = curr;
+        continue;
+      }
+
+      if (litrosAcumulados === 0 && prev.litros != null) {
+        litrosAcumulados += prev.litros;
+      }
+      if (curr.litros != null) litrosAcumulados += curr.litros;
+      if (curr.gasto != null) {
+        gastoAcumulado += curr.gasto;
+        temGasto = true;
+      }
+      continue;
+    }
+
+    const litros = (curr.litros ?? 0) + litrosAcumulados;
+    const gasto = temGasto ? (curr.gasto ?? 0) + gastoAcumulado : null;
+    litrosAcumulados = 0;
+    gastoAcumulado = 0;
+    temGasto = false;
+
+    intervalos.push({
+      id: `${inicioChain.id}-${curr.id}`,
+      inicio: inicioChain,
+      fim: curr,
+      litros,
+      gasto,
+      diff,
+    });
+    inicioChain = curr;
+  }
+
+  return intervalos;
+}
+
+/** Monta intervalos no formato do print a partir de abastecimentos consecutivos. */
+function derivarIntervalosDeAbastecimentos(
+  brutos: unknown[],
+  equipmentId: string,
+  porHora: boolean,
+): IntervaloHistorico[] {
+  return intervalosCalculadosDeAbastecimentos(brutos)
+    .map((iv) => {
+      const inicio = labelOuTraco(iv.inicio.dateTime);
+      const fim = labelOuTraco(iv.fim.dateTime);
+      if (inicio === "—" || fim === "—") return null;
+
+      const unidade = porHora ? "h" : "km";
+      return {
+        id: iv.id || `${equipmentId}-${iv.inicio.id}-${iv.fim.id}`,
+        periodoLabel: `${inicio} → ${fim}`,
+        duracaoLabel: `${iv.diff.toLocaleString("pt-BR")} ${unidade}`,
+        consumoLabel: fmtConsumoIntervalo(iv.litros, iv.diff, porHora),
+        custoLabel:
+          iv.gasto != null ? fmtCustoIntervalo(iv.gasto, iv.diff, porHora) : "—",
+      };
+    })
+    .filter((iv): iv is IntervaloHistorico => iv != null);
+}
+
+interface MediaTaxa {
+  valor: number;
+  exibicao: string;
+}
+
+function fmtTaxaConsumo(taxa: number, porHora: boolean): string {
+  return `${taxa.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ${porHora ? "L/h" : "L/km"}`;
+}
+
+function fmtTaxaCusto(taxa: number, porHora: boolean): string {
+  const moeda = taxa.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${moeda}${porHora ? "/h" : "/km"}`;
+}
+
+/** Percorre abastecimentos e mantém a última taxa válida; leitura repetida = mesma taxa. */
+function ultimaTaxaConsumoEmAbastecimentos(
+  brutos: unknown[],
+  porHora: boolean,
+): MediaTaxa | null {
+  const ordenados = ordenarAbastecimentosBrutos(brutos);
+  let ultima: MediaTaxa | null = null;
+  let litrosAcumulados = 0;
+
+  for (let i = 0; i < ordenados.length; i++) {
+    const ab = ordenados[i];
+
+    if (
+      ab.previousReading != null &&
+      ab.currentReading != null &&
+      ab.litros != null
+    ) {
+      const diffAnterior = ab.currentReading - ab.previousReading;
+      if (diffAnterior > 0) {
+        const taxa = (ab.litros + litrosAcumulados) / diffAnterior;
+        litrosAcumulados = 0;
+        ultima = { valor: taxa, exibicao: fmtTaxaConsumo(taxa, porHora) };
+      }
+    }
+
+    if (i === 0) continue;
+
+    const prev = ordenados[i - 1];
+    const diff =
+      ab.currentReading != null && prev.currentReading != null
+        ? ab.currentReading - prev.currentReading
+        : null;
+
+    if (diff != null && diff > 0 && ab.litros != null) {
+      const taxa = ((ab.litros ?? 0) + litrosAcumulados) / diff;
+      litrosAcumulados = 0;
+      ultima = { valor: taxa, exibicao: fmtTaxaConsumo(taxa, porHora) };
+      continue;
+    }
+
+    if (
+      diff != null &&
+      diff <= 0 &&
+      ab.currentReading != null &&
+      prev.currentReading != null &&
+      ab.currentReading === prev.currentReading
+    ) {
+      if (litrosAcumulados === 0 && prev.litros != null) {
+        litrosAcumulados += prev.litros;
+      }
+      if (ab.litros != null) litrosAcumulados += ab.litros;
+      // Leitura igual: mantém a mesma taxa já calculada
+      continue;
+    }
+  }
+
+  return ultima;
+}
+
+/**
+ * Fallback quando não há intervalo calculável:
+ * 1 abastecimento → litros do registro; 2+ com mesma leitura → média dos litros.
+ */
+function mediaFallbackLitrosAbastecimentos(
+  ordenados: AbastecimentoBrutoOrdenado[],
+  porHora: boolean,
+): MediaTaxa | null {
+  if (ordenados.length === 0) return null;
+
+  if (ordenados.length === 1) {
+    const litros = ordenados[0].litros;
+    if (litros == null || litros <= 0) return null;
+    return { valor: litros, exibicao: fmtTaxaConsumo(litros, porHora) };
+  }
+
+  const primeira = ordenados[0].currentReading;
+  if (primeira == null) return null;
+  if (!ordenados.every((o) => o.currentReading === primeira)) return null;
+
+  const litrosMedio =
+    ordenados.reduce((s, o) => s + (o.litros ?? 0), 0) / ordenados.length;
+  if (litrosMedio <= 0) return null;
+
+  return {
+    valor: litrosMedio,
+    exibicao: fmtTaxaConsumo(litrosMedio, porHora),
+  };
+}
+
+function mediaFallbackGastoAbastecimentos(
+  ordenados: AbastecimentoBrutoOrdenado[],
+  porHora: boolean,
+): MediaTaxa | null {
+  if (ordenados.length === 0) return null;
+
+  if (ordenados.length === 1) {
+    const gasto = ordenados[0].gasto;
+    if (gasto == null || gasto <= 0) return null;
+    return { valor: gasto, exibicao: fmtTaxaCusto(gasto, porHora) };
+  }
+
+  const primeira = ordenados[0].currentReading;
+  if (primeira == null) return null;
+  if (!ordenados.every((o) => o.currentReading === primeira)) return null;
+
+  const comGasto = ordenados.filter((o) => o.gasto != null && o.gasto > 0);
+  if (comGasto.length === 0) return null;
+
+  const gastoMedio =
+    comGasto.reduce((s, o) => s + (o.gasto ?? 0), 0) / comGasto.length;
+  return { valor: gastoMedio, exibicao: fmtTaxaCusto(gastoMedio, porHora) };
+}
+
+/** Médio L/h (ou L/km) = Σ litros dos intervalos ÷ Σ horas/km rodadas. */
+function mediaConsumoDeAbastecimentos(
+  brutos: unknown[],
+  porHora: boolean,
+): MediaTaxa | null {
+  const calculados = intervalosCalculadosDeAbastecimentos(brutos);
+  let totalLitros = 0;
+  let totalDeslocamento = 0;
+
+  for (const iv of calculados) {
+    totalLitros += iv.litros;
+    totalDeslocamento += iv.diff;
+  }
+
+  if (totalDeslocamento > 0) {
+    const taxa = totalLitros / totalDeslocamento;
+    return { valor: taxa, exibicao: fmtTaxaConsumo(taxa, porHora) };
+  }
+
+  const ultima = ultimaTaxaConsumoEmAbastecimentos(brutos, porHora);
+  if (ultima) return ultima;
+
+  return mediaFallbackLitrosAbastecimentos(
+    ordenarAbastecimentosBrutos(brutos),
+    porHora,
+  );
+}
+
+function mediaCustoDeAbastecimentos(
+  brutos: unknown[],
+  porHora: boolean,
+): MediaTaxa | null {
+  const calculados = intervalosCalculadosDeAbastecimentos(brutos);
+  let totalGasto = 0;
+  let totalDeslocamento = 0;
+
+  for (const iv of calculados) {
+    if (iv.gasto == null) continue;
+    totalGasto += iv.gasto;
+    totalDeslocamento += iv.diff;
+  }
+
+  if (totalDeslocamento > 0) {
+    const taxa = totalGasto / totalDeslocamento;
+    return { valor: taxa, exibicao: fmtTaxaCusto(taxa, porHora) };
+  }
+
+  return mediaFallbackGastoAbastecimentos(
+    ordenarAbastecimentosBrutos(brutos),
+    porHora,
+  );
+}
+
+function mediaTaxaIntervalos(
+  intervalos: IntervaloHistorico[],
+  porHora: boolean,
+): MediaTaxa | null {
+  let totalLitros = 0;
+  let totalDeslocamento = 0;
+
+  for (const iv of intervalos) {
+    if (iv.consumoLabel === "—" || iv.duracaoLabel === "—") continue;
+
+    const consumoMatch = iv.consumoLabel.match(/^([\d.]+(?:,\d+)?)/);
+    const duracaoMatch = iv.duracaoLabel.match(/^([\d.]+(?:,\d+)?)/);
+    if (!consumoMatch || !duracaoMatch) continue;
+
+    const litrosPorUnidade = Number(
+      consumoMatch[1].replace(/\./g, "").replace(",", "."),
+    );
+    const deslocamento = Number(
+      duracaoMatch[1].replace(/\./g, "").replace(",", "."),
+    );
+    if (!Number.isFinite(litrosPorUnidade) || !Number.isFinite(deslocamento)) {
+      continue;
+    }
+
+    totalLitros += litrosPorUnidade * deslocamento;
+    totalDeslocamento += deslocamento;
+  }
+
+  if (totalDeslocamento <= 0) return null;
+  const taxa = totalLitros / totalDeslocamento;
+  return { valor: taxa, exibicao: fmtTaxaConsumo(taxa, porHora) };
+}
+
 function normalizarIntervalo(
   raw: unknown,
   index: number,
@@ -241,9 +689,40 @@ function veiculoBrutoParaTela(raw: unknown): VeiculoConsumoCusto | null {
       ? item.intervalos
       : [];
 
-  const intervalos = intervalosBrutos
+  let intervalos = intervalosBrutos
     .map((iv, index) => normalizarIntervalo(iv, index, equipmentId))
     .filter((iv): iv is IntervaloHistorico => iv != null);
+
+  const abastecimentosBrutos = Array.isArray(item.historicoAbastecimentos)
+    ? item.historicoAbastecimentos
+    : Array.isArray(item.abastecimentos)
+      ? item.abastecimentos
+      : [];
+
+  const abastecimentos = abastecimentosBrutos
+    .map((ab, index) => normalizarAbastecimento(ab, index, equipmentId))
+    .filter((ab): ab is AbastecimentoHistorico => ab != null);
+
+  if (intervalos.length === 0 && abastecimentosBrutos.length >= 2) {
+    intervalos = derivarIntervalosDeAbastecimentos(
+      abastecimentosBrutos,
+      equipmentId,
+      porHora,
+    );
+  }
+
+  const mediaConsumoDerivada =
+    consumoMedio?.valor == null
+      ? mediaConsumoDeAbastecimentos(abastecimentosBrutos, porHora) ??
+        (intervalos.length > 0
+          ? mediaTaxaIntervalos(intervalos, porHora)
+          : null)
+      : null;
+
+  const mediaCustoDerivada =
+    custoMedio?.valor == null
+      ? mediaCustoDeAbastecimentos(abastecimentosBrutos, porHora)
+      : null;
 
   return {
     id: equipmentId,
@@ -258,14 +737,29 @@ function veiculoBrutoParaTela(raw: unknown): VeiculoConsumoCusto | null {
     ),
     labelCusto: rotuloMetrica(custoMedio, porHora ? "Custo /h" : "Custo /km"),
     labelTerceira,
-    consumoValor: valorCurtoMetrica(consumoMedio),
-    consumoLabel: valorMetrica(consumoMedio),
-    custoValor: valorCurtoMetrica(custoMedio),
-    custoLabel: valorMetrica(custoMedio),
+    consumoValor: mediaConsumoDerivada
+      ? mediaConsumoDerivada.valor.toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : valorCurtoMetrica(consumoMedio),
+    consumoLabel: mediaConsumoDerivada
+      ? mediaConsumoDerivada.exibicao
+      : valorMetrica(consumoMedio),
+    custoValor: mediaCustoDerivada
+      ? mediaCustoDerivada.valor.toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : valorCurtoMetrica(custoMedio),
+    custoLabel: mediaCustoDerivada
+      ? mediaCustoDerivada.exibicao
+      : valorMetrica(custoMedio),
     valorTerceira,
     litrosLabel,
     gastoLabel,
     intervalos,
+    abastecimentos,
   };
 }
 

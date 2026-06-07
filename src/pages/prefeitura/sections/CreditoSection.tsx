@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   Car,
@@ -8,10 +8,14 @@ import {
   Plus,
   Wallet,
 } from "lucide-react";
+import { ApiError } from "../../../lib/api/client";
 import {
   creditoApi,
+  filtrarHistoricoPorPeriodo,
+  montarResumoCredito,
   type CreditoAlocacao,
-  type CreditoTela,
+  type CreditoOpcoesTela,
+  type CreditoSaldosTela,
 } from "../../../lib/api/credito";
 import type { DadosPrefeitura } from "../../../lib/hu360/types";
 import { fmtPeriodoExibicao } from "./abastecimentoVisaoGeral";
@@ -22,8 +26,6 @@ interface CreditoSectionProps {
   dados: DadosPrefeitura;
   prefeituraId: string;
 }
-
-const ATALHOS_VALOR = [200, 500, 1000, 2000, 5000];
 
 function isoInicioMes(): string {
   const d = new Date();
@@ -56,27 +58,28 @@ function fmtValorInput(n: number): string {
   });
 }
 
-function fmtMoeda(n: number): string {
-  return n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function dataHojeLabel(): string {
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = d.getFullYear();
-  return `${dd}/${mm}/${yy}`;
+function labelAlocacao(
+  opcoes: CreditoOpcoesTela | null,
+  alocacao: CreditoAlocacao,
+): string {
+  const value = alocacao === "equipamento" ? "equipment" : "workFront";
+  return (
+    opcoes?.typeOptions.find((o) => o.value === value)?.label ??
+    (alocacao === "equipamento" ? "Equipamento" : "Frente de trabalho")
+  );
 }
 
 export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
   const [periodoInicio, setPeriodoInicio] = useState(isoInicioMes);
   const [periodoFim, setPeriodoFim] = useState(isoHoje);
-  const [dados, setDados] = useState<CreditoTela | null>(null);
+  const [opcoes, setOpcoes] = useState<CreditoOpcoesTela | null>(null);
+  const [historicoCompleto, setHistoricoCompleto] = useState<
+    Awaited<ReturnType<typeof creditoApi.listar>>
+  >([]);
+  const [saldos, setSaldos] = useState<CreditoSaldosTela>({
+    saldosEquipamento: [],
+    saldosFrente: [],
+  });
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -91,29 +94,46 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
     text: string;
   } | null>(null);
 
+  const periodoExibicao = fmtPeriodoExibicao(periodoInicio, periodoFim);
+
+  const dados = useMemo(() => {
+    const historico = filtrarHistoricoPorPeriodo(
+      historicoCompleto,
+      periodoInicio,
+      periodoFim,
+    );
+    return montarResumoCredito(historico, periodoExibicao, saldos);
+  }, [historicoCompleto, periodoInicio, periodoFim, periodoExibicao, saldos]);
+
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
     setCarregando(true);
     setErro(null);
     try {
-      const r = await creditoApi.listarPorPeriodo(
-        prefeituraId,
-        periodoInicio,
-        periodoFim,
-      );
-      setDados(r);
+      const [opts, lista, saldosData] = await Promise.all([
+        creditoApi.obterOpcoes(prefeituraId),
+        creditoApi.listar(prefeituraId),
+        creditoApi.obterSaldos(prefeituraId),
+      ]);
+      setOpcoes(opts);
+      setHistoricoCompleto(lista);
+      setSaldos(saldosData);
       setResponsavel((atual) =>
-        r.responsaveis.includes(atual) ? atual : (r.responsaveis[0] ?? ""),
+        opts.responsaveis.includes(atual)
+          ? atual
+          : (opts.responsaveis[0] ?? "Financeiro"),
       );
     } catch (e) {
-      setDados(null);
+      setOpcoes(null);
+      setHistoricoCompleto([]);
+      setSaldos({ saldosEquipamento: [], saldosFrente: [] });
       setErro(
         e instanceof Error ? e.message : "Não foi possível carregar o crédito.",
       );
     } finally {
       setCarregando(false);
     }
-  }, [prefeituraId, periodoInicio, periodoFim]);
+  }, [prefeituraId]);
 
   useEffect(() => {
     void carregar();
@@ -123,47 +143,49 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
     setDestinoId("");
   }, [alocacao]);
 
-  const periodoExibicao =
-    dados?.periodoLabel || fmtPeriodoExibicao(periodoInicio, periodoFim);
+  const atalhosValor = opcoes?.suggestedAmounts ?? [200, 500, 1000, 2000, 5000];
 
-  const opcoesDestino =
-    alocacao === "equipamento"
-      ? (dados?.equipamentos ?? [])
-      : (dados?.frentes ?? []);
-
-  const podeExportar = !carregando && (dados?.historico.length ?? 0) > 0;
+  const podeExportar = !carregando && dados.historico.length > 0;
 
   const handleExportar = useCallback(() => {
-    if (!podeExportar || !dados) return;
+    if (!podeExportar) return;
     baixarPlanilhaCredito(dados.historico, {
       prefeituraId,
       periodoInicio,
       periodoFim,
     });
-  }, [podeExportar, dados, prefeituraId, periodoInicio, periodoFim]);
+  }, [podeExportar, dados.historico, prefeituraId, periodoInicio, periodoFim]);
 
   const handleLancar = async (e: FormEvent) => {
     e.preventDefault();
     setFormMsg(null);
 
     const valor = parseValorInput(valorStr);
-    if (!destinoId) {
-      setFormMsg({ tone: "err", text: "Selecione o destino do crédito." });
-      return;
-    }
-    if (valor <= 0) {
-      setFormMsg({ tone: "err", text: "Informe um valor maior que zero." });
-      return;
-    }
+    const destino = destinoId.trim();
 
-    const opcao = opcoesDestino.find((o) => o.id === destinoId);
-    const destinoLabel = opcao?.label ?? destinoId;
+    if (!destino) {
+      setFormMsg({
+        tone: "err",
+        text:
+          alocacao === "equipamento"
+            ? "Informe a placa ou o chassi do equipamento."
+            : "Selecione a frente de trabalho.",
+      });
+      return;
+    }
+    if (valor < 0.01) {
+      setFormMsg({
+        tone: "err",
+        text: "Informe um valor maior que zero.",
+      });
+      return;
+    }
 
     setSalvando(true);
     try {
       await creditoApi.lancar(prefeituraId, {
         alocacao,
-        destinoId,
+        destinoId: destino,
         valor,
         responsavel,
         observacao: observacao.trim() || undefined,
@@ -171,46 +193,16 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
       setFormMsg({ tone: "ok", text: "Crédito lançado com sucesso." });
       setValorStr("0,00");
       setObservacao("");
+      setDestinoId("");
       await carregar();
-    } catch {
-      if (!dados) {
-        setFormMsg({
-          tone: "err",
-          text: "Não foi possível lançar o crédito.",
-        });
-        setSalvando(false);
-        return;
-      }
-
-      const novo = {
-        id: `local-${Date.now()}`,
-        dataLabel: dataHojeLabel(),
-        tipo: alocacao,
-        tipoLabel: alocacao === "equipamento" ? "Equipamento" : "Frente",
-        destino: destinoLabel,
-        valorLabel: `+${fmtMoeda(valor)}`,
-        responsavel,
-        observacao: observacao.trim() || "—",
-      };
-
-      setDados({
-        ...dados,
-        historico: [novo, ...dados.historico],
-        qtdCreditosEquipamento:
-          alocacao === "equipamento"
-            ? dados.qtdCreditosEquipamento + 1
-            : dados.qtdCreditosEquipamento,
-        qtdCreditosFrente:
-          alocacao === "frente"
-            ? dados.qtdCreditosFrente + 1
-            : dados.qtdCreditosFrente,
-      });
-      setFormMsg({
-        tone: "ok",
-        text: "Crédito registrado localmente (API indisponível).",
-      });
-      setValorStr("0,00");
-      setObservacao("");
+    } catch (e) {
+      const msg =
+        e instanceof ApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Não foi possível lançar o crédito.";
+      setFormMsg({ tone: "err", text: msg });
     } finally {
       setSalvando(false);
     }
@@ -223,7 +215,7 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
           <h1 className="pf-section-title">Crédito de Abastecimento</h1>
           <p className="crd-periodo-label">
             <CalendarDays size={15} strokeWidth={2} aria-hidden />
-            Período: {periodoExibicao}
+            Período: {dados.periodoLabel}
           </p>
         </div>
 
@@ -279,7 +271,7 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
             <Wallet size={18} strokeWidth={2.25} />
           </div>
           <div className="crd-kpi-body">
-            <strong>{dados?.totalCreditadoLabel ?? "—"}</strong>
+            <strong>{carregando ? "—" : dados.totalCreditadoLabel}</strong>
             <span>Total creditado</span>
           </div>
         </article>
@@ -288,7 +280,7 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
             <Car size={18} strokeWidth={2.25} />
           </div>
           <div className="crd-kpi-body">
-            <strong>{dados?.qtdCreditosEquipamento ?? 0}</strong>
+            <strong>{carregando ? "—" : dados.qtdCreditosEquipamento}</strong>
             <span>Créditos por equipamento</span>
           </div>
         </article>
@@ -297,7 +289,7 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
             <Layers size={18} strokeWidth={2.25} />
           </div>
           <div className="crd-kpi-body">
-            <strong>{dados?.qtdCreditosFrente ?? 0}</strong>
+            <strong>{carregando ? "—" : dados.qtdCreditosFrente}</strong>
             <span>Créditos por frente</span>
           </div>
         </article>
@@ -310,42 +302,63 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
           <div className="crd-form-field">
             <span>Alocar por</span>
             <div className="crd-alocacao" role="group" aria-label="Alocar por">
-            <button
-              type="button"
-              className={`crd-alocacao-btn${alocacao === "equipamento" ? " crd-alocacao-btn--ativo" : ""}`}
-              onClick={() => setAlocacao("equipamento")}
-            >
-              Equipamento
-            </button>
-            <button
-              type="button"
-              className={`crd-alocacao-btn${alocacao === "frente" ? " crd-alocacao-btn--ativo" : ""}`}
-              onClick={() => setAlocacao("frente")}
-            >
-              Frente de trabalho
-            </button>
+              <button
+                type="button"
+                className={`crd-alocacao-btn${alocacao === "equipamento" ? " crd-alocacao-btn--ativo" : ""}`}
+                onClick={() => setAlocacao("equipamento")}
+              >
+                {labelAlocacao(opcoes, "equipamento")}
+              </button>
+              <button
+                type="button"
+                className={`crd-alocacao-btn${alocacao === "frente" ? " crd-alocacao-btn--ativo" : ""}`}
+                onClick={() => setAlocacao("frente")}
+              >
+                {labelAlocacao(opcoes, "frente")}
+              </button>
             </div>
           </div>
 
           <div className="crd-form-field">
-            <label htmlFor="crd-destino">
-              {alocacao === "equipamento"
-                ? "Equipamento / placa"
-                : "Frente de trabalho"}
-            </label>
-            <select
-              id="crd-destino"
-              value={destinoId}
-              onChange={(ev) => setDestinoId(ev.target.value)}
-              disabled={carregando}
-            >
-              <option value="">Selecione…</option>
-              {opcoesDestino.map((op) => (
-                <option key={op.id} value={op.id}>
-                  {op.label}
-                </option>
-              ))}
-            </select>
+            {alocacao === "equipamento" ? (
+              <>
+                <label htmlFor="crd-destino">Equipamento / placa / chassi</label>
+                <input
+                  id="crd-destino"
+                  type="text"
+                  list="crd-equip-list"
+                  value={destinoId}
+                  onChange={(ev) => setDestinoId(ev.target.value)}
+                  placeholder="Digite ou selecione placa/chassi…"
+                  disabled={carregando}
+                  autoComplete="off"
+                />
+                <datalist id="crd-equip-list">
+                  {(opcoes?.equipamentos ?? []).map((op) => (
+                    <option key={op.id} value={op.id}>
+                      {op.label}
+                    </option>
+                  ))}
+                </datalist>
+              </>
+            ) : (
+              <>
+                <label htmlFor="crd-destino">Frente de trabalho</label>
+                <select
+                  id="crd-destino"
+                  value={destinoId}
+                  onChange={(ev) => setDestinoId(ev.target.value)}
+                  disabled={carregando}
+                >
+                  <option value="">Selecione…</option>
+                  {(opcoes?.frentes ?? []).map((op) => (
+                    <option key={op.id} value={op.id}>
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
 
           <div className="crd-form-field">
@@ -362,15 +375,13 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
               }}
             />
             <div className="crd-atalhos">
-              {ATALHOS_VALOR.map((v) => (
+              {atalhosValor.map((v) => (
                 <button
                   key={v}
                   type="button"
                   className="crd-atalho"
                   onClick={() =>
-                    setValorStr(
-                      fmtValorInput(parseValorInput(valorStr) + v),
-                    )
+                    setValorStr(fmtValorInput(parseValorInput(valorStr) + v))
                   }
                 >
                   + {v.toLocaleString("pt-BR")}
@@ -386,7 +397,7 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
               value={responsavel}
               onChange={(ev) => setResponsavel(ev.target.value)}
             >
-              {(dados?.responsaveis ?? ["Financeiro"]).map((r) => (
+              {(opcoes?.responsaveis ?? ["Financeiro"]).map((r) => (
                 <option key={r} value={r}>
                   {r}
                 </option>
@@ -431,10 +442,10 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
             <div className="crd-saldos-grid">
               {carregando ? (
                 <p className="crd-table-empty">Carregando…</p>
-              ) : (dados?.saldosEquipamento.length ?? 0) === 0 ? (
+              ) : dados.saldosEquipamento.length === 0 ? (
                 <p className="crd-table-empty">Nenhum saldo por equipamento.</p>
               ) : (
-                dados!.saldosEquipamento.map((eq) => (
+                dados.saldosEquipamento.map((eq) => (
                   <article key={eq.id} className="crd-saldo-card">
                     <strong>{eq.nome}</strong>
                     <span>
@@ -461,10 +472,10 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
             <div className="crd-saldos-grid">
               {carregando ? (
                 <p className="crd-table-empty">Carregando…</p>
-              ) : (dados?.saldosFrente.length ?? 0) === 0 ? (
+              ) : dados.saldosFrente.length === 0 ? (
                 <p className="crd-table-empty">Nenhum saldo por frente.</p>
               ) : (
-                dados!.saldosFrente.map((fr) => (
+                dados.saldosFrente.map((fr) => (
                   <article key={fr.id} className="crd-saldo-card">
                     <strong>{fr.nome}</strong>
                     <div className="crd-saldo-valor">{fr.saldoLabel}</div>
@@ -511,14 +522,14 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
                         Carregando histórico…
                       </td>
                     </tr>
-                  ) : (dados?.historico.length ?? 0) === 0 ? (
+                  ) : dados.historico.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="crd-table-empty">
                         Nenhum lançamento no período.
                       </td>
                     </tr>
                   ) : (
-                    dados!.historico.map((item) => (
+                    dados.historico.map((item) => (
                       <tr key={item.id}>
                         <td>{item.dataLabel}</td>
                         <td>

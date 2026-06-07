@@ -53,6 +53,8 @@ export interface AbastecimentoListaApi {
     type: string;
   };
   origin: string;
+  /** Posto credenciado; quando preenchido, origin costuma ser "Posto {nome}". */
+  postoId?: string | null;
   liters: number;
   value: number | null;
   reading: string;
@@ -78,7 +80,12 @@ export interface AbastecimentoTela {
   local: string;
 }
 
-function origemTipo(origin: string): OrigemAbastecimento {
+/** Classifica posto vs comboio. Prioriza postoId até o back corrigir origin. */
+export function classificarOrigemAbastecimento(
+  origin: string,
+  postoId?: string | null,
+): OrigemAbastecimento {
+  if (postoId != null && String(postoId).trim() !== "") return "posto";
   return origin.toLowerCase().includes("posto") ? "posto" : "comboio";
 }
 
@@ -93,6 +100,39 @@ function addDaysIso(iso: string, days: number): string {
   return `${yy}-${mm}-${dd}`;
 }
 
+function parseValorAbastecimento(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const limpo = v.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizarItemLista(raw: unknown): AbastecimentoListaApi | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const vehicle = (r.vehicle ?? r.veiculo ?? null) as Record<string, unknown> | null;
+
+  return {
+    id: asStr(r.id),
+    dateTime: asStr(r.dateTime ?? r.dataHora ?? r.data),
+    vehicle: {
+      name: asStr(vehicle?.name ?? vehicle?.nome ?? r.veiculo),
+      plate: asStr(vehicle?.plate ?? vehicle?.placa ?? r.placa),
+      type: asStr(vehicle?.type ?? vehicle?.tipo ?? r.tipo),
+    },
+    origin: asStr(r.origin ?? r.origem) || "Comboio",
+    postoId: (r.postoId ?? r.posto_id ?? null) as string | null,
+    liters: Number(r.liters ?? r.litros ?? 0) || 0,
+    value: parseValorAbastecimento(r.value ?? r.valor ?? r.valorTotal ?? r.total),
+    reading: asStr(r.reading ?? r.leitura ?? r.leituraLabel),
+    meterPhoto: asStr(r.meterPhoto) || undefined,
+    local: asStr(r.local),
+    createdAt: asStr(r.createdAt),
+  };
+}
+
 export function abastecimentoListaParaTela(
   item: AbastecimentoListaApi,
 ): AbastecimentoTela {
@@ -102,7 +142,7 @@ export function abastecimentoListaParaTela(
     veiculo: item.vehicle.name,
     placa: item.vehicle.plate,
     tipoVeiculo: item.vehicle.type,
-    origemTipo: origemTipo(item.origin),
+    origemTipo: classificarOrigemAbastecimento(item.origin, item.postoId),
     origemNome: item.origin,
     litros: item.liters,
     valor: item.value,
@@ -134,6 +174,9 @@ export const abastecimentosApi = {
     const r = await api.get<{ data: AbastecimentoListaApi[] }>(
       `/abastecimentos/${prefeituraId}?${qs}`,
     );
-    return (r.data ?? []).map(abastecimentoListaParaTela);
+    return (r.data ?? [])
+      .map(normalizarItemLista)
+      .filter((item): item is AbastecimentoListaApi => item != null)
+      .map(abastecimentoListaParaTela);
   },
 };

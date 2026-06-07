@@ -32,7 +32,7 @@ function chaveCache(
   inicio: string,
   fim: string,
 ): string {
-  return `${prefeituraId}|${inicio}|${fim}|v2`;
+  return `${prefeituraId}|${inicio}|${fim}|v4`;
 }
 
 /** Evita nova chamada à API para o mesmo prefeitura + período. */

@@ -43,7 +43,7 @@ function chaveCache(
   inicio: string,
   fim: string,
 ): string {
-  return `${prefeituraId}|${inicio}|${fim}|v5`;
+  return `${prefeituraId}|${inicio}|${fim}|v12`;
 }
 
 const cacheConsumoCusto = new Map<string, ConsumoCustoTela>();
@@ -120,16 +120,14 @@ function CardVeiculo({
       >
         <div className="ccu-card-expand-inner">
           <div className="ccu-card-detalhe">
-            <div className="ccu-card-divider" aria-hidden />
-
             <div className="ccu-historico">
-              <h3 className="ccu-historico-titulo">Histórico de intervalos</h3>
+              <h3 className="ccu-historico-titulo">
+                {item.intervalos.length > 0
+                  ? "Histórico de intervalos"
+                  : "Histórico de abastecimentos"}
+              </h3>
 
-              {item.intervalos.length === 0 ? (
-                <p className="ccu-historico-vazio">
-                  Sem intervalos com leituras consecutivas no período.
-                </p>
-              ) : (
+              {item.intervalos.length > 0 ? (
                 <ul className="ccu-historico-lista">
                   {item.intervalos.map((intervalo) => (
                     <li key={intervalo.id} className="ccu-historico-row">
@@ -150,6 +148,34 @@ function CardVeiculo({
                     </li>
                   ))}
                 </ul>
+              ) : item.abastecimentos.length > 0 ? (
+                <ul className="ccu-historico-lista">
+                  {item.abastecimentos.map((abastecimento) => (
+                    <li
+                      key={abastecimento.id}
+                      className="ccu-historico-row ccu-historico-row--abast"
+                    >
+                      <span className="ccu-historico-periodo">
+                        {abastecimento.dateTimeLabel}
+                      </span>
+                      <span className="ccu-historico-duracao">
+                        {abastecimento.leituraLabel}
+                      </span>
+                      <span className="ccu-historico-consumo">
+                        {abastecimento.litrosLabel}
+                      </span>
+                      <span
+                        className={`ccu-historico-custo${abastecimento.gastoLabel === "—" ? " ccu-historico-custo--muted" : ""}`}
+                      >
+                        {abastecimento.gastoLabel}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="ccu-historico-vazio">
+                  Sem abastecimentos no período.
+                </p>
               )}
             </div>
           </div>

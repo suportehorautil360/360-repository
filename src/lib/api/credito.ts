@@ -1,11 +1,20 @@
-/** Crédito de abastecimento — GET/POST /credito/:prefeituraId (quando disponível). */
+/** Crédito de abastecimento — GET/POST /creditos (back-360). */
 import { api } from "./client";
 
+export type CreditType = "equipment" | "workFront";
 export type CreditoAlocacao = "equipamento" | "frente";
 
 export interface CreditoOpcao {
   id: string;
   label: string;
+}
+
+export interface CreditoOpcoesTela {
+  typeOptions: Array<{ value: CreditType; label: string }>;
+  equipamentos: CreditoOpcao[];
+  frentes: CreditoOpcao[];
+  responsaveis: string[];
+  suggestedAmounts: number[];
 }
 
 export interface SaldoEquipamentoTela {
@@ -29,25 +38,28 @@ export interface SaldoFrenteTela {
 export interface LancamentoCreditoTela {
   id: string;
   dataLabel: string;
+  createdAt: string;
   tipo: CreditoAlocacao;
+  tipoApi: CreditType;
   tipoLabel: string;
   destino: string;
+  amount: number;
   valorLabel: string;
   responsavel: string;
   observacao: string;
 }
 
-export interface CreditoTela {
+export interface CreditoSaldosTela {
+  saldosEquipamento: SaldoEquipamentoTela[];
+  saldosFrente: SaldoFrenteTela[];
+}
+
+export interface CreditoResumoTela extends CreditoSaldosTela {
   periodoLabel: string;
   totalCreditadoLabel: string;
   qtdCreditosEquipamento: number;
   qtdCreditosFrente: number;
-  saldosEquipamento: SaldoEquipamentoTela[];
-  saldosFrente: SaldoFrenteTela[];
   historico: LancamentoCreditoTela[];
-  equipamentos: CreditoOpcao[];
-  frentes: CreditoOpcao[];
-  responsaveis: string[];
 }
 
 export interface LancarCreditoInput {
@@ -58,174 +70,256 @@ export interface LancarCreditoInput {
   observacao?: string;
 }
 
-/** Payload bruto esperado do backend. */
-interface CreditoPayloadApi {
-  periodoLabel?: string;
-  totalCreditadoLabel?: string;
-  qtdCreditosEquipamento?: number;
-  qtdCreditosFrente?: number;
-  saldosEquipamento?: SaldoEquipamentoTela[];
-  saldosFrente?: SaldoFrenteTela[];
-  historico?: LancamentoCreditoTela[];
-  equipamentos?: CreditoOpcao[];
-  frentes?: CreditoOpcao[];
-  responsaveis?: string[];
+interface CreditoFormOpcoesApi {
+  typeOptions?: Array<{ value: CreditType; label: string }>;
+  equipment?: Array<{ id: string; label: string }>;
+  workFronts?: Array<{ id: string; label: string }>;
+  responsibleOptions?: string[];
+  suggestedAmounts?: number[];
 }
 
-function addDaysIso(iso: string, days: number): string {
-  const [y, mo, da] = iso.split("-").map(Number);
-  const dt = new Date(y, mo - 1, da);
-  dt.setDate(dt.getDate() + days);
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
+interface CreditoListItemApi {
+  id: string;
+  type: CreditType;
+  typeLabel?: string;
+  targetLabel?: string;
+  amount: number;
+  amountLabel?: string;
+  responsible?: string;
+  observation?: string | null;
+  createdAt?: string;
+  dateLabel?: string;
 }
 
-function payloadParaTela(payload: CreditoPayloadApi): CreditoTela {
+interface CreditoCriadoApi extends CreditoListItemApi {
+  prefeituraId?: string;
+  equipmentId?: string | null;
+  plateOrChassis?: string | null;
+  workFrontId?: string | null;
+}
+
+interface SaldoEquipamentoApi {
+  id: string;
+  placa?: string;
+  nome?: string;
+  local?: string;
+  saldo?: number;
+  saldoLabel?: string;
+  creditado?: number;
+  creditadoLabel?: string;
+  gasto?: number;
+  gastoLabel?: string;
+}
+
+interface SaldoFrenteApi {
+  id: string;
+  nome?: string;
+  saldo?: number;
+  saldoLabel?: string;
+  creditado?: number;
+  creditadoLabel?: string;
+  gasto?: number;
+  gastoLabel?: string;
+}
+
+interface CreditoSaldosPayloadApi {
+  saldosEquipamento?: SaldoEquipamentoApi[];
+  saldosFrente?: SaldoFrenteApi[];
+}
+
+function fmtMoeda(n: number): string {
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function dataLabelDeIso(iso?: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+function tipoApiParaTela(type: CreditType): CreditoAlocacao {
+  return type === "equipment" ? "equipamento" : "frente";
+}
+
+function tipoLabelPadrao(type: CreditType): string {
+  return type === "equipment" ? "Equipamento" : "Frente";
+}
+
+function itemApiParaTela(item: CreditoListItemApi): LancamentoCreditoTela {
+  const amount = Number.isFinite(item.amount) ? item.amount : 0;
   return {
-    periodoLabel: payload.periodoLabel?.trim() ?? "",
-    totalCreditadoLabel: payload.totalCreditadoLabel?.trim() ?? "R$ 0,00",
-    qtdCreditosEquipamento: payload.qtdCreditosEquipamento ?? 0,
-    qtdCreditosFrente: payload.qtdCreditosFrente ?? 0,
-    saldosEquipamento: payload.saldosEquipamento ?? [],
-    saldosFrente: payload.saldosFrente ?? [],
-    historico: payload.historico ?? [],
-    equipamentos: payload.equipamentos ?? [],
-    frentes: payload.frentes ?? [],
-    responsaveis: payload.responsaveis ?? ["Financeiro"],
+    id: item.id,
+    dataLabel: item.dateLabel?.trim() || dataLabelDeIso(item.createdAt),
+    createdAt: item.createdAt ?? "",
+    tipo: tipoApiParaTela(item.type),
+    tipoApi: item.type,
+    tipoLabel: item.typeLabel?.trim() || tipoLabelPadrao(item.type),
+    destino: item.targetLabel?.trim() || "—",
+    amount,
+    valorLabel: item.amountLabel?.trim() || `+ ${fmtMoeda(amount)}`,
+    responsavel: item.responsible?.trim() || "—",
+    observacao: item.observation?.trim() || "—",
   };
 }
 
-/** Dados de demonstração até o endpoint estar disponível. */
-export function creditoDadosMock(): CreditoTela {
+function opcoesApiParaTela(data: CreditoFormOpcoesApi): CreditoOpcoesTela {
   return {
-    periodoLabel: "",
-    totalCreditadoLabel: "R$ 5.300,00",
-    qtdCreditosEquipamento: 2,
-    qtdCreditosFrente: 2,
-    saldosEquipamento: [
-      {
-        id: "eq-1",
-        placa: "STR-004",
-        nome: "Strada Fretamento",
-        local: "Apoio Campo",
-        saldoLabel: "R$ 325,44",
-        creditadoLabel: "R$ 500,00",
-        gastoLabel: "R$ 174,56",
-      },
-      {
-        id: "eq-2",
-        placa: "HIL-012",
-        nome: "Hilux Cabine Dupla",
-        local: "Administrativo",
-        saldoLabel: "R$ 217,90",
-        creditadoLabel: "R$ 400,00",
-        gastoLabel: "R$ 182,10",
-      },
+    typeOptions: data.typeOptions ?? [
+      { value: "equipment", label: "Equipamento" },
+      { value: "workFront", label: "Frente de trabalho" },
     ],
-    saldosFrente: [
-      {
-        id: "fr-1",
-        nome: "Apoio Campo",
-        saldoLabel: "R$ 427,44",
-        creditadoLabel: "R$ 1.500,00",
-        gastoLabel: "R$ 1.072,56",
-      },
-      {
-        id: "fr-2",
-        nome: "Administrativo",
-        saldoLabel: "R$ 1.300,00",
-        creditadoLabel: "R$ 2.000,00",
-        gastoLabel: "R$ 700,00",
-      },
-    ],
-    historico: [
-      {
-        id: "1",
-        dataLabel: "28/05/2026",
-        tipo: "frente",
-        tipoLabel: "Frente",
-        destino: "Apoio Campo",
-        valorLabel: "+R$ 1.000,00",
-        responsavel: "Financeiro",
-        observacao: "Previsão maio",
-      },
-      {
-        id: "2",
-        dataLabel: "27/05/2026",
-        tipo: "equipamento",
-        tipoLabel: "Equipamento",
-        destino: "ABC-1234 — Escavadeira CAT 320",
-        valorLabel: "+R$ 500,00",
-        responsavel: "Financeiro",
-        observacao: "—",
-      },
-      {
-        id: "3",
-        dataLabel: "27/05/2026",
-        tipo: "frente",
-        tipoLabel: "Frente",
-        destino: "Administrativo",
-        valorLabel: "+R$ 2.000,00",
-        responsavel: "Gestor",
-        observacao: "Crédito mensal",
-      },
-      {
-        id: "4",
-        dataLabel: "26/05/2026",
-        tipo: "equipamento",
-        tipoLabel: "Equipamento",
-        destino: "STR-004 — Strada Fretamento",
-        valorLabel: "+R$ 500,00",
-        responsavel: "Financeiro",
-        observacao: "—",
-      },
-    ],
-    equipamentos: [
-      {
-        id: "eq-1",
-        label: "STR-004 — Strada Fretamento | Apoio Campo",
-      },
-      {
-        id: "eq-2",
-        label: "HIL-012 — Hilux Cabine Dupla | Administrativo",
-      },
-      {
-        id: "eq-3",
-        label: "ABC-1234 — Escavadeira CAT 320 | Talhão Norte",
-      },
-    ],
-    frentes: [
-      { id: "fr-1", label: "Apoio Campo" },
-      { id: "fr-2", label: "Administrativo" },
-    ],
-    responsaveis: ["Financeiro", "Gestor", "Diretoria"],
+    equipamentos: (data.equipment ?? []).map((e) => ({
+      id: e.id,
+      label: e.label,
+    })),
+    frentes: (data.workFronts ?? []).map((f) => ({
+      id: f.id,
+      label: f.label,
+    })),
+    responsaveis: data.responsibleOptions ?? ["Financeiro"],
+    suggestedAmounts: data.suggestedAmounts ?? [200, 500, 1000, 2000, 5000],
   };
+}
+
+export function filtrarHistoricoPorPeriodo(
+  historico: LancamentoCreditoTela[],
+  inicio: string,
+  fim: string,
+): LancamentoCreditoTela[] {
+  return historico.filter((item) => {
+    const dia = item.createdAt?.slice(0, 10);
+    if (!dia) return true;
+    return dia >= inicio && dia <= fim;
+  });
+}
+
+function labelOuMoeda(label: string | undefined, valor: number | undefined): string {
+  const t = label?.trim();
+  if (t) return t;
+  return fmtMoeda(Number.isFinite(valor) ? (valor as number) : 0);
+}
+
+function saldoEquipamentoParaTela(item: SaldoEquipamentoApi): SaldoEquipamentoTela {
+  return {
+    id: item.id,
+    placa: item.placa?.trim() || "—",
+    nome: item.nome?.trim() || "—",
+    local: item.local?.trim() || "—",
+    saldoLabel: labelOuMoeda(item.saldoLabel, item.saldo),
+    creditadoLabel: labelOuMoeda(item.creditadoLabel, item.creditado),
+    gastoLabel: labelOuMoeda(item.gastoLabel, item.gasto),
+  };
+}
+
+function saldoFrenteParaTela(item: SaldoFrenteApi): SaldoFrenteTela {
+  return {
+    id: item.id,
+    nome: item.nome?.trim() || "—",
+    saldoLabel: labelOuMoeda(item.saldoLabel, item.saldo),
+    creditadoLabel: labelOuMoeda(item.creditadoLabel, item.creditado),
+    gastoLabel: labelOuMoeda(item.gastoLabel, item.gasto),
+  };
+}
+
+function saldosPayloadParaTela(data: CreditoSaldosPayloadApi): CreditoSaldosTela {
+  return {
+    saldosEquipamento: (data.saldosEquipamento ?? []).map(saldoEquipamentoParaTela),
+    saldosFrente: (data.saldosFrente ?? []).map(saldoFrenteParaTela),
+  };
+}
+
+export function montarResumoCredito(
+  historico: LancamentoCreditoTela[],
+  periodoLabel: string,
+  saldos: CreditoSaldosTela = { saldosEquipamento: [], saldosFrente: [] },
+): CreditoResumoTela {
+  const total = historico.reduce((s, h) => s + h.amount, 0);
+  return {
+    periodoLabel,
+    totalCreditadoLabel: fmtMoeda(total),
+    qtdCreditosEquipamento: historico.filter((h) => h.tipo === "equipamento")
+      .length,
+    qtdCreditosFrente: historico.filter((h) => h.tipo === "frente").length,
+    saldosEquipamento: saldos.saldosEquipamento,
+    saldosFrente: saldos.saldosFrente,
+    historico,
+  };
+}
+
+function alocacaoParaType(alocacao: CreditoAlocacao): CreditType {
+  return alocacao === "equipamento" ? "equipment" : "workFront";
 }
 
 export const creditoApi = {
-  async listarPorPeriodo(
-    prefeituraId: string,
-    startDate: string,
-    endDateInclusive: string,
-  ): Promise<CreditoTela> {
-    const endDateApi = addDaysIso(endDateInclusive, 1);
-    const qs = new URLSearchParams({ startDate, endDate: endDateApi });
-    try {
-      const r = await api.get<{ data: CreditoPayloadApi }>(
-        `/credito/${prefeituraId}?${qs}`,
-      );
-      return payloadParaTela(r.data ?? {});
-    } catch {
-      return creditoDadosMock();
-    }
+  async obterOpcoes(prefeituraId: string): Promise<CreditoOpcoesTela> {
+    const r = await api.get<{ data: CreditoFormOpcoesApi }>(
+      `/creditos/opcoes/${prefeituraId}`,
+    );
+    return opcoesApiParaTela(r.data ?? {});
+  },
+
+  async listar(prefeituraId: string): Promise<LancamentoCreditoTela[]> {
+    const r = await api.get<{ data: CreditoListItemApi[] }>(
+      `/creditos/${prefeituraId}`,
+    );
+    return (r.data ?? []).map(itemApiParaTela);
+  },
+
+  async obterSaldos(prefeituraId: string): Promise<CreditoSaldosTela> {
+    const r = await api.get<{ data: CreditoSaldosPayloadApi }>(
+      `/creditos/saldos/${prefeituraId}`,
+    );
+    return saldosPayloadParaTela(r.data ?? {});
   },
 
   async lancar(
     prefeituraId: string,
     input: LancarCreditoInput,
-  ): Promise<void> {
-    await api.post(`/credito/${prefeituraId}`, input);
+  ): Promise<LancamentoCreditoTela> {
+    const base = {
+      prefeituraId,
+      amount: input.valor,
+      responsible: input.responsavel,
+      ...(input.observacao?.trim()
+        ? { observation: input.observacao.trim() }
+        : {}),
+    };
+
+    const payload =
+      input.alocacao === "equipamento"
+        ? {
+            ...base,
+            type: "equipment" as const,
+            plateOrChassis: input.destinoId.trim(),
+          }
+        : {
+            ...base,
+            type: "workFront" as const,
+            workFrontId: input.destinoId,
+          };
+
+    const r = await api.post<{ data: CreditoCriadoApi }>("/creditos", payload);
+    const criado = r.data;
+    if (!criado?.id) {
+      return itemApiParaTela({
+        id: `tmp-${Date.now()}`,
+        type: alocacaoParaType(input.alocacao),
+        amount: input.valor,
+        targetLabel: input.destinoId,
+        responsible: input.responsavel,
+        observation: input.observacao ?? null,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return itemApiParaTela(criado);
   },
 };

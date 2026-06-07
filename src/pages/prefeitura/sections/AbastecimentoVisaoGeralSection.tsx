@@ -96,7 +96,7 @@ function chaveCache(
 
 ): string {
 
-  return `${prefeituraId}|${inicio}|${fim}|v2`;
+  return `${prefeituraId}|${inicio}|${fim}|v4`;
 
 }
 
