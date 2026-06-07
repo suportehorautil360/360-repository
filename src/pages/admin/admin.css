@@ -288,7 +288,7 @@
 .topbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   gap: 12px 16px;
   margin-bottom: 18px;
@@ -656,6 +656,107 @@
   grid-template-columns: repeat(4, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
+}
+
+/* ===== Dashboard hub mestre ===== */
+.hub-dashboard-title {
+  margin: 0 0 18px;
+  font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.hub-dashboard-metrics {
+  margin-bottom: 16px;
+}
+
+.hub-dashboard-metric h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.hub-dashboard-metric-value {
+  margin: 10px 0 0;
+  font-size: clamp(1.65rem, 3vw, 2rem);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-dashboard-metric-value.is-accent {
+  color: var(--primary);
+}
+
+.hub-dashboard-table-card {
+  margin-bottom: 18px;
+}
+
+.hub-dashboard-table-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--secondary);
+}
+
+.hub-dashboard-table th {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hub-dashboard-table th:first-child,
+.hub-dashboard-table td:first-child {
+  text-align: left;
+}
+
+.hub-dashboard-table .hub-dash-num {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-dashboard-table .hub-dash-action {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.hub-dashboard-table .hub-dash-empty {
+  text-align: center;
+  color: var(--muted);
+}
+
+.hub-dashboard .hub-dash-btn {
+  margin-top: 0;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(120deg, #ff7a18, #ff9f43);
+  border: none;
+  border-radius: 10px;
+}
+
+.hub-dashboard .hub-dash-btn:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+
+#clientes .hub-dash-btn {
+  margin-top: 0;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(120deg, #ff7a18, #ff9f43);
+  border: none;
+  border-radius: 10px;
+}
+
+#clientes .hub-dash-btn:hover {
+  filter: brightness(1.07);
 }
 
 .card {

@@ -36,6 +36,16 @@ const CadastroClientesSection = lazy(() =>
     default: m.CadastroClientesSection,
   })),
 );
+const ClientesSection = lazy(() =>
+  import("./pages/admin/sections/ClientesSection").then((m) => ({
+    default: m.ClientesSection,
+  })),
+);
+const FinanceiroSection = lazy(() =>
+  import("./pages/admin/sections/FinanceiroSection").then((m) => ({
+    default: m.FinanceiroSection,
+  })),
+);
 const AcessosLoginsSection = lazy(() =>
   import("./pages/admin/sections/AcessosLoginsSection").then((m) => ({
     default: m.AcessosLoginsSection,
@@ -183,6 +193,8 @@ export function AppRoutes() {
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />
+            <Route path="clientes" element={<ClientesSection />} />
+            <Route path="financeiro" element={<FinanceiroSection />} />
             <Route
               path="funcionalidades"
               element={<FuncionalidadesSection />}
