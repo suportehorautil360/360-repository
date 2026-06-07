@@ -1613,6 +1613,10 @@ export function ChecklistControlePage() {
       setSalvandoChecklist(false);
     }
 
+    setAba("dashboard");
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setAnswers({});
     setNomeOperadorChecklist("");
     setHorimetro("");
