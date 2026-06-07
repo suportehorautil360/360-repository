@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   equipamentosApi,
@@ -274,16 +274,6 @@ export function EquipamentosSection({
           <span>Equipamentos</span>
         </p>
         <h1>Equipamentos</h1>
-
-        <div className="pf-eq-notice">
-          <span>
-            <strong>Oficinas e postos credenciados</strong> também são geridos
-            no Hub, no contexto deste município.
-          </span>
-          <Link to="/admin/equipamentos-locacao" className="pf-eq-hub-button">
-            Abrir Hub — oficinas e postos
-          </Link>
-        </div>
 
         <div className="pf-eq-metrics">
           <article>

@@ -21,7 +21,7 @@ export function AdminLayout() {
         <main className="main-content">
           <div className="topbar">
             <div>
-              <h1>Hub Mestre - Controle Operacional</h1>
+              <h1>Hub Mestre · Controle Operacional</h1>
               <p
                 id="ctxPrefeitura"
                 className="topbar-user"

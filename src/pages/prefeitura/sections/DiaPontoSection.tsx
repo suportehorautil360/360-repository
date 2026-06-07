@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Ban } from "lucide-react";
+import { ArrowLeft, Check, Ban, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   funcionariosApi,
@@ -17,6 +17,7 @@ import {
   type TipoSolicitacao,
 } from "../../../lib/api/solicitacoes-ponto";
 import { abonosApi, type Abono } from "../../../lib/api/abonos";
+import { resolverLedger } from "../../../lib/ponto/resolverLedger";
 import { limparCpf } from "../../../lib/funcionarios/cpf";
 import { diaLocal, diaDaSolicitacao } from "./ponto-dia-utils";
 import "./historico-ponto.css";
@@ -59,6 +60,7 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [reprovando, setReprovando] = useState<AlvoReprova>(null);
   const [motivo, setMotivo] = useState("");
+  const [fotoAmpliada, setFotoAmpliada] = useState("");
 
   const carregar = useCallback(async () => {
     if (!prefeituraId || !funcId) return;
@@ -89,7 +91,7 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
 
   const batidasDoDia = useMemo(
     () =>
-      batidas
+      resolverLedger(batidas)
         .filter(
           (b) =>
             mesmoNome(b.name, nome) && diaLocal(b.timestampOriginal) === dia,
@@ -205,20 +207,51 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
               ) : (
                 <ul className="dia-pt__lista">
                   {batidasDoDia.map((b) => {
-                    const st = b.status ?? "pendente";
+                    // Marcação original é sempre válida e read-only (Portaria
+                    // 671). O RH só decide sobre uma CORREÇÃO pendente.
+                    const pend = !!b.ajustePendente && !!b.ajustePendenteId;
+                    const ajusteId = b.ajustePendenteId ?? "";
                     return (
                       <li key={b.id} className="dia-pt__item">
+                        {b.photo ? (
+                          <button
+                            type="button"
+                            className="dia-pt__foto"
+                            onClick={() => setFotoAmpliada(b.photo ?? "")}
+                            aria-label="Ampliar selfie da batida"
+                          >
+                            <img src={b.photo} alt="Selfie da batida" />
+                          </button>
+                        ) : (
+                          <span
+                            className="dia-pt__foto dia-pt__foto--sem"
+                            aria-hidden="true"
+                          >
+                            <ImageIcon size={16} />
+                          </span>
+                        )}
                         <div className="dia-pt__item-info">
                           <strong>
                             {TIPO_PONTO_LABEL[b.tipo] ?? b.tipo} ·{" "}
                             {hora(b.timestampOriginal)}
                           </strong>
-                          <span className={`dia-pt__status is-${st}`}>{st}</span>
-                          {st === "reprovado" && b.motivoReprovacao && (
-                            <small>Motivo: {b.motivoReprovacao}</small>
+                          <span
+                            className={`dia-pt__status is-${
+                              pend ? "pendente" : "aprovado"
+                            }`}
+                          >
+                            {pend ? "ajuste pendente" : "registrado"}
+                          </span>
+                          {pend && b.horarioAjustePendente && (
+                            <small>
+                              Correção para {hora(b.horarioAjustePendente)}
+                              {b.motivoAjustePendente
+                                ? ` — ${b.motivoAjustePendente}`
+                                : ""}
+                            </small>
                           )}
                         </div>
-                        {st === "pendente" && (
+                        {pend && (
                           <div className="dia-pt__acoes">
                             <button
                               type="button"
@@ -226,19 +259,19 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
                               disabled={enviando}
                               onClick={() =>
                                 void executar(
-                                  () => pontosApi.aprovar(b.id),
-                                  "Batida aprovada.",
+                                  () => pontosApi.aprovar(ajusteId),
+                                  "Correção aprovada.",
                                 )
                               }
                             >
-                              <Check size={13} /> Aprovar
+                              <Check size={13} /> Aprovar correção
                             </button>
                             <button
                               type="button"
                               className="dia-pt__btn dia-pt__btn--no"
                               disabled={enviando}
                               onClick={() =>
-                                setReprovando({ tipo: "batida", id: b.id })
+                                setReprovando({ tipo: "batida", id: ajusteId })
                               }
                             >
                               <Ban size={13} /> Recusar
@@ -341,6 +374,16 @@ export function DiaPontoSection({ prefeituraId, funcId, dia }: Props) {
               Confirmar recusa
             </button>
           </div>
+        </div>
+      )}
+
+      {fotoAmpliada && (
+        <div
+          className="dia-pt__foto-modal"
+          onClick={() => setFotoAmpliada("")}
+          role="presentation"
+        >
+          <img src={fotoAmpliada} alt="Selfie da batida ampliada" />
         </div>
       )}
     </div>

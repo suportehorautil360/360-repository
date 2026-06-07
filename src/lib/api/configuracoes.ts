@@ -20,9 +20,13 @@ export interface Configuracao {
   empresa: {
     razaoSocial: string;
     cnpj: string;
+    /** CAEPF/CEI — inscrição alternativa para empregador sem CNPJ (órgão público). */
+    caepf: string;
     cidade: string;
     estado: string;
     emailAlertas: string;
+    /** WhatsApp que recebe as notificações de emergência. */
+    whatsappNumero: string;
   };
   alertas: {
     bloqueioRevisaoVencida: boolean;
@@ -30,6 +34,8 @@ export interface Configuracao {
     abastecimentoIrregular: boolean;
     cnhProximaVencimento: boolean;
     relatorioSemanal: boolean;
+    /** Notificar emergências por WhatsApp. */
+    notificacaoWhatsapp: boolean;
   };
   intervalos: Record<CategoriaIntervalo, ConfigIntervalo>;
   bloqueio: {
@@ -46,9 +52,11 @@ export function configPadrao(prefeituraId: string): Configuracao {
     empresa: {
       razaoSocial: "",
       cnpj: "",
+      caepf: "",
       cidade: "",
       estado: "",
       emailAlertas: "",
+      whatsappNumero: "",
     },
     alertas: {
       bloqueioRevisaoVencida: true,
@@ -56,6 +64,7 @@ export function configPadrao(prefeituraId: string): Configuracao {
       abastecimentoIrregular: true,
       cnhProximaVencimento: true,
       relatorioSemanal: false,
+      notificacaoWhatsapp: false,
     },
     intervalos: {
       carro: { valor: 1000, unidade: "km" },
@@ -89,6 +98,16 @@ function normalizar(prefeituraId: string, raw: unknown): Configuracao {
     },
     bloqueio: { ...base.bloqueio, ...(d.bloqueio ?? {}) },
   };
+}
+
+/**
+ * Os dados do empregador estão completos para emissão legal (CRPT/AFD —
+ * Portaria 671)? Exige razão social e ao menos uma inscrição (CNPJ ou CAEPF).
+ */
+export function empresaCompleta(empresa: Configuracao["empresa"]): boolean {
+  const temRazao = !!empresa.razaoSocial?.trim();
+  const temInscricao = !!empresa.cnpj?.trim() || !!empresa.caepf?.trim();
+  return temRazao && temInscricao;
 }
 
 /** Mapeia o tipo do equipamento para a categoria de intervalo da config. */

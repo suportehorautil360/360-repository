@@ -36,6 +36,16 @@ const CadastroClientesSection = lazy(() =>
     default: m.CadastroClientesSection,
   })),
 );
+const ClientesSection = lazy(() =>
+  import("./pages/admin/sections/ClientesSection").then((m) => ({
+    default: m.ClientesSection,
+  })),
+);
+const FinanceiroSection = lazy(() =>
+  import("./pages/admin/sections/FinanceiroSection").then((m) => ({
+    default: m.FinanceiroSection,
+  })),
+);
 const AcessosLoginsSection = lazy(() =>
   import("./pages/admin/sections/AcessosLoginsSection").then((m) => ({
     default: m.AcessosLoginsSection,
@@ -44,6 +54,11 @@ const AcessosLoginsSection = lazy(() =>
 const EquipamentosLocacaoSection = lazy(() =>
   import("./pages/admin/sections/EquipamentosLocacaoSection").then((m) => ({
     default: m.EquipamentosLocacaoSection,
+  })),
+);
+const WhatsappSection = lazy(() =>
+  import("./pages/admin/sections/WhatsappSection").then((m) => ({
+    default: m.WhatsappSection,
   })),
 );
 const FuncionalidadesSection = lazy(() =>
@@ -178,10 +193,13 @@ export function AppRoutes() {
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />
+            <Route path="clientes" element={<ClientesSection />} />
+            <Route path="financeiro" element={<FinanceiroSection />} />
             <Route
               path="funcionalidades"
               element={<FuncionalidadesSection />}
             />
+            <Route path="whatsapp" element={<WhatsappSection />} />
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />

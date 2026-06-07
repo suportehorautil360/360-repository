@@ -194,10 +194,24 @@ describe("agruparPorFuncionario", () => {
     expect(r[1].nome).toBe("Ana");
   });
 
-  it("conta batidas pendentes no agregado", () => {
-    const batidas = [
-      b("X", "2026-05-27T08:00:00", "entrada", "pendente"),
-      b("X", "2026-05-27T18:00:00", "saida", "aprovado"),
+  it("conta correções pendentes no agregado (ledger)", () => {
+    const entrada = b("X", "2026-05-27T08:00:00", "entrada");
+    entrada.nsr = 1;
+    const batidas: PontoRegistro[] = [
+      entrada,
+      b("X", "2026-05-27T18:00:00", "saida"),
+      // Correção da entrada aguardando o RH → conta como 1 pendência.
+      {
+        id: "X-ajuste",
+        name: "X",
+        prefeituraId: "p1",
+        timestampOriginal: "2026-05-27T08:30:00",
+        tipo: "entrada",
+        registro: "ajuste",
+        refNsr: 1,
+        aplicado: false,
+        nsr: 3,
+      },
     ];
     const r = agruparPorFuncionario(batidas, [], ["2026-05-27"], ESCALA);
     expect(r[0].totais.pendentes).toBe(1);
@@ -286,6 +300,30 @@ describe("agruparPorFuncionario", () => {
     // Mesmo com abono, batidas presentes → status 'ok'
     expect(r[0].dias[0].status).toBe("ok");
     expect(r[0].totais.abonados).toBe(0);
+  });
+
+  it("abono cobre dia INCOMPLETO (batida parcial) → abonado e saldo neutro", () => {
+    const abono: Abono = {
+      id: "ab1",
+      prefeituraId: "p1",
+      funcionarioCpf: "11122233344",
+      funcionarioNome: "João Silva",
+      data: "2026-05-27",
+      motivo: "Saiu mais cedo (justificado)",
+      createdAt: "2026-05-27T10:00:00Z",
+    };
+    // Só entrada, sem saída → dia incompleto, trabalhado < previsto.
+    const batidas = [b("João Silva", "2026-05-27T08:00:00", "entrada")];
+    const r = agruparPorFuncionario(
+      batidas,
+      [FUNCIONARIO_JOAO],
+      ["2026-05-27"],
+      ESCALA,
+      [abono],
+    );
+    expect(r[0].dias[0].status).toBe("abonado");
+    expect(r[0].dias[0].saldoMin).toBe(0);
+    expect(r[0].totais.abonados).toBe(1);
   });
 
   it("abono sem CPF casado (funcionário não cadastrado) não é aplicado", () => {

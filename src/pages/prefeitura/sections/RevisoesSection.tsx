@@ -5,6 +5,7 @@ import {
   revisaoRestante,
   rotuloLeitura,
   revisaoEm,
+  statusRevisao,
   TIPO_ICON,
   TIPO_LABEL,
   unidadeDe,
@@ -16,17 +17,6 @@ import "./revisoes.css";
 
 function formatLeitura(v: VeiculoFrota, valor: number): string {
   return `${valor.toLocaleString("pt-BR")} ${unidadeDe(v.tipo)}`;
-}
-
-type StatusRevisao = "vencida" | "proxima" | "em-dia";
-
-function statusRevisao(v: VeiculoFrota): StatusRevisao {
-  if (isVencido(v)) return "vencida";
-  const restante = revisaoRestante(v);
-  if (restante <= Math.max(100, Math.round(v.intervaloRevisao * 0.2))) {
-    return "proxima";
-  }
-  return "em-dia";
 }
 
 export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {

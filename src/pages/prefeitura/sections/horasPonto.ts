@@ -14,8 +14,10 @@ function minutoLocal(iso: string): number {
 }
 
 /**
- * Minutos trabalhados no dia: manhã (entrada→almoço) + tarde (volta→saída).
- * Sem as marcas de almoço, usa entrada→saída menos o almoço da escala.
+ * Minutos trabalhados no dia: soma os segmentos JÁ conhecidos — manhã
+ * (entrada→almoço) + tarde (volta→saída). Assim um dia incompleto (ex.: só
+ * entrada + saída p/ almoço) já conta o período trabalhado, em vez de zerar.
+ * Sem nenhuma marca de almoço, usa entrada→saída menos o almoço da escala.
  */
 export function minutosTrabalhados(
   batidasDia: PontoRegistro[],
@@ -25,9 +27,19 @@ export function minutosTrabalhados(
   for (const b of batidasDia) t[b.tipo] = minutoLocal(b.timestampOriginal);
   const { entrada, almoco, volta, saida } = t;
 
-  if (entrada != null && almoco != null && volta != null && saida != null) {
-    return Math.max(0, almoco - entrada + (saida - volta));
+  let total = 0;
+  let temSegmento = false;
+  if (entrada != null && almoco != null) {
+    total += Math.max(0, almoco - entrada); // manhã
+    temSegmento = true;
   }
+  if (volta != null && saida != null) {
+    total += Math.max(0, saida - volta); // tarde
+    temSegmento = true;
+  }
+  if (temSegmento) return total;
+
+  // Sem marcas de almoço: jornada direta entrada→saída menos o almoço previsto.
   if (entrada != null && saida != null) {
     return Math.max(0, saida - entrada - almocoMinutos);
   }

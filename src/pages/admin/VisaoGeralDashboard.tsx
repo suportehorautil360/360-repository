@@ -28,6 +28,18 @@ interface VisaoGeralDashboardProps {
   reloadKey?: number | string;
 }
 
+function formatarMoeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function exibirContagem(valor: number, loading: boolean): string {
+  if (loading) return "…";
+  return valor > 0 ? String(valor) : "—";
+}
+
 export function VisaoGeralDashboard({
   clientes: clientesProp,
   reloadKey,
@@ -41,12 +53,10 @@ export function VisaoGeralDashboard({
   } = useDashboardFirestore();
   const [clientesHU360, setClientesHU360] = useState<ClienteLinha[]>([]);
 
-  // Carrega contagens do Firestore na montagem e quando reloadKey muda
   useEffect(() => {
     void carregar();
   }, [carregar, reloadKey]);
 
-  // Monta linhas a partir das prefeituras + dados do Firestore
   useEffect(() => {
     if (clientesProp) return;
     const linhas: ClienteLinha[] = prefeituras.map((p) => {
@@ -63,7 +73,6 @@ export function VisaoGeralDashboard({
         manutencao: fs?.emManutencao ?? 0,
       };
     });
-    console.log("Linhas montadas para dashboard:", linhas);
     setClientesHU360(linhas);
   }, [reloadKey, clientesProp, prefeituras, prefeituraLabel, linhasFirestore]);
 
@@ -89,8 +98,6 @@ export function VisaoGeralDashboard({
     }
     const actualCliente = clientes.find((c) => c.id === id);
 
-    console.log("Abrindo painel para cliente", id, actualCliente);
-
     if (actualCliente?.tipo === "prefeitura") {
       navigate(`/prefeitura/${id}`);
       return;
@@ -105,34 +112,42 @@ export function VisaoGeralDashboard({
 
   return (
     <>
-      <div className="card-grid" style={{ marginBottom: 16 }}>
-        <article className="card">
+      <div className="card-grid hub-dashboard-metrics">
+        <article className="card hub-dashboard-metric">
           <h3>Clientes contratantes</h3>
-          <p id="hub-vg-n-pref">{clientes.length || "—"}</p>
+          <p id="hub-vg-n-pref" className="hub-dashboard-metric-value is-accent">
+            {clientes.length || "—"}
+          </p>
         </article>
-        <article className="card">
+        <article className="card hub-dashboard-metric">
           <h3>Ativos (frota total)</h3>
-          <p id="hub-vg-total-ativos">{loading ? "…" : totais.ativos || "—"}</p>
+          <p id="hub-vg-total-ativos" className="hub-dashboard-metric-value">
+            {loading ? "…" : totais.ativos}
+          </p>
         </article>
-        <article className="card">
+        <article className="card hub-dashboard-metric">
           <h3>Checklists (total período)</h3>
-          <p id="hub-vg-total-check">{loading ? "…" : totais.check || "—"}</p>
+          <p id="hub-vg-total-check" className="hub-dashboard-metric-value">
+            {exibirContagem(totais.check, loading)}
+          </p>
         </article>
-        <article className="card">
+        <article className="card hub-dashboard-metric">
           <h3>O.S. em aberto (todas)</h3>
-          <p id="hub-vg-total-os-aberta">{totalOsAberta || "—"}</p>
+          <p id="hub-vg-total-os-aberta" className="hub-dashboard-metric-value">
+            {totalOsAberta > 0 ? totalOsAberta : "—"}
+          </p>
         </article>
       </div>
 
-      <article className="card" style={{ marginBottom: 18 }}>
-        <h3 style={{ marginBottom: 8 }}>Contratos por cliente</h3>
+      <article className="card hub-dashboard-table-card">
+        <h3 className="hub-dashboard-table-title">Contratos por cliente</h3>
         {loading && (
           <p className="topbar-user" style={{ margin: "0 0 10px" }}>
             Carregando dados do banco…
           </p>
         )}
         <div className="hub-table-scroll">
-          <table>
+          <table className="hub-dashboard-table">
             <thead>
               <tr>
                 <th>Cliente</th>
@@ -148,10 +163,7 @@ export function VisaoGeralDashboard({
             <tbody id="hub-tbody-visao-geral">
               {clientes.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={8}
-                    style={{ textAlign: "center", color: "var(--muted)" }}
-                  >
+                  <td colSpan={8} className="hub-dash-empty">
                     {loading ? "Carregando…" : "Nenhum cliente carregado."}
                   </td>
                 </tr>
@@ -164,23 +176,24 @@ export function VisaoGeralDashboard({
                       </strong>
                       {c.label}
                     </td>
-                    <td>{c.ativos}</td>
-                    <td>{c.checklists}</td>
-                    <td>{c.manutencao}</td>
-                    <td>
-                      {c.tipo === "locadora" ? "---" : (c.custoLabel ?? "0")}
+                    <td className="hub-dash-num">{c.ativos}</td>
+                    <td className="hub-dash-num">{c.checklists}</td>
+                    <td className="hub-dash-num">{c.manutencao}</td>
+                    <td className="hub-dash-num">
+                      {c.tipo === "locadora"
+                        ? "—"
+                        : (c.custoLabel ?? formatarMoeda(0))}
                     </td>
-                    <td>{c.tipo === "locadora" ? "---" : (c.nCot ?? "0")}</td>
-                    <td>{c.tipo === "locadora" ? "---" : (c.nOs ?? "0")}</td>
-                    <td>
+                    <td className="hub-dash-num">
+                      {c.tipo === "locadora" ? "—" : (c.nCot ?? 0)}
+                    </td>
+                    <td className="hub-dash-num">
+                      {c.tipo === "locadora" ? "—" : (c.nOs ?? 0)}
+                    </td>
+                    <td className="hub-dash-action">
                       <button
                         type="button"
-                        className="btn btn-primary"
-                        style={{
-                          marginTop: 0,
-                          padding: "6px 12px",
-                          fontSize: "0.82rem",
-                        }}
+                        className="btn btn-primary hub-dash-btn"
                         onClick={() => abrirPainelCliente(c.id)}
                       >
                         Abrir painel

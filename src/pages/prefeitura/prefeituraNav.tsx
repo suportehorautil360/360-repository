@@ -86,10 +86,15 @@ export interface PrefeituraNavBadges {
 /** Monta os grupos da sidebar da prefeitura, com as rotas /prefeitura/:id/<slug>. */
 export function prefeituraNav(
   prefeituraId: string,
-  opts?: { pontoAtivo?: boolean; badges?: PrefeituraNavBadges },
+  opts?: {
+    pontoAtivo?: boolean;
+    abastecimentoAtivo?: boolean;
+    badges?: PrefeituraNavBadges;
+  },
 ): SidebarGroup[] {
   const to = (slug: string) => `/prefeitura/${prefeituraId}/${slug}`;
   const pontoAtivo = opts?.pontoAtivo ?? false;
+  const abastecimentoAtivo = opts?.abastecimentoAtivo ?? false;
   const badges = opts?.badges ?? {};
 
   const grupos: SidebarGroup[] = [
@@ -122,6 +127,16 @@ export function prefeituraNav(
         { label: "Alocação", to: to("alocacao"), icon: "📋" },
       ],
     },
+    ...(abastecimentoAtivo
+      ? [
+          {
+            label: "Abastecimento",
+            items: [
+              { label: "Abastecimentos", to: to("abastecimento"), icon: "⛽" },
+            ],
+          },
+        ]
+      : []),
     {
       label: "Manutenção",
       items: [

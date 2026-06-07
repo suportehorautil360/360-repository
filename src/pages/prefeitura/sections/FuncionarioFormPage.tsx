@@ -40,6 +40,9 @@ const CARGOS = [
   "Outro",
 ];
 
+/** Cargos predefinidos (sem o "Outro", que abre digitação livre). */
+const CARGOS_PREDEF = CARGOS.filter((c) => c !== "Outro");
+
 type Modo = "novo" | "editar";
 
 interface FormState {
@@ -182,7 +185,7 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
     const e: Record<string, string> = {};
     if (!form.nome.trim()) e.nome = "Informe o nome completo.";
     if (!cpfValido(form.cpf)) e.cpf = "CPF inválido.";
-    if (!form.matricula.trim()) e.matricula = "Informe a matrícula.";
+    // Matrícula é opcional.
     if (!form.dataNascimento) e.dataNascimento = "Informe a data de nascimento.";
     if (!form.cargo.trim()) e.cargo = "Informe o cargo.";
     setErros(e);
@@ -263,12 +266,7 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
           <h2>Dados Pessoais</h2>
         </header>
         <div className="ff__grid">
-          <Campo
-            label="Matrícula"
-            obrig
-            erro={erros.matricula}
-            wide={1}
-          >
+          <Campo label="Matrícula" erro={erros.matricula} wide={1}>
             <input
               type="text"
               placeholder="Ex: 001"
@@ -331,8 +329,16 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
 
           <Campo label="Cargo" obrig erro={erros.cargo} wide={2}>
             <Select
-              value={form.cargo}
-              onValueChange={(v) => setCampo("cargo", v)}
+              value={CARGOS_PREDEF.includes(form.cargo) ? form.cargo : "Outro"}
+              onValueChange={(v) => {
+                // "Outro" → entra em digitação livre (limpa só se vinha de um
+                // cargo predefinido, pra não apagar o que já foi digitado).
+                if (v === "Outro") {
+                  if (CARGOS_PREDEF.includes(form.cargo)) setCampo("cargo", "");
+                } else {
+                  setCampo("cargo", v);
+                }
+              }}
             >
               <SelectTrigger className={SELECT_TRIGGER_CLS}>
                 <SelectValue placeholder="Selecione" />
@@ -345,6 +351,15 @@ export function FuncionarioFormPage({ prefeituraId, modo }: Props) {
                 ))}
               </SelectContent>
             </Select>
+            {!CARGOS_PREDEF.includes(form.cargo) && (
+              <input
+                type="text"
+                placeholder="Digite o cargo"
+                value={form.cargo}
+                onChange={(e) => setCampo("cargo", e.target.value)}
+                style={{ marginTop: 8 }}
+              />
+            )}
           </Campo>
           <Campo label="Status" wide={1}>
             <Select
