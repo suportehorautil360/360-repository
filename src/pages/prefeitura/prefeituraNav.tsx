@@ -6,7 +6,13 @@ import type {
 /** Slugs das seções com tela de verdade (o resto é placeholder "em construção"). */
 export const SECOES_REAIS = new Set([
   "dashboard",
+  "abastecimento-visao-geral",
+  "consumo-custo",
+  "credito",
   "abastecimento",
+  "lubrificacao",
+  "cargas-comboio",
+  "postos",
   "frota",
   "revisoes",
   "preventiva",
@@ -27,7 +33,13 @@ export const SECOES_REAIS = new Set([
 /** Rótulo legível por slug (usado no título do placeholder também). */
 export const SECAO_LABEL: Record<string, string> = {
   dashboard: "Dashboard",
+  "abastecimento-visao-geral": "Visão Geral",
+  "consumo-custo": "Consumo / Custo",
+  credito: "Crédito",
   abastecimento: "Abastecimentos",
+  lubrificacao: "Lubrificação",
+  "cargas-comboio": "Cargas do Comboio",
+  postos: "Postos Cadastrados",
   tanques: "Tanques",
   frota: "Frota",
   "frentes-trabalho": "Frentes de Trabalho",
@@ -84,6 +96,18 @@ export function prefeituraNav(
     {
       label: "Principal",
       items: [{ label: "Painel", to: to("dashboard"), icon: "📊" }],
+    },
+    {
+      label: "Abastecimento",
+      items: [
+        { label: "Visão Geral", to: to("abastecimento-visao-geral"), icon: "📈" },
+        { label: "Abastecimentos", to: to("abastecimento"), icon: "⛽" },
+        { label: "Consumo / Custo", to: to("consumo-custo"), icon: "💵" },
+        { label: "Crédito", to: to("credito"), icon: "💳" },
+        { label: "Lubrificação", to: to("lubrificacao"), icon: "🛢️" },
+        { label: "Cargas do Comboio", to: to("cargas-comboio"), icon: "🚛" },
+        { label: "Postos", to: to("postos"), icon: "🏪" },
+      ],
     },
     {
       label: "Gestão de Frota",

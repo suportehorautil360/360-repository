@@ -1,0 +1,426 @@
+.ccu-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.ccu-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ccu-periodo-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-gray, #94a3b8);
+}
+
+.ccu-periodo-label svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.ccu-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.38rem;
+  padding: 0 0.65rem;
+  min-height: 2.35rem;
+}
+
+.ccu-periodo-field-label {
+  font-size: 0.82rem;
+  color: var(--text-gray, #94a3b8);
+  white-space: nowrap;
+}
+
+.ccu-periodo-input {
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  padding: 0.5rem 0.15rem;
+  outline: none;
+  color-scheme: dark;
+}
+
+.ccu-periodo:focus-within {
+  outline: 2px solid var(--main-orange, #f97316);
+  outline-offset: 1px;
+}
+
+.ccu-periodo-sep {
+  color: var(--text-gray, #94a3b8);
+  font-size: 0.88rem;
+  user-select: none;
+}
+
+.ccu-msg {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+}
+
+.ccu-msg--erro {
+  color: #f87171;
+}
+
+.ccu-info {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid var(--main-orange, #f97316);
+  border-radius: 0.55rem;
+}
+
+.ccu-info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  color: var(--main-orange, #f97316);
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.22);
+}
+
+.ccu-info-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ccu-info-body strong {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.92rem;
+  color: #f1f5f9;
+}
+
+.ccu-info-body p {
+  margin: 0 0 0.65rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-gray, #94a3b8);
+}
+
+.ccu-formula {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.4rem;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+}
+
+.ccu-info-nota {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-gray, #94a3b8);
+}
+
+.ccu-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.ccu-btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--main-orange, #f97316);
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ccu-btn-export:hover:not(:disabled) {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+}
+
+.ccu-btn-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ccu-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .ccu-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .ccu-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .ccu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ccu-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.65rem;
+  padding: 1rem 1.05rem 0.95rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.ccu-card--aberto {
+  border-color: rgba(249, 115, 22, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
+}
+
+.ccu-card-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0 0 0.95rem;
+  padding: 0 0 0.75rem;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.ccu-card-toggle:hover .ccu-card-chevron {
+  color: var(--main-orange, #f97316);
+}
+
+.ccu-card-toggle:focus-visible {
+  outline: 2px solid var(--main-orange, #f97316);
+  outline-offset: 2px;
+  border-radius: 0.35rem;
+}
+
+.ccu-card-titulo strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.ccu-card-titulo span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  color: var(--text-gray, #94a3b8);
+  line-height: 1.35;
+}
+
+.ccu-card-chevron {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--text-gray, #94a3b8);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.ccu-card-chevron--aberto {
+  color: var(--main-orange, #f97316);
+  transform: rotate(180deg);
+}
+
+.ccu-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+
+.ccu-metric-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.65rem 0.4rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.45rem;
+  text-align: center;
+}
+
+.ccu-metric-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-gray, #94a3b8);
+  line-height: 1.25;
+}
+
+.ccu-metric-valor {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.ccu-metric-valor--muted {
+  color: var(--text-gray, #94a3b8);
+  font-weight: 600;
+}
+
+.ccu-card-expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.ccu-card-expand--aberto {
+  grid-template-rows: 1fr;
+}
+
+.ccu-card-expand-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.ccu-card-detalhe {
+  margin-top: 0.85rem;
+}
+
+.ccu-card-divider {
+  height: 0;
+  margin-bottom: 0.85rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+}
+
+.ccu-historico-titulo {
+  margin: 0 0 0.65rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-gray, #94a3b8);
+}
+
+.ccu-historico-vazio {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-gray, #94a3b8);
+}
+
+.ccu-historico-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ccu-historico-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 520px) {
+  .ccu-historico-row {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}
+
+.ccu-historico-row:last-child {
+  border-bottom: none;
+}
+
+.ccu-historico-periodo {
+  color: #cbd5e1;
+}
+
+.ccu-historico-duracao {
+  color: var(--text-gray, #94a3b8);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ccu-historico-consumo {
+  color: var(--main-orange, #f97316);
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ccu-historico-custo {
+  color: #e2e8f0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ccu-historico-custo--muted {
+  color: var(--text-gray, #94a3b8);
+}
+
+.ccu-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-gray, #94a3b8);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 0.65rem;
+}

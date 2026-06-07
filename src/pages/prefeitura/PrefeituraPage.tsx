@@ -16,6 +16,12 @@ import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
+import { AbastecimentoVisaoGeralSection } from "./sections/AbastecimentoVisaoGeralSection";
+import { ConsumoCustoSection } from "./sections/ConsumoCustoSection";
+import { CreditoSection } from "./sections/CreditoSection";
+import { LubrificacaoSection } from "./sections/LubrificacaoSection";
+import { CargasComboioSection } from "./sections/CargasComboioSection";
+import { PostosSection } from "./sections/PostosSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
@@ -283,10 +289,33 @@ export function PrefeituraPage() {
     switch (secaoAtual) {
       case "dashboard":
         return <DashboardSection prefeituraId={prefeituraId} />;
+      case "abastecimento-visao-geral":
+        return (
+          <AbastecimentoVisaoGeralSection
+            dados={dados!}
+            prefeituraId={prefeituraId}
+          />
+        );
+      case "consumo-custo":
+        return (
+          <ConsumoCustoSection dados={dados!} prefeituraId={prefeituraId} />
+        );
+      case "credito":
+        return <CreditoSection dados={dados!} prefeituraId={prefeituraId} />;
       case "abastecimento":
         return (
           <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
         );
+      case "lubrificacao":
+        return (
+          <LubrificacaoSection dados={dados!} prefeituraId={prefeituraId} />
+        );
+      case "cargas-comboio":
+        return (
+          <CargasComboioSection dados={dados!} prefeituraId={prefeituraId} />
+        );
+      case "postos":
+        return <PostosSection dados={dados!} prefeituraId={prefeituraId} />;
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
       case "revisoes":

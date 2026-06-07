@@ -1,0 +1,175 @@
+.ccb-msg {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+  font-size: 0.88rem;
+}
+
+.ccb-msg--erro {
+  color: #f87171;
+}
+
+.ccb-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.ccb-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.38rem;
+  padding: 0 0.65rem;
+  min-height: 2.35rem;
+}
+
+.ccb-periodo-label {
+  font-size: 0.82rem;
+  color: var(--text-gray, #94a3b8);
+  white-space: nowrap;
+}
+
+.ccb-periodo-input {
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  padding: 0.5rem 0.15rem;
+  outline: none;
+  color-scheme: dark;
+}
+
+.ccb-periodo:focus-within {
+  outline: 2px solid var(--main-orange, #f97316);
+  outline-offset: 1px;
+}
+
+.ccb-periodo-sep {
+  color: var(--text-gray, #94a3b8);
+  font-size: 0.88rem;
+  user-select: none;
+}
+
+.ccb-card {
+  margin-top: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.ccb-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ccb-nota {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-gray, #94a3b8);
+  font-weight: 500;
+}
+
+.ccb-btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--main-orange, #f97316);
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.38rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.ccb-btn-export:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.ccb-btn-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ccb-table-wrap {
+  overflow-x: auto;
+}
+
+.ccb-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.ccb-table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-gray, #94a3b8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ccb-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+  font-size: 0.88rem;
+}
+
+.ccb-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ccb-td-data {
+  color: var(--text-gray, #94a3b8);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ccb-td-litros {
+  font-weight: 700;
+  color: var(--main-orange, #f97316);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ccb-badge-origem {
+  display: inline-flex;
+  padding: 0.28rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+.ccb-td-nf {
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 0.84rem;
+  color: #cbd5e1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.ccb-table-empty {
+  text-align: center;
+  padding: 3rem !important;
+  color: var(--text-gray, #94a3b8);
+}

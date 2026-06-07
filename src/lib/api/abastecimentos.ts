@@ -43,6 +43,74 @@ function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
   };
 }
 
+/** Item da listagem por período (GET com startDate/endDate). */
+export interface AbastecimentoListaApi {
+  id: string;
+  dateTime: string;
+  vehicle: {
+    name: string;
+    plate: string;
+    type: string;
+  };
+  origin: string;
+  liters: number;
+  value: number | null;
+  reading: string;
+  meterPhoto?: string;
+  local: string;
+  createdAt: string;
+}
+
+export type OrigemAbastecimento = "comboio" | "posto";
+
+/** Registro normalizado para a tela de abastecimentos da prefeitura. */
+export interface AbastecimentoTela {
+  id: string;
+  data: string;
+  veiculo: string;
+  placa: string;
+  tipoVeiculo: string;
+  origemTipo: OrigemAbastecimento;
+  origemNome: string;
+  litros: number;
+  valor: number | null;
+  leitura: string;
+  local: string;
+}
+
+function origemTipo(origin: string): OrigemAbastecimento {
+  return origin.toLowerCase().includes("posto") ? "posto" : "comboio";
+}
+
+/** Soma dias em YYYY-MM-DD (calendário local, sem UTC). */
+function addDaysIso(iso: string, days: number): string {
+  const [y, mo, da] = iso.split("-").map(Number);
+  const dt = new Date(y, mo - 1, da);
+  dt.setDate(dt.getDate() + days);
+  const yy = dt.getFullYear();
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+export function abastecimentoListaParaTela(
+  item: AbastecimentoListaApi,
+): AbastecimentoTela {
+  return {
+    id: item.id,
+    data: item.dateTime,
+    veiculo: item.vehicle.name,
+    placa: item.vehicle.plate,
+    tipoVeiculo: item.vehicle.type,
+    origemTipo: origemTipo(item.origin),
+    origemNome: item.origin,
+    litros: item.liters,
+    valor: item.value,
+    leitura: item.reading,
+    local: item.local,
+  };
+}
+
 export const abastecimentosApi = {
   async listar(prefeituraId: string): Promise<Abastecimento[]> {
     const r = await api.get<{
@@ -51,5 +119,21 @@ export const abastecimentosApi = {
     return (r.data ?? [])
       .map(fromDoc)
       .sort((a, b) => b.data.localeCompare(a.data));
+  },
+
+  async listarPorPeriodo(
+    prefeituraId: string,
+    startDate: string,
+    /** Último dia incluso na UI (YYYY-MM-DD). */
+    endDateInclusive: string,
+  ): Promise<AbastecimentoTela[]> {
+    // O backend compara createdAt com meia-noite UTC do endDate; sem +1 dia
+    // registros do último dia selecionado ficam de fora (ex.: fim 04/06 não traz o dia 04).
+    const endDateApi = addDaysIso(endDateInclusive, 1);
+    const qs = new URLSearchParams({ startDate, endDate: endDateApi });
+    const r = await api.get<{ data: AbastecimentoListaApi[] }>(
+      `/abastecimentos/${prefeituraId}?${qs}`,
+    );
+    return (r.data ?? []).map(abastecimentoListaParaTela);
   },
 };

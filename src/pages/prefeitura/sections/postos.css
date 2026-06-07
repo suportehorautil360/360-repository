@@ -1,0 +1,270 @@
+.pst-msg {
+  margin: 0;
+  padding: 0 1.25rem 1rem;
+  font-size: 0.88rem;
+}
+
+.pst-msg--erro {
+  color: #f87171;
+}
+
+.pst-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pst-periodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.38rem;
+  padding: 0 0.65rem;
+  min-height: 2.35rem;
+}
+
+.pst-periodo-label {
+  font-size: 0.82rem;
+  color: var(--text-gray, #94a3b8);
+  white-space: nowrap;
+}
+
+.pst-periodo-input {
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  padding: 0.5rem 0.15rem;
+  outline: none;
+  color-scheme: dark;
+}
+
+.pst-periodo:focus-within {
+  outline: 2px solid var(--main-orange, #f97316);
+  outline-offset: 1px;
+}
+
+.pst-periodo-sep {
+  color: var(--text-gray, #94a3b8);
+  font-size: 0.88rem;
+  user-select: none;
+}
+
+.pst-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .pst-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pst-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.15rem 1.25rem 1.2rem;
+  min-height: 7.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.65rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.pst-kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.9rem;
+  flex-shrink: 0;
+}
+
+.pst-kpi-icon--verde {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+
+.pst-kpi-icon--amarelo {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.pst-kpi-icon--vermelho {
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(249, 115, 22, 0.22);
+}
+
+.pst-kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.pst-kpi-body strong {
+  display: block;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+}
+
+.pst-kpi-body span {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--text-gray, #94a3b8);
+}
+
+.pst-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.pst-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pst-nota {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-gray, #94a3b8);
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.pst-btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--main-orange, #f97316);
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.38rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+  white-space: nowrap;
+}
+
+.pst-btn-export:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.pst-btn-export:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pst-table-wrap {
+  overflow-x: auto;
+}
+
+.pst-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.pst-table th {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-gray, #94a3b8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pst-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+  font-size: 0.88rem;
+}
+
+.pst-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pst-td-posto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 10rem;
+}
+
+.pst-td-posto strong {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.pst-td-posto span {
+  font-size: 0.75rem;
+  color: var(--text-gray, #94a3b8);
+}
+
+.pst-badge-endereco {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 16rem;
+  white-space: normal;
+}
+
+.pst-td-preco {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pst-td-litros {
+  font-weight: 600;
+  color: #f59e0b;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pst-td-gasto {
+  font-weight: 600;
+  color: var(--main-orange, #f97316);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pst-table-empty {
+  text-align: center;
+  padding: 3rem !important;
+  color: var(--text-gray, #94a3b8);
+}
