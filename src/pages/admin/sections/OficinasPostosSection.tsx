@@ -5,6 +5,7 @@ import {
   type ParceirosOverviewApi,
   type PostoParceiroApi,
 } from "../../../lib/api/parceiros";
+import { CadastroParceiroSection } from "./CadastroParceiroSection";
 
 function StatusBadge({ ativo }: { ativo: boolean }) {
   return (
@@ -53,9 +54,10 @@ export function OficinasPostosSection() {
   });
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [aviso, setAviso] = useState("");
+  const [modo, setModo] = useState<"overview" | "cadastro">("overview");
 
   useEffect(() => {
+    if (modo !== "overview") return;
     let ativo = true;
     void (async () => {
       setLoading(true);
@@ -76,7 +78,15 @@ export function OficinasPostosSection() {
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [modo]);
+
+  if (modo === "cadastro") {
+    return (
+      <section id="oficinas-postos" className="aba-conteudo ativa">
+        <CadastroParceiroSection onVoltar={() => setModo("overview")} />
+      </section>
+    );
+  }
 
   return (
     <section id="oficinas-postos" className="aba-conteudo ativa">
@@ -126,17 +136,10 @@ export function OficinasPostosSection() {
       <button
         type="button"
         className="btn btn-primary parc-novo"
-        onClick={() =>
-          setAviso("Cadastro de novos parceiros: em breve nesta tela.")
-        }
+        onClick={() => setModo("cadastro")}
       >
         + Cadastrar novo parceiro
       </button>
-      {aviso && (
-        <p className="topbar-user" style={{ marginTop: 10 }}>
-          {aviso}
-        </p>
-      )}
     </section>
   );
 }
