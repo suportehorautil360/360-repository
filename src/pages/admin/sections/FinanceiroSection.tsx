@@ -6,6 +6,13 @@ import {
   type StatusLancamentoApi,
   type TipoLancamentoApi,
 } from "../../../lib/api/financeiro";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const VAZIO: FinanceiroOverviewApi = {
   lancamentos: [],
@@ -279,30 +286,38 @@ export function FinanceiroSection() {
               <div className="row-2">
                 <div>
                   <label htmlFor="finTipo">Tipo</label>
-                  <select
-                    id="finTipo"
+                  <Select
                     value={form.tipo}
-                    onChange={(e) =>
-                      update("tipo", e.target.value as TipoLancamentoApi)
+                    onValueChange={(v) =>
+                      update("tipo", v as TipoLancamentoApi)
                     }
                   >
-                    <option value="receita">Receita</option>
-                    <option value="despesa">Despesa</option>
-                  </select>
+                    <SelectTrigger id="finTipo" className="admin-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="receita">Receita</SelectItem>
+                      <SelectItem value="despesa">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="finStatus">Status</label>
-                  <select
-                    id="finStatus"
+                  <Select
                     value={form.status}
-                    onChange={(e) =>
-                      update("status", e.target.value as StatusLancamentoApi)
+                    onValueChange={(v) =>
+                      update("status", v as StatusLancamentoApi)
                     }
                   >
-                    <option value="pendente">Pendente</option>
-                    <option value="pago">Pago</option>
-                    <option value="atrasado">Atrasado</option>
-                  </select>
+                    <SelectTrigger id="finStatus" className="admin-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="pago">Pago</SelectItem>
+                      <SelectItem value="atrasado">Atrasado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div style={{ marginTop: 10 }}>

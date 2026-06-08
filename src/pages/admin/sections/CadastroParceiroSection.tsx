@@ -5,6 +5,13 @@ import {
   type ParceirosOverviewApi,
   type TipoParceiroApi,
 } from "../../../lib/api/parceiros";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const BANDEIRAS = [
   "Petrobras / BR",
@@ -295,16 +302,18 @@ export function CadastroParceiroSection({
               <div className="row-3">
                 <div>
                   <label htmlFor="pcTipo">Tipo de parceiro</label>
-                  <select
-                    id="pcTipo"
+                  <Select
                     value={form.tipo}
-                    onChange={(e) =>
-                      update("tipo", e.target.value as TipoParceiroApi)
-                    }
+                    onValueChange={(v) => update("tipo", v as TipoParceiroApi)}
                   >
-                    <option value="posto">Posto</option>
-                    <option value="oficina">Oficina</option>
-                  </select>
+                    <SelectTrigger id="pcTipo" className="admin-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="posto">Posto</SelectItem>
+                      <SelectItem value="oficina">Oficina</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pcCnpj">CNPJ</label>
@@ -390,17 +399,21 @@ export function CadastroParceiroSection({
               </div>
               <div style={{ maxWidth: 420 }}>
                 <label htmlFor="pcBandeira">Bandeira do posto</label>
-                <select
-                  id="pcBandeira"
+                <Select
                   value={form.bandeira}
-                  onChange={(e) => update("bandeira", e.target.value)}
+                  onValueChange={(v) => update("bandeira", v)}
                 >
-                  {BANDEIRAS.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="pcBandeira" className="admin-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BANDEIRAS.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="parc-grupo-label">Combustíveis fornecidos:</div>
               <div className="parc-check-grid">
@@ -480,19 +493,21 @@ export function CadastroParceiroSection({
               <div className="row-3">
                 <div>
                   <label htmlFor="pcCondicao">Condição de pagamento</label>
-                  <select
-                    id="pcCondicao"
+                  <Select
                     value={form.condicaoPagamento}
-                    onChange={(e) =>
-                      update("condicaoPagamento", e.target.value)
-                    }
+                    onValueChange={(v) => update("condicaoPagamento", v)}
                   >
-                    {CONDICOES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="pcCondicao" className="admin-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CONDICOES.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label htmlFor="pcLimite">Limite de crédito (R$)</label>

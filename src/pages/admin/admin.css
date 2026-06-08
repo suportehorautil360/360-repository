@@ -913,6 +913,25 @@
   margin-top: 6px;
 }
 
+/* Trigger do Select do design system (components/ui/select), ajustado ao
+   tema do admin para casar com os inputs nativos. */
+.admin-root .admin-select {
+  width: 100%;
+  height: auto;
+  min-height: 42px;
+  margin-top: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+
+.admin-root .admin-select[data-placeholder] {
+  color: var(--muted);
+}
+
 .admin-root textarea {
   min-height: 88px;
   resize: vertical;

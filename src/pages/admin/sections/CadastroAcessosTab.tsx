@@ -5,6 +5,13 @@ import {
   type ClienteOverviewApi,
   type PerfilAcessoApi,
 } from "../../../lib/api/clientes";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const PERFIS: { value: PerfilAcessoApi; label: string }[] = [
   { value: "gestor", label: "Gestor" },
@@ -171,23 +178,22 @@ export function CadastroAcessosTab() {
       <div className="row-2">
         <div>
           <label htmlFor="acSelCliente">Cliente (contrato) {REQ}</label>
-          <select
-            id="acSelCliente"
-            required
-            value={selId}
-            onChange={(e) => setSelId(e.target.value)}
-          >
-            {clientes.length === 0 && (
-              <option value="">
-                {loadingClientes ? "Carregando..." : "Nenhum cliente"}
-              </option>
-            )}
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nome} ({c.uf})
-              </option>
-            ))}
-          </select>
+          <Select value={selId} onValueChange={setSelId}>
+            <SelectTrigger id="acSelCliente" className="admin-select">
+              <SelectValue
+                placeholder={
+                  loadingClientes ? "Carregando..." : "Selecione o cliente"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {clientes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome} ({c.uf})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label htmlFor="acEmpresaEmail">
@@ -251,17 +257,21 @@ export function CadastroAcessosTab() {
       <div className="row-3" style={{ marginTop: 10 }}>
         <div>
           <label htmlFor="acPerfil">Perfil</label>
-          <select
-            id="acPerfil"
+          <Select
             value={form.perfil}
-            onChange={(e) => update("perfil", e.target.value as PerfilAcessoApi)}
+            onValueChange={(v) => update("perfil", v as PerfilAcessoApi)}
           >
-            {PERFIS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="acPerfil" className="admin-select">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PERFIS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label htmlFor="acSenha">Senha inicial</label>

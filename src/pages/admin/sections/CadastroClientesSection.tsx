@@ -3,6 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { clientesApi } from "../../../lib/api/clientes";
 import type { TipoCliente } from "../../../lib/hu360";
 import { CadastroAcessosTab } from "./CadastroAcessosTab";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const MODALIDADES: { value: string; label: string }[] = [
   { value: "pregao_eletronico", label: "Pregão eletrônico" },
@@ -230,17 +237,22 @@ export function CadastroClientesSection() {
               <div className="contrato-secao-titulo">Tipo de cliente</div>
               <div>
                 <label htmlFor="cadastroTipoCliente">Segmento {REQ}</label>
-                <select
-                  id="cadastroTipoCliente"
-                  required
+                <Select
                   value={form.tipoCliente}
-                  onChange={(e) =>
-                    update("tipoCliente", e.target.value as TipoCliente)
+                  onValueChange={(v) =>
+                    update("tipoCliente", v as TipoCliente)
                   }
                 >
-                  <option value="prefeitura">Prefeitura (município)</option>
-                  <option value="locacao">Empresa de locação</option>
-                </select>
+                  <SelectTrigger id="cadastroTipoCliente" className="admin-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="prefeitura">
+                      Prefeitura (município)
+                    </SelectItem>
+                    <SelectItem value="locacao">Empresa de locação</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -337,17 +349,21 @@ export function CadastroClientesSection() {
                 {!isLoc && (
                   <div>
                     <label htmlFor="ctrModalidade">Modalidade</label>
-                    <select
-                      id="ctrModalidade"
+                    <Select
                       value={form.modalidade}
-                      onChange={(e) => update("modalidade", e.target.value)}
+                      onValueChange={(v) => update("modalidade", v)}
                     >
-                      {MODALIDADES.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger id="ctrModalidade" className="admin-select">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MODALIDADES.map((m) => (
+                          <SelectItem key={m.value} value={m.value}>
+                            {m.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
                 <div>
@@ -430,17 +446,21 @@ export function CadastroClientesSection() {
                   <div className="row-3" style={{ marginTop: 12 }}>
                     <div>
                       <label htmlFor="ctrStatus">Status do contrato</label>
-                      <select
-                        id="ctrStatus"
+                      <Select
                         value={form.status}
-                        onChange={(e) => update("status", e.target.value)}
+                        onValueChange={(v) => update("status", v)}
                       >
-                        {STATUS_OPCOES.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger id="ctrStatus" className="admin-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPCOES.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <label htmlFor="ctrDataAssinatura">
@@ -459,17 +479,24 @@ export function CadastroClientesSection() {
                       <label htmlFor="ctrPeriodicidade">
                         Periodicidade de faturamento
                       </label>
-                      <select
-                        id="ctrPeriodicidade"
+                      <Select
                         value={form.periodicidade}
-                        onChange={(e) => update("periodicidade", e.target.value)}
+                        onValueChange={(v) => update("periodicidade", v)}
                       >
-                        {PERIODICIDADES.map((p) => (
-                          <option key={p.value} value={p.value}>
-                            {p.label}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          id="ctrPeriodicidade"
+                          className="admin-select"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PERIODICIDADES.map((p) => (
+                            <SelectItem key={p.value} value={p.value}>
+                              {p.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   <div className="row-3" style={{ marginTop: 10 }}>
