@@ -943,9 +943,177 @@
   margin: 0 0 14px;
   font-size: 0.82rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--primary);
   text-transform: uppercase;
   letter-spacing: 0.07em;
+}
+
+/* Abas (Dados do contrato / Acessos e logins) */
+#acessos .cad-tabs {
+  display: flex;
+  gap: 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+
+#acessos .cad-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 10px 2px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+#acessos .cad-tab:hover {
+  color: var(--text);
+}
+
+#acessos .cad-tab.is-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Banner informativo (borda laranja à esquerda) */
+#acessos .cad-banner {
+  margin: 2px 0 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+#acessos .cad-banner strong {
+  color: var(--text);
+}
+
+/* "Avançado" recolhível */
+#acessos .cad-avancado-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--secondary);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#acessos .cad-avancado-toggle:hover {
+  color: #93c5fd;
+}
+
+/* Ações do form (Cancelar / Salvar) */
+#acessos .cad-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+#acessos .cad-actions .btn {
+  width: auto;
+}
+
+/* ===== Aba "Acessos e logins" (form unificado) ===== */
+#acessos .ac-cap {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+#acessos .ac-notif {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+#acessos .ac-notif-opt {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+#acessos .ac-notif-opt input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+#acessos .ac-add {
+  width: auto;
+  margin-top: 16px;
+}
+
+#acessos .ac-lista-titulo {
+  margin: 22px 0 0;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#acessos .ac-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--secondary);
+  background: rgba(59, 130, 246, 0.16);
+}
+
+#acessos .ac-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+#acessos .ac-badge--email {
+  color: #bfdbfe;
+  border-color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
+}
+
+#acessos .ac-badge--wpp {
+  color: #86efac;
+  border-color: #4ade80;
+  background: rgba(34, 197, 94, 0.16);
+}
+
+#acessos .ac-badge--perfil {
+  color: #bfdbfe;
+  border-color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
 }
 
 #acessos #ctr-status-slot-loc,
