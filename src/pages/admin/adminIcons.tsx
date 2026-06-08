@@ -1,14 +1,5 @@
 import type { SVGProps } from "react";
-import {
-  Building2,
-  ClipboardList,
-  Handshake,
-  LayoutGrid,
-  MessageCircle,
-  SlidersHorizontal,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 
 const iconProps: SVGProps<SVGSVGElement> = {
   width: 20,
@@ -17,36 +8,9 @@ const iconProps: SVGProps<SVGSVGElement> = {
   "aria-hidden": true,
 };
 
+/** Grid do Dashboard — monocromático, herda a cor (laranja quando ativo). */
 export function AdminIconDashboard() {
   return <LayoutGrid {...iconProps} />;
-}
-
-export function AdminIconClientes() {
-  return <Users {...iconProps} />;
-}
-
-export function AdminIconOficinasPostos() {
-  return <Building2 {...iconProps} />;
-}
-
-export function AdminIconCadastroClientes() {
-  return <ClipboardList {...iconProps} />;
-}
-
-export function AdminIconFuncionalidades() {
-  return <SlidersHorizontal {...iconProps} />;
-}
-
-export function AdminIconWhatsapp() {
-  return <MessageCircle {...iconProps} />;
-}
-
-export function AdminIconParceiros() {
-  return <Handshake {...iconProps} />;
-}
-
-export function AdminIconFinanceiro() {
-  return <Wallet {...iconProps} />;
 }
 
 /** Logo relógio da marca HORA ÚTIL 360. */

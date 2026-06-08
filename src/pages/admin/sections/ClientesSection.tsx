@@ -1,83 +1,209 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Prefeitura } from "../../../lib/hu360";
-import { useHU360 } from "../../../lib/hu360";
-import { useClientes } from "../hooks/clientes/use-clientes";
+import {
+  clientesApi,
+  type ClienteOverviewApi,
+} from "../../../lib/api/clientes";
+import { HUB_CTX_KEY } from "../../../portal/postoPortalCore";
+
+function formatarMoeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+/** Lê o cliente em foco persistido pela gestão (mesma chave da topbar). */
+function lerFocoId(): string {
+  try {
+    return sessionStorage.getItem(HUB_CTX_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
 
 export function ClientesSection() {
-  const { listarClientes } = useClientes();
-  const { prefeituraLabel } = useHU360();
   const navigate = useNavigate();
-  const [clientes, setClientes] = useState<Prefeitura[]>([]);
+  const [clientes, setClientes] = useState<ClienteOverviewApi[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     let ativo = true;
     void (async () => {
       setLoading(true);
-      const lista = await listarClientes();
-      if (ativo) {
-        setClientes(lista);
-        setLoading(false);
+      setErro(null);
+      try {
+        const lista = await clientesApi.overview();
+        if (ativo) setClientes(lista);
+      } catch (e) {
+        if (ativo) {
+          setErro(
+            e instanceof Error ? e.message : "Falha ao carregar os clientes.",
+          );
+        }
+      } finally {
+        if (ativo) setLoading(false);
       }
     })();
     return () => {
       ativo = false;
     };
-  }, [listarClientes]);
+  }, []);
 
-  function abrirPainel(cliente: Prefeitura) {
-    if (cliente.tipoCliente === "locacao") {
-      navigate(`/locacao/${cliente.id}`);
-      return;
-    }
-    navigate(`/prefeitura/${cliente.id}`);
+  const totais = useMemo(
+    () =>
+      clientes.reduce(
+        (acc, c) => {
+          acc.ativos += c.ativos;
+          acc.custo += c.custoAcumulado;
+          return acc;
+        },
+        { ativos: 0, custo: 0 },
+      ),
+    [clientes],
+  );
+
+  const focoLabel = useMemo(() => {
+    const id = lerFocoId();
+    const c = clientes.find((x) => x.id === id) ?? clientes[0];
+    return c ? `${c.nome} (${c.uf})` : "—";
+  }, [clientes]);
+
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return clientes;
+    return clientes.filter(
+      (c) =>
+        c.nome.toLowerCase().includes(q) || c.uf.toLowerCase().includes(q),
+    );
+  }, [clientes, busca]);
+
+  function abrirPainel(c: ClienteOverviewApi) {
+    navigate(
+      c.tipoCliente === "locacao" ? `/locacao/${c.id}` : `/prefeitura/${c.id}`,
+    );
   }
 
   return (
     <section id="clientes" className="aba-conteudo ativa">
-      <h2>Clientes</h2>
+      <div className="clientes-head">
+        <h2>Clientes</h2>
+        <button
+          type="button"
+          className="btn btn-primary clientes-novo"
+          onClick={() => navigate("/admin/cadastros")}
+        >
+          + Novo cliente
+        </button>
+      </div>
+      <p className="clientes-sub">
+        Visualize e acesse o painel de todos os clientes contratantes.
+      </p>
+
+      <div className="card-grid hub-dashboard-metrics">
+        <article className="card hub-dashboard-metric">
+          <h3>Clientes contratantes</h3>
+          <p className="hub-dashboard-metric-value is-accent">
+            {loading ? "…" : clientes.length || "—"}
+          </p>
+        </article>
+        <article className="card hub-dashboard-metric">
+          <h3>Ativos (frota total)</h3>
+          <p className="hub-dashboard-metric-value">
+            {loading ? "…" : totais.ativos}
+          </p>
+        </article>
+        <article className="card hub-dashboard-metric">
+          <h3>Custo acumulado</h3>
+          <p className="hub-dashboard-metric-value">
+            {formatarMoeda(totais.custo)}
+          </p>
+        </article>
+        <article className="card hub-dashboard-metric">
+          <h3>Cliente em foco</h3>
+          <p className="hub-dashboard-metric-value clientes-foco">
+            {loading ? "…" : focoLabel}
+          </p>
+        </article>
+      </div>
 
       <article className="card hub-dashboard-table-card">
-        <h3 className="hub-dashboard-table-title">Clientes contratantes</h3>
+        <div className="clientes-table-head">
+          <h3 className="hub-dashboard-table-title">Contratos por cliente</h3>
+          <div className="clientes-busca">
+            <span aria-hidden="true">🔍</span>
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou UF..."
+              aria-label="Buscar cliente por nome ou UF"
+            />
+          </div>
+        </div>
+
         {loading && (
           <p className="topbar-user" style={{ margin: "0 0 10px" }}>
-            Carregando clientes…
+            Carregando dados do banco…
           </p>
         )}
+        {erro && !loading && (
+          <p className="admin-error" style={{ margin: "0 0 10px" }}>
+            {erro}
+          </p>
+        )}
+
         <div className="hub-table-scroll">
           <table className="hub-dashboard-table">
             <thead>
               <tr>
                 <th>Cliente</th>
-                <th>Tipo</th>
-                <th>UF</th>
-                <th>Status</th>
+                <th>Ativos</th>
+                <th>Checklists</th>
+                <th>Em manutenção</th>
+                <th>Custo acumulado</th>
+                <th>O.S. em cotação</th>
+                <th>O.S. NF / pagamento</th>
                 <th>Abrir painel</th>
               </tr>
             </thead>
             <tbody>
-              {clientes.length === 0 ? (
+              {filtrados.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="hub-dash-empty">
-                    {loading ? "Carregando…" : "Nenhum cliente cadastrado."}
+                  <td colSpan={8} className="hub-dash-empty">
+                    {loading
+                      ? "Carregando…"
+                      : busca
+                        ? "Nenhum cliente encontrado para a busca."
+                        : "Nenhum cliente cadastrado."}
                   </td>
                 </tr>
               ) : (
-                clientes.map((c) => (
+                filtrados.map((c) => (
                   <tr key={c.id}>
                     <td>
                       <strong>
-                        {c.tipoCliente === "locacao" ? "Locadora " : "Prefeitura "}
+                        {c.tipoCliente === "locacao"
+                          ? "Locadora "
+                          : "Prefeitura "}
                       </strong>
-                      {prefeituraLabel(c.id)}
+                      {c.nome} ({c.uf})
+                    </td>
+                    <td className="hub-dash-num">{c.ativos}</td>
+                    <td className="hub-dash-num">{c.checklists}</td>
+                    <td className="hub-dash-num">{c.emManutencao}</td>
+                    <td className="hub-dash-num">
+                      {c.tipoCliente === "locacao"
+                        ? "—"
+                        : formatarMoeda(c.custoAcumulado)}
                     </td>
                     <td className="hub-dash-num">
-                      {c.tipoCliente === "locacao" ? "Locação" : "Prefeitura"}
+                      {c.tipoCliente === "locacao" ? "—" : c.osCotacao}
                     </td>
-                    <td className="hub-dash-num">{c.uf}</td>
                     <td className="hub-dash-num">
-                      {c.contrato?.status === "ativo" ? "Ativo" : (c.contrato?.status ?? "—")}
+                      {c.tipoCliente === "locacao" ? "—" : c.osNfPagamento}
                     </td>
                     <td className="hub-dash-action">
                       <button
