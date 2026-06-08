@@ -219,13 +219,24 @@ function saveChecklistHistory(rows: Record<string, unknown>[]) {
 const ABAS: {
   id: Aba;
   label: string;
+  shortLabel: string;
   icon: "dash" | "check" | "audit" | "alert" | "clock";
 }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "dash" },
-  { id: "checklist", label: "Checklist", icon: "check" },
-  { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
-  { id: "emergencia", label: "Emergências", icon: "alert" },
-  { id: "pontos", label: "Pontos", icon: "clock" },
+  { id: "dashboard", label: "Dashboard", shortLabel: "Início", icon: "dash" },
+  { id: "checklist", label: "Checklist", shortLabel: "Checklist", icon: "check" },
+  {
+    id: "auditoria",
+    label: "Auditoria de checklists",
+    shortLabel: "Auditoria",
+    icon: "audit",
+  },
+  {
+    id: "emergencia",
+    label: "Emergências",
+    shortLabel: "Emergência",
+    icon: "alert",
+  },
+  { id: "pontos", label: "Pontos", shortLabel: "Pontos", icon: "clock" },
 ];
 
 function parseRespostasChecklist(row: Record<string, unknown>): {
@@ -364,6 +375,13 @@ function Hu360NavIcon({
   );
 }
 
+function iniciaisOperador(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+}
+
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
@@ -386,7 +404,27 @@ export function ChecklistControlePage() {
     pwaEstado === "instalado" ? "App instalado ✓" : "Instalar app";
   const { ativo: pontoAtivo } = usePontoAtivo(session?.idCliente);
   const [aba, setAba] = useState<Aba>("dashboard");
+  const [menuHeadAberto, setMenuHeadAberto] = useState(false);
+  const menuHeadRef = useRef<HTMLDivElement>(null);
   const abasVisiveis = ABAS.filter((a) => a.id !== "pontos" || pontoAtivo);
+
+  useEffect(() => {
+    if (!menuHeadAberto) return;
+    function fecharMenu(e: MouseEvent) {
+      if (
+        menuHeadRef.current &&
+        !menuHeadRef.current.contains(e.target as Node)
+      ) {
+        setMenuHeadAberto(false);
+      }
+    }
+    document.addEventListener("mousedown", fecharMenu);
+    return () => document.removeEventListener("mousedown", fecharMenu);
+  }, [menuHeadAberto]);
+
+  useEffect(() => {
+    setMenuHeadAberto(false);
+  }, [aba]);
 
   // Auto-preenche GPS quando o operador abre a aba de emergência
   useEffect(() => {
@@ -1575,6 +1613,10 @@ export function ChecklistControlePage() {
       setSalvandoChecklist(false);
     }
 
+    setAba("dashboard");
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setAnswers({});
     setNomeOperadorChecklist("");
     setHorimetro("");
@@ -1862,7 +1904,12 @@ export function ChecklistControlePage() {
               <span className="hu360-nav-btn__ico" aria-hidden>
                 <Hu360NavIcon kind={t.icon} />
               </span>
-              <span className="hu360-nav-btn__lab">{t.label}</span>
+              <span className="hu360-nav-btn__lab hu360-nav-btn__lab--full">
+                {t.label}
+              </span>
+              <span className="hu360-nav-btn__lab hu360-nav-btn__lab--short">
+                {t.shortLabel}
+              </span>
             </button>
           ))}
         </nav>
@@ -1870,24 +1917,139 @@ export function ChecklistControlePage() {
 
       <main className="hu360-main hu360-main--light">
         <header className="hu360-app-head">
-          <div className="hu360-app-head__titles">
+          <div className="hu360-app-head__bar">
+            <div className="hu360-app-head__identity">
+              <span className="hu360-app-head__avatar" aria-hidden>
+                {iniciaisOperador(session.nome)}
+              </span>
+              <div className="hu360-app-head__who">
+                <p className="hu360-app-head__name">{session.nome}</p>
+                <p className="hu360-app-head__org">{session.empresa}</p>
+                <p className="hu360-app-head__date-mobile">
+                  {dataLongaPtBr(new Date())}
+                </p>
+              </div>
+            </div>
+
+            <div className="hu360-app-head__menu-wrap" ref={menuHeadRef}>
+              <button
+                type="button"
+                className="hu360-app-head__menu-btn"
+                aria-label="Menu da conta"
+                aria-expanded={menuHeadAberto}
+                aria-haspopup="menu"
+                onClick={() => setMenuHeadAberto((v) => !v)}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden
+                >
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+              {menuHeadAberto ? (
+                <div className="hu360-app-head__menu" role="menu">
+                  <Link
+                    to="/"
+                    className="hu360-app-head__menu-item"
+                    role="menuitem"
+                    onClick={() => setMenuHeadAberto(false)}
+                  >
+                    Portal inicial
+                  </Link>
+                  <button
+                    type="button"
+                    className="hu360-app-head__menu-item hu360-app-head__menu-item--danger"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuHeadAberto(false);
+                      handleLogout();
+                    }}
+                  >
+                    Sair
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {(pontoAtivo || pwaEstado !== "instalado") && (
+            <div className="hu360-app-head__quick">
+              {pontoAtivo ? (
+                <Link
+                  to="/ponto"
+                  className="hu360-app-head__quick-btn hu360-app-head__quick-btn--ponto"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  Bater ponto
+                </Link>
+              ) : null}
+              {pwaEstado !== "instalado" ? (
+                <button
+                  type="button"
+                  className="hu360-app-head__quick-btn hu360-app-head__quick-btn--install"
+                  onClick={() => void aoClicarInstalar()}
+                  title="Instalar o app na tela de início"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden
+                  >
+                    <path d="M12 3v12" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M5 21h14" />
+                  </svg>
+                  Instalar app
+                </button>
+              ) : null}
+            </div>
+          )}
+
+          <div className="hu360-app-head__meta">
             <p className="hu360-app-head__date">{dataLongaPtBr(new Date())}</p>
             <h1 className="hu360-app-head__title">
               {ABAS.find((x) => x.id === aba)?.label ?? "Painel"}
             </h1>
           </div>
+
           <div className="hu360-app-head__actions">
-            <Link to="/" className="hu360-app-head__link">
-              Portal inicial
-            </Link>
-            {pontoAtivo && (
-              <Link to="/ponto" className="hu360-app-head__link">
+            <span className="hu360-app-head__user-desktop">
+              {session.nome} · {session.empresa}
+            </span>
+            {pontoAtivo ? (
+              <Link
+                to="/ponto"
+                className="hu360-app-head__chip hu360-app-head__chip--primary"
+              >
                 Bater ponto
               </Link>
-            )}
+            ) : null}
             <button
               type="button"
-              className="hu360-app-head__sair hu360-app-head__install"
+              className="hu360-app-head__chip hu360-app-head__chip--primary"
               onClick={() => void aoClicarInstalar()}
               disabled={pwaEstado === "instalado"}
               title={
@@ -1898,12 +2060,12 @@ export function ChecklistControlePage() {
             >
               {pwaBotaoLabel}
             </button>
-            <span className="hu360-app-head__user">
-              {session.nome} · {session.empresa}
-            </span>
+            <Link to="/" className="hu360-app-head__chip">
+              Portal inicial
+            </Link>
             <button
               type="button"
-              className="hu360-app-head__sair"
+              className="hu360-app-head__chip hu360-app-head__chip--ghost"
               onClick={handleLogout}
             >
               Sair
