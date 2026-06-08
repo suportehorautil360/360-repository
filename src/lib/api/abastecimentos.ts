@@ -93,8 +93,6 @@ export interface AbastecimentoListaApi {
   createdAt: string;
 }
 
-export type OrigemAbastecimento = "comboio" | "posto";
-
 /** Registro normalizado para a tela de abastecimentos da prefeitura. */
 export interface AbastecimentoTela {
   id: string;
