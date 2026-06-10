@@ -32,6 +32,7 @@ const frentes: Frente[] = [
     endereco: "",
     responsavel: "",
     telefone: "",
+    email: "",
     status: "Ativa",
     custo: 0,
     inicio: "",

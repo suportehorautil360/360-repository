@@ -35,6 +35,8 @@ export interface Frente {
   responsavel: string;
   /** Telefone (WhatsApp) da frente, em E.164. "" quando não cadastrado. */
   telefone: string;
+  /** Email da frente (responsável). "" quando não cadastrado. */
+  email: string;
   status: FrenteStatus;
   custo: number;
   inicio: string; // ISO
@@ -50,6 +52,8 @@ export interface NovaFrenteInput {
   responsavel: string;
   /** Telefone (WhatsApp) em E.164, ou "" quando não informado. */
   telefone: string;
+  /** Email da frente (responsável), ou "" quando não informado. */
+  email: string;
   status: FrenteStatus;
   custo: number;
   inicio: string; // yyyy-mm-dd
@@ -113,6 +117,7 @@ function normalizeFrente(
     endereco: asText(data.address),
     responsavel: asText(data.responsible),
     telefone: asText(data.telefone),
+    email: asText(data.email),
     status: normalizeStatus(data.status),
     custo: asNumber(data.cost),
     inicio: asText(data.startDate),
@@ -148,6 +153,7 @@ export const frentesApi = {
       address: input.endereco.trim(),
       responsible: input.responsavel.trim(),
       telefone: toE164(input.telefone) ?? "",
+      email: input.email.trim(),
       equipaments: [],
       status: input.status,
       cost: input.custo,
@@ -163,6 +169,7 @@ export const frentesApi = {
       address: input.endereco.trim(),
       responsible: input.responsavel.trim(),
       telefone: toE164(input.telefone) ?? "",
+      email: input.email.trim(),
       status: input.status,
       cost: input.custo,
       startDate: dateInputToISO(input.inicio),
