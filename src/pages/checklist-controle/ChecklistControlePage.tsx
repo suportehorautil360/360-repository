@@ -24,6 +24,12 @@ import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { registroDoOperador } from "./registro-operador";
 import { obterLocalizacao } from "./geolocalizacao";
 import { itensDaCategoria } from "../../features/checklist/domain/itens";
+import {
+  inferirDefinition,
+  itensDaDefinition,
+  type ItemOperador,
+} from "../../features/checklist/domain/definitions-resolver";
+import { useChecklistDefinitions } from "../../features/checklist/hooks/useChecklistDefinitions";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -54,7 +60,8 @@ type Aba =
 
 type ItemChecklist =
   | (typeof seedData.itens_checklist)[number]
-  | ChecklistDocumentoItem;
+  | ChecklistDocumentoItem
+  | ItemOperador;
 
 /** True se o item é classificado como `impeditivo` no seed (default = não). */
 function itemImpeditivo(it: ItemChecklist): boolean {
@@ -1165,18 +1172,32 @@ export function ChecklistControlePage() {
     );
   }, [session?.idMaquina]);
 
+  // Catálogo de definições do backend, com fallback offline no seed embutido.
+  const { definitions: checklistDefinitions } = useChecklistDefinitions();
+
+  // Definição casada por palavra-chave (nome/modelo do equipamento).
+  const definicaoAtual = useMemo(() => {
+    if (!equipamentoAtual) return null;
+    return inferirDefinition(
+      checklistDefinitions,
+      equipamentoAtual.label,
+      equipamentoAtual.modelo,
+      `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+    );
+  }, [checklistDefinitions, equipamentoAtual]);
+
   const itensFiltrados: ItemChecklist[] = useMemo(() => {
     if (!equipamentoAtual) return [];
+    // Itens da definição: deduplicados e renumerados 1..N (o `Nº` é a chave de
+    // `answers`). Sem definição casada, cai no comportamento legado (seed).
+    if (definicaoAtual) return itensDaDefinition(definicaoAtual);
     const cat = inferirCategoriaChecklist(
       equipamentoAtual.label,
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Fonte ÚNICA e compartilhada com a auditoria (resolução do nome do item):
-    // filtra pela categoria, remove duplicados e renumera o `Nº` de 1..N
-    // (o `Nº` do seed se repete, e ele é a chave de `answers`).
     return itensDaCategoria(cat);
-  }, [equipamentoAtual]);
+  }, [equipamentoAtual, definicaoAtual]);
 
   function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -1452,11 +1473,13 @@ export function ChecklistControlePage() {
       Operador: nomeOperadorChecklist.trim(),
       Chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
       ID_Maquina: equipamentoAtual.id,
-      Categoria: inferirCategoriaChecklist(
-        equipamentoAtual.label,
-        equipamentoAtual.modelo,
-        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-      ),
+      Categoria:
+        definicaoAtual?.categoria ??
+        inferirCategoriaChecklist(
+          equipamentoAtual.label,
+          equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+        ),
       Modelo: equipamentoAtual.label,
       Linha: equipamentoAtual.linha,
       Item_Verificado: `Checklist ${itensFiltrados.length} itens`,
@@ -1495,11 +1518,13 @@ export function ChecklistControlePage() {
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         modelo: equipamentoAtual.label,
         linha: equipamentoAtual.linha,
-        categoria: inferirCategoriaChecklist(
-          equipamentoAtual.label,
-          equipamentoAtual.modelo,
-          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-        ),
+        categoria:
+          definicaoAtual?.categoria ??
+          inferirCategoriaChecklist(
+            equipamentoAtual.label,
+            equipamentoAtual.modelo,
+            `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+          ),
         operador: nomeOperadorChecklist.trim(),
         idOperadorSession: session.idCliente,
         funcionarioId: session.funcionarioId ?? "",
@@ -1648,15 +1673,17 @@ export function ChecklistControlePage() {
     if (itensNao.length === 0) return;
 
     try {
-      const categoria = inferirCategoriaChecklist(
-        equipamentoAtual.label,
-        equipamentoAtual.modelo,
-        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-      );
+      const categoria =
+        definicaoAtual?.categoria ??
+        inferirCategoriaChecklist(
+          equipamentoAtual.label,
+          equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+        );
       const run = await checklistsApi.iniciar({
         prefeituraId: equipamentoAtual.prefeituraId || session?.idCliente || "",
-        definitionId: `seed:${categoria}`,
-        definitionVersion: 1,
+        definitionId: definicaoAtual?.id ?? `seed:${categoria}`,
+        definitionVersion: definicaoAtual?.version ?? 1,
         equipamentoId: equipamentoAtual.id,
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         operadorNome: nomeOperadorChecklist.trim(),
