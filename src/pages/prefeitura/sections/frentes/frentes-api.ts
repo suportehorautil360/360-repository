@@ -4,6 +4,7 @@
  * Traduz o documento cru do banco para o modelo de UI.
  */
 import { api, ApiError } from "../../../../lib/api/client";
+import { toE164 } from "../../../../lib/phone";
 import { formatBRL } from "../../../../utils/moeda";
 
 export type FrenteStatus = "Ativa" | "Pausada" | "Concluída";
@@ -32,6 +33,8 @@ export interface Frente {
   nome: string;
   endereco: string;
   responsavel: string;
+  /** Telefone (WhatsApp) da frente, em E.164. "" quando não cadastrado. */
+  telefone: string;
   status: FrenteStatus;
   custo: number;
   inicio: string; // ISO
@@ -45,6 +48,8 @@ export interface NovaFrenteInput {
   nome: string;
   endereco: string;
   responsavel: string;
+  /** Telefone (WhatsApp) em E.164, ou "" quando não informado. */
+  telefone: string;
   status: FrenteStatus;
   custo: number;
   inicio: string; // yyyy-mm-dd
@@ -107,6 +112,7 @@ function normalizeFrente(
     nome: asText(data.name) || "Frente de trabalho",
     endereco: asText(data.address),
     responsavel: asText(data.responsible),
+    telefone: asText(data.telefone),
     status: normalizeStatus(data.status),
     custo: asNumber(data.cost),
     inicio: asText(data.startDate),
@@ -141,6 +147,7 @@ export const frentesApi = {
       prefeituraId,
       address: input.endereco.trim(),
       responsible: input.responsavel.trim(),
+      telefone: toE164(input.telefone) ?? "",
       equipaments: [],
       status: input.status,
       cost: input.custo,
@@ -155,6 +162,7 @@ export const frentesApi = {
       name: input.nome.trim(),
       address: input.endereco.trim(),
       responsible: input.responsavel.trim(),
+      telefone: toE164(input.telefone) ?? "",
       status: input.status,
       cost: input.custo,
       startDate: dateInputToISO(input.inicio),

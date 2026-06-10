@@ -207,6 +207,7 @@ export function FrentesTrabalhoSection({
                     <h2 className="ft-card__name">{f.nome}</h2>
                     <p className="ft-card__meta">
                       📍 {f.endereco || "—"} · Resp: {f.responsavel || "—"}
+                      {f.telefone ? ` · 📱 ${f.telefone}` : ""}
                     </p>
                     <p className="ft-card__meta">
                       📅 {formatDataBR(f.inicio)} → {formatDataBR(f.fim)} ·
