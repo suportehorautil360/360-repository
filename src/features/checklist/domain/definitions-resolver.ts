@@ -119,6 +119,7 @@ const SEED_KEYWORDS: { categoria: string; keywords: string[] }[] = [
   { categoria: "Motoniveladora", keywords: ["motoniveladora"] },
   { categoria: "Escavadeira", keywords: ["escavadeira"] },
   { categoria: "Trator de Esteira", keywords: ["trator de esteira"] },
+  { categoria: "Picador de Madeira", keywords: ["picador", "picador de madeira", "chipper"] },
   { categoria: "Caminhões", keywords: ["caminhão", "caminhao"] },
   { categoria: "Retroescavadeira", keywords: ["retroescavadeira"] },
   { categoria: "Pá Carregadeira", keywords: ["pa carregadeira", "pá carregadeira", "carregadeira"] },

@@ -1503,6 +1503,231 @@
       "Severidade": "impeditivo",
       "Nº": 6.9,
       "Item de Verificação": "SEGURANÇA: Testar todas as luzes, buzina e alarme de ré"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 1,
+      "Item de Verificação": "Facas e contrafacas estão sem trincas, quebras ou desgaste excessivo?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 2,
+      "Item de Verificação": "Os parafusos de fixação das facas estão com o torque/aperto correto?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 3,
+      "Item de Verificação": "O rotor/tambor está limpo e livre de detritos ou materiais travados?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 4,
+      "Item de Verificação": "A folga entre faca e contrafaca está dentro do padrão do fabricante?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 5,
+      "Item de Verificação": "O sistema de afiação (se houver) está regulado e com a pedra em bom estado?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 6,
+      "Item de Verificação": "Os rolos alimentadores (mordentes) estão com os dentes inteiros e limpos?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 7,
+      "Item de Verificação": "A mesa de alimentação ou esteira está com a tensão da corrente correta?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 8,
+      "Item de Verificação": "Os cilindros hidráulicos dos rolos estão livres de vazamentos nas vedações?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 9,
+      "Item de Verificação": "As mangueiras de alta pressão da mesa estão sem sinais de atrito ou desgaste?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 10,
+      "Item de Verificação": "Os níveis de fluidos (óleo do motor, radiador, combustível/Arla) estão adequados?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 11,
+      "Item de Verificação": "O pré-filtro e o filtro de ar estão limpos (livres de excesso de serragem)?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 12,
+      "Item de Verificação": "As correias e polias da transmissão estão tensionadas e sem rachaduras?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 13,
+      "Item de Verificação": "A embreagem / PTO (Tomada de Força) aciona suavemente, sem patinar?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 14,
+      "Item de Verificação": "O nível do óleo hidráulico está correto no visor (máquina nivelada)?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 15,
+      "Item de Verificação": "O bloco de válvulas, comandos e conexões estão livres de vazamentos?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 16,
+      "Item de Verificação": "O tubo de descarga (calha/bica) gira e opera o defletor hidráulico normalmente?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 17,
+      "Item de Verificação": "O revestimento interno da bica está sem furos ou desgaste crítico por abrasão?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 18,
+      "Item de Verificação": "A bateria está com cabos firmes, limpos e sem sinais de oxidação (zinabre)?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 19,
+      "Item de Verificação": "O alternador está gerando carga corretamente e a correia está tensionada?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 20,
+      "Item de Verificação": "A chave geral (disjuntor principal) está operando perfeitamente e sem folgas?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "nao-impeditivo",
+      "Nº": 21,
+      "Item de Verificação": "O painel de instrumentos, displays e chicotes estão protegidos e funcionando?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 22,
+      "Item de Verificação": "Todos os botões de emergência (E-Stops) e barras de reversão funcionam?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 23,
+      "Item de Verificação": "As proteções e carenagens de polias, correias e rotor estão fixas e fechadas?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 24,
+      "Item de Verificação": "O sistema de combate a incêndio / extintores estão na carga e desimpedidos?"
+    },
+    {
+      "Categoria Origem": "Picador de Madeira",
+      "Aplica A": [
+        "Picador de Madeira"
+      ],
+      "Severidade": "impeditivo",
+      "Nº": 25,
+      "Item de Verificação": "O chassi, sapatas estabilizadoras e pneus/esteiras estão sem danos ou trincas?"
     }
   ],
   "treinamentos_video": [

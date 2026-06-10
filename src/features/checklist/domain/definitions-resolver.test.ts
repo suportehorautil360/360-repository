@@ -65,6 +65,15 @@ describe("inferirDefinition — precedência por palavra-chave", () => {
     expect(inferirDefinition(seed, "Drone Aéreo", "")).toBeNull();
   });
 
+  it("Picador de Madeira vem no seed embutido com 25 itens", () => {
+    const def = defByCat("Picador de Madeira");
+    expect(def).toBeTruthy();
+    expect(itensDaDefinition(def).length).toBe(25);
+    expect(
+      inferirDefinition(seed, "Picador Florestal PX-30", "")?.categoria,
+    ).toBe("Picador de Madeira");
+  });
+
   it("definição customizada nova casa por keyword própria", () => {
     const comPicador = [
       ...seed,
