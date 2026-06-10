@@ -33,6 +33,7 @@ export function NovaFrenteModal({
   const [telefone, setTelefone] = useState<string | undefined>(
     frente?.telefone || undefined,
   );
+  const [email, setEmail] = useState(frente?.email ?? "");
   const [status, setStatus] = useState<FrenteStatus>(frente?.status ?? "Ativa");
   const [custo, setCusto] = useState<number>(frente?.custo ?? 0);
   const [inicio, setInicio] = useState(isoParaDateInput(frente?.inicio ?? ""));
@@ -54,6 +55,7 @@ export function NovaFrenteModal({
         endereco,
         responsavel,
         telefone: telefone ?? "",
+        email,
         status,
         custo,
         inicio,
@@ -144,6 +146,17 @@ export function NovaFrenteModal({
               value={telefone}
               onChange={setTelefone}
               placeholder="Recebe o alerta de emergência do equipamento"
+            />
+          </label>
+
+          <label className="ft-field">
+            <span className="ft-field__label">Email</span>
+            <input
+              type="email"
+              className="ft-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Recebe o alerta de emergência/checklist por email"
             />
           </label>
 
