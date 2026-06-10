@@ -89,6 +89,70 @@ describe("abastecimentosApi.listarPorPeriodo", () => {
   });
 });
 
+describe("abastecimentosApi.listar (mapeia resposta real do backend en->pt)", () => {
+  // Espelha exatamente o que `formatAbastecimento` do back-360- devolve.
+  const backendPosto = {
+    id: "a1",
+    dateTime: "10/06, 13:30",
+    vehicle: { name: "Golf", plate: "ABC-1234", type: "Motoniveladora" },
+    origin: "Posto Exemplo",
+    postoId: "posto-1",
+    liters: 1000,
+    pricePerLiter: 5,
+    value: 5000,
+    reading: "1.234 km",
+    currentReading: 1234,
+    measurementType: "hodometro",
+    meterPhoto: null,
+    local: "Pirituba",
+    createdAt: "2026-06-10T16:30:50.934Z",
+  };
+
+  it("preenche veiculo, litros, valor e leitura a partir dos campos en", async () => {
+    getMock.mockResolvedValue({ data: [backendPosto] });
+    const rows = await abastecimentosApi.listar("p1");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      veiculo: "Golf",
+      placa: "ABC-1234",
+      tipoVeiculo: "Motoniveladora",
+      litros: 1000,
+      valor: 5000,
+      leitura: 1234,
+      leituraUnidade: "km",
+      origem: "posto",
+      local: "Pirituba",
+    });
+    // data derivada do createdAt (ISO), para fmtData/ordenacao funcionarem.
+    expect(rows[0].data).toMatch(/^2026-06-\d{2}$/);
+  });
+
+  it("classifica comboio e leitura em horas (horimetro)", async () => {
+    getMock.mockResolvedValue({
+      data: [
+        {
+          ...backendPosto,
+          id: "c1",
+          origin: "Comboio",
+          postoId: null,
+          value: null,
+          reading: "10 h",
+          currentReading: 10,
+          measurementType: "horimetro",
+          local: "",
+        },
+      ],
+    });
+    const [row] = await abastecimentosApi.listar("p1");
+    expect(row).toMatchObject({
+      origem: "comboio",
+      leitura: 10,
+      leituraUnidade: "h",
+      valor: 0,
+    });
+  });
+});
+
 describe("abastecimentosApi.remover", () => {
   it("chama DELETE em /abastecimentos/item/:id", async () => {
     delMock.mockResolvedValue(undefined);

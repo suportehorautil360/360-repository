@@ -38,31 +38,66 @@ function asStr(v: unknown): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
+/** ISO ("2026-06-10T16:30:50Z") → "YYYY-MM-DD" (calendário local); "" se inválido. */
+function isoDateFrom(iso: string): string {
+  if (!iso) return "";
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return "";
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** ISO → "HH:MM" (pt-BR, local); "" se inválido. */
+function horaFrom(iso: string): string {
+  if (!iso) return "";
+  const dt = new Date(iso);
+  return Number.isNaN(dt.getTime())
+    ? ""
+    : dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Normaliza um registro do back-360- (`formatAbastecimento`, campos em inglês)
+ * para o shape `Abastecimento`. Mantém fallbacks em português para qualquer
+ * caminho legado (ex.: leitura direta do Firestore).
+ */
 function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
-  const origem: OrigemAbastecimento =
-    d.origem === "comboio" ? "comboio" : "posto";
+  const vehicle = (d.vehicle ?? null) as Record<string, unknown> | null;
+  const createdAt = asStr(d.createdAt);
+  const origem = classificarOrigemAbastecimento(
+    asStr(d.origin ?? d.origem),
+    (d.postoId ?? d.posto_id ?? null) as string | null,
+  );
   const leituraUnidade: UnidadeLeitura =
-    d.leituraUnidade === "h" || (origem === "comboio" && d.leituraUnidade == null)
+    d.measurementType === "horimetro" ||
+    d.leituraUnidade === "h" ||
+    (origem === "comboio" &&
+      d.measurementType == null &&
+      d.leituraUnidade == null)
       ? "h"
       : "km";
-  const leitura = Number(d.leitura ?? d.km) || 0;
+  const leitura = Number(d.currentReading ?? d.leitura ?? d.km) || 0;
   const valor =
     origem === "comboio"
       ? 0
-      : typeof d.valor === "number"
-        ? d.valor
-        : parseValor(d.valorTotal ?? d.valor);
+      : typeof d.value === "number"
+        ? d.value
+        : typeof d.valor === "number"
+          ? d.valor
+          : parseValor(d.valorTotal ?? d.valor ?? d.total);
   const local = asStr(d.local ?? d.postoNome);
   return {
     id: asStr(d.id),
-    data: asStr(d.data),
-    hora: asStr(d.hora),
+    data: asStr(d.data) || isoDateFrom(createdAt),
+    hora: asStr(d.hora) || horaFrom(createdAt),
     origem,
-    veiculo: asStr(d.veiculo),
-    placa: asStr(d.placa),
-    tipoVeiculo: asStr(d.tipoVeiculo ?? d.tipo),
+    veiculo: asStr(d.veiculo ?? vehicle?.name),
+    placa: asStr(d.placa ?? vehicle?.plate),
+    tipoVeiculo: asStr(d.tipoVeiculo ?? d.tipo ?? vehicle?.type),
     combustivel: asStr(d.combustivel) || "—",
-    litros: Number(d.litros) || 0,
+    litros: Number(d.litros ?? d.liters) || 0,
     valor,
     leitura,
     leituraUnidade,
