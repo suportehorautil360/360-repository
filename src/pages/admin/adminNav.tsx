@@ -49,6 +49,12 @@ export const ADMIN_NAV: SidebarGroup[] = [
         icon: "📁",
       },
       {
+        label: "Checklists",
+        to: "/admin/checklists",
+        icon: "✅",
+        id: "nav-hub-checklists",
+      },
+      {
         label: "Funcionalidades",
         to: "/admin/funcionalidades",
         icon: "🧩",

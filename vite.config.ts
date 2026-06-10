@@ -83,6 +83,7 @@ export default defineConfig({
           "**/CadastroClientesSection-*.{js,css}",
           "**/AcessosLoginsSection-*.{js,css}",
           "**/EquipamentosLocacaoSection-*.{js,css}",
+          "**/ChecklistsSection-*.{js,css}",
           "**/AdminPortal*Page-*.{js,css}",
           "**/PrefeituraPage-*.{js,css}",
           "**/OficinaPage-*.{js,css}",

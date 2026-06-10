@@ -85,6 +85,7 @@ export const TIPO_OPTIONS = [
   "Pá Carregadeira",
   "Rolo Compactador",
   "Trator",
+  "Picador de Madeira",
 ];
 
 export const COMBUSTIVEL_OPTIONS = [
@@ -131,6 +132,7 @@ const TIPO_OPTIONS_HORIMETRO = [
   "pa carregadeira",
   "rolo compactador",
   "trator",
+  "picador",
 ];
 
 function asText(value: unknown): string {
@@ -184,6 +186,8 @@ export function inferTipo(data: Record<string, unknown>): string {
     return "Pá Carregadeira";
   if (raw.includes("rolo compactador") || raw.includes("compactador"))
     return "Rolo Compactador";
+  if (raw.includes("picador") || raw.includes("chipper"))
+    return "Picador de Madeira";
   if (/carro|leve|hatch|sedan|pickup|camionete/.test(raw)) return "Carro";
   if (/van|sprinter|furg[aã]o/.test(raw)) return "Van";
   if (/caminh|truck|pipa|munck|basculante|comboio|betoneira/.test(raw)) {

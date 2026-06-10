@@ -24,6 +24,12 @@ import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
 import { registroDoOperador } from "./registro-operador";
 import { obterLocalizacao } from "./geolocalizacao";
 import { itensDaCategoria } from "../../features/checklist/domain/itens";
+import {
+  inferirDefinition,
+  itensDaDefinition,
+  type ItemOperador,
+} from "../../features/checklist/domain/definitions-resolver";
+import { useChecklistDefinitions } from "../../features/checklist/hooks/useChecklistDefinitions";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -54,7 +60,8 @@ type Aba =
 
 type ItemChecklist =
   | (typeof seedData.itens_checklist)[number]
-  | ChecklistDocumentoItem;
+  | ChecklistDocumentoItem
+  | ItemOperador;
 
 /** True se o item é classificado como `impeditivo` no seed (default = não). */
 function itemImpeditivo(it: ItemChecklist): boolean {
@@ -476,6 +483,13 @@ export function ChecklistControlePage() {
   const [equipamentoAtual, setEquipamentoAtual] =
     useState<EquipFirestore | null>(null);
   const [buscandoChassis, setBuscandoChassis] = useState(false);
+  // Candidatos quando a busca por chassi (parcial / últimos dígitos) casa mais
+  // de um equipamento — o operador escolhe na lista.
+  const [candidatosChassi, setCandidatosChassi] = useState<EquipFirestore[]>([]);
+  // Frota carregada uma vez para o autocomplete (filtragem ao vivo, offline).
+  const [frotaBusca, setFrotaBusca] = useState<EquipFirestore[]>([]);
+  const [frotaBuscaCarregada, setFrotaBuscaCarregada] = useState(false);
+  const [mostrarSugestoesChassi, setMostrarSugestoesChassi] = useState(false);
   const [salvandoChecklist, setSalvandoChecklist] = useState(false);
   const [checklistsFirestoreHoje, setChecklistsFirestoreHoje] = useState<
     Record<string, unknown>[]
@@ -1147,6 +1161,47 @@ export function ChecklistControlePage() {
     stopItemNaoCamera,
   ]);
 
+  // Carrega a frota uma vez ao entrar na aba de checklist, para o autocomplete
+  // filtrar ao vivo (instantâneo e disponível offline via cache do Firestore).
+  useEffect(() => {
+    if (aba !== "checklist" || frotaBuscaCarregada) return;
+    let ativo = true;
+    void (async () => {
+      try {
+        const snap = await getDocs(collection(db, "equipamentos"));
+        if (!ativo) return;
+        setFrotaBusca(snap.docs.map((d) => montarEquip(d.id, d.data())));
+        setFrotaBuscaCarregada(true);
+      } catch (err) {
+        console.error("[Checklist] Erro ao carregar frota para busca:", err);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [aba, frotaBuscaCarregada]);
+
+  // Sugestões filtradas ao vivo pelo trecho digitado (chassi ou modelo/nome).
+  // Comparação só por letras/números (ignora pontos, hífens, espaços) para
+  // casar "203040" mesmo que o chassi esteja cadastrado como "20-30-40".
+  const sugestoesChassi = useMemo(() => {
+    const alnum = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const q = alnum(chassisChecklistDraft);
+    if (q.length < 2) return [];
+    return frotaBusca
+      .filter((e) => {
+        const c = alnum(e.chassis);
+        const txt = alnum(`${e.chassis}${e.label}${e.modelo}`);
+        return c.includes(q) || txt.includes(q);
+      })
+      .sort((a, b) => {
+        const ta = alnum(a.chassis).endsWith(q) ? 0 : 1;
+        const tb = alnum(b.chassis).endsWith(q) ? 0 : 1;
+        return ta - tb;
+      })
+      .slice(0, 8);
+  }, [chassisChecklistDraft, frotaBusca]);
+
   const checklistItensLiberados = useMemo(
     () => Boolean(chassisChecklistAtivo && equipamentoAtual),
     [chassisChecklistAtivo, equipamentoAtual],
@@ -1165,18 +1220,32 @@ export function ChecklistControlePage() {
     );
   }, [session?.idMaquina]);
 
+  // Catálogo de definições do backend, com fallback offline no seed embutido.
+  const { definitions: checklistDefinitions } = useChecklistDefinitions();
+
+  // Definição casada por palavra-chave (nome/modelo do equipamento).
+  const definicaoAtual = useMemo(() => {
+    if (!equipamentoAtual) return null;
+    return inferirDefinition(
+      checklistDefinitions,
+      equipamentoAtual.label,
+      equipamentoAtual.modelo,
+      `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+    );
+  }, [checklistDefinitions, equipamentoAtual]);
+
   const itensFiltrados: ItemChecklist[] = useMemo(() => {
     if (!equipamentoAtual) return [];
+    // Itens da definição: deduplicados e renumerados 1..N (o `Nº` é a chave de
+    // `answers`). Sem definição casada, cai no comportamento legado (seed).
+    if (definicaoAtual) return itensDaDefinition(definicaoAtual);
     const cat = inferirCategoriaChecklist(
       equipamentoAtual.label,
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Fonte ÚNICA e compartilhada com a auditoria (resolução do nome do item):
-    // filtra pela categoria, remove duplicados e renumera o `Nº` de 1..N
-    // (o `Nº` do seed se repete, e ele é a chave de `answers`).
     return itensDaCategoria(cat);
-  }, [equipamentoAtual]);
+  }, [equipamentoAtual, definicaoAtual]);
 
   function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -1267,8 +1336,48 @@ export function ChecklistControlePage() {
     setAba("dashboard");
   }
 
+  function montarEquip(
+    id: string,
+    data: Record<string, unknown>,
+  ): EquipFirestore {
+    return {
+      id,
+      prefeituraId: String(data.prefeituraId ?? ""),
+      label: String(data.label ?? data.descricao ?? ""),
+      chassis: String(data.chassis ?? ""),
+      modelo: String(data.modelo ?? ""),
+      linha: String(data.linha ?? ""),
+      tipo: String(data.tipo ?? ""),
+    };
+  }
+
+  // Abre o checklist para o equipamento escolhido. Preenche o campo com o chassi
+  // COMPLETO (mesmo numa busca por dígitos), senão o efeito que sincroniza
+  // draft × chassi ativo zera tudo logo em seguida.
+  function abrirParaEquip(equip: EquipFirestore) {
+    setCandidatosChassi([]);
+    setEquipamentoAtual(equip);
+    setChassisChecklistDraft(equip.chassis);
+    setChassisChecklistAtivo(normalizeChassis(equip.chassis));
+    // Login identifica a pessoa; o equipamento da sessão é definido aqui.
+    // Mantém os fluxos que leem session.idMaquina/chassis consistentes.
+    if (session) {
+      setSession({ ...session, idMaquina: equip.id, chassis: equip.chassis });
+    }
+    setAnswers({});
+    setNomeOperadorChecklist(session?.nome ?? "");
+    setHorimetro("");
+    setFotoHorimetroDataUrl("");
+    setAssinaturaDataUrl("");
+    stopHorimetroCamera();
+    stopItemNaoCamera();
+    setCheckMsg("Lista de verificação aberta para este chassi.");
+  }
+
   async function handleAbrirListaPorChassi() {
     setCheckMsg("");
+    setCandidatosChassi([]);
+    const draft = chassisChecklistDraft.trim();
     const normalizado = normalizeChassis(chassisChecklistDraft);
     if (!normalizado) {
       setCheckMsg("Informe o chassi antes de abrir a lista.");
@@ -1276,7 +1385,7 @@ export function ChecklistControlePage() {
     }
     setBuscandoChassis(true);
     try {
-      // Tenta normalizado (maiúsculas, sem espaços) e, como fallback, o valor exato digitado
+      // 1) Match exato (rápido): normalizado e, em fallback, o valor digitado.
       let snap = await getDocs(
         query(
           collection(db, "equipamentos"),
@@ -1285,49 +1394,56 @@ export function ChecklistControlePage() {
       );
       if (snap.empty) {
         snap = await getDocs(
-          query(
-            collection(db, "equipamentos"),
-            where("chassis", "==", chassisChecklistDraft.trim()),
-          ),
+          query(collection(db, "equipamentos"), where("chassis", "==", draft)),
         );
       }
-      if (snap.empty) {
-        setCheckMsg("Chassi não encontrado no cadastro de equipamentos.");
+      if (!snap.empty) {
+        abrirParaEquip(montarEquip(snap.docs[0].id, snap.docs[0].data()));
+        return;
+      }
+
+      // 2) Busca parcial pelos últimos dígitos, dentro da frota do cliente.
+      if (normalizado.length < 3) {
+        setCheckMsg(
+          "Chassi não encontrado. Digite ao menos 3 caracteres para busca parcial.",
+        );
         setChassisChecklistAtivo("");
         setEquipamentoAtual(null);
         return;
       }
-      const docSnap = snap.docs[0];
-      const data = docSnap.data();
-      const equip: EquipFirestore = {
-        id: docSnap.id,
-        prefeituraId: String(data.prefeituraId ?? ""),
-        label: String(data.label ?? data.descricao ?? ""),
-        chassis: String(data.chassis ?? ""),
-        modelo: String(data.modelo ?? ""),
-        linha: String(data.linha ?? ""),
-        tipo: String(data.tipo ?? ""),
-      };
-      setEquipamentoAtual(equip);
-      setChassisChecklistAtivo(normalizado);
-      // Login identifica a pessoa; o equipamento da sessão é definido aqui,
-      // ao abrir o checklist por chassi. Mantém os fluxos que leem
-      // session.idMaquina/chassis (emergência, exibição) consistentes.
-      if (session) {
-        setSession({
-          ...session,
-          idMaquina: equip.id,
-          chassis: equip.chassis,
+      const prefId = session?.idCliente ?? "";
+      const frotaSnap = prefId
+        ? await getDocs(
+            query(
+              collection(db, "equipamentos"),
+              where("prefeituraId", "==", prefId),
+            ),
+          )
+        : await getDocs(collection(db, "equipamentos"));
+      const matches = frotaSnap.docs
+        .map((d) => montarEquip(d.id, d.data()))
+        .filter((e) => normalizeChassis(e.chassis).includes(normalizado));
+
+      if (matches.length === 0) {
+        setCheckMsg("Chassi não encontrado no cadastro de equipamentos.");
+        setChassisChecklistAtivo("");
+        setEquipamentoAtual(null);
+      } else if (matches.length === 1) {
+        abrirParaEquip(matches[0]);
+      } else {
+        // Quem termina com o trecho (últimos dígitos) vai pro topo da lista.
+        matches.sort((a, b) => {
+          const ta = normalizeChassis(a.chassis).endsWith(normalizado) ? 0 : 1;
+          const tb = normalizeChassis(b.chassis).endsWith(normalizado) ? 0 : 1;
+          return ta - tb;
         });
+        setCandidatosChassi(matches.slice(0, 12));
+        setCheckMsg(
+          `Vários equipamentos correspondem a "${draft}". Selecione abaixo:`,
+        );
+        setChassisChecklistAtivo("");
+        setEquipamentoAtual(null);
       }
-      setAnswers({});
-      setNomeOperadorChecklist(session?.nome ?? "");
-      setHorimetro("");
-      setFotoHorimetroDataUrl("");
-      setAssinaturaDataUrl("");
-      stopHorimetroCamera();
-      stopItemNaoCamera();
-      setCheckMsg("Lista de verificação aberta para este chassi.");
     } catch (err) {
       console.error("[Checklist] Erro ao buscar equipamento:", err);
       setCheckMsg("Erro ao buscar equipamento. Tente novamente.");
@@ -1452,11 +1568,13 @@ export function ChecklistControlePage() {
       Operador: nomeOperadorChecklist.trim(),
       Chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
       ID_Maquina: equipamentoAtual.id,
-      Categoria: inferirCategoriaChecklist(
-        equipamentoAtual.label,
-        equipamentoAtual.modelo,
-        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-      ),
+      Categoria:
+        definicaoAtual?.categoria ??
+        inferirCategoriaChecklist(
+          equipamentoAtual.label,
+          equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+        ),
       Modelo: equipamentoAtual.label,
       Linha: equipamentoAtual.linha,
       Item_Verificado: `Checklist ${itensFiltrados.length} itens`,
@@ -1495,11 +1613,13 @@ export function ChecklistControlePage() {
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         modelo: equipamentoAtual.label,
         linha: equipamentoAtual.linha,
-        categoria: inferirCategoriaChecklist(
-          equipamentoAtual.label,
-          equipamentoAtual.modelo,
-          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-        ),
+        categoria:
+          definicaoAtual?.categoria ??
+          inferirCategoriaChecklist(
+            equipamentoAtual.label,
+            equipamentoAtual.modelo,
+            `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+          ),
         operador: nomeOperadorChecklist.trim(),
         idOperadorSession: session.idCliente,
         funcionarioId: session.funcionarioId ?? "",
@@ -1648,15 +1768,17 @@ export function ChecklistControlePage() {
     if (itensNao.length === 0) return;
 
     try {
-      const categoria = inferirCategoriaChecklist(
-        equipamentoAtual.label,
-        equipamentoAtual.modelo,
-        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-      );
+      const categoria =
+        definicaoAtual?.categoria ??
+        inferirCategoriaChecklist(
+          equipamentoAtual.label,
+          equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+        );
       const run = await checklistsApi.iniciar({
         prefeituraId: equipamentoAtual.prefeituraId || session?.idCliente || "",
-        definitionId: `seed:${categoria}`,
-        definitionVersion: 1,
+        definitionId: definicaoAtual?.id ?? `seed:${categoria}`,
+        definitionVersion: definicaoAtual?.version ?? 1,
         equipamentoId: equipamentoAtual.id,
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         operadorNome: nomeOperadorChecklist.trim(),
@@ -2237,13 +2359,74 @@ export function ChecklistControlePage() {
 
             <div className="hu360-card hu360-form">
               <label htmlFor="hu360-chassis">Chassi da máquina</label>
-              <input
-                id="hu360-chassis"
-                autoComplete="off"
-                value={chassisChecklistDraft}
-                onChange={(ev) => setChassisChecklistDraft(ev.target.value)}
-                placeholder="Digite o chassi (conforme cadastro)"
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="hu360-chassis"
+                  autoComplete="off"
+                  value={chassisChecklistDraft}
+                  onChange={(ev) => {
+                    setChassisChecklistDraft(ev.target.value);
+                    setMostrarSugestoesChassi(true);
+                  }}
+                  onFocus={() => setMostrarSugestoesChassi(true)}
+                  onBlur={() =>
+                    window.setTimeout(
+                      () => setMostrarSugestoesChassi(false),
+                      150,
+                    )
+                  }
+                  placeholder="Chassi completo ou os últimos dígitos"
+                />
+                {mostrarSugestoesChassi &&
+                !chassisChecklistAtivo &&
+                sugestoesChassi.length > 0 ? (
+                  <ul
+                    style={{
+                      position: "absolute",
+                      zIndex: 20,
+                      left: 0,
+                      right: 0,
+                      top: "calc(100% + 4px)",
+                      margin: 0,
+                      padding: 4,
+                      listStyle: "none",
+                      background: "#fff",
+                      border: "1px solid #d8dce6",
+                      borderRadius: 10,
+                      boxShadow: "0 8px 24px rgba(20,30,60,0.12)",
+                      maxHeight: 280,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {sugestoesChassi.map((e) => (
+                      <li key={e.id}>
+                        <button
+                          type="button"
+                          onMouseDown={(ev) => {
+                            ev.preventDefault();
+                            abrirParaEquip(e);
+                          }}
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "9px 12px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "transparent",
+                            color: "#1f2a44",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <strong>{e.chassis}</strong>
+                          {e.label ? ` · ${e.label}` : ""}
+                          {e.tipo ? ` · ${e.tipo}` : ""}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <div style={{ marginTop: 14 }}>
                 <button
                   type="button"
@@ -2256,6 +2439,39 @@ export function ChecklistControlePage() {
                     : "Abrir lista de verificação"}
                 </button>
               </div>
+
+              {candidatosChassi.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  {candidatosChassi.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => abrirParaEquip(e)}
+                      style={{
+                        textAlign: "left",
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1px solid #d8dce6",
+                        background: "#f7f8fb",
+                        color: "#1f2a44",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <strong>{e.chassis}</strong>
+                      {e.label ? ` · ${e.label}` : ""}
+                      {e.tipo ? ` · ${e.tipo}` : ""}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               {!chassisChecklistAtivo ? (
                 <p

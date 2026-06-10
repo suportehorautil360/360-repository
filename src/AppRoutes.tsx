@@ -61,6 +61,11 @@ const WhatsappSection = lazy(() =>
     default: m.WhatsappSection,
   })),
 );
+const ChecklistsSection = lazy(() =>
+  import("./pages/admin/sections/ChecklistsSection").then((m) => ({
+    default: m.ChecklistsSection,
+  })),
+);
 const FuncionalidadesSection = lazy(() =>
   import("./pages/admin/sections/FuncionalidadesSection").then((m) => ({
     default: m.FuncionalidadesSection,
@@ -200,6 +205,7 @@ export function AppRoutes() {
               element={<FuncionalidadesSection />}
             />
             <Route path="whatsapp" element={<WhatsappSection />} />
+            <Route path="checklists" element={<ChecklistsSection />} />
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />

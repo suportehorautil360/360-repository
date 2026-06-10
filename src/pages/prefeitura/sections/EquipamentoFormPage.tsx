@@ -226,29 +226,13 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
   }
 
   function validar(): Record<string, string> {
+    // Apenas o essencial é obrigatório: chassi, número de série e a leitura
+    // atual (KM/horímetro). O resto é opcional para agilizar o cadastro.
     const obrigatorios: (keyof FormState)[] = [
-      "placa",
       "chassis",
-      "combustivel",
-      "status",
-      "marca",
-      "modelo",
-      "cor",
-      "renavam",
       "numeroSerie",
       "medicaoAtual",
-      "tipo",
-      "tipoFrota",
-      "patrimonioBase",
-      "anoFabricacao",
-      "anoModelo",
-      "capacidadeTanque",
-      "condutorResponsavel",
     ];
-    // Campos de locação só são obrigatórios quando a frota é locada.
-    if (ehLocada) {
-      obrigatorios.push("vigenciaInicio", "vigenciaFim");
-    }
     const novos: Record<string, string> = {};
     for (const campo of obrigatorios) {
       const valor = form[campo];
@@ -412,14 +396,14 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
           <h2>Identificação</h2>
         </div>
         <div className="ff__grid">
-          {texto("placa", "Placa nova", { req: true, placeholder: "ABC-1234" })}
+          {texto("placa", "Placa nova", { placeholder: "ABC-1234" })}
           {texto("chassis", "Chassi", {
             req: true,
             placeholder: "9BWZZZ...",
           })}
-          {texto("renavam", "Renavam", { req: true })}
+          {texto("renavam", "Renavam")}
           {texto("numeroSerie", "Número de série", { req: true })}
-          {texto("patrimonioBase", "Patrimônio / base", { req: true })}
+          {texto("patrimonioBase", "Patrimônio / base")}
         </div>
       </section>
 
@@ -428,25 +412,22 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
           <h2>Veículo</h2>
         </div>
         <div className="ff__grid">
-          {texto("marca", "Marca", { req: true })}
-          {texto("modelo", "Modelo", { req: true })}
-          {texto("cor", "Cor", { req: true })}
-          {select("combustivel", "Combustível", opts(COMBUSTIVEL_OPTIONS), true)}
-          {select("tipo", "Tipo de veículo", opts(TIPO_OPTIONS), true)}
-          {select("tipoFrota", "Tipo de frota", opts(FROTA_OPTIONS), true)}
+          {texto("marca", "Marca")}
+          {texto("modelo", "Modelo")}
+          {texto("cor", "Cor")}
+          {select("combustivel", "Combustível", opts(COMBUSTIVEL_OPTIONS))}
+          {select("tipo", "Tipo de veículo", opts(TIPO_OPTIONS))}
+          {select("tipoFrota", "Tipo de frota", opts(FROTA_OPTIONS))}
           {texto("motorizacao", "Motorização")}
           {texto("anoFabricacao", "Ano de fabricação", {
-            req: true,
             numeric: true,
             placeholder: "2022",
           })}
           {texto("anoModelo", "Ano do modelo", {
-            req: true,
             numeric: true,
             placeholder: "2023",
           })}
           {texto("capacidadeTanque", "Capacidade do tanque (L)", {
-            req: true,
             numeric: true,
           })}
           {texto("valorVeiculo", "Valor do veículo (R$)", { numeric: true })}
@@ -458,7 +439,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
           <h2>Operação e revisão</h2>
         </div>
         <div className="ff__grid">
-          {select("status", "Status", STATUS_OPTIONS, true)}
+          {select("status", "Status", STATUS_OPTIONS)}
           {texto("medicaoAtual", "KM / horímetro atual", {
             req: true,
             numeric: true,
@@ -467,7 +448,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
             numeric: true,
             placeholder: "0 = padrão por tipo",
           })}
-          {texto("condutorResponsavel", "Condutor responsável", { req: true })}
+          {texto("condutorResponsavel", "Condutor responsável")}
           {texto("gestorResponsavel", "Gestor responsável")}
         </div>
       </section>
@@ -504,8 +485,8 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
             <h2>Locação</h2>
           </div>
           <div className="ff__grid">
-            {data("vigenciaInicio", "Início da vigência", true)}
-            {data("vigenciaFim", "Fim da vigência", true)}
+            {data("vigenciaInicio", "Início da vigência")}
+            {data("vigenciaFim", "Fim da vigência")}
             <Campo label="Inativar após fim da vigência">
               <label
                 style={{
