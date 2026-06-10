@@ -110,6 +110,40 @@ export function empresaCompleta(empresa: Configuracao["empresa"]): boolean {
   return temRazao && temInscricao;
 }
 
+/** Dados do cliente (/admin) usados para semear a empresa na configuração. */
+export interface ClienteParaEmpresa {
+  nome?: string;
+  uf?: string;
+  cnpj?: string;
+  caepf?: string;
+  cidade?: string;
+  whatsapp?: string;
+  contrato?: { emailContratante?: string } | null;
+}
+
+/**
+ * Pré-preenche os campos da empresa a partir do cliente cadastrado no /admin —
+ * apenas onde a config está vazia (o que já foi salvo SEMPRE prevalece).
+ * Não aplica E.164 ao WhatsApp (a tela faz isso na carga).
+ */
+export function mesclarEmpresaCliente(
+  empresa: Configuracao["empresa"],
+  cliente: ClienteParaEmpresa | null | undefined,
+): Configuracao["empresa"] {
+  if (!cliente) return empresa;
+  return {
+    ...empresa,
+    razaoSocial: empresa.razaoSocial || cliente.nome || "",
+    cnpj: empresa.cnpj || cliente.cnpj || "",
+    caepf: empresa.caepf || cliente.caepf || "",
+    cidade: empresa.cidade || cliente.cidade || "",
+    estado: empresa.estado || cliente.uf || "",
+    emailAlertas:
+      empresa.emailAlertas || cliente.contrato?.emailContratante || "",
+    whatsappNumero: empresa.whatsappNumero || cliente.whatsapp || "",
+  };
+}
+
 /** Mapeia o tipo do equipamento para a categoria de intervalo da config. */
 export function categoriaDoTipo(tipo: string): CategoriaIntervalo {
   const t = tipo.toLowerCase();

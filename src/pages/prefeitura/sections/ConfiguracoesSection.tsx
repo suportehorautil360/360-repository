@@ -6,6 +6,7 @@ import {
   configuracoesApi,
   configPadrao,
   empresaCompleta,
+  mesclarEmpresaCliente,
   type Configuracao,
 } from "../../../lib/api/configuracoes";
 import { clientesApi } from "../../../lib/api/clientes";
@@ -80,19 +81,12 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
         // vazio aqui (a config salva sempre prevalece).
         clientesApi.obter(prefeituraId).catch(() => null),
       ]);
-      const emp = cfg.empresa;
-      const rawWhats = emp.whatsappNumero || cliente?.whatsapp || "";
+      const emp = mesclarEmpresaCliente(cfg.empresa, cliente);
+      const rawWhats = emp.whatsappNumero;
       setConfig({
         ...cfg,
         empresa: {
           ...emp,
-          razaoSocial: emp.razaoSocial || cliente?.nome || "",
-          cnpj: emp.cnpj || cliente?.cnpj || "",
-          caepf: emp.caepf || cliente?.caepf || "",
-          cidade: emp.cidade || cliente?.cidade || "",
-          estado: emp.estado || cliente?.uf || "",
-          emailAlertas:
-            emp.emailAlertas || cliente?.contrato?.emailContratante || "",
           // Migra número legado (sem DDI) para E.164 na carga.
           whatsappNumero: toE164(rawWhats) ?? rawWhats,
         },
