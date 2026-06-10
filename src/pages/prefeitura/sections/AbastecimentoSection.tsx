@@ -51,22 +51,23 @@ export function AbastecimentoSection({
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [removendoId, setRemovendoId] = useState<string | null>(null);
+  const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
     if (!prefeituraId || !periodoInicio || !periodoFim) return;
 
     const chave = chaveCache(prefeituraId, periodoInicio, periodoFim);
     const emCache = cacheAbastecimentos.get(chave);
+    // Stale-while-revalidate: mostra o cache na hora, mas SEMPRE rebusca o
+    // servidor — assim um abastecimento novo aparece sem precisar recarregar.
     if (emCache) {
       setLista(emCache);
       setErro(null);
-      setCarregando(false);
-      return;
     }
 
     let ativo = true;
     (async () => {
-      setCarregando(true);
+      if (!emCache) setCarregando(true);
       setErro(null);
       try {
         const data = await abastecimentosApi.listarPorPeriodo(
@@ -79,7 +80,7 @@ export function AbastecimentoSection({
         setLista(data);
       } catch (e) {
         if (!ativo) return;
-        setLista([]);
+        if (!emCache) setLista([]); // sem cache: zera; com cache: mantém o que tem
         setErro(
           e instanceof Error
             ? e.message
@@ -93,7 +94,14 @@ export function AbastecimentoSection({
     return () => {
       ativo = false;
     };
-  }, [prefeituraId, periodoInicio, periodoFim]);
+  }, [prefeituraId, periodoInicio, periodoFim, recarga]);
+
+  function handleAtualizar() {
+    cacheAbastecimentos.delete(
+      chaveCache(prefeituraId, periodoInicio, periodoFim),
+    );
+    setRecarga((n) => n + 1);
+  }
 
   const filtrados = useMemo(() => {
     return lista.filter((item) => {
@@ -221,6 +229,16 @@ export function AbastecimentoSection({
             Posto
           </button>
         </div>
+
+        <button
+          type="button"
+          className="abs-btn-atualizar"
+          onClick={handleAtualizar}
+          disabled={carregando}
+          title="Recarregar do servidor"
+        >
+          <span aria-hidden>🔄</span> {carregando ? "Atualizando…" : "Atualizar"}
+        </button>
 
         <button
           type="button"

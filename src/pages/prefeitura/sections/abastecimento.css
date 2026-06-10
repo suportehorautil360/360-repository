@@ -25,6 +25,32 @@
   opacity: 0.4;
 }
 
+.abs-btn-atualizar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-gray, #94a3b8);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.abs-btn-atualizar:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  color: #fff;
+}
+
+.abs-btn-atualizar:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
 .abs-header {
   display: flex;
   justify-content: space-between;
