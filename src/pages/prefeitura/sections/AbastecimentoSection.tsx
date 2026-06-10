@@ -50,6 +50,7 @@ export function AbastecimentoSection({
   const [lista, setLista] = useState<AbastecimentoTela[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [removendoId, setRemovendoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!prefeituraId || !periodoInicio || !periodoFim) return;
@@ -108,6 +109,33 @@ export function AbastecimentoSection({
       return true;
     });
   }, [lista, filtroOrigem, busca]);
+
+  async function handleRemover(item: AbastecimentoTela) {
+    const ref = item.placa || item.veiculo || "este abastecimento";
+    if (!window.confirm(`Remover ${ref}? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    setRemovendoId(item.id);
+    setErro(null);
+    try {
+      await abastecimentosApi.remover(item.id);
+      setLista((l) => {
+        const nova = l.filter((x) => x.id !== item.id);
+        // Mantém o cache do período coerente com o que foi removido.
+        cacheAbastecimentos.set(
+          chaveCache(prefeituraId, periodoInicio, periodoFim),
+          nova,
+        );
+        return nova;
+      });
+    } catch (e) {
+      setErro(
+        e instanceof Error ? e.message : "Não foi possível remover o registro.",
+      );
+    } finally {
+      setRemovendoId(null);
+    }
+  }
 
   const podeBaixarCsv = !carregando && filtrados.length > 0;
 
@@ -226,18 +254,19 @@ export function AbastecimentoSection({
               <th>VALOR</th>
               <th>LEITURA</th>
               <th>LOCAL</th>
+              <th aria-label="Ações"></th>
             </tr>
           </thead>
           <tbody>
             {carregando ? (
               <tr>
-                <td colSpan={7} className="abs-table-empty">
+                <td colSpan={8} className="abs-table-empty">
                   Carregando abastecimentos…
                 </td>
               </tr>
             ) : filtrados.length === 0 ? (
               <tr>
-                <td colSpan={7} className="abs-table-empty">
+                <td colSpan={8} className="abs-table-empty">
                   Nenhum abastecimento encontrado.
                 </td>
               </tr>
@@ -282,6 +311,18 @@ export function AbastecimentoSection({
                     <span className="abs-badge-local">
                       <span className="abs-local-icon">📍</span> {item.local}
                     </span>
+                  </td>
+                  <td className="abs-td-acoes">
+                    <button
+                      type="button"
+                      className="abs-btn-remover"
+                      onClick={() => void handleRemover(item)}
+                      disabled={removendoId === item.id}
+                      title="Remover abastecimento"
+                      aria-label="Remover abastecimento"
+                    >
+                      {removendoId === item.id ? "…" : "🗑️"}
+                    </button>
                   </td>
                 </tr>
               ))

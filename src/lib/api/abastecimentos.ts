@@ -161,12 +161,28 @@ function normalizarItemLista(raw: unknown): AbastecimentoListaApi | null {
   };
 }
 
+/** ISO → "DD/MM/AA HH:MM" (pt-BR); "" quando inválido. Fallback de data. */
+function formatDataIso(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+}
+
 export function abastecimentoListaParaTela(
   item: AbastecimentoListaApi,
 ): AbastecimentoTela {
   return {
     id: item.id,
-    data: item.dateTime,
+    // Fallback: se o backend não mandou dateTime, formata o createdAt cru.
+    data: item.dateTime || formatDataIso(item.createdAt),
     veiculo: item.vehicle.name,
     placa: item.vehicle.plate,
     tipoVeiculo: item.vehicle.type,
@@ -206,5 +222,10 @@ export const abastecimentosApi = {
       .map(normalizarItemLista)
       .filter((item): item is AbastecimentoListaApi => item != null)
       .map(abastecimentoListaParaTela);
+  },
+
+  /** Remove um abastecimento pelo id (DELETE /abastecimentos/item/:id). */
+  async remover(id: string): Promise<void> {
+    await api.del(`/abastecimentos/item/${id}`);
   },
 };
