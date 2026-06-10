@@ -29,6 +29,7 @@ function frente(id: string, nome: string, equipamentos: Frente["equipamentos"]):
     nome,
     endereco: "",
     responsavel: "",
+    telefone: "",
     status: "Ativa",
     custo: 0,
     inicio: "",

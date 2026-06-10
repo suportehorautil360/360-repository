@@ -31,6 +31,7 @@ const frentes: Frente[] = [
     nome: "Rodovia SP-310",
     endereco: "",
     responsavel: "",
+    telefone: "",
     status: "Ativa",
     custo: 0,
     inicio: "",

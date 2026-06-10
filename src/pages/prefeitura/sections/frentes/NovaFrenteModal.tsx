@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   STATUS_FRENTE_OPTIONS,
   isoParaDateInput,
@@ -29,6 +30,9 @@ export function NovaFrenteModal({
   const [nome, setNome] = useState(frente?.nome ?? "");
   const [endereco, setEndereco] = useState(frente?.endereco ?? "");
   const [responsavel, setResponsavel] = useState(frente?.responsavel ?? "");
+  const [telefone, setTelefone] = useState<string | undefined>(
+    frente?.telefone || undefined,
+  );
   const [status, setStatus] = useState<FrenteStatus>(frente?.status ?? "Ativa");
   const [custo, setCusto] = useState<number>(frente?.custo ?? 0);
   const [inicio, setInicio] = useState(isoParaDateInput(frente?.inicio ?? ""));
@@ -49,6 +53,7 @@ export function NovaFrenteModal({
         nome,
         endereco,
         responsavel,
+        telefone: telefone ?? "",
         status,
         custo,
         inicio,
@@ -132,6 +137,15 @@ export function NovaFrenteModal({
               </Select>
             </label>
           </div>
+
+          <label className="ft-field">
+            <span className="ft-field__label">Telefone (WhatsApp)</span>
+            <PhoneInput
+              value={telefone}
+              onChange={setTelefone}
+              placeholder="Recebe o alerta de emergência do equipamento"
+            />
+          </label>
 
           <label className="ft-field">
             <span className="ft-field__label">Custo estimado (R$)</span>
