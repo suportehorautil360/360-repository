@@ -69,7 +69,25 @@ export interface CriarClientePayload {
   nome: string;
   uf: string;
   tipoCliente?: TipoClienteApi;
+  /** Dados da empresa (alimentam a tela de Configurações da prefeitura). */
+  cnpj?: string;
+  caepf?: string;
+  cidade?: string;
+  whatsapp?: string;
   contrato: CriarClienteContrato;
+}
+
+/** Doc cru de um cliente (GET /clientes/:id) — campos da empresa. */
+export interface ClienteApi {
+  id: string;
+  nome: string;
+  uf: string;
+  tipoCliente?: TipoClienteApi;
+  cnpj?: string;
+  caepf?: string;
+  cidade?: string;
+  whatsapp?: string;
+  contrato?: { emailContratante?: string };
 }
 
 export const clientesApi = {
@@ -87,6 +105,16 @@ export const clientesApi = {
       payload,
     );
     return { id: r.data?.id ?? "" };
+  },
+
+  /** Dados de um cliente por id (= prefeituraId). null quando não encontrado. */
+  async obter(clienteId: string): Promise<ClienteApi | null> {
+    try {
+      const r = await api.get<{ data: ClienteApi }>(`/clientes/${clienteId}`);
+      return r.data ?? null;
+    } catch {
+      return null;
+    }
   },
 
   /** Lista os acessos (usuários) vinculados a um cliente. */

@@ -8,6 +8,7 @@ import {
   empresaCompleta,
   type Configuracao,
 } from "../../../lib/api/configuracoes";
+import { clientesApi } from "../../../lib/api/clientes";
 import { cnpjValido, formatarCnpj } from "../../../lib/funcionarios/cnpj";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { toE164 } from "@/lib/phone";
@@ -72,17 +73,28 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     if (!prefeituraId) return;
     setCarregando(true);
     try {
-      const [cfg, esc] = await Promise.all([
+      const [cfg, esc, cliente] = await Promise.all([
         configuracoesApi.obter(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
+        // Dados da empresa cadastrados no /admin — pré-preenchem o que estiver
+        // vazio aqui (a config salva sempre prevalece).
+        clientesApi.obter(prefeituraId).catch(() => null),
       ]);
-      // Migra número legado (sem DDI) para E.164 uma única vez, na carga.
+      const emp = cfg.empresa;
+      const rawWhats = emp.whatsappNumero || cliente?.whatsapp || "";
       setConfig({
         ...cfg,
         empresa: {
-          ...cfg.empresa,
-          whatsappNumero:
-            toE164(cfg.empresa.whatsappNumero) ?? cfg.empresa.whatsappNumero,
+          ...emp,
+          razaoSocial: emp.razaoSocial || cliente?.nome || "",
+          cnpj: emp.cnpj || cliente?.cnpj || "",
+          caepf: emp.caepf || cliente?.caepf || "",
+          cidade: emp.cidade || cliente?.cidade || "",
+          estado: emp.estado || cliente?.uf || "",
+          emailAlertas:
+            emp.emailAlertas || cliente?.contrato?.emailContratante || "",
+          // Migra número legado (sem DDI) para E.164 na carga.
+          whatsappNumero: toE164(rawWhats) ?? rawWhats,
         },
       });
       setEscala(esc);

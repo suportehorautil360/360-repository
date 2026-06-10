@@ -42,6 +42,10 @@ interface FormState {
   nome: string;
   uf: string;
   email: string;
+  cnpj: string;
+  caepf: string;
+  cidade: string;
+  whatsapp: string;
   numero: string;
   processo: string;
   modalidade: string;
@@ -68,6 +72,10 @@ const FORM_INICIAL: FormState = {
   nome: "",
   uf: "",
   email: "",
+  cnpj: "",
+  caepf: "",
+  cidade: "",
+  whatsapp: "",
   numero: "",
   processo: "",
   modalidade: "pregao_eletronico",
@@ -154,6 +162,10 @@ export function CadastroClientesSection() {
         nome: form.nome,
         uf: form.uf,
         tipoCliente: form.tipoCliente,
+        cnpj: form.cnpj.trim(),
+        caepf: form.caepf.trim(),
+        cidade: form.cidade.trim(),
+        whatsapp: form.whatsapp.trim(),
         contrato: {
           numero: form.numero.trim(),
           processo: isLoc ? "" : form.processo.trim(),
@@ -308,6 +320,51 @@ export function CadastroClientesSection() {
                   value={form.email}
                   onChange={(e) => update("email", e.target.value)}
                 />
+              </div>
+              <div className="row-2" style={{ marginTop: 10 }}>
+                <div>
+                  <label htmlFor="ctrCnpj">CNPJ</label>
+                  <input
+                    id="ctrCnpj"
+                    placeholder="12.345.678/0001-90"
+                    value={form.cnpj}
+                    onChange={(e) => update("cnpj", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ctrCaepf">
+                    CAEPF / CEI{" "}
+                    <span style={{ fontWeight: 400, color: "var(--muted)" }}>
+                      (sem CNPJ)
+                    </span>
+                  </label>
+                  <input
+                    id="ctrCaepf"
+                    placeholder="Para órgão sem CNPJ"
+                    value={form.caepf}
+                    onChange={(e) => update("caepf", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="row-2" style={{ marginTop: 10 }}>
+                <div>
+                  <label htmlFor="ctrCidade">Cidade</label>
+                  <input
+                    id="ctrCidade"
+                    placeholder="Ex.: Campo Grande"
+                    value={form.cidade}
+                    onChange={(e) => update("cidade", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="ctrWhatsapp">WhatsApp</label>
+                  <input
+                    id="ctrWhatsapp"
+                    placeholder="+5567999999999"
+                    value={form.whatsapp}
+                    onChange={(e) => update("whatsapp", e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
