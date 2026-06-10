@@ -486,6 +486,10 @@ export function ChecklistControlePage() {
   // Candidatos quando a busca por chassi (parcial / últimos dígitos) casa mais
   // de um equipamento — o operador escolhe na lista.
   const [candidatosChassi, setCandidatosChassi] = useState<EquipFirestore[]>([]);
+  // Frota carregada uma vez para o autocomplete (filtragem ao vivo, offline).
+  const [frotaBusca, setFrotaBusca] = useState<EquipFirestore[]>([]);
+  const [frotaBuscaCarregada, setFrotaBuscaCarregada] = useState(false);
+  const [mostrarSugestoesChassi, setMostrarSugestoesChassi] = useState(false);
   const [salvandoChecklist, setSalvandoChecklist] = useState(false);
   const [checklistsFirestoreHoje, setChecklistsFirestoreHoje] = useState<
     Record<string, unknown>[]
@@ -1156,6 +1160,47 @@ export function ChecklistControlePage() {
     stopHorimetroCamera,
     stopItemNaoCamera,
   ]);
+
+  // Carrega a frota uma vez ao entrar na aba de checklist, para o autocomplete
+  // filtrar ao vivo (instantâneo e disponível offline via cache do Firestore).
+  useEffect(() => {
+    if (aba !== "checklist" || frotaBuscaCarregada) return;
+    let ativo = true;
+    void (async () => {
+      try {
+        const snap = await getDocs(collection(db, "equipamentos"));
+        if (!ativo) return;
+        setFrotaBusca(snap.docs.map((d) => montarEquip(d.id, d.data())));
+        setFrotaBuscaCarregada(true);
+      } catch (err) {
+        console.error("[Checklist] Erro ao carregar frota para busca:", err);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [aba, frotaBuscaCarregada]);
+
+  // Sugestões filtradas ao vivo pelo trecho digitado (chassi ou modelo/nome).
+  // Comparação só por letras/números (ignora pontos, hífens, espaços) para
+  // casar "203040" mesmo que o chassi esteja cadastrado como "20-30-40".
+  const sugestoesChassi = useMemo(() => {
+    const alnum = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const q = alnum(chassisChecklistDraft);
+    if (q.length < 2) return [];
+    return frotaBusca
+      .filter((e) => {
+        const c = alnum(e.chassis);
+        const txt = alnum(`${e.chassis}${e.label}${e.modelo}`);
+        return c.includes(q) || txt.includes(q);
+      })
+      .sort((a, b) => {
+        const ta = alnum(a.chassis).endsWith(q) ? 0 : 1;
+        const tb = alnum(b.chassis).endsWith(q) ? 0 : 1;
+        return ta - tb;
+      })
+      .slice(0, 8);
+  }, [chassisChecklistDraft, frotaBusca]);
 
   const checklistItensLiberados = useMemo(
     () => Boolean(chassisChecklistAtivo && equipamentoAtual),
@@ -2314,13 +2359,74 @@ export function ChecklistControlePage() {
 
             <div className="hu360-card hu360-form">
               <label htmlFor="hu360-chassis">Chassi da máquina</label>
-              <input
-                id="hu360-chassis"
-                autoComplete="off"
-                value={chassisChecklistDraft}
-                onChange={(ev) => setChassisChecklistDraft(ev.target.value)}
-                placeholder="Chassi completo ou os últimos dígitos"
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="hu360-chassis"
+                  autoComplete="off"
+                  value={chassisChecklistDraft}
+                  onChange={(ev) => {
+                    setChassisChecklistDraft(ev.target.value);
+                    setMostrarSugestoesChassi(true);
+                  }}
+                  onFocus={() => setMostrarSugestoesChassi(true)}
+                  onBlur={() =>
+                    window.setTimeout(
+                      () => setMostrarSugestoesChassi(false),
+                      150,
+                    )
+                  }
+                  placeholder="Chassi completo ou os últimos dígitos"
+                />
+                {mostrarSugestoesChassi &&
+                !chassisChecklistAtivo &&
+                sugestoesChassi.length > 0 ? (
+                  <ul
+                    style={{
+                      position: "absolute",
+                      zIndex: 20,
+                      left: 0,
+                      right: 0,
+                      top: "calc(100% + 4px)",
+                      margin: 0,
+                      padding: 4,
+                      listStyle: "none",
+                      background: "#fff",
+                      border: "1px solid #d8dce6",
+                      borderRadius: 10,
+                      boxShadow: "0 8px 24px rgba(20,30,60,0.12)",
+                      maxHeight: 280,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {sugestoesChassi.map((e) => (
+                      <li key={e.id}>
+                        <button
+                          type="button"
+                          onMouseDown={(ev) => {
+                            ev.preventDefault();
+                            abrirParaEquip(e);
+                          }}
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "9px 12px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "transparent",
+                            color: "#1f2a44",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <strong>{e.chassis}</strong>
+                          {e.label ? ` · ${e.label}` : ""}
+                          {e.tipo ? ` · ${e.tipo}` : ""}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <div style={{ marginTop: 14 }}>
                 <button
                   type="button"
