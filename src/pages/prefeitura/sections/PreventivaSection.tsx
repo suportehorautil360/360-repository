@@ -79,13 +79,13 @@ export function PreventivaSection({ prefeituraId }: { prefeituraId: string }) {
         data: hojeISO(),
         hodometro: v.medicaoAtual,
         oficina: "",
-        servicos: "Preventiva (registro rápido)",
+        servicos: "Revisão (registro rápido)",
         custo: 0,
         notaFiscal: "",
       });
-      toast.success("Preventiva registrada.");
+      toast.success("Revisão registrada.");
     } catch {
-      toast.error("Não foi possível registrar a preventiva.");
+      toast.error("Não foi possível registrar a revisão.");
     } finally {
       setRegistrando(null);
     }
@@ -95,7 +95,7 @@ export function PreventivaSection({ prefeituraId }: { prefeituraId: string }) {
     <section className="pv-page">
       <div className="pv-wrap">
         <div className="pv-head">
-          <h1 className="pv-title">Plano de manutenção preventiva</h1>
+          <h1 className="pv-title">Plano de revisões</h1>
         </div>
 
         {/* Filtros */}
@@ -159,7 +159,7 @@ export function PreventivaSection({ prefeituraId }: { prefeituraId: string }) {
         </div>
 
         {frota.loading ? (
-          <p className="pv-empty">Carregando preventivas...</p>
+          <p className="pv-empty">Carregando revisões...</p>
         ) : rows.length === 0 ? (
           <p className="pv-empty">Nenhum equipamento cadastrado.</p>
         ) : (
@@ -191,8 +191,8 @@ export function PreventivaSection({ prefeituraId }: { prefeituraId: string }) {
                     <th>Nome do Equipamento</th>
                     <th>Tipo de Medidor</th>
                     <th>Plano / Intervalo</th>
-                    <th>Última Preventiva</th>
-                    <th>Próxima Preventiva (Meta)</th>
+                    <th>Última Revisão</th>
+                    <th>Próxima Revisão (Meta)</th>
                     <th>Leitura Atual</th>
                     <th>Restante para Vencer</th>
                     <th>Frente</th>

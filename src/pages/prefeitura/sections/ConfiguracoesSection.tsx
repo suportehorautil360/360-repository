@@ -10,10 +10,7 @@ import {
   type Configuracao,
 } from "../../../lib/api/configuracoes";
 import { clientesApi } from "../../../lib/api/clientes";
-import { cnpjValido, formatarCnpj } from "../../../lib/funcionarios/cnpj";
-import { PhoneInput } from "@/components/ui/phone-input";
 import { toE164 } from "@/lib/phone";
-import { isValidPhoneNumber } from "react-phone-number-input";
 import { EscalaConfig } from "./EscalaConfig";
 import "./configuracoes.css";
 
@@ -58,6 +55,35 @@ function ToggleRow({
         <span>{sub}</span>
       </div>
       <Switch on={on} onChange={onChange} />
+    </div>
+  );
+}
+
+function CampoEmpresa({
+  rotulo,
+  valor,
+  hint,
+  largura = "metade",
+}: {
+  rotulo: string;
+  valor: string;
+  hint?: string;
+  largura?: "metade" | "inteira";
+}) {
+  const texto = valor.trim();
+  return (
+    <div
+      className={`cfg__campo${largura === "inteira" ? " cfg__campo--full" : ""}`}
+    >
+      <span className="cfg__campo-rotulo">
+        {rotulo}
+        {hint ? <span className="cfg__opt"> {hint}</span> : null}
+      </span>
+      <p
+        className={`cfg__campo-valor${texto ? "" : " cfg__campo-valor--vazio"}`}
+      >
+        {texto || "Não informado"}
+      </p>
     </div>
   );
 }
@@ -116,24 +142,7 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     }
   }
 
-  /** Salva os dados da empresa validando o CNPJ (quando preenchido). */
-  async function salvarEmpresa() {
-    const cnpj = config.empresa.cnpj.trim();
-    if (cnpj && !cnpjValido(cnpj)) {
-      toast.error("CNPJ inválido. Confira os dígitos.");
-      return;
-    }
-    const wpp = config.empresa.whatsappNumero.trim();
-    if (wpp && !isValidPhoneNumber(wpp)) {
-      toast.error("WhatsApp inválido. Confira o DDI, DDD e o número.");
-      return;
-    }
-    await salvar("Dados da empresa salvos.");
-  }
-
   // Helpers de atualização imutável.
-  const setEmpresa = (k: keyof Configuracao["empresa"], v: string) =>
-    setConfig((c) => ({ ...c, empresa: { ...c.empresa, [k]: v } }));
   const setAlerta = (k: keyof Configuracao["alertas"], v: boolean) =>
     setConfig((c) => ({ ...c, alertas: { ...c.alertas, [k]: v } }));
   const setBloqueio = (k: keyof Configuracao["bloqueio"], v: boolean) =>
@@ -152,8 +161,8 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     <div className="cfg">
       <h1 className="cfg__page-titulo">Configurações</h1>
       <p className="cfg__lead">
-        Parâmetros operacionais da prefeitura — dados da empresa, alertas,
-        bloqueio por revisão e a escala da jornada.
+        Parâmetros operacionais da prefeitura — alertas, bloqueio por revisão
+        e a escala da jornada. Os dados da empresa são apenas consulta.
       </p>
 
       <div className="cfg__grid">
@@ -165,86 +174,44 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               <Building2 size={15} aria-hidden="true" />
               <h2>Dados da empresa</h2>
             </header>
+            <p className="cfg__card-sub">
+              Cadastro feito no Hub Mestre — aqui é só consulta. Para alterar,
+              use <strong>Gestão → Clientes</strong> no admin.
+            </p>
             {!empresaCompleta(config.empresa) && (
               <p className="cfg__aviso" role="status">
                 Dados fiscais incompletos para emissão legal (Portaria 671):
-                informe a <strong>razão social</strong> e o{" "}
-                <strong>CNPJ ou CAEPF/CEI</strong>. Sem isso o comprovante (CRPT)
-                e o AFD saem sem identificar o empregador.
+                falta <strong>razão social</strong> e/ou{" "}
+                <strong>CNPJ ou CAEPF/CEI</strong>. Peça ao administrador para
+                completar no Hub Mestre — sem isso o CRPT e o AFD saem sem
+                identificar o empregador.
               </p>
             )}
-            <div className="cfg__form-grid">
-              <label>
-                Razão social
-                <input
-                  value={config.empresa.razaoSocial}
-                  onChange={(e) => setEmpresa("razaoSocial", e.target.value)}
-                  placeholder="Transportes ABC Ltda."
-                />
-              </label>
-              <label>
-                CNPJ
-                <input
-                  value={config.empresa.cnpj}
-                  onChange={(e) =>
-                    setEmpresa("cnpj", formatarCnpj(e.target.value))
-                  }
-                  placeholder="12.345.678/0001-90"
-                  inputMode="numeric"
-                />
-              </label>
-              <label>
-                CAEPF/CEI <span className="cfg__opt">(se não houver CNPJ)</span>
-                <input
-                  value={config.empresa.caepf}
-                  onChange={(e) => setEmpresa("caepf", e.target.value)}
-                  placeholder="Inscrição do empregador"
-                />
-              </label>
-              <label>
-                Cidade
-                <input
-                  value={config.empresa.cidade}
-                  onChange={(e) => setEmpresa("cidade", e.target.value)}
-                  placeholder="Três Lagoas"
-                />
-              </label>
-              <label>
-                Estado
-                <input
-                  value={config.empresa.estado}
-                  onChange={(e) => setEmpresa("estado", e.target.value)}
-                  placeholder="MS"
-                />
-              </label>
-              <label className="cfg__col-span">
-                E-mail para alertas
-                <input
-                  type="email"
-                  value={config.empresa.emailAlertas}
-                  onChange={(e) => setEmpresa("emailAlertas", e.target.value)}
-                  placeholder="gestor@empresa.com.br"
-                />
-              </label>
-              <label className="cfg__col-span">
-                WhatsApp para emergências{" "}
-                <span className="cfg__opt">(código do país + DDD)</span>
-                <PhoneInput
-                  value={config.empresa.whatsappNumero || undefined}
-                  onChange={(v) => setEmpresa("whatsappNumero", v ?? "")}
-                  placeholder="Número com DDI"
-                />
-              </label>
-            </div>
-            <div className="cfg__card-foot">
-              <button
-                type="button"
-                className="cfg__btn cfg__btn--primary"
-                disabled={salvando}
-                onClick={() => void salvarEmpresa()}
-              >
-                <Save size={14} /> Salvar
-              </button>
+            <div className="cfg__dados-empresa">
+              <CampoEmpresa
+                rotulo="Razão social"
+                valor={config.empresa.razaoSocial}
+                largura="inteira"
+              />
+              <CampoEmpresa rotulo="CNPJ" valor={config.empresa.cnpj} />
+              <CampoEmpresa
+                rotulo="CAEPF/CEI"
+                hint="(se não houver CNPJ)"
+                valor={config.empresa.caepf}
+              />
+              <CampoEmpresa rotulo="Cidade" valor={config.empresa.cidade} />
+              <CampoEmpresa rotulo="Estado" valor={config.empresa.estado} />
+              <CampoEmpresa
+                rotulo="E-mail para alertas"
+                valor={config.empresa.emailAlertas}
+                largura="inteira"
+              />
+              <CampoEmpresa
+                rotulo="WhatsApp para emergências"
+                hint="(DDI + DDD)"
+                valor={config.empresa.whatsappNumero}
+                largura="inteira"
+              />
             </div>
           </section>
 

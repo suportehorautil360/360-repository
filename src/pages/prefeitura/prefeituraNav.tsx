@@ -44,8 +44,8 @@ export const SECAO_LABEL: Record<string, string> = {
   frota: "Frota",
   "frentes-trabalho": "Frentes de Trabalho",
   alocacao: "Alocação",
-  revisoes: "Revisões",
-  preventiva: "Preventiva",
+  revisoes: "Preventiva",
+  preventiva: "Revisões",
   "custos-obra": "Custos por obra",
   "gastos-gerais": "Gastos Gerais",
   pagamentos: "Demonstrativo de Pagamentos",
@@ -62,7 +62,6 @@ export const SECAO_LABEL: Record<string, string> = {
   emergencia: "Emergência",
   "pontos-rh": "Pontos (RH)",
   "solicitacoes-ponto": "Solicitações de Ponto",
-  relatorios: "Relatórios",
   configuracoes: "Configurações",
 };
 
@@ -143,14 +142,14 @@ export function prefeituraNav(
       label: "Manutenção",
       items: [
         {
-          label: "Revisões",
+          label: "Preventiva",
           to: to("revisoes"),
           icon: "🔧",
           badge: badges.revisoes,
           badgeTone: "warning" as const,
         },
         {
-          label: "Preventiva",
+          label: "Revisões",
           to: to("preventiva"),
           icon: "🛠️",
         },
@@ -193,7 +192,6 @@ export function prefeituraNav(
     {
       label: "Sistema",
       items: [
-        { label: "Relatórios", to: to("relatorios"), icon: "📥" },
         { label: "Configurações", to: to("configuracoes"), icon: "⚙️" },
       ],
     },

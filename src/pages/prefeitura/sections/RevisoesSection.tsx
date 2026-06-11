@@ -67,7 +67,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
         <article className="rv-kpi rv-kpi--danger">
           <p className="rv-kpi__label">BLOQUEADOS AGORA</p>
           <strong className="rv-kpi__value">{resumo.bloqueados.length}</strong>
-          <small className="rv-kpi__sub">Revisão vencida</small>
+          <small className="rv-kpi__sub">Preventiva vencida</small>
         </article>
         <article className="rv-kpi rv-kpi--warn">
           <p className="rv-kpi__label">PRÓXIMOS (90%+)</p>
@@ -80,7 +80,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
           <small className="rv-kpi__sub">Normal</small>
         </article>
         <article className="rv-kpi">
-          <p className="rv-kpi__label">TOTAL COM REVISÃO</p>
+          <p className="rv-kpi__label">TOTAL COM PREVENTIVA</p>
           <strong className="rv-kpi__value">{resumo.total}</strong>
           <small className="rv-kpi__sub">cadastrados</small>
         </article>
@@ -96,7 +96,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
       </div>
 
       {frota.loading ? (
-        <p className="rv-empty">Carregando revisões...</p>
+        <p className="rv-empty">Carregando preventivas...</p>
       ) : resumo.bloqueados.length === 0 ? (
         <p className="rv-empty">Nenhum equipamento bloqueado no momento.</p>
       ) : (
@@ -169,7 +169,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
 
                 <footer className="rv-blocked-card__foot">
                   <p>
-                    Bloqueado - registre a revisão para liberar o abastecimento
+                    Bloqueado - registre a preventiva para liberar o abastecimento
                   </p>
                   <button
                     type="button"
@@ -179,7 +179,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
                       setLiberando(v);
                     }}
                   >
-                    Registrar revisão
+                    Registrar preventiva
                   </button>
                 </footer>
               </article>
@@ -275,7 +275,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
           onFechar={() => setLiberando(null)}
           onConfirmar={async (dados) => {
             await frota.registrarRevisao(liberando, dados);
-            setMsg({ tone: "ok", text: "Revisao registrada com sucesso." });
+            setMsg({ tone: "ok", text: "Preventiva registrada com sucesso." });
             setLiberando(null);
           }}
         />

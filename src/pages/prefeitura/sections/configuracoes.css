@@ -120,6 +120,49 @@
   outline-offset: 1px;
   border-color: transparent;
 }
+/* Dados da empresa — somente leitura */
+.cfg__dados-empresa {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.cfg__campo {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.cfg__campo--full {
+  grid-column: 1 / -1;
+}
+.cfg__campo-rotulo {
+  margin: 0 0 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #7d8fb3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cfg__campo-valor {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 500;
+  color: #f1f5f9;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.cfg__campo-valor--vazio {
+  color: #64748b;
+  font-weight: 400;
+  font-style: italic;
+}
+@media (max-width: 560px) {
+  .cfg__dados-empresa {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Rodapé / botões */
 .cfg__card-foot {
