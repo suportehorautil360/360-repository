@@ -13,6 +13,8 @@ export default tseslint.config(
       'test-results',
       'node_modules',
       'back-360-',
+      // App do comboista: repo git próprio dentro da pasta, com lint próprio.
+      'my-app',
     ],
   },
   {

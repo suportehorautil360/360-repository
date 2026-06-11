@@ -27,8 +27,17 @@ export class RouteErrorBoundary extends Component<Props, State> {
     console.error("Falha ao carregar a rota:", error, info);
   }
 
-  handleRetry = () => {
-    // Recarrega para tentar baixar o chunk novamente (ex.: a internet voltou).
+  handleRetry = async () => {
+    // Chunk quebrado costuma ser deploy novo com service worker antigo ainda
+    // ativo: busca o SW novo e ativa antes de recarregar — senão o reload
+    // repete exatamente o mesmo erro.
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      await reg?.update();
+      reg?.waiting?.postMessage({ type: "SKIP_WAITING" });
+    } catch {
+      // sem SW (dev) ou sem rede — o reload simples ainda vale a tentativa
+    }
     window.location.reload();
   };
 
