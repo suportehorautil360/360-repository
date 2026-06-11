@@ -21,6 +21,12 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import {
+  comprimirAteOrcamento,
+  esperarAckComTimeout,
+  salvarHistoricoLocal,
+  tamanhoDocBytes,
+} from "./salvar-offline";
 import { registroDoOperador } from "./registro-operador";
 import { obterLocalizacao } from "./geolocalizacao";
 import { itensDaCategoria } from "../../features/checklist/domain/itens";
@@ -123,10 +129,20 @@ function montarTipoFalhaParaRegistro(
 /** Quantidade de fotos obrigatórias (câmera ao vivo) no registro de emergência. */
 const EMERG_NUM_FOTOS = 6;
 
-const MAX_JPEG_DATA_URL_LEN_EMERG = 2_800_000;
+// Orçamentos por foto (chars do data URL ≈ bytes no doc). Os registros vão
+// inteiros num único documento do Firestore, que tem limite rígido de 1 MiB —
+// acima disso a escrita feita offline é rejeitada em silêncio ao sincronizar.
+// Emergência carrega 6 fotos por doc; checklist carrega horímetro + uma foto
+// por item reprovado.
+const ORCAMENTO_FOTO_EMERGENCIA = 140_000;
+const ORCAMENTO_FOTO_ITEM_NAO = 180_000;
+const ORCAMENTO_FOTO_HORIMETRO = 400_000;
+/** Teto do doc no Firestore (1 MiB) com folga para os campos de texto. */
+const MAX_DOC_FIRESTORE_BYTES = 950_000;
 
-function jpegDataUrlFromVideoEmergencia(
+function jpegDataUrlFromVideo(
   video: HTMLVideoElement,
+  orcamentoBytes: number,
 ): string | null {
   if (!video || video.readyState < 2) return null;
   const w0 = video.videoWidth;
@@ -146,12 +162,43 @@ function jpegDataUrlFromVideoEmergencia(
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.drawImage(video, 0, 0, tw, th);
-  let dataUrl = canvas.toDataURL("image/jpeg", 0.74);
-  if (dataUrl.length > MAX_JPEG_DATA_URL_LEN_EMERG) {
-    dataUrl = canvas.toDataURL("image/jpeg", 0.58);
+  return comprimirAteOrcamento(
+    (q) => canvas.toDataURL("image/jpeg", q),
+    orcamentoBytes,
+    [0.74, 0.58, 0.45, 0.35],
+  );
+}
+
+/**
+ * Reabre um data URL já capturado e recomprime até caber no orçamento.
+ * Usado como último recurso quando o documento inteiro passa do limite.
+ */
+async function recomprimirDataUrl(
+  dataUrl: string,
+  orcamentoBytes: number,
+): Promise<string | null> {
+  if (!dataUrl.startsWith("data:image") || dataUrl.length <= orcamentoBytes) {
+    return dataUrl;
   }
-  if (dataUrl.length > MAX_JPEG_DATA_URL_LEN_EMERG) return null;
-  return dataUrl;
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("imagem inválida"));
+    img.src = dataUrl;
+  });
+  const maxSide = 720;
+  const r = Math.min(1, maxSide / Math.max(img.width, img.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.width * r));
+  canvas.height = Math.max(1, Math.round(img.height * r));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return comprimirAteOrcamento(
+    (q) => canvas.toDataURL("image/jpeg", q),
+    orcamentoBytes,
+    [0.6, 0.45, 0.32],
+  );
 }
 
 function parseOperadores(lista: string): string[] {
@@ -205,7 +252,7 @@ function loadEmergencias(): Record<string, unknown>[] {
 }
 
 function saveEmergencias(rows: Record<string, unknown>[]) {
-  localStorage.setItem(EMERG_STORAGE_KEY, JSON.stringify(rows));
+  salvarHistoricoLocal(EMERG_STORAGE_KEY, rows);
 }
 
 function loadChecklistHistory(): Record<string, unknown>[] {
@@ -220,7 +267,7 @@ function loadChecklistHistory(): Record<string, unknown>[] {
 }
 
 function saveChecklistHistory(rows: Record<string, unknown>[]) {
-  localStorage.setItem(CHECKLIST_HIST_KEY, JSON.stringify(rows));
+  salvarHistoricoLocal(CHECKLIST_HIST_KEY, rows);
 }
 
 const ABAS: {
@@ -634,7 +681,7 @@ export function ChecklistControlePage() {
       setCheckMsg("Sem imagem da câmera. Cancele e abra a câmera novamente.");
       return;
     }
-    const maxSide = 1280;
+    const maxSide = 1024;
     let tw = w0;
     let th = h0;
     if (Math.max(w0, h0) > maxSide) {
@@ -651,11 +698,12 @@ export function ChecklistControlePage() {
       return;
     }
     ctx.drawImage(v, 0, 0, tw, th);
-    let dataUrl = canvas.toDataURL("image/jpeg", 0.86);
-    if (dataUrl.length > 3_400_000) {
-      dataUrl = canvas.toDataURL("image/jpeg", 0.65);
-    }
-    if (dataUrl.length > 3_400_000) {
+    const dataUrl = comprimirAteOrcamento(
+      (q) => canvas.toDataURL("image/jpeg", q),
+      ORCAMENTO_FOTO_HORIMETRO,
+      [0.86, 0.7, 0.55, 0.42],
+    );
+    if (!dataUrl) {
       setCheckMsg(
         "Imagem muito grande. Aproxime o horímetro ou melhore a luz e capture de novo.",
       );
@@ -719,7 +767,7 @@ export function ChecklistControlePage() {
     const slot = emergCameraSlot;
     if (slot == null) return;
     const v = emergVideoRef.current;
-    const dataUrl = v ? jpegDataUrlFromVideoEmergencia(v) : null;
+    const dataUrl = v ? jpegDataUrlFromVideo(v, ORCAMENTO_FOTO_EMERGENCIA) : null;
     if (!dataUrl) {
       setEmergMsg(
         "Não foi possível capturar a imagem. Aguarde o vídeo estabilizar, melhore a luz ou tente de novo.",
@@ -779,7 +827,7 @@ export function ChecklistControlePage() {
     const k = itemNaoCameraKey;
     if (!k) return;
     const v = itemNaoVideoRef.current;
-    const dataUrl = v ? jpegDataUrlFromVideoEmergencia(v) : null;
+    const dataUrl = v ? jpegDataUrlFromVideo(v, ORCAMENTO_FOTO_ITEM_NAO) : null;
     if (!dataUrl) {
       setCheckMsg(
         "Não foi possível capturar a foto do problema. Aguarde o vídeo ou melhore a luz e tente de novo.",
@@ -1606,7 +1654,14 @@ export function ChecklistControlePage() {
     // Salva no Firestore
     setSalvandoChecklist(true);
     try {
-      await addDoc(collection(db, "checklistsRegistros"), {
+      // O doc precisa caber no limite de 1 MiB do Firestore. Acima disso a
+      // escrita feita offline é rejeitada em silêncio na sincronização (o
+      // operador vê "salvo" e o registro nunca chega à auditoria). Se as
+      // fotos passarem do orçamento, recomprime; se mesmo assim não couber,
+      // pede nova captura em vez de fingir sucesso.
+      let fotoHorimetroDoc = fotoHorimetroDataUrl;
+      let answersDoc = answers;
+      const montarPayload = () => ({
         id,
         prefeituraId: prefeituraIdChecklist,
         equipamentoId: equipamentoAtual.id,
@@ -1626,7 +1681,7 @@ export function ChecklistControlePage() {
         funcionarioCpf: session.cpf ?? "",
         localizacaoGps: gpsChecklist.trim() || null,
         horimetro: horimetro.trim(),
-        fotoHorimetro: fotoHorimetroDataUrl,
+        fotoHorimetro: fotoHorimetroDoc,
         assinaturaOperador: assinaturaDataUrl,
         totalItens: keys.length,
         totalAplicaveis,
@@ -1635,13 +1690,57 @@ export function ChecklistControlePage() {
         totalNa: numNa,
         itensNao,
         pontuacao: pontos,
-        respostas: answers,
+        respostas: answersDoc,
         obs: obsChecklist || null,
         criadoEm: serverTimestamp(),
         dataHoraIso: dataHora,
       });
-      await sincronizarRespostasPendentesWorkflow();
-      setCheckMsg("✅ Checklist salvo com sucesso!");
+      let payload = montarPayload();
+      if (tamanhoDocBytes(payload) > MAX_DOC_FIRESTORE_BYTES) {
+        const fotoMenor = await recomprimirDataUrl(
+          fotoHorimetroDoc,
+          Math.round(ORCAMENTO_FOTO_HORIMETRO / 2),
+        ).catch(() => null);
+        if (fotoMenor) fotoHorimetroDoc = fotoMenor;
+        const entradas = await Promise.all(
+          Object.entries(answersDoc).map(async ([k, resp]) => {
+            if (resp?.v !== "nao" || !resp.foto.startsWith("data:image")) {
+              return [k, resp] as const;
+            }
+            const menor = await recomprimirDataUrl(
+              resp.foto,
+              Math.round(ORCAMENTO_FOTO_ITEM_NAO / 2),
+            ).catch(() => null);
+            return [k, menor ? { ...resp, foto: menor } : resp] as const;
+          }),
+        );
+        answersDoc = Object.fromEntries(entradas);
+        payload = montarPayload();
+      }
+      if (tamanhoDocBytes(payload) > MAX_DOC_FIRESTORE_BYTES) {
+        setCheckMsg(
+          "As fotos deste checklist ficaram grandes demais para enviar. Capture de novo a foto do horímetro e as fotos dos itens reprovados e salve outra vez.",
+        );
+        return;
+      }
+
+      // Offline, a promise do Firestore só resolve quando o servidor
+      // confirmar — pode levar horas. A mutação já fica persistida no
+      // IndexedDB e sincroniza sozinha, então não seguramos a UI: offline
+      // avisa "salvo no aparelho" na hora; online espera o ack por até 15s.
+      const escrita = addDoc(collection(db, "checklistsRegistros"), payload);
+      escrita.catch((e) =>
+        console.error("[Checklist] Sincronização com o servidor falhou:", e),
+      );
+      const ack = await esperarAckComTimeout(escrita, navigator.onLine, 15_000);
+      if (ack === "sincronizado") {
+        await sincronizarRespostasPendentesWorkflow();
+        setCheckMsg("✅ Checklist salvo com sucesso!");
+      } else {
+        setCheckMsg(
+          "📴 Sem internet agora: checklist salvo no aparelho. Ele sincroniza sozinho quando a conexão voltar — não apague o app nem limpe o navegador.",
+        );
+      }
       setChecklistsHojeTick((t) => t + 1);
       setAuditoriaTick((t) => t + 1);
 
@@ -1680,7 +1779,10 @@ export function ChecklistControlePage() {
           // emergenciasApi.criar evita o ticket duplicado. E o addDoc carrega
           // idOperadorSession/funcionarioId (que o create do backend não seta),
           // necessários para a tela do operador.
-          await addDoc(collection(db, "emergenciasRegistros"), {
+          // Mesmo padrão do checklist: offline a promise só resolve com ack
+          // do servidor, então não seguramos a UI — a mutação fica na fila
+          // local do Firestore e sincroniza sozinha.
+          const escritaEmerg = addDoc(collection(db, "emergenciasRegistros"), {
             id: crypto.randomUUID(),
             ...emergPayload,
             idOperadorSession: session.idCliente,
@@ -1694,28 +1796,42 @@ export function ChecklistControlePage() {
             criadoEm: serverTimestamp(),
             dataHoraIso: dataHora,
           });
+          escritaEmerg.catch((e) =>
+            console.error(
+              "[Checklist] Sincronização da emergência automática falhou:",
+              e,
+            ),
+          );
+          const ackEmerg = await esperarAckComTimeout(
+            escritaEmerg,
+            navigator.onLine,
+            15_000,
+          );
           setEmergTick((t) => t + 1);
           toast.warning(
             "🚨 Ticket de emergência criado — item impeditivo reprovado.",
           );
           // A emergência foi gravada direto no Firestore (não passou pelo
           // create do backend), então disparamos a notificação de WhatsApp à
-          // parte. Best-effort: nunca atrapalha o checklist.
-          try {
-            await emergenciasApi.notificarWhatsApp({
-              prefeituraId: prefeituraIdChecklist,
-              severity: emergPayload.severity,
-              chassis: emergPayload.chassis,
-              idMaquina: equipamentoAtual.id,
-              tipoFalha: emergPayload.tipoFalha,
-              descricao: emergPayload.descricao,
-              operadorNome: emergPayload.operadorNome,
-              localizacaoGps: emergPayload.localizacaoGps,
-              dataHoraIso: dataHora,
-              fotos: fotosImped,
-            });
-          } catch (e) {
-            console.warn("[Checklist] WhatsApp não disparado:", e);
+          // parte. Best-effort: nunca atrapalha o checklist. Offline não tem
+          // como notificar (sem rede); o ticket sincroniza junto com o resto.
+          if (ackEmerg === "sincronizado") {
+            try {
+              await emergenciasApi.notificarWhatsApp({
+                prefeituraId: prefeituraIdChecklist,
+                severity: emergPayload.severity,
+                chassis: emergPayload.chassis,
+                idMaquina: equipamentoAtual.id,
+                tipoFalha: emergPayload.tipoFalha,
+                descricao: emergPayload.descricao,
+                operadorNome: emergPayload.operadorNome,
+                localizacaoGps: emergPayload.localizacaoGps,
+                dataHoraIso: dataHora,
+                fotos: fotosImped,
+              });
+            } catch (e) {
+              console.warn("[Checklist] WhatsApp não disparado:", e);
+            }
           }
         } catch (e) {
           console.error("[Checklist] Falha ao criar emergência automática:", e);
