@@ -46,8 +46,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PontosFolha } from "./PontosFolha";
-import { checklistsApi } from "../../features/checklist/api/checklists-api";
 import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
+import { enviarWorkflowComFila } from "../../features/checklist/api/workflow-fila";
+import { useWorkflowSync } from "./useWorkflowSync";
 import { marcarTrabalhoEmAndamento } from "../../components/Pwa/atualizacao-segura";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
@@ -88,7 +89,11 @@ function checklistRespostaCompleta(
   if (!a) return false;
   if (a.v === "sim") return true;
   if (a.v === "na") return true;
-  return Boolean(a.foto.startsWith("data:image") && a.problema.trim());
+  // Foto pode ser data URL (capturada agora) ou URL do Supabase (já subida).
+  return Boolean(
+    (a.foto.startsWith("data:image") || a.foto.startsWith("http")) &&
+      a.problema.trim(),
+  );
 }
 
 /** Equipamento retornado do Firestore na busca por chassi. */
@@ -440,6 +445,8 @@ function iniciaisOperador(nome: string): string {
 
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
+  // Reenvia workflows de checklist enfileirados offline quando a rede volta.
+  useWorkflowSync();
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
   const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
 
@@ -1798,8 +1805,10 @@ export function ChecklistControlePage() {
         console.error("[Checklist] Sincronização com o servidor falhou:", e),
       );
       const ack = await esperarAckComTimeout(escrita, navigator.onLine, 15_000);
+      // Workflow NestJS dos itens "Não": online envia agora; offline/erro de
+      // rede entra na fila local e reenvia quando a conexão voltar.
+      await sincronizarRespostasPendentesWorkflow(id, answersDoc);
       if (ack === "sincronizado") {
-        await sincronizarRespostasPendentesWorkflow();
         setCheckMsg("✅ Checklist salvo com sucesso!");
       } else {
         setCheckMsg(
@@ -1928,13 +1937,16 @@ export function ChecklistControlePage() {
     setObsChecklist("");
   }
 
-  async function sincronizarRespostasPendentesWorkflow() {
+  async function sincronizarRespostasPendentesWorkflow(
+    checklistId: string,
+    respostasFinais: typeof answers,
+  ) {
     if (!equipamentoAtual || !nomeOperadorChecklist.trim()) return;
     const itensNao = itensFiltrados
       .map((item) => ({
         item,
         key: String(item["Nº"]),
-        resposta: answers[String(item["Nº"])],
+        resposta: respostasFinais[String(item["Nº"])],
       }))
       .filter(
         (
@@ -1948,15 +1960,18 @@ export function ChecklistControlePage() {
       );
     if (itensNao.length === 0) return;
 
-    try {
-      const categoria =
-        definicaoAtual?.categoria ??
-        inferirCategoriaChecklist(
-          equipamentoAtual.label,
-          equipamentoAtual.modelo,
-          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-        );
-      const run = await checklistsApi.iniciar({
+    const categoria =
+      definicaoAtual?.categoria ??
+      inferirCategoriaChecklist(
+        equipamentoAtual.label,
+        equipamentoAtual.modelo,
+        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+      );
+    // Sem rede (ou erro de rede) o workflow entra na fila local e é
+    // reenviado quando a conexão volta (useWorkflowSync).
+    const sincronizado = await enviarWorkflowComFila({
+      checklistId,
+      run: {
         prefeituraId: equipamentoAtual.prefeituraId || session?.idCliente || "",
         definitionId: definicaoAtual?.id ?? `seed:${categoria}`,
         definitionVersion: definicaoAtual?.version ?? 1,
@@ -1964,23 +1979,16 @@ export function ChecklistControlePage() {
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         operadorNome: nomeOperadorChecklist.trim(),
         categoria,
-      });
-      for (const row of itensNao) {
-        await checklistsApi.responder(run.id, {
-          questionId: row.key,
-          questionLabel: checklistItemTitulo(row.item),
-          value: row.resposta,
-          problemDescription: row.resposta.problema,
-          photoUrls: row.resposta.foto ? [row.resposta.foto] : [],
-        });
-      }
-      setEmergTick((t) => t + 1);
-    } catch (err) {
-      console.warn(
-        "[Checklist] Workflow backend indisponível; checklist legado foi salvo.",
-        err,
-      );
-    }
+      },
+      respostas: itensNao.map((row) => ({
+        questionId: row.key,
+        questionLabel: checklistItemTitulo(row.item),
+        value: row.resposta,
+        problemDescription: row.resposta.problema,
+        photoUrls: row.resposta.foto ? [row.resposta.foto] : [],
+      })),
+    });
+    if (sincronizado) setEmergTick((t) => t + 1);
   }
 
   async function handleEmergencia(e: FormEvent) {
