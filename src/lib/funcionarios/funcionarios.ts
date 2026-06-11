@@ -178,8 +178,6 @@ export const funcionariosApi = {
     const limpo = limparCpf(ident);
     const ehCpf = limpo.length === 11;
 
-    console.log("dados enviados", { ident, senha, ehCpf });
-
     const snap = ehCpf
       ? await getDocs(query(collection(db, COLECAO), where("cpf", "==", limpo)))
       : await getDocs(
@@ -188,10 +186,6 @@ export const funcionariosApi = {
             where("loginGerado", "==", ident.toLowerCase()),
           ),
         );
-    console.log("snapshot recebido", {
-      size: snap.size,
-      docs: snap.docs.map((d) => ({ id: d.id, data: d.data() })),
-    });
     if (snap.empty) return { ok: false, motivo: "nao-encontrado" };
 
     // Pode haver mais de um doc com o mesmo identificador (unicidade é
@@ -211,10 +205,8 @@ export const funcionariosApi = {
       return { ok: true, funcionario };
     }
     if (!temAlgumComSenha) return { ok: false, motivo: "sem-senha" };
-    return {
-      ok: true,
-      funcionario: fromDoc(snap.docs[0].id, snap.docs[0].data()),
-    };
+    // Tem senha cadastrada e nenhuma conferiu: NUNCA autenticar.
+    return { ok: false, motivo: "senha-invalida" };
   },
 
   /** Lista os funcionários de uma prefeitura (inclui inativos). Via NestJS. */
