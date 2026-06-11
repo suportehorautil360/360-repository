@@ -12,6 +12,11 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <!-- O app passa a ser servido tanto no apex (horautil360.com) quanto no www
+         para destravar PWAs presos no service worker do apex. O canonical
+         mantém o www como URL única para buscadores, evitando conteúdo
+         duplicado entre os dois hosts. -->
+    <link rel="canonical" href="https://www.horautil360.com/" />
     <title>Horautil360</title>
   </head>
   <body>
