@@ -9,6 +9,11 @@ export default defineConfig({
     // Mesmo alias do vite.config (necessário para componentes que usam "@/").
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // O módulo virtual do vite-plugin-pwa não existe sem o plugin — os
+      // testes usam um stub (e mockam por cima quando precisam).
+      'virtual:pwa-register/react': fileURLToPath(
+        new URL('./src/test/pwa-register-stub.ts', import.meta.url),
+      ),
     },
   },
   test: {

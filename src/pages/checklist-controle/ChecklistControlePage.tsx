@@ -48,6 +48,7 @@ import {
 import { PontosFolha } from "./PontosFolha";
 import { checklistsApi } from "../../features/checklist/api/checklists-api";
 import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
+import { marcarTrabalhoEmAndamento } from "../../components/Pwa/atualizacao-segura";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
   type ChecklistDocumentoItem,
@@ -605,6 +606,27 @@ export function ChecklistControlePage() {
   >([]);
   const [carregandoEmerg, setCarregandoEmerg] = useState(false);
   const [emergTick, setEmergTick] = useState(0);
+
+  // Sinaliza ao PwaUpdatePrompt que há trabalho não salvo — o auto-update
+  // pós-deploy espera o operador terminar antes de recarregar a página.
+  const checklistEmPreenchimento = Boolean(
+    Object.keys(answers).length > 0 ||
+      horimetro.trim() ||
+      fotoHorimetroDataUrl ||
+      assinaturaDataUrl.startsWith("data:image") ||
+      obsChecklist.trim(),
+  );
+  const emergenciaEmPreenchimento = Boolean(
+    descEmerg.trim() || fotosEmergencia.some((f) => f),
+  );
+  useEffect(() => {
+    marcarTrabalhoEmAndamento("checklist-form", checklistEmPreenchimento);
+    return () => marcarTrabalhoEmAndamento("checklist-form", false);
+  }, [checklistEmPreenchimento]);
+  useEffect(() => {
+    marcarTrabalhoEmAndamento("emergencia-form", emergenciaEmPreenchimento);
+    return () => marcarTrabalhoEmAndamento("emergencia-form", false);
+  }, [emergenciaEmPreenchimento]);
 
   const horimetroVideoRef = useRef<HTMLVideoElement>(null);
   const horimetroStreamRef = useRef<MediaStream | null>(null);
