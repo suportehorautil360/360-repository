@@ -6,6 +6,11 @@ import { funcionariosApi } from "../../lib/funcionarios/funcionarios";
 import { formatarCpf, limparCpf } from "../../lib/funcionarios/cpf";
 import type { OperadorSession } from "./useOperadorSession";
 import { useOperadorSession } from "./useOperadorSession";
+import {
+  autenticarOffline,
+  removerCredencialOffline,
+  salvarCredencialOffline,
+} from "./credenciais-offline";
 import "../login/login.css";
 
 const MOTIVO_MSG: Record<string, string> = {
@@ -43,9 +48,45 @@ export function ChecklistLoginPage() {
 
     setErro("");
     setLoading(true);
+
+    function entrar(f: {
+      nome: string;
+      prefeituraId: string;
+      id: string;
+      cpf?: string;
+      tipo?: OperadorSession["tipo"];
+    }, empresaNome: string) {
+      const sess: OperadorSession = {
+        nome: f.nome,
+        idCliente: f.prefeituraId,
+        empresa: empresaNome,
+        funcionarioId: f.id,
+        cpf: f.cpf,
+        tipo: f.tipo,
+      };
+      setSession(sess);
+      navigate("/checklist-controle", { replace: true });
+    }
+
+    // Sem rede, a credencial guardada no aparelho (último login online,
+    // válida por 7 dias) permite entrar offline.
+    async function tentarOffline(): Promise<boolean> {
+      const off = await autenticarOffline(ident, senha).catch(() => null);
+      if (!off) return false;
+      entrar(off.funcionario, off.empresa);
+      return true;
+    }
+
     try {
       const r = await funcionariosApi.autenticar(ident, senha);
       if (!r.ok) {
+        // Offline, a consulta pode resolver "vazia" pelo cache do Firestore
+        // — antes de negar, tenta a credencial offline.
+        if (!navigator.onLine && (await tentarOffline())) return;
+        // O servidor negou de verdade: a credencial local não vale mais.
+        if (r.motivo === "senha-invalida" || r.motivo === "inativo") {
+          removerCredencialOffline(ident);
+        }
         setErro(MOTIVO_MSG[r.motivo] ?? "Não foi possível entrar.");
         setLoading(false);
         return;
@@ -67,19 +108,20 @@ export function ChecklistLoginPage() {
         }
       }
 
-      const sess: OperadorSession = {
-        nome: f.nome,
-        idCliente: f.prefeituraId,
-        empresa: empresaNome,
-        funcionarioId: f.id,
-        cpf: f.cpf,
-        tipo: f.tipo,
-      };
-      setSession(sess);
-      navigate("/checklist-controle", { replace: true });
+      // Guarda a credencial para os próximos logins sem rede (best-effort).
+      try {
+        await salvarCredencialOffline({ funcionario: f, empresa: empresaNome, senha });
+      } catch {
+        /* sem espaço — login offline fica indisponível, login normal segue */
+      }
+
+      entrar(f, empresaNome);
     } catch {
+      if (await tentarOffline()) return;
       if (!navigator.onLine) {
-        setErro("Sem conexão. O primeiro login exige internet.");
+        setErro(
+          "Sem conexão. Para entrar offline é preciso já ter feito login neste aparelho nos últimos 7 dias.",
+        );
       } else {
         setErro("Erro ao consultar o banco de dados. Tente novamente.");
       }
