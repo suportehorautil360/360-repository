@@ -29,30 +29,67 @@ function isValidSession(s: unknown): s is OperadorSession {
   );
 }
 
+/**
+ * Sessão válida por 24h (um turno com folga). Fica em localStorage para
+ * sobreviver ao fechamento do PWA — sessionStorage morre quando o iOS mata
+ * o app em background, e o operador em campo sem sinal ficava trancado fora.
+ */
+const SESSAO_TTL_MS = 24 * 60 * 60 * 1000;
+
+type Envelope = { session: OperadorSession; expiraEm: string };
+
+function limpar() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function read(): OperadorSession | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    if (!isValidSession(parsed)) {
-      sessionStorage.removeItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<Envelope>;
+      if (
+        parsed?.expiraEm &&
+        Date.now() < Date.parse(parsed.expiraEm) &&
+        isValidSession(parsed.session)
+      ) {
+        return parsed.session;
+      }
+      limpar();
       return null;
     }
-    return parsed;
-  } catch {
-    try {
-      sessionStorage.removeItem(STORAGE_KEY);
-    } catch {
-      /* ignore */
+    // Migração: a sessão antiga vivia em sessionStorage, sem envelope.
+    const legado = sessionStorage.getItem(STORAGE_KEY);
+    if (legado) {
+      const parsed: unknown = JSON.parse(legado);
+      if (isValidSession(parsed)) {
+        write(parsed);
+        return parsed;
+      }
+      limpar();
     }
+    return null;
+  } catch {
+    limpar();
     return null;
   }
 }
 
 function write(session: OperadorSession | null): boolean {
   try {
-    if (!session) sessionStorage.removeItem(STORAGE_KEY);
-    else sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    if (!session) {
+      limpar();
+      return true;
+    }
+    const envelope: Envelope = {
+      session,
+      expiraEm: new Date(Date.now() + SESSAO_TTL_MS).toISOString(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(envelope));
     return true;
   } catch {
     return false;
