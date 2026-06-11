@@ -21,6 +21,15 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { registroDoOperador } from "./registro-operador";
+import { obterLocalizacao } from "./geolocalizacao";
+import { itensDaCategoria } from "../../features/checklist/domain/itens";
+import {
+  inferirDefinition,
+  itensDaDefinition,
+  type ItemOperador,
+} from "../../features/checklist/domain/definitions-resolver";
+import { useChecklistDefinitions } from "../../features/checklist/hooks/useChecklistDefinitions";
 import { usePontoAtivo } from "../../lib/api/feature-flags";
 import { usePwaInstallPrompt } from "./usePwaInstallPrompt";
 import { toast } from "sonner";
@@ -51,7 +60,8 @@ type Aba =
 
 type ItemChecklist =
   | (typeof seedData.itens_checklist)[number]
-  | ChecklistDocumentoItem;
+  | ChecklistDocumentoItem
+  | ItemOperador;
 
 /** True se o item é classificado como `impeditivo` no seed (default = não). */
 function itemImpeditivo(it: ItemChecklist): boolean {
@@ -216,13 +226,24 @@ function saveChecklistHistory(rows: Record<string, unknown>[]) {
 const ABAS: {
   id: Aba;
   label: string;
+  shortLabel: string;
   icon: "dash" | "check" | "audit" | "alert" | "clock";
 }[] = [
-  { id: "dashboard", label: "Dashboard", icon: "dash" },
-  { id: "checklist", label: "Checklist", icon: "check" },
-  { id: "auditoria", label: "Auditoria de checklists", icon: "audit" },
-  { id: "emergencia", label: "Emergências", icon: "alert" },
-  { id: "pontos", label: "Pontos", icon: "clock" },
+  { id: "dashboard", label: "Dashboard", shortLabel: "Início", icon: "dash" },
+  { id: "checklist", label: "Checklist", shortLabel: "Checklist", icon: "check" },
+  {
+    id: "auditoria",
+    label: "Auditoria de checklists",
+    shortLabel: "Auditoria",
+    icon: "audit",
+  },
+  {
+    id: "emergencia",
+    label: "Emergências",
+    shortLabel: "Emergência",
+    icon: "alert",
+  },
+  { id: "pontos", label: "Pontos", shortLabel: "Pontos", icon: "clock" },
 ];
 
 function parseRespostasChecklist(row: Record<string, unknown>): {
@@ -295,6 +316,7 @@ function firestoreDocToHistRow(
     Pontuacao: data.pontuacao ?? 0,
     ID_Cliente: data.idOperadorSession ?? "",
     prefeituraId: data.prefeituraId ?? "",
+    Localizacao_GPS: data.localizacaoGps ?? null,
     Obs: data.obs ?? null,
   };
 }
@@ -360,6 +382,13 @@ function Hu360NavIcon({
   );
 }
 
+function iniciaisOperador(nome: string): string {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+}
+
 export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
@@ -382,7 +411,27 @@ export function ChecklistControlePage() {
     pwaEstado === "instalado" ? "App instalado ✓" : "Instalar app";
   const { ativo: pontoAtivo } = usePontoAtivo(session?.idCliente);
   const [aba, setAba] = useState<Aba>("dashboard");
+  const [menuHeadAberto, setMenuHeadAberto] = useState(false);
+  const menuHeadRef = useRef<HTMLDivElement>(null);
   const abasVisiveis = ABAS.filter((a) => a.id !== "pontos" || pontoAtivo);
+
+  useEffect(() => {
+    if (!menuHeadAberto) return;
+    function fecharMenu(e: MouseEvent) {
+      if (
+        menuHeadRef.current &&
+        !menuHeadRef.current.contains(e.target as Node)
+      ) {
+        setMenuHeadAberto(false);
+      }
+    }
+    document.addEventListener("mousedown", fecharMenu);
+    return () => document.removeEventListener("mousedown", fecharMenu);
+  }, [menuHeadAberto]);
+
+  useEffect(() => {
+    setMenuHeadAberto(false);
+  }, [aba]);
 
   // Auto-preenche GPS quando o operador abre a aba de emergência
   useEffect(() => {
@@ -434,6 +483,13 @@ export function ChecklistControlePage() {
   const [equipamentoAtual, setEquipamentoAtual] =
     useState<EquipFirestore | null>(null);
   const [buscandoChassis, setBuscandoChassis] = useState(false);
+  // Candidatos quando a busca por chassi (parcial / últimos dígitos) casa mais
+  // de um equipamento — o operador escolhe na lista.
+  const [candidatosChassi, setCandidatosChassi] = useState<EquipFirestore[]>([]);
+  // Frota carregada uma vez para o autocomplete (filtragem ao vivo, offline).
+  const [frotaBusca, setFrotaBusca] = useState<EquipFirestore[]>([]);
+  const [frotaBuscaCarregada, setFrotaBuscaCarregada] = useState(false);
+  const [mostrarSugestoesChassi, setMostrarSugestoesChassi] = useState(false);
   const [salvandoChecklist, setSalvandoChecklist] = useState(false);
   const [checklistsFirestoreHoje, setChecklistsFirestoreHoje] = useState<
     Record<string, unknown>[]
@@ -473,6 +529,22 @@ export function ChecklistControlePage() {
   const [gpsEmerg, setGpsEmerg] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsErro, setGpsErro] = useState("");
+  // Localização capturada ao abrir o checklist (salva no checklist e na
+  // emergência automática do item impeditivo).
+  const [gpsChecklist, setGpsChecklist] = useState("");
+
+  // Captura a localização sempre que o operador abre um checklist por chassi
+  // (recaptura ao trocar de equipamento).
+  useEffect(() => {
+    if (!equipamentoAtual) return;
+    let ativo = true;
+    void obterLocalizacao().then((r) => {
+      if (ativo) setGpsChecklist(r.texto);
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [equipamentoAtual]);
   const [fotosEmergencia, setFotosEmergencia] = useState<string[]>([""]);
   const [emergCameraSlot, setEmergCameraSlot] = useState<number | null>(null);
   const [emergMsg, setEmergMsg] = useState("");
@@ -903,6 +975,9 @@ export function ChecklistControlePage() {
     )
       .then((snap) => {
         const rows = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
           .map((d) =>
             firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
           )
@@ -931,9 +1006,13 @@ export function ChecklistControlePage() {
       ),
     )
       .then((snap) => {
-        const rows = snap.docs.map((d) =>
-          firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-        );
+        const rows = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
+          .map((d) =>
+            firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
+          );
         rows.sort((a, b) =>
           String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
         );
@@ -955,10 +1034,14 @@ export function ChecklistControlePage() {
       ),
     )
       .then((snap) => {
-        const rows: Record<string, unknown>[] = snap.docs.map((d) => ({
-          ...(d.data() as Record<string, unknown>),
-          _docId: d.id,
-        }));
+        const rows: Record<string, unknown>[] = snap.docs
+          .filter((d) =>
+            registroDoOperador(d.data() as Record<string, unknown>, session),
+          )
+          .map((d) => ({
+            ...(d.data() as Record<string, unknown>),
+            _docId: d.id,
+          }));
         rows.sort((a, b) =>
           String(b["dataHoraIso"] ?? "").localeCompare(
             String(a["dataHoraIso"] ?? ""),
@@ -1078,6 +1161,47 @@ export function ChecklistControlePage() {
     stopItemNaoCamera,
   ]);
 
+  // Carrega a frota uma vez ao entrar na aba de checklist, para o autocomplete
+  // filtrar ao vivo (instantâneo e disponível offline via cache do Firestore).
+  useEffect(() => {
+    if (aba !== "checklist" || frotaBuscaCarregada) return;
+    let ativo = true;
+    void (async () => {
+      try {
+        const snap = await getDocs(collection(db, "equipamentos"));
+        if (!ativo) return;
+        setFrotaBusca(snap.docs.map((d) => montarEquip(d.id, d.data())));
+        setFrotaBuscaCarregada(true);
+      } catch (err) {
+        console.error("[Checklist] Erro ao carregar frota para busca:", err);
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [aba, frotaBuscaCarregada]);
+
+  // Sugestões filtradas ao vivo pelo trecho digitado (chassi ou modelo/nome).
+  // Comparação só por letras/números (ignora pontos, hífens, espaços) para
+  // casar "203040" mesmo que o chassi esteja cadastrado como "20-30-40".
+  const sugestoesChassi = useMemo(() => {
+    const alnum = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const q = alnum(chassisChecklistDraft);
+    if (q.length < 2) return [];
+    return frotaBusca
+      .filter((e) => {
+        const c = alnum(e.chassis);
+        const txt = alnum(`${e.chassis}${e.label}${e.modelo}`);
+        return c.includes(q) || txt.includes(q);
+      })
+      .sort((a, b) => {
+        const ta = alnum(a.chassis).endsWith(q) ? 0 : 1;
+        const tb = alnum(b.chassis).endsWith(q) ? 0 : 1;
+        return ta - tb;
+      })
+      .slice(0, 8);
+  }, [chassisChecklistDraft, frotaBusca]);
+
   const checklistItensLiberados = useMemo(
     () => Boolean(chassisChecklistAtivo && equipamentoAtual),
     [chassisChecklistAtivo, equipamentoAtual],
@@ -1096,39 +1220,32 @@ export function ChecklistControlePage() {
     );
   }, [session?.idMaquina]);
 
+  // Catálogo de definições do backend, com fallback offline no seed embutido.
+  const { definitions: checklistDefinitions } = useChecklistDefinitions();
+
+  // Definição casada por palavra-chave (nome/modelo do equipamento).
+  const definicaoAtual = useMemo(() => {
+    if (!equipamentoAtual) return null;
+    return inferirDefinition(
+      checklistDefinitions,
+      equipamentoAtual.label,
+      equipamentoAtual.modelo,
+      `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+    );
+  }, [checklistDefinitions, equipamentoAtual]);
+
   const itensFiltrados: ItemChecklist[] = useMemo(() => {
     if (!equipamentoAtual) return [];
+    // Itens da definição: deduplicados e renumerados 1..N (o `Nº` é a chave de
+    // `answers`). Sem definição casada, cai no comportamento legado (seed).
+    if (definicaoAtual) return itensDaDefinition(definicaoAtual);
     const cat = inferirCategoriaChecklist(
       equipamentoAtual.label,
       equipamentoAtual.modelo,
       `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
     );
-    // Fonte ÚNICA: o seed `itens_checklist` (schema novo: Aplica A + Severidade),
-    // que já cobre os itens gerais e os de cada categoria. Antes concatenávamos
-    // também o CHECKLIST_DOCUMENTO_ITENS, mas ele repetia os gerais do seed —
-    // gerando perguntas duplicadas e numeração misturada (G.x + 1.x).
-    // Cada item declara `Aplica A: string[]` (fallback p/ Categoria).
-    const norm = (s: unknown) =>
-      String(s ?? "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/[^a-z0-9]+/g, " ")
-        .trim();
-    const vistos = new Set<string>();
-    return seedData.itens_checklist.filter((it) => {
-      const aplicaA = (it as { "Aplica A"?: string[] })["Aplica A"];
-      const aplica = Array.isArray(aplicaA)
-        ? aplicaA.includes(cat)
-        : (it as { Categoria?: string }).Categoria === cat;
-      if (!aplica) return false;
-      // Dedup de segurança: não repete a mesma pergunta (por texto normalizado).
-      const t = norm((it as { "Item de Verificação"?: unknown })["Item de Verificação"]);
-      if (!t || vistos.has(t)) return false;
-      vistos.add(t);
-      return true;
-    });
-  }, [equipamentoAtual]);
+    return itensDaCategoria(cat);
+  }, [equipamentoAtual, definicaoAtual]);
 
   function handleLogin(e: FormEvent) {
     e.preventDefault();
@@ -1219,8 +1336,48 @@ export function ChecklistControlePage() {
     setAba("dashboard");
   }
 
+  function montarEquip(
+    id: string,
+    data: Record<string, unknown>,
+  ): EquipFirestore {
+    return {
+      id,
+      prefeituraId: String(data.prefeituraId ?? ""),
+      label: String(data.label ?? data.descricao ?? ""),
+      chassis: String(data.chassis ?? ""),
+      modelo: String(data.modelo ?? ""),
+      linha: String(data.linha ?? ""),
+      tipo: String(data.tipo ?? ""),
+    };
+  }
+
+  // Abre o checklist para o equipamento escolhido. Preenche o campo com o chassi
+  // COMPLETO (mesmo numa busca por dígitos), senão o efeito que sincroniza
+  // draft × chassi ativo zera tudo logo em seguida.
+  function abrirParaEquip(equip: EquipFirestore) {
+    setCandidatosChassi([]);
+    setEquipamentoAtual(equip);
+    setChassisChecklistDraft(equip.chassis);
+    setChassisChecklistAtivo(normalizeChassis(equip.chassis));
+    // Login identifica a pessoa; o equipamento da sessão é definido aqui.
+    // Mantém os fluxos que leem session.idMaquina/chassis consistentes.
+    if (session) {
+      setSession({ ...session, idMaquina: equip.id, chassis: equip.chassis });
+    }
+    setAnswers({});
+    setNomeOperadorChecklist(session?.nome ?? "");
+    setHorimetro("");
+    setFotoHorimetroDataUrl("");
+    setAssinaturaDataUrl("");
+    stopHorimetroCamera();
+    stopItemNaoCamera();
+    setCheckMsg("Lista de verificação aberta para este chassi.");
+  }
+
   async function handleAbrirListaPorChassi() {
     setCheckMsg("");
+    setCandidatosChassi([]);
+    const draft = chassisChecklistDraft.trim();
     const normalizado = normalizeChassis(chassisChecklistDraft);
     if (!normalizado) {
       setCheckMsg("Informe o chassi antes de abrir a lista.");
@@ -1228,7 +1385,7 @@ export function ChecklistControlePage() {
     }
     setBuscandoChassis(true);
     try {
-      // Tenta normalizado (maiúsculas, sem espaços) e, como fallback, o valor exato digitado
+      // 1) Match exato (rápido): normalizado e, em fallback, o valor digitado.
       let snap = await getDocs(
         query(
           collection(db, "equipamentos"),
@@ -1237,49 +1394,56 @@ export function ChecklistControlePage() {
       );
       if (snap.empty) {
         snap = await getDocs(
-          query(
-            collection(db, "equipamentos"),
-            where("chassis", "==", chassisChecklistDraft.trim()),
-          ),
+          query(collection(db, "equipamentos"), where("chassis", "==", draft)),
         );
       }
-      if (snap.empty) {
-        setCheckMsg("Chassi não encontrado no cadastro de equipamentos.");
+      if (!snap.empty) {
+        abrirParaEquip(montarEquip(snap.docs[0].id, snap.docs[0].data()));
+        return;
+      }
+
+      // 2) Busca parcial pelos últimos dígitos, dentro da frota do cliente.
+      if (normalizado.length < 3) {
+        setCheckMsg(
+          "Chassi não encontrado. Digite ao menos 3 caracteres para busca parcial.",
+        );
         setChassisChecklistAtivo("");
         setEquipamentoAtual(null);
         return;
       }
-      const docSnap = snap.docs[0];
-      const data = docSnap.data();
-      const equip: EquipFirestore = {
-        id: docSnap.id,
-        prefeituraId: String(data.prefeituraId ?? ""),
-        label: String(data.label ?? data.descricao ?? ""),
-        chassis: String(data.chassis ?? ""),
-        modelo: String(data.modelo ?? ""),
-        linha: String(data.linha ?? ""),
-        tipo: String(data.tipo ?? ""),
-      };
-      setEquipamentoAtual(equip);
-      setChassisChecklistAtivo(normalizado);
-      // Login identifica a pessoa; o equipamento da sessão é definido aqui,
-      // ao abrir o checklist por chassi. Mantém os fluxos que leem
-      // session.idMaquina/chassis (emergência, exibição) consistentes.
-      if (session) {
-        setSession({
-          ...session,
-          idMaquina: equip.id,
-          chassis: equip.chassis,
+      const prefId = session?.idCliente ?? "";
+      const frotaSnap = prefId
+        ? await getDocs(
+            query(
+              collection(db, "equipamentos"),
+              where("prefeituraId", "==", prefId),
+            ),
+          )
+        : await getDocs(collection(db, "equipamentos"));
+      const matches = frotaSnap.docs
+        .map((d) => montarEquip(d.id, d.data()))
+        .filter((e) => normalizeChassis(e.chassis).includes(normalizado));
+
+      if (matches.length === 0) {
+        setCheckMsg("Chassi não encontrado no cadastro de equipamentos.");
+        setChassisChecklistAtivo("");
+        setEquipamentoAtual(null);
+      } else if (matches.length === 1) {
+        abrirParaEquip(matches[0]);
+      } else {
+        // Quem termina com o trecho (últimos dígitos) vai pro topo da lista.
+        matches.sort((a, b) => {
+          const ta = normalizeChassis(a.chassis).endsWith(normalizado) ? 0 : 1;
+          const tb = normalizeChassis(b.chassis).endsWith(normalizado) ? 0 : 1;
+          return ta - tb;
         });
+        setCandidatosChassi(matches.slice(0, 12));
+        setCheckMsg(
+          `Vários equipamentos correspondem a "${draft}". Selecione abaixo:`,
+        );
+        setChassisChecklistAtivo("");
+        setEquipamentoAtual(null);
       }
-      setAnswers({});
-      setNomeOperadorChecklist(session?.nome ?? "");
-      setHorimetro("");
-      setFotoHorimetroDataUrl("");
-      setAssinaturaDataUrl("");
-      stopHorimetroCamera();
-      stopItemNaoCamera();
-      setCheckMsg("Lista de verificação aberta para este chassi.");
     } catch (err) {
       console.error("[Checklist] Erro ao buscar equipamento:", err);
       setCheckMsg("Erro ao buscar equipamento. Tente novamente.");
@@ -1404,11 +1568,13 @@ export function ChecklistControlePage() {
       Operador: nomeOperadorChecklist.trim(),
       Chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
       ID_Maquina: equipamentoAtual.id,
-      Categoria: inferirCategoriaChecklist(
-        equipamentoAtual.label,
-        equipamentoAtual.modelo,
-        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-      ),
+      Categoria:
+        definicaoAtual?.categoria ??
+        inferirCategoriaChecklist(
+          equipamentoAtual.label,
+          equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+        ),
       Modelo: equipamentoAtual.label,
       Linha: equipamentoAtual.linha,
       Item_Verificado: `Checklist ${itensFiltrados.length} itens`,
@@ -1430,23 +1596,35 @@ export function ChecklistControlePage() {
     hist.unshift(reg);
     saveChecklistHistory(hist);
 
+    // prefeituraId do registro: o do equipamento e, se vazio, o da sessão do
+    // operador. Sem isso, checklist/emergência ficam com prefeituraId "" e
+    // somem das telas da prefeitura (Auditoria/Triagem/Emergências, que
+    // filtram por prefeituraId). Mesmo fallback do fluxo de emergência manual.
+    const prefeituraIdChecklist =
+      equipamentoAtual.prefeituraId || session.idCliente;
+
     // Salva no Firestore
     setSalvandoChecklist(true);
     try {
       await addDoc(collection(db, "checklistsRegistros"), {
         id,
-        prefeituraId: equipamentoAtual.prefeituraId,
+        prefeituraId: prefeituraIdChecklist,
         equipamentoId: equipamentoAtual.id,
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         modelo: equipamentoAtual.label,
         linha: equipamentoAtual.linha,
-        categoria: inferirCategoriaChecklist(
-          equipamentoAtual.label,
-          equipamentoAtual.modelo,
-          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-        ),
+        categoria:
+          definicaoAtual?.categoria ??
+          inferirCategoriaChecklist(
+            equipamentoAtual.label,
+            equipamentoAtual.modelo,
+            `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+          ),
         operador: nomeOperadorChecklist.trim(),
         idOperadorSession: session.idCliente,
+        funcionarioId: session.funcionarioId ?? "",
+        funcionarioCpf: session.cpf ?? "",
+        localizacaoGps: gpsChecklist.trim() || null,
         horimetro: horimetro.trim(),
         fotoHorimetro: fotoHorimetroDataUrl,
         assinaturaOperador: assinaturaDataUrl,
@@ -1484,7 +1662,7 @@ export function ChecklistControlePage() {
             })
             .join("\n");
           const emergPayload = {
-            prefeituraId: equipamentoAtual.prefeituraId,
+            prefeituraId: prefeituraIdChecklist,
             source: "checklist_auto" as const,
             severity: "blocking" as const,
             equipamentoId: equipamentoAtual.id,
@@ -1492,22 +1670,22 @@ export function ChecklistControlePage() {
             operadorNome: nomeOperadorChecklist.trim() || session.nome,
             tipoFalha: "Item impeditivo reprovado no checklist",
             descricao: `Itens impeditivos marcados como "Não":\n${descImped}`,
-            localizacaoGps: null,
+            localizacaoGps: gpsChecklist.trim() || null,
             fotos: fotosImped,
             checklistId: id,
           };
-          // Backend (visão do admin/RH) — best effort, pode falhar offline.
-          try {
-            await emergenciasApi.criar(emergPayload);
-          } catch (e) {
-            console.error("[Checklist] Backend de emergência indisponível:", e);
-          }
-          // Firestore `emergenciasRegistros` — store que a aba de Emergências do
-          // operador lê (offline-first). Sem isso, o ticket não aparece lá.
+          // Grava só no Firestore `emergenciasRegistros`. O backend NestJS
+          // de emergências usa ESSA MESMA coleção, então a tela da prefeitura
+          // (emergenciasApi.listar) já enxerga este doc — não chamar
+          // emergenciasApi.criar evita o ticket duplicado. E o addDoc carrega
+          // idOperadorSession/funcionarioId (que o create do backend não seta),
+          // necessários para a tela do operador.
           await addDoc(collection(db, "emergenciasRegistros"), {
             id: crypto.randomUUID(),
             ...emergPayload,
             idOperadorSession: session.idCliente,
+            funcionarioId: session.funcionarioId ?? "",
+            funcionarioCpf: session.cpf ?? "",
             idMaquina: equipamentoAtual.id,
             modelo: equipamentoAtual.label,
             operador: emergPayload.operadorNome,
@@ -1520,6 +1698,25 @@ export function ChecklistControlePage() {
           toast.warning(
             "🚨 Ticket de emergência criado — item impeditivo reprovado.",
           );
+          // A emergência foi gravada direto no Firestore (não passou pelo
+          // create do backend), então disparamos a notificação de WhatsApp à
+          // parte. Best-effort: nunca atrapalha o checklist.
+          try {
+            await emergenciasApi.notificarWhatsApp({
+              prefeituraId: prefeituraIdChecklist,
+              severity: emergPayload.severity,
+              chassis: emergPayload.chassis,
+              idMaquina: equipamentoAtual.id,
+              tipoFalha: emergPayload.tipoFalha,
+              descricao: emergPayload.descricao,
+              operadorNome: emergPayload.operadorNome,
+              localizacaoGps: emergPayload.localizacaoGps,
+              dataHoraIso: dataHora,
+              fotos: fotosImped,
+            });
+          } catch (e) {
+            console.warn("[Checklist] WhatsApp não disparado:", e);
+          }
         } catch (e) {
           console.error("[Checklist] Falha ao criar emergência automática:", e);
           toast.error(
@@ -1536,6 +1733,10 @@ export function ChecklistControlePage() {
       setSalvandoChecklist(false);
     }
 
+    setAba("dashboard");
+    setPainelChecklistsHojeAberto(false);
+    setPainelChecklistExpandidoId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setAnswers({});
     setNomeOperadorChecklist("");
     setHorimetro("");
@@ -1567,15 +1768,17 @@ export function ChecklistControlePage() {
     if (itensNao.length === 0) return;
 
     try {
-      const categoria = inferirCategoriaChecklist(
-        equipamentoAtual.label,
-        equipamentoAtual.modelo,
-        `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
-      );
+      const categoria =
+        definicaoAtual?.categoria ??
+        inferirCategoriaChecklist(
+          equipamentoAtual.label,
+          equipamentoAtual.modelo,
+          `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
+        );
       const run = await checklistsApi.iniciar({
-        prefeituraId: equipamentoAtual.prefeituraId,
-        definitionId: `seed:${categoria}`,
-        definitionVersion: 1,
+        prefeituraId: equipamentoAtual.prefeituraId || session?.idCliente || "",
+        definitionId: definicaoAtual?.id ?? `seed:${categoria}`,
+        definitionVersion: definicaoAtual?.version ?? 1,
         equipamentoId: equipamentoAtual.id,
         chassis: equipamentoAtual.chassis || chassisChecklistAtivo,
         operadorNome: nomeOperadorChecklist.trim(),
@@ -1711,6 +1914,8 @@ export function ChecklistControlePage() {
           id,
           ...payload,
           idOperadorSession: session.idCliente,
+          funcionarioId: session.funcionarioId ?? "",
+          funcionarioCpf: session.cpf ?? "",
           idMaquina: mid,
           modelo: maquinaDaSessao
             ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
@@ -1821,7 +2026,12 @@ export function ChecklistControlePage() {
               <span className="hu360-nav-btn__ico" aria-hidden>
                 <Hu360NavIcon kind={t.icon} />
               </span>
-              <span className="hu360-nav-btn__lab">{t.label}</span>
+              <span className="hu360-nav-btn__lab hu360-nav-btn__lab--full">
+                {t.label}
+              </span>
+              <span className="hu360-nav-btn__lab hu360-nav-btn__lab--short">
+                {t.shortLabel}
+              </span>
             </button>
           ))}
         </nav>
@@ -1829,24 +2039,139 @@ export function ChecklistControlePage() {
 
       <main className="hu360-main hu360-main--light">
         <header className="hu360-app-head">
-          <div className="hu360-app-head__titles">
+          <div className="hu360-app-head__bar">
+            <div className="hu360-app-head__identity">
+              <span className="hu360-app-head__avatar" aria-hidden>
+                {iniciaisOperador(session.nome)}
+              </span>
+              <div className="hu360-app-head__who">
+                <p className="hu360-app-head__name">{session.nome}</p>
+                <p className="hu360-app-head__org">{session.empresa}</p>
+                <p className="hu360-app-head__date-mobile">
+                  {dataLongaPtBr(new Date())}
+                </p>
+              </div>
+            </div>
+
+            <div className="hu360-app-head__menu-wrap" ref={menuHeadRef}>
+              <button
+                type="button"
+                className="hu360-app-head__menu-btn"
+                aria-label="Menu da conta"
+                aria-expanded={menuHeadAberto}
+                aria-haspopup="menu"
+                onClick={() => setMenuHeadAberto((v) => !v)}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden
+                >
+                  <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+                  <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+              {menuHeadAberto ? (
+                <div className="hu360-app-head__menu" role="menu">
+                  <Link
+                    to="/"
+                    className="hu360-app-head__menu-item"
+                    role="menuitem"
+                    onClick={() => setMenuHeadAberto(false)}
+                  >
+                    Portal inicial
+                  </Link>
+                  <button
+                    type="button"
+                    className="hu360-app-head__menu-item hu360-app-head__menu-item--danger"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuHeadAberto(false);
+                      handleLogout();
+                    }}
+                  >
+                    Sair
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {(pontoAtivo || pwaEstado !== "instalado") && (
+            <div className="hu360-app-head__quick">
+              {pontoAtivo ? (
+                <Link
+                  to="/ponto"
+                  className="hu360-app-head__quick-btn hu360-app-head__quick-btn--ponto"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  Bater ponto
+                </Link>
+              ) : null}
+              {pwaEstado !== "instalado" ? (
+                <button
+                  type="button"
+                  className="hu360-app-head__quick-btn hu360-app-head__quick-btn--install"
+                  onClick={() => void aoClicarInstalar()}
+                  title="Instalar o app na tela de início"
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden
+                  >
+                    <path d="M12 3v12" />
+                    <path d="m7 10 5 5 5-5" />
+                    <path d="M5 21h14" />
+                  </svg>
+                  Instalar app
+                </button>
+              ) : null}
+            </div>
+          )}
+
+          <div className="hu360-app-head__meta">
             <p className="hu360-app-head__date">{dataLongaPtBr(new Date())}</p>
             <h1 className="hu360-app-head__title">
               {ABAS.find((x) => x.id === aba)?.label ?? "Painel"}
             </h1>
           </div>
+
           <div className="hu360-app-head__actions">
-            <Link to="/" className="hu360-app-head__link">
-              Portal inicial
-            </Link>
-            {pontoAtivo && (
-              <Link to="/ponto" className="hu360-app-head__link">
+            <span className="hu360-app-head__user-desktop">
+              {session.nome} · {session.empresa}
+            </span>
+            {pontoAtivo ? (
+              <Link
+                to="/ponto"
+                className="hu360-app-head__chip hu360-app-head__chip--primary"
+              >
                 Bater ponto
               </Link>
-            )}
+            ) : null}
             <button
               type="button"
-              className="hu360-app-head__sair hu360-app-head__install"
+              className="hu360-app-head__chip hu360-app-head__chip--primary"
               onClick={() => void aoClicarInstalar()}
               disabled={pwaEstado === "instalado"}
               title={
@@ -1857,12 +2182,12 @@ export function ChecklistControlePage() {
             >
               {pwaBotaoLabel}
             </button>
-            <span className="hu360-app-head__user">
-              {session.nome} · {session.empresa}
-            </span>
+            <Link to="/" className="hu360-app-head__chip">
+              Portal inicial
+            </Link>
             <button
               type="button"
-              className="hu360-app-head__sair"
+              className="hu360-app-head__chip hu360-app-head__chip--ghost"
               onClick={handleLogout}
             >
               Sair
@@ -2034,13 +2359,74 @@ export function ChecklistControlePage() {
 
             <div className="hu360-card hu360-form">
               <label htmlFor="hu360-chassis">Chassi da máquina</label>
-              <input
-                id="hu360-chassis"
-                autoComplete="off"
-                value={chassisChecklistDraft}
-                onChange={(ev) => setChassisChecklistDraft(ev.target.value)}
-                placeholder="Digite o chassi (conforme cadastro)"
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  id="hu360-chassis"
+                  autoComplete="off"
+                  value={chassisChecklistDraft}
+                  onChange={(ev) => {
+                    setChassisChecklistDraft(ev.target.value);
+                    setMostrarSugestoesChassi(true);
+                  }}
+                  onFocus={() => setMostrarSugestoesChassi(true)}
+                  onBlur={() =>
+                    window.setTimeout(
+                      () => setMostrarSugestoesChassi(false),
+                      150,
+                    )
+                  }
+                  placeholder="Chassi completo ou os últimos dígitos"
+                />
+                {mostrarSugestoesChassi &&
+                !chassisChecklistAtivo &&
+                sugestoesChassi.length > 0 ? (
+                  <ul
+                    style={{
+                      position: "absolute",
+                      zIndex: 20,
+                      left: 0,
+                      right: 0,
+                      top: "calc(100% + 4px)",
+                      margin: 0,
+                      padding: 4,
+                      listStyle: "none",
+                      background: "#fff",
+                      border: "1px solid #d8dce6",
+                      borderRadius: 10,
+                      boxShadow: "0 8px 24px rgba(20,30,60,0.12)",
+                      maxHeight: 280,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {sugestoesChassi.map((e) => (
+                      <li key={e.id}>
+                        <button
+                          type="button"
+                          onMouseDown={(ev) => {
+                            ev.preventDefault();
+                            abrirParaEquip(e);
+                          }}
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "9px 12px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "transparent",
+                            color: "#1f2a44",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <strong>{e.chassis}</strong>
+                          {e.label ? ` · ${e.label}` : ""}
+                          {e.tipo ? ` · ${e.tipo}` : ""}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <div style={{ marginTop: 14 }}>
                 <button
                   type="button"
@@ -2053,6 +2439,39 @@ export function ChecklistControlePage() {
                     : "Abrir lista de verificação"}
                 </button>
               </div>
+
+              {candidatosChassi.length > 0 ? (
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  {candidatosChassi.map((e) => (
+                    <button
+                      key={e.id}
+                      type="button"
+                      onClick={() => abrirParaEquip(e)}
+                      style={{
+                        textAlign: "left",
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        border: "1px solid #d8dce6",
+                        background: "#f7f8fb",
+                        color: "#1f2a44",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <strong>{e.chassis}</strong>
+                      {e.label ? ` · ${e.label}` : ""}
+                      {e.tipo ? ` · ${e.tipo}` : ""}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
               {!chassisChecklistAtivo ? (
                 <p
@@ -3067,7 +3486,10 @@ export function ChecklistControlePage() {
               Folha de ponto do dia — entrada, almoço, volta e saída. Cada
               batida registra uma selfie; o horário pode ser corrigido.
             </p>
-            <PontosFolha prefeituraId={session.idCliente} nomePadrao="" />
+            <PontosFolha
+              prefeituraId={session.idCliente}
+              nomePadrao={session.nome}
+            />
           </section>
         ) : null}
       </main>

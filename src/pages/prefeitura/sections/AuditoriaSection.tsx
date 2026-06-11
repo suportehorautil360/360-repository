@@ -42,6 +42,7 @@ function firestoreDocToHistRow(
     Pontuacao: data.pontuacao ?? 0,
     ID_Cliente: data.idOperadorSession ?? "",
     prefeituraId: data.prefeituraId ?? "",
+    Localizacao_GPS: data.localizacaoGps ?? null,
     Obs: data.obs ?? null,
   };
 }

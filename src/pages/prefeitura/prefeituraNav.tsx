@@ -86,10 +86,15 @@ export interface PrefeituraNavBadges {
 /** Monta os grupos da sidebar da prefeitura, com as rotas /prefeitura/:id/<slug>. */
 export function prefeituraNav(
   prefeituraId: string,
-  opts?: { pontoAtivo?: boolean; badges?: PrefeituraNavBadges },
+  opts?: {
+    pontoAtivo?: boolean;
+    abastecimentoAtivo?: boolean;
+    badges?: PrefeituraNavBadges;
+  },
 ): SidebarGroup[] {
   const to = (slug: string) => `/prefeitura/${prefeituraId}/${slug}`;
   const pontoAtivo = opts?.pontoAtivo ?? false;
+  const abastecimentoAtivo = opts?.abastecimentoAtivo ?? false;
   const badges = opts?.badges ?? {};
 
   const grupos: SidebarGroup[] = [
@@ -97,18 +102,30 @@ export function prefeituraNav(
       label: "Principal",
       items: [{ label: "Painel", to: to("dashboard"), icon: "📊" }],
     },
-    {
-      label: "Abastecimento",
-      items: [
-        { label: "Visão Geral", to: to("abastecimento-visao-geral"), icon: "📈" },
-        { label: "Abastecimentos", to: to("abastecimento"), icon: "⛽" },
-        { label: "Consumo / Custo", to: to("consumo-custo"), icon: "💵" },
-        { label: "Crédito", to: to("credito"), icon: "💳" },
-        { label: "Lubrificação", to: to("lubrificacao"), icon: "🛢️" },
-        { label: "Cargas do Comboio", to: to("cargas-comboio"), icon: "🚛" },
-        { label: "Postos", to: to("postos"), icon: "🏪" },
-      ],
-    },
+    ...(abastecimentoAtivo
+      ? [
+          {
+            label: "Abastecimento",
+            items: [
+              {
+                label: "Visão Geral",
+                to: to("abastecimento-visao-geral"),
+                icon: "📈",
+              },
+              { label: "Abastecimentos", to: to("abastecimento"), icon: "⛽" },
+              { label: "Consumo / Custo", to: to("consumo-custo"), icon: "💵" },
+              { label: "Crédito", to: to("credito"), icon: "💳" },
+              { label: "Lubrificação", to: to("lubrificacao"), icon: "🛢️" },
+              {
+                label: "Cargas do Comboio",
+                to: to("cargas-comboio"),
+                icon: "🚛",
+              },
+              { label: "Postos", to: to("postos"), icon: "🏪" },
+            ],
+          },
+        ]
+      : []),
     {
       label: "Gestão de Frota",
       items: [

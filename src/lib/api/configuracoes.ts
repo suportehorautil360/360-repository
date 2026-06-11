@@ -20,9 +20,13 @@ export interface Configuracao {
   empresa: {
     razaoSocial: string;
     cnpj: string;
+    /** CAEPF/CEI — inscrição alternativa para empregador sem CNPJ (órgão público). */
+    caepf: string;
     cidade: string;
     estado: string;
     emailAlertas: string;
+    /** WhatsApp que recebe as notificações de emergência. */
+    whatsappNumero: string;
   };
   alertas: {
     bloqueioRevisaoVencida: boolean;
@@ -30,6 +34,8 @@ export interface Configuracao {
     abastecimentoIrregular: boolean;
     cnhProximaVencimento: boolean;
     relatorioSemanal: boolean;
+    /** Notificar emergências por WhatsApp. */
+    notificacaoWhatsapp: boolean;
   };
   intervalos: Record<CategoriaIntervalo, ConfigIntervalo>;
   bloqueio: {
@@ -46,9 +52,11 @@ export function configPadrao(prefeituraId: string): Configuracao {
     empresa: {
       razaoSocial: "",
       cnpj: "",
+      caepf: "",
       cidade: "",
       estado: "",
       emailAlertas: "",
+      whatsappNumero: "",
     },
     alertas: {
       bloqueioRevisaoVencida: true,
@@ -56,6 +64,7 @@ export function configPadrao(prefeituraId: string): Configuracao {
       abastecimentoIrregular: true,
       cnhProximaVencimento: true,
       relatorioSemanal: false,
+      notificacaoWhatsapp: false,
     },
     intervalos: {
       carro: { valor: 1000, unidade: "km" },
@@ -88,6 +97,50 @@ function normalizar(prefeituraId: string, raw: unknown): Configuracao {
       van: { ...base.intervalos.van, ...(d.intervalos?.van ?? {}) },
     },
     bloqueio: { ...base.bloqueio, ...(d.bloqueio ?? {}) },
+  };
+}
+
+/**
+ * Os dados do empregador estão completos para emissão legal (CRPT/AFD —
+ * Portaria 671)? Exige razão social e ao menos uma inscrição (CNPJ ou CAEPF).
+ */
+export function empresaCompleta(empresa: Configuracao["empresa"]): boolean {
+  const temRazao = !!empresa.razaoSocial?.trim();
+  const temInscricao = !!empresa.cnpj?.trim() || !!empresa.caepf?.trim();
+  return temRazao && temInscricao;
+}
+
+/** Dados do cliente (/admin) usados para semear a empresa na configuração. */
+export interface ClienteParaEmpresa {
+  nome?: string;
+  uf?: string;
+  cnpj?: string;
+  caepf?: string;
+  cidade?: string;
+  whatsapp?: string;
+  contrato?: { emailContratante?: string } | null;
+}
+
+/**
+ * Pré-preenche os campos da empresa a partir do cliente cadastrado no /admin —
+ * apenas onde a config está vazia (o que já foi salvo SEMPRE prevalece).
+ * Não aplica E.164 ao WhatsApp (a tela faz isso na carga).
+ */
+export function mesclarEmpresaCliente(
+  empresa: Configuracao["empresa"],
+  cliente: ClienteParaEmpresa | null | undefined,
+): Configuracao["empresa"] {
+  if (!cliente) return empresa;
+  return {
+    ...empresa,
+    razaoSocial: empresa.razaoSocial || cliente.nome || "",
+    cnpj: empresa.cnpj || cliente.cnpj || "",
+    caepf: empresa.caepf || cliente.caepf || "",
+    cidade: empresa.cidade || cliente.cidade || "",
+    estado: empresa.estado || cliente.uf || "",
+    emailAlertas:
+      empresa.emailAlertas || cliente.contrato?.emailContratante || "",
+    whatsappNumero: empresa.whatsappNumero || cliente.whatsapp || "",
   };
 }
 

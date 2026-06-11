@@ -3,19 +3,30 @@ import {
   pontoApi,
   TIPOS_PONTO,
   type PontoRegistro,
-  type StatusPonto,
   type TipoPonto,
 } from "./ponto-api";
+import {
+  resolverLedger,
+  type BatidaEfetiva,
+} from "../../lib/ponto/resolverLedger";
 import { toast } from "sonner";
 import { CameraSelfie } from "./CameraSelfie";
 import { RelogioAoVivo } from "./RelogioAoVivo";
 import { baterComFila } from "../../lib/api/pontos-fila";
 import { usePontoSync } from "./usePontoSync";
 import { escalaApi, type Escala } from "../../lib/api/escala";
+import { configuracoesApi, type Configuracao } from "../../lib/api/configuracoes";
+import { abonosApi, type Abono } from "../../lib/api/abonos";
+import {
+  baixarCRPT,
+  montarCRPT,
+  podeEmitirCRPT,
+} from "../../lib/ponto/crpt";
 import { solicitacoesPontoApi } from "../../lib/api/solicitacoes-ponto";
 import { SinoNotificacoes } from "../../components/Notificacoes/SinoNotificacoes";
 import { useOperadorSession } from "./useOperadorSession";
 import { EspelhoDetalhado } from "./EspelhoDetalhado";
+import { DiaDetalheOperador } from "./DiaDetalheOperador";
 import { MinhasSolicitacoes } from "./MinhasSolicitacoes";
 import {
   Dialog,
@@ -30,15 +41,14 @@ import {
 } from "../prefeitura/sections/horasPonto";
 import "./ponto.css";
 
-const STATUS_LABEL: Record<StatusPonto, string> = {
-  pendente: "Pendente",
-  aprovado: "Aprovado",
-  reprovado: "Reprovado",
-  cancelado: "Cancelada",
-};
-
-function statusDe(r: PontoRegistro): StatusPonto {
-  return r.status ?? "pendente";
+/**
+ * Selo de exibição de uma batida efetiva (Portaria 671). A marcação original é
+ * sempre válida; só há "pendência" quando existe uma correção aguardando o RH.
+ */
+function seloDe(r: BatidaEfetiva): { label: string; classe: string } {
+  if (r.ajustePendente)
+    return { label: "Ajuste pendente", classe: "pendente" };
+  return { label: "Registrado", classe: "aprovado" };
 }
 
 function horaDe(iso: string): string {
@@ -110,6 +120,8 @@ export function PontosFolha({
   const { session } = useOperadorSession();
   const [todas, setTodas] = useState<PontoRegistro[]>([]);
   const [escala, setEscala] = useState<Escala | null>(null);
+  const [empresa, setEmpresa] = useState<Configuracao["empresa"] | null>(null);
+  const [abonos, setAbonos] = useState<Abono[]>([]);
   const [nome, setNome] = useState(nomePadrao);
   const [carregando, setCarregando] = useState(true);
 
@@ -155,6 +167,10 @@ export function PontosFolha({
 
   // Espelho detalhado: toggle dentro da própria folha.
   const [modoEspelho, setModoEspelho] = useState(false);
+  const [diaDetalhe, setDiaDetalhe] = useState<{
+    dia: string;
+    batidas: PontoRegistro[];
+  } | null>(null);
   const [modoMinhas, setModoMinhas] = useState(false);
 
   function abrirIncluir() {
@@ -220,6 +236,7 @@ export function PontosFolha({
         tipo: "cancelar",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         batidaId: cancelarBatidaId,
         observacao: cancelarMotivo.trim(),
       });
@@ -244,6 +261,7 @@ export function PontosFolha({
         tipo: "abono",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         data: abonoData,
         observacao: abonoMotivo.trim(),
         anexoDataUrl,
@@ -268,6 +286,7 @@ export function PontosFolha({
         tipo: "mensagem",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         observacao: mensagemTexto.trim(),
       });
       toast.success("Mensagem enviada ao gestor.");
@@ -311,6 +330,7 @@ export function PontosFolha({
         tipo: "incluir",
         prefeituraId,
         name: nome.trim(),
+        cpf: session?.cpf,
         data: incData,
         timestampOriginal,
         observacao: incObs.trim() || undefined,
@@ -332,37 +352,54 @@ export function PontosFolha({
     if (!prefeituraId) return;
     setCarregando(true);
     try {
-      const [lista, esc] = await Promise.all([
+      const [lista, esc, cfg, abs] = await Promise.all([
         pontoApi.listar(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
+        configuracoesApi.obter(prefeituraId).catch(() => null),
+        abonosApi.listar(prefeituraId).catch(() => []),
       ]);
       setTodas(lista);
       setEscala(esc);
-      // Prefill do nome a partir da entrada de hoje, se houver.
-      const entradaHoje = lista.find(
-        (p) => p.tipo === "entrada" && ehHoje(p.timestampOriginal),
-      );
+      setEmpresa(cfg?.empresa ?? null);
+      setAbonos(abs);
+      // Prefill do nome só a partir da entrada de hoje DO PRÓPRIO operador
+      // (nunca pega o nome de outro funcionário que bateu antes na prefeitura).
+      const alvo = nomePadrao.trim().toLowerCase();
+      const entradaHoje = alvo
+        ? lista.find(
+            (p) =>
+              p.tipo === "entrada" &&
+              ehHoje(p.timestampOriginal) &&
+              (p.name ?? "").trim().toLowerCase() === alvo,
+          )
+        : undefined;
       if (entradaHoje?.name) setNome((n) => n || entradaHoje.name);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
       setCarregando(false);
     }
-  }, [prefeituraId]);
+  }, [prefeituraId, nomePadrao]);
 
   useEffect(() => {
     void carregar();
   }, [carregar]);
 
-  /** Batidas de hoje (a folha em si). */
+  /**
+   * Visão efetiva do ledger (Portaria 671): aplica correções/cancelamentos
+   * aprovados e descarta canceladas, sem alterar os registros de origem.
+   */
+  const efetivas = useMemo(() => resolverLedger(todas), [todas]);
+
+  /** Batidas efetivas de hoje (a folha em si). */
   const batidasDia = useMemo(
-    () => todas.filter((p) => ehHoje(p.timestampOriginal)),
-    [todas],
+    () => efetivas.filter((p) => ehHoje(p.timestampOriginal)),
+    [efetivas],
   );
 
-  /** Última batida registrada de cada tipo (hoje). */
+  /** Última batida efetiva de cada tipo (hoje). */
   const porTipo = useMemo(() => {
-    const m = new Map<TipoPonto, PontoRegistro>();
+    const m = new Map<TipoPonto, BatidaEfetiva>();
     for (const b of batidasDia) m.set(b.tipo, b);
     return m;
   }, [batidasDia]);
@@ -374,8 +411,8 @@ export function PontosFolha({
   const banco = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
     if (!alvo) return { saldoMin: 0, dias: 0 };
-    const porDia = new Map<string, PontoRegistro[]>();
-    for (const b of todas) {
+    const porDia = new Map<string, BatidaEfetiva[]>();
+    for (const b of efetivas) {
       if ((b.name ?? "").trim().toLowerCase() !== alvo) continue;
       const dia = diaDe(b.timestampOriginal);
       const arr = porDia.get(dia) ?? [];
@@ -388,7 +425,7 @@ export function PontosFolha({
       saldoMin += trab - minutosPrevistos(escala, dia);
     }
     return { saldoMin, dias: porDia.size };
-  }, [todas, nome, escala]);
+  }, [efetivas, nome, escala]);
 
   function iniciarBater(tipo: TipoPonto) {
     setFoto("");
@@ -416,6 +453,7 @@ export function PontosFolha({
         prefeituraId,
         timestampOriginal: agora.toISOString(),
         tipo: batendo,
+        cpf: session?.cpf,
       });
       setBatendo(null);
       setFoto("");
@@ -476,12 +514,23 @@ export function PontosFolha({
   if (modoEspelho) {
     return (
       <div className="ponto-folha folha">
-        <EspelhoDetalhado
-          batidas={todas}
-          escala={escala}
-          nome={nome}
-          onVoltar={() => setModoEspelho(false)}
-        />
+        {diaDetalhe ? (
+          <DiaDetalheOperador
+            dia={diaDetalhe.dia}
+            batidas={diaDetalhe.batidas}
+            onVoltar={() => setDiaDetalhe(null)}
+          />
+        ) : (
+          <EspelhoDetalhado
+            batidas={todas}
+            escala={escala}
+            nome={nome}
+            abonos={abonos}
+            funcionarioCpf={session?.cpf}
+            onVoltar={() => setModoEspelho(false)}
+            onSelecionarDia={(dia, bs) => setDiaDetalhe({ dia, batidas: bs })}
+          />
+        )}
       </div>
     );
   }
@@ -552,13 +601,13 @@ export function PontosFolha({
                         </strong>
                         {reg ? (
                           <span
-                            className={`ponto-status ponto-status--${statusDe(reg)}`}
+                            className={`ponto-status ponto-status--${seloDe(reg).classe}`}
                           >
-                            {STATUS_LABEL[statusDe(reg)]}
+                            {seloDe(reg).label}
                           </span>
                         ) : (
                           <span className="ponto-status ponto-status--pendente">
-                            Pendente
+                            Sem registro
                           </span>
                         )}
                         {reg ? (
@@ -579,16 +628,27 @@ export function PontosFolha({
                             Bater
                           </button>
                         )}
+                        {reg && podeEmitirCRPT(reg) && (
+                          <button
+                            type="button"
+                            className="ponto-btn ponto-btn--secundario ponto-btn--sm"
+                            title="Baixar comprovante (CRPT) desta batida"
+                            onClick={() =>
+                              baixarCRPT(montarCRPT(reg, empresa))
+                            }
+                          >
+                            Comprovante
+                          </button>
+                        )}
                       </span>
                     </div>
 
-                    {reg &&
-                      statusDe(reg) === "reprovado" &&
-                      reg.motivoReprovacao && (
-                        <span className="ponto-slot__motivo">
-                          Reprovado: {reg.motivoReprovacao}
-                        </span>
-                      )}
+                    {reg?.ajustePendente && reg.horarioAjustePendente && (
+                      <span className="ponto-slot__motivo">
+                        Correção para {horaDe(reg.horarioAjustePendente)}{" "}
+                        aguardando aprovação do RH. Vale o horário original até lá.
+                      </span>
+                    )}
 
                     {batendo === tipo && (
                       <div className="ponto-slot__bater">

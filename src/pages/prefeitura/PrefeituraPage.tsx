@@ -15,24 +15,30 @@ import { HistoricoPontoSection } from "./sections/HistoricoPontoSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosSection } from "./sections/OrcamentosSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
-import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { AbastecimentoVisaoGeralSection } from "./sections/AbastecimentoVisaoGeralSection";
 import { ConsumoCustoSection } from "./sections/ConsumoCustoSection";
 import { CreditoSection } from "./sections/CreditoSection";
 import { LubrificacaoSection } from "./sections/LubrificacaoSection";
 import { CargasComboioSection } from "./sections/CargasComboioSection";
 import { PostosSection } from "./sections/PostosSection";
+import { AbastecimentosListSection } from "./sections/AbastecimentosListSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
 import { FrotaSection } from "./sections/FrotaSection";
+import { FrentesTrabalhoSection } from "./sections/FrentesTrabalhoSection";
+import { AlocacaoSection } from "./sections/AlocacaoSection";
+import { RelatoriosSection } from "./sections/RelatoriosSection";
 import { RevisoesSection } from "./sections/RevisoesSection";
 import { PreventivaSection } from "./sections/PreventivaSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
-import { usePontoAtivo } from "../../lib/api/feature-flags";
+import {
+  usePontoAtivo,
+  useAbastecimentoAtivo,
+} from "../../lib/api/feature-flags";
 import { usePrefeituraBadges } from "./usePrefeituraBadges";
 
 /** Placeholder das seções da referência que ainda não têm tela. */
@@ -131,6 +137,7 @@ export function PrefeituraPage() {
   ]);
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
+  const { ativo: abastecimentoAtivo } = useAbastecimentoAtivo(prefeituraId);
   const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
 
   const dados = useMemo(
@@ -258,7 +265,11 @@ export function PrefeituraPage() {
       : equipNovo || equipEditId
         ? "equipamentos"
         : (secao ?? "dashboard");
-  const navGroups = prefeituraNav(prefeituraId, { pontoAtivo, badges });
+  const navGroups = prefeituraNav(prefeituraId, {
+    pontoAtivo,
+    abastecimentoAtivo,
+    badges,
+  });
 
   function renderSecao() {
     if (pontoDiaMatch) {
@@ -303,8 +314,10 @@ export function PrefeituraPage() {
       case "credito":
         return <CreditoSection dados={dados!} prefeituraId={prefeituraId} />;
       case "abastecimento":
-        return (
-          <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
+        return abastecimentoAtivo ? (
+          <AbastecimentosListSection prefeituraId={prefeituraId} />
+        ) : (
+          <EmConstrucao titulo="Abastecimentos" />
         );
       case "lubrificacao":
         return (
@@ -318,10 +331,16 @@ export function PrefeituraPage() {
         return <PostosSection dados={dados!} prefeituraId={prefeituraId} />;
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
+      case "frentes-trabalho":
+        return <FrentesTrabalhoSection prefeituraId={prefeituraId} />;
+      case "alocacao":
+        return <AlocacaoSection prefeituraId={prefeituraId} />;
+      case "relatorios":
+        return <RelatoriosSection prefeituraId={prefeituraId} />;
       case "revisoes":
         return <RevisoesSection prefeituraId={prefeituraId} />;
       case "preventiva":
-        return <PreventivaSection />;
+        return <PreventivaSection prefeituraId={prefeituraId} />;
       case "equipamentos":
         return (
           <EquipamentosSection

@@ -67,6 +67,26 @@
   outline: 2px solid var(--main-orange);
   outline-offset: 1px;
 }
+.rh__afd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #e8ecf6;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.rh__afd-btn:hover:not(:disabled) {
+  border-color: var(--main-orange);
+}
+.rh__afd-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
 
 /* Mensagens (loading / erro) */
 .rh-msg {

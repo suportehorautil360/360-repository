@@ -14,18 +14,20 @@ vi.mock("../../../../lib/api/client", async (orig) => {
 import { frotaApi } from "./frota-api";
 import { ApiError } from "../../../../lib/api/client";
 
-const vehicleApi = {
+// Documento como vem da coleção `equipamentos` (fonte da verdade).
+const equipDoc = {
   id: "abc",
-  name: "HB20 2021",
-  plate: "CAR-001",
-  type: "carro",
-  year: 2021,
-  currentMeter: 12000,
-  brand: "Hyundai",
-  maintenanceInterval: 10000,
-  maintenanceUnit: "km",
-  prefeituraId: "pref-1",
-  lastRevisionOdometerReading: 0,
+  descricao: "HB20 2021",
+  label: "HB20 2021",
+  marca: "Hyundai",
+  placa: "CAR-001",
+  chassis: "CAR-001",
+  tipo: "Carro",
+  ano: "2021",
+  medicaoAtual: 12000,
+  intervaloRevisao: 10000,
+  ultimaRevisao: 0,
+  unidadeRevisao: "km",
   obra: "Galpão Industrial Norte",
   status: "ativo",
 };
@@ -37,12 +39,12 @@ beforeEach(() => {
 });
 
 describe("frotaApi.listar", () => {
-  it("mapeia o veículo do backend para o modelo de UI", async () => {
-    getMock.mockResolvedValue({ data: [vehicleApi], message: "ok" });
+  it("mapeia o equipamento para o modelo de UI da Frota", async () => {
+    getMock.mockResolvedValue({ data: [equipDoc], message: "ok" });
 
     const [v] = await frotaApi.listar("pref-1");
 
-    expect(getMock).toHaveBeenCalledWith("/vehicles/pref-1");
+    expect(getMock).toHaveBeenCalledWith("/equipamentos/pref-1");
     expect(v).toMatchObject({
       id: "abc",
       placa: "CAR-001",
@@ -58,8 +60,8 @@ describe("frotaApi.listar", () => {
     });
   });
 
-  it("trata 404 (sem veículos) como lista vazia", async () => {
-    getMock.mockRejectedValue(new ApiError(404, "Nenhum veículo"));
+  it("trata 404 (sem itens) como lista vazia", async () => {
+    getMock.mockRejectedValue(new ApiError(404, "Nenhum equipamento"));
     await expect(frotaApi.listar("pref-1")).resolves.toEqual([]);
   });
 
@@ -68,20 +70,27 @@ describe("frotaApi.listar", () => {
     await expect(frotaApi.listar("pref-1")).rejects.toThrow("boom");
   });
 
-  it("normaliza tipo desconhecido e obra vazia", async () => {
+  it("horímetro vira tipo 'maquina' e obra vazia vira 'Disponível'", async () => {
     getMock.mockResolvedValue({
-      data: [{ ...vehicleApi, type: "Caminhão", obra: "  " }],
+      data: [
+        {
+          ...equipDoc,
+          tipo: "Escavadeira",
+          unidadeRevisao: "h",
+          obra: "  ",
+        },
+      ],
       message: "ok",
     });
     const [v] = await frotaApi.listar("pref-1");
-    expect(v.tipo).toBe("caminhao");
+    expect(v.tipo).toBe("maquina");
     expect(v.obra).toBe("Disponível");
   });
 });
 
 describe("frotaApi.criar", () => {
-  it("envia o DTO mapeado e devolve o veículo mapeado", async () => {
-    postMock.mockResolvedValue(vehicleApi);
+  it("envia o payload de equipamento e devolve o modelo mapeado", async () => {
+    postMock.mockResolvedValue({ data: equipDoc });
 
     const novo = await frotaApi.criar(
       {
@@ -99,15 +108,16 @@ describe("frotaApi.criar", () => {
     );
 
     expect(postMock).toHaveBeenCalledWith(
-      "/vehicles",
+      "/equipamentos",
       expect.objectContaining({
-        name: "HB20 2021",
-        plate: "CAR-001",
-        type: "maquina",
-        maintenanceUnit: "hours",
+        descricao: "HB20 2021",
+        chassis: "CAR-001",
+        placa: "CAR-001",
+        tipo: "Máquina",
+        unidadeRevisao: "h",
         prefeituraId: "pref-1",
-        lastRevisionOdometerReading: 50,
-        obra: "Disponível",
+        intervaloRevisao: 250,
+        ultimaRevisao: 50,
       }),
     );
     expect(novo.id).toBe("abc");
@@ -115,7 +125,7 @@ describe("frotaApi.criar", () => {
 });
 
 describe("frotaApi.atualizar / remover", () => {
-  it("atualizar faz POST no endpoint update com o id", async () => {
+  it("atualizar faz POST em /equipamentos/update/:id", async () => {
     postMock.mockResolvedValue({});
     await frotaApi.atualizar(
       {
@@ -134,20 +144,20 @@ describe("frotaApi.atualizar / remover", () => {
       "pref-1",
     );
     expect(postMock).toHaveBeenCalledWith(
-      "/vehicles/update/abc",
-      expect.objectContaining({ currentMeter: 13000 }),
+      "/equipamentos/update/abc",
+      expect.objectContaining({ medicaoAtual: 13000, unidadeRevisao: "km" }),
     );
   });
 
-  it("remover faz DELETE pelo id", async () => {
+  it("remover faz DELETE em /equipamentos/:id", async () => {
     delMock.mockResolvedValue(undefined);
     await frotaApi.remover("abc");
-    expect(delMock).toHaveBeenCalledWith("/vehicles/abc");
+    expect(delMock).toHaveBeenCalledWith("/equipamentos/abc");
   });
 });
 
 describe("frotaApi.concluirRevisao", () => {
-  it("faz POST em /revision/complete com o payload mapeado", async () => {
+  it("faz POST em /equipamentos/revision/complete com equipamentoId", async () => {
     postMock.mockResolvedValue({});
     const veiculo = { id: "abc" } as never;
 
@@ -161,7 +171,7 @@ describe("frotaApi.concluirRevisao", () => {
     });
 
     const [path, body] = postMock.mock.calls[0];
-    expect(path).toBe("/revision/complete");
+    expect(path).toBe("/equipamentos/revision/complete");
     expect(body).toMatchObject({
       odometerReading: 15000,
       mechanicOrOfficeName: "Oficina X",
@@ -169,7 +179,7 @@ describe("frotaApi.concluirRevisao", () => {
       revisionCost: 200,
       invoiceNumber: "NF-1",
       prefeituraId: "pref-1",
-      vehicleId: "abc",
+      equipamentoId: "abc",
     });
     expect(body.revisionDate).toContain("2026-05-25");
   });

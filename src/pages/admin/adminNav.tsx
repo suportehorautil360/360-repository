@@ -1,40 +1,11 @@
 import type { SidebarBrand, SidebarGroup } from "../../components/Sidebar/types";
-
-/** Logo (engrenagem) da marca HORA ÚTIL 360. */
-function GearLogo() {
-  return (
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="24" cy="24" r="21" stroke="currentColor" strokeWidth="3" />
-      <circle cx="24" cy="24" r="7" stroke="var(--primary, #f97316)" strokeWidth="3" />
-      {Array.from({ length: 8 }).map((_, i) => {
-        const a = (i * Math.PI) / 4;
-        const x1 = 24 + Math.cos(a) * 14;
-        const y1 = 24 + Math.sin(a) * 14;
-        const x2 = 24 + Math.cos(a) * 20;
-        const y2 = 24 + Math.sin(a) * 20;
-        return (
-          <line
-            key={i}
-            x1={x1}
-            y1={y1}
-            x2={x2}
-            y2={y2}
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-        );
-      })}
-    </svg>
-  );
-}
+import { AdminIconDashboard, ClockLogo } from "./adminIcons";
 
 export const ADMIN_BRAND: SidebarBrand = {
-  logo: <GearLogo />,
+  logo: <ClockLogo />,
   title: (
     <>
-      HORA <span className="accent">ÚTIL</span>{" "}
-      <span className="accent-2">360</span>
+      HORA <span className="accent">ÚTIL</span> 360
     </>
   ),
   subtitle: "Gestão de frota multimarcas",
@@ -47,7 +18,7 @@ export const ADMIN_NAV: SidebarGroup[] = [
       {
         label: "Dashboard",
         to: "/admin/dashboard",
-        icon: "📊",
+        icon: <AdminIconDashboard />,
         id: "nav-hub-dashboard",
       },
     ],
@@ -55,9 +26,12 @@ export const ADMIN_NAV: SidebarGroup[] = [
   {
     label: "Gestão",
     items: [
-      { label: "Portal Oficina", to: "/admin/portal-oficina", icon: "🔧" },
-      { label: "Painel Locação", to: "/admin/portal-locacao", icon: "📦" },
-      { label: "Portal Posto", to: "/admin/portal-posto-admin", icon: "⛽" },
+      {
+        label: "Clientes",
+        to: "/admin/clientes",
+        icon: "👥",
+        id: "nav-hub-clientes",
+      },
       {
         label: "Oficinas e postos",
         to: "/admin/oficinas-postos",
@@ -69,19 +43,45 @@ export const ADMIN_NAV: SidebarGroup[] = [
   {
     label: "Controle",
     items: [
-      { label: "Cadastro de clientes", to: "/admin/cadastros", icon: "🗂️" },
-      { label: "Acessos e logins", to: "/admin/usuarios", icon: "🔐" },
+      {
+        label: "Cadastro de clientes",
+        to: "/admin/cadastros",
+        icon: "📁",
+      },
+      {
+        label: "Checklists",
+        to: "/admin/checklists",
+        icon: "✅",
+        id: "nav-hub-checklists",
+      },
       {
         label: "Funcionalidades",
         to: "/admin/funcionalidades",
-        icon: "🎛️",
+        icon: "🧩",
         id: "nav-hub-funcionalidades",
       },
       {
-        label: "Equipamentos locação",
-        to: "/admin/equipamentos-locacao",
-        icon: "🚜",
-        id: "nav-hub-equipamentos-locacao",
+        label: "Conexão WhatsApp",
+        to: "/admin/whatsapp",
+        icon: "💬",
+        id: "nav-hub-whatsapp",
+      },
+      {
+        label: "Cadastro de parceiros",
+        to: "/admin/oficinas-postos",
+        icon: "🤝",
+        id: "nav-hub-parceiros",
+      },
+    ],
+  },
+  {
+    label: "ERP",
+    items: [
+      {
+        label: "Financeiro",
+        to: "/admin/financeiro",
+        icon: "💲",
+        id: "nav-hub-financeiro",
       },
     ],
   },

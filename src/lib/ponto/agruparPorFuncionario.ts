@@ -11,6 +11,7 @@ import type { Escala } from "../api/escala";
 import type { Funcionario } from "../funcionarios/funcionarios";
 import type { Abono } from "../api/abonos";
 import { limparCpf } from "../funcionarios/cpf";
+import { resolverLedger, type BatidaEfetiva } from "./resolverLedger";
 import { minutosPrevistos, minutosTrabalhados } from "../../pages/prefeitura/sections/horasPonto";
 
 export type StatusDia =
@@ -89,8 +90,8 @@ export function statusDoDia(
 export interface FuncionarioJornadaDia {
   /** Data local (YYYY-MM-DD) do dia. */
   dia: string;
-  /** Todas as batidas do dia para esse funcionário. */
-  batidas: PontoRegistro[];
+  /** Batidas efetivas do dia (ledger resolvido) para esse funcionário. */
+  batidas: BatidaEfetiva[];
   /** Minutos efetivamente trabalhados no dia. */
   trabalhadoMin: number;
   /** Minutos previstos pela escala (0 em dia não-útil). */
@@ -161,12 +162,14 @@ export function agruparPorFuncionario(
     abonosPorCpf.get(cpf)!.set(a.data, a.motivo);
   }
 
-  // Agrupa as batidas: nome → dia → batidas[].
-  // Batidas com status='cancelado' são ignoradas — surgiram de uma
-  // aprovação de solicitação tipo=cancelar e devem sumir do cálculo.
-  const porNome = new Map<string, Map<string, PontoRegistro[]>>();
-  for (const b of batidas) {
-    if (b.status === "cancelado") continue;
+  // Resolve o ledger imutável (Portaria 671) para a visão efetiva: aplica
+  // correções/cancelamentos aprovados e descarta canceladas, sem alterar os
+  // registros de origem. Correções pendentes mantêm o horário original.
+  const efetivas = resolverLedger(batidas);
+
+  // Agrupa as batidas efetivas: nome → dia → batidas[].
+  const porNome = new Map<string, Map<string, BatidaEfetiva[]>>();
+  for (const b of efetivas) {
     const dia = diaDe(b.timestampOriginal);
     if (!periodoSet.has(dia)) continue;
     const k = chaveNome(b.name);
@@ -215,8 +218,15 @@ export function agruparPorFuncionario(
       const trab = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
       const prev = minutosPrevistos(escala, diaIso);
       const temAbono = meusAbonos?.has(diaIso) ?? false;
-      const status = statusDoDia(bs, escala, diaIso, temAbono);
-      const pend = bs.filter((b) => (b.status ?? "pendente") === "pendente").length;
+      let status = statusDoDia(bs, escala, diaIso, temAbono);
+      // Abono cobre o déficit do dia: vale mesmo quando há batida incompleta
+      // (não só em falta total), desde que o trabalhado fique abaixo do previsto.
+      if (temAbono && status !== "sem-jornada" && trab < prev) {
+        status = "abonado";
+      }
+      // "Pendência" agora = correção aguardando aprovação do RH (não há mais
+      // status mutável na batida; a original é sempre válida — Portaria 671).
+      const pend = bs.filter((b) => b.ajustePendente).length;
 
       // Em dia abonado, o "trabalhado" considera as horas previstas como
       // se tivessem sido cumpridas (não pune no saldo).

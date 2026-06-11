@@ -72,6 +72,10 @@ export default defineConfig({
           // recharts (gráficos do painel da prefeitura) — fora do checklist.
           "**/PainelCharts-*.js",
           "**/recharts-*.js",
+          // Chunk compartilhado do Sheet (shadcn) + react-phone-number-input
+          // (metadata de DDI, ~200KB) — só usado em admin/prefeitura, nunca no
+          // checklist do operador. Mantém o precache enxuto.
+          "**/sheet-*.js",
           "**/AdminPage-*.{js,css}",
           "**/DashboardSection-*.{js,css}",
           "**/PortalPostoSection-*.{js,css}",
@@ -79,6 +83,7 @@ export default defineConfig({
           "**/CadastroClientesSection-*.{js,css}",
           "**/AcessosLoginsSection-*.{js,css}",
           "**/EquipamentosLocacaoSection-*.{js,css}",
+          "**/ChecklistsSection-*.{js,css}",
           "**/AdminPortal*Page-*.{js,css}",
           "**/PrefeituraPage-*.{js,css}",
           "**/OficinaPage-*.{js,css}",

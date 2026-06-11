@@ -3,12 +3,26 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import type { PontoRegistro } from "./ponto-api";
 import type { Escala } from "../../lib/api/escala";
 import type { Abono } from "../../lib/api/abonos";
-import { limparCpf } from "../../lib/funcionarios/cpf";
+import { formatarCpf, limparCpf } from "../../lib/funcionarios/cpf";
 import {
   fmtMin,
   minutosPrevistos,
   minutosTrabalhados,
 } from "../prefeitura/sections/horasPonto";
+import { baixarPDFTabela } from "../../lib/export/pdf-tabela";
+import {
+  ESPELHO_COLUNAS,
+  ESPELHO_PESOS,
+  abonosNoPeriodo,
+  construirEspelho,
+  dataBr,
+  diasNoIntervalo,
+  diasNoPeriodo,
+  intervaloPreset,
+  type PeriodoPreset,
+} from "./espelho-export";
+import { Download } from "lucide-react";
+import { resolverLedger } from "../../lib/ponto/resolverLedger";
 import "./espelho.css";
 
 interface Props {
@@ -64,14 +78,30 @@ export function EspelhoDetalhado({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
 
+  // Modal de exportação por período (intervalo de datas).
+  const [expAberto, setExpAberto] = useState(false);
+  const [expDe, setExpDe] = useState("");
+  const [expAte, setExpAte] = useState("");
+
+  const presetsRange = useMemo(() => {
+    const hoje = new Date();
+    return (
+      [
+        { key: "hoje", label: "Hoje" },
+        { key: "semana", label: "Esta semana" },
+        { key: "mes", label: "Este mês" },
+        { key: "mes-anterior", label: "Mês anterior" },
+      ] as { key: PeriodoPreset; label: string }[]
+    ).map((p) => ({ ...p, ...intervaloPreset(p.key, hoje) }));
+  }, []);
+
   const minhasBatidas = useMemo(() => {
     const alvo = nome.trim().toLowerCase();
     if (!alvo) return [];
-    // Ignora batidas canceladas (vieram de aprovação de solicitação tipo=cancelar).
-    return batidas.filter(
-      (b) =>
-        b.status !== "cancelado" &&
-        (b.name ?? "").trim().toLowerCase() === alvo,
+    // Resolve o ledger (Portaria 671): aplica correções/cancelamentos
+    // aprovados e descarta canceladas, sem alterar os registros de origem.
+    return resolverLedger(batidas).filter(
+      (b) => (b.name ?? "").trim().toLowerCase() === alvo,
     );
   }, [batidas, nome]);
 
@@ -94,6 +124,22 @@ export function EspelhoDetalhado({
    */
   const diasMes = useMemo(() => {
     const map = new Map<string, PontoRegistro[]>();
+
+    // Pré-popula TODOS os dias do mês até hoje (mês atual) ou até o fim (mês
+    // passado) — assim faltas aparecem mesmo sem batida. Mês futuro: não.
+    const [ano, mesNum] = mes.split("-").map(Number);
+    const agora = new Date();
+    const ehFuturo =
+      ano > agora.getFullYear() ||
+      (ano === agora.getFullYear() && mesNum > agora.getMonth() + 1);
+    const ehMesAtual =
+      ano === agora.getFullYear() && mesNum === agora.getMonth() + 1;
+    const ultimoDia = new Date(ano, mesNum, 0).getDate();
+    const diaLimite = ehFuturo ? 0 : ehMesAtual ? agora.getDate() : ultimoDia;
+    for (let d = 1; d <= diaLimite; d++) {
+      map.set(`${mes}-${String(d).padStart(2, "0")}`, []);
+    }
+
     for (const b of minhasBatidas) {
       const dia = diaLocal(b.timestampOriginal);
       if (!dia.startsWith(mes)) continue;
@@ -101,7 +147,7 @@ export function EspelhoDetalhado({
       arr.push(b);
       map.set(dia, arr);
     }
-    // Inclui dias que não têm batida, mas têm abono — só assim aparecem.
+    // Inclui dias com abono (caso fora do range pré-populado).
     for (const data of abonosDoMes.keys()) {
       if (!map.has(data)) map.set(data, []);
     }
@@ -114,9 +160,9 @@ export function EspelhoDetalhado({
     for (const [dia, bs] of diasMes) {
       const trabBruto = minutosTrabalhados(bs, escala?.almocoMinutos ?? 0);
       const previsto = minutosPrevistos(escala, dia);
-      // Dia abonado (sem batidas, mas com abono): considera as previstas
-      // como cumpridas — saldo do dia fica neutro.
-      const abonado = bs.length === 0 && abonosDoMes.has(dia);
+      // Dia abonado: o abono cobre o déficit (vale mesmo com batida incompleta),
+      // considerando as previstas como cumpridas — saldo do dia fica neutro.
+      const abonado = abonosDoMes.has(dia) && trabBruto < previsto;
       trab += abonado ? previsto : trabBruto;
       prev += previsto;
     }
@@ -131,6 +177,49 @@ export function EspelhoDetalhado({
     );
   }
 
+  function abrirExport() {
+    const [y, m] = mes.split("-").map(Number);
+    const ultimo = new Date(y, m, 0).getDate();
+    setExpDe(`${mes}-01`);
+    setExpAte(`${mes}-${String(ultimo).padStart(2, "0")}`);
+    setExpAberto(true);
+  }
+
+  function gerarExport() {
+    const de = expDe;
+    const ate = expAte;
+    if (!de || !ate || de > ate) return;
+    const abonosDias = abonosNoPeriodo(abonos, funcionarioCpf, de, ate);
+    const ag = new Date();
+    const hojeIso = `${ag.getFullYear()}-${String(ag.getMonth() + 1).padStart(2, "0")}-${String(ag.getDate()).padStart(2, "0")}`;
+    // Inclui as faltas (dias sem batida até hoje), igual à tela.
+    const dias = diasNoPeriodo(minhasBatidas, abonosDias, de, ate, hojeIso);
+    const { linhas, totais: totaisLinha } = construirEspelho(
+      dias,
+      abonosDias,
+      escala,
+    );
+    const subtitulo = [
+      funcionarioCpf ? `CPF ${formatarCpf(funcionarioCpf)}` : null,
+      `Período: ${dataBr(de)} a ${dataBr(ate)}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const arquivo = `espelho-${(nome || "funcionario")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")}-${de}_a_${ate}`;
+    baixarPDFTabela(arquivo, {
+      titulo: `Espelho de ponto — ${nome || "—"}`,
+      subtitulo,
+      colunas: ESPELHO_COLUNAS,
+      linhas,
+      totais: totaisLinha,
+      pesos: ESPELHO_PESOS,
+    });
+    setExpAberto(false);
+  }
+
   return (
     <div className="esp">
       <header className="esp__topo">
@@ -139,6 +228,14 @@ export function EspelhoDetalhado({
           Voltar
         </button>
         <h2 className="esp__titulo">Espelho detalhado · {nome || "—"}</h2>
+        <button
+          type="button"
+          className="esp__exportar"
+          onClick={abrirExport}
+        >
+          <Download size={14} aria-hidden="true" />
+          Exportar PDF
+        </button>
       </header>
 
       <section className="esp__mes-bar">
@@ -211,7 +308,7 @@ export function EspelhoDetalhado({
                   escala?.almocoMinutos ?? 0,
                 );
                 const prev = minutosPrevistos(escala, dia);
-                const ehAbonado = bs.length === 0 && abonosDoMes.has(dia);
+                const ehAbonado = abonosDoMes.has(dia) && trabBruto < prev;
                 const trab = ehAbonado ? prev : trabBruto;
                 const saldo = trab - prev;
                 const clicavel = !!onSelecionarDia;
@@ -260,6 +357,96 @@ export function EspelhoDetalhado({
           </tbody>
         </table>
       </div>
+
+      {expAberto &&
+        (() => {
+          const presetAtivo =
+            presetsRange.find((p) => p.de === expDe && p.ate === expAte)?.key ??
+            null;
+          const totalDias = diasNoIntervalo(expDe, expAte);
+          return (
+            <div
+              className="esp__modal-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Exportar espelho em PDF"
+              onClick={() => setExpAberto(false)}
+            >
+              <div className="esp__modal" onClick={(e) => e.stopPropagation()}>
+                <h3 className="esp__modal-titulo">Exportar PDF</h3>
+                <p className="esp__modal-sub">
+                  Escolha um atalho ou um período personalizado.
+                </p>
+
+                <div className="esp__chips">
+                  {presetsRange.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      className={`esp__chip${
+                        presetAtivo === p.key ? " is-active" : ""
+                      }`}
+                      onClick={() => {
+                        setExpDe(p.de);
+                        setExpAte(p.ate);
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="esp__modal-campos">
+                  <label className="esp__modal-campo">
+                    <span>De</span>
+                    <input
+                      type="date"
+                      value={expDe}
+                      max={expAte || undefined}
+                      onChange={(e) => setExpDe(e.target.value)}
+                    />
+                  </label>
+                  <label className="esp__modal-campo">
+                    <span>Até</span>
+                    <input
+                      type="date"
+                      value={expAte}
+                      min={expDe || undefined}
+                      onChange={(e) => setExpAte(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <p className="esp__modal-resumo">
+                  {totalDias > 0
+                    ? `${dataBr(expDe)} a ${dataBr(expAte)} · ${totalDias} ${
+                        totalDias === 1 ? "dia" : "dias"
+                      }`
+                    : "Selecione um período válido."}
+                </p>
+
+                <div className="esp__modal-acoes">
+                  <button
+                    type="button"
+                    className="esp__modal-cancelar"
+                    onClick={() => setExpAberto(false)}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="esp__exportar"
+                    onClick={gerarExport}
+                    disabled={totalDias === 0}
+                  >
+                    <Download size={14} aria-hidden="true" />
+                    Gerar PDF
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

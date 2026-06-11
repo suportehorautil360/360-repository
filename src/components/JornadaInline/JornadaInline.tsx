@@ -1,8 +1,9 @@
 import { TIPOS_PONTO, type PontoRegistro } from "../../lib/api/pontos";
+import type { BatidaEfetiva } from "../../lib/ponto/resolverLedger";
 import "./jornada-inline.css";
 
 interface Props {
-  batidas: PontoRegistro[];
+  batidas: BatidaEfetiva[];
 }
 
 function horaDe(iso: string): string {
@@ -19,7 +20,7 @@ function horaDe(iso: string): string {
  * Sem ações — pra ações, abrir o drawer de detalhe.
  */
 export function JornadaInline({ batidas }: Props) {
-  const porTipo = new Map<PontoRegistro["tipo"], PontoRegistro>();
+  const porTipo = new Map<PontoRegistro["tipo"], BatidaEfetiva>();
   for (const b of batidas) porTipo.set(b.tipo, b);
 
   return (
@@ -27,12 +28,18 @@ export function JornadaInline({ batidas }: Props) {
       {TIPOS_PONTO.map(({ tipo, label }) => {
         const reg = porTipo.get(tipo);
         const sigla = label.charAt(0); // E/S/V/S — só pra title
-        const status = reg?.status ?? "pendente";
+        // Marcação original é sempre válida (Portaria 671); o dot só aparece
+        // quando há uma correção aguardando aprovação do RH.
+        const pendente = !!reg?.ajustePendente;
         return (
           <li
             key={tipo}
             className={`jornada__cel ${reg ? "" : "jornada__cel--vazia"}`}
-            title={reg ? `${label} · ${status}` : `${label} (sem registro)`}
+            title={
+              reg
+                ? `${label}${pendente ? " · ajuste pendente" : ""}`
+                : `${label} (sem registro)`
+            }
           >
             <span className="jornada__abrev" aria-label={label}>
               {sigla}
@@ -40,9 +47,9 @@ export function JornadaInline({ batidas }: Props) {
             <span className="jornada__hora">
               {reg ? horaDe(reg.timestampOriginal) : "—:—"}
             </span>
-            {reg && status !== "aprovado" && (
+            {pendente && (
               <span
-                className={`jornada__dot jornada__dot--${status}`}
+                className="jornada__dot jornada__dot--pendente"
                 aria-hidden="true"
               />
             )}

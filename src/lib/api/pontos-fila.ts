@@ -7,7 +7,7 @@
  * (4xx/5xx) mantém o item para nova tentativa.
  */
 import { ApiError } from "./client";
-import { pontosApi, type BaterPontoInput } from "./pontos";
+import { pontosApi, type BaterPontoInput, type PontoRegistro } from "./pontos";
 
 const KEY = "hu360-ponto-fila";
 
@@ -36,17 +36,22 @@ export function pendentes(): number {
   return ler().length;
 }
 
-/** Bate o ponto; se offline/sem rede, enfileira para sincronizar depois. */
+/**
+ * Bate o ponto; se offline/sem rede, enfileira para sincronizar depois.
+ * Quando sincroniza, devolve o `registro` selado pelo servidor (com NSR + hash)
+ * — necessário para emitir o CRPT (comprovante) na hora. Offline não tem NSR
+ * ainda (o servidor é quem sela), então `registro` vem indefinido.
+ */
 export async function baterComFila(
   input: BaterPontoInput,
-): Promise<{ sincronizado: boolean }> {
+): Promise<{ sincronizado: boolean; registro?: PontoRegistro }> {
   if (offline()) {
     gravar([...ler(), input]);
     return { sincronizado: false };
   }
   try {
-    await pontosApi.bater(input);
-    return { sincronizado: true };
+    const registro = await pontosApi.bater(input);
+    return { sincronizado: true, registro };
   } catch (e) {
     // Erro do servidor não é offline — propaga para o usuário ver.
     if (e instanceof ApiError) throw e;

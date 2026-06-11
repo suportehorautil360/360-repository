@@ -13,6 +13,7 @@ import {
   type SolicitacaoPonto,
 } from "../../../lib/api/solicitacoes-ponto";
 import { EspelhoDetalhado } from "../../checklist-controle/EspelhoDetalhado";
+import { resolverLedger } from "../../../lib/ponto/resolverLedger";
 import { diaLocal, diaDaSolicitacao } from "./ponto-dia-utils";
 import { formatarCpf } from "../../../lib/funcionarios/cpf";
 import "./historico-ponto.css";
@@ -80,8 +81,10 @@ export function HistoricoPontoSection({
     const set = new Set<string>();
     const alvo = nome.trim().toLowerCase();
     if (!alvo) return set;
-    for (const b of batidas) {
-      if ((b.status ?? "pendente") !== "pendente") continue;
+    // Pendência = correção aguardando o RH (ledger resolvido). O `status`
+    // legado não vale mais como fonte de verdade (Portaria 671).
+    for (const b of resolverLedger(batidas)) {
+      if (!b.ajustePendente) continue;
       if ((b.name ?? "").trim().toLowerCase() !== alvo) continue;
       set.add(diaLocal(b.timestampOriginal));
     }

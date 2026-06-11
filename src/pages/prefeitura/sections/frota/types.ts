@@ -92,6 +92,21 @@ export function isBloqueado(v: VeiculoFrota): boolean {
   return isVencido(v) || v.status === "bloqueado";
 }
 
+export type StatusRevisao = "vencida" | "proxima" | "em-dia";
+
+/**
+ * Classifica a revisão/preventiva: vencida, próxima (faltam <= 20% do
+ * intervalo, mínimo 100) ou em dia. Compartilhado por Revisões e Preventiva.
+ */
+export function statusRevisao(v: VeiculoFrota): StatusRevisao {
+  if (isVencido(v)) return "vencida";
+  const restante = revisaoRestante(v);
+  if (restante <= Math.max(100, Math.round(v.intervaloRevisao * 0.2))) {
+    return "proxima";
+  }
+  return "em-dia";
+}
+
 /** Texto da revisão: "240 h rest." (no prazo) ou "+11000 km" (vencida). */
 export function textoRevisao(v: VeiculoFrota): string {
   const unidade = unidadeDe(v.tipo);

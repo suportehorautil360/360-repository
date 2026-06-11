@@ -5,29 +5,17 @@ import { escalaApi, type Escala } from "../../../lib/api/escala";
 import {
   configuracoesApi,
   configPadrao,
-  type CategoriaIntervalo,
+  empresaCompleta,
+  mesclarEmpresaCliente,
   type Configuracao,
 } from "../../../lib/api/configuracoes";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { clientesApi } from "../../../lib/api/clientes";
+import { cnpjValido, formatarCnpj } from "../../../lib/funcionarios/cnpj";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { toE164 } from "@/lib/phone";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { EscalaConfig } from "./EscalaConfig";
 import "./configuracoes.css";
-
-const SELECT_TRIGGER_CLS =
-  "w-full border-white/15 bg-white/[0.04] text-slate-100 data-[placeholder]:text-slate-400";
-
-const CATEGORIAS: { key: CategoriaIntervalo; label: string; icon: string }[] = [
-  { key: "carro", label: "Carro", icon: "🚗" },
-  { key: "caminhao", label: "Caminhão", icon: "🚚" },
-  { key: "maquina", label: "Máquina", icon: "⚙️" },
-  { key: "ambulancia", label: "Ambulância", icon: "🚑" },
-  { key: "van", label: "Van / Outros", icon: "🚐" },
-];
 
 function Switch({
   on,
@@ -86,11 +74,23 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     if (!prefeituraId) return;
     setCarregando(true);
     try {
-      const [cfg, esc] = await Promise.all([
+      const [cfg, esc, cliente] = await Promise.all([
         configuracoesApi.obter(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
+        // Dados da empresa cadastrados no /admin — pré-preenchem o que estiver
+        // vazio aqui (a config salva sempre prevalece).
+        clientesApi.obter(prefeituraId).catch(() => null),
       ]);
-      setConfig(cfg);
+      const emp = mesclarEmpresaCliente(cfg.empresa, cliente);
+      const rawWhats = emp.whatsappNumero;
+      setConfig({
+        ...cfg,
+        empresa: {
+          ...emp,
+          // Migra número legado (sem DDI) para E.164 na carga.
+          whatsappNumero: toE164(rawWhats) ?? rawWhats,
+        },
+      });
       setEscala(esc);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível carregar.");
@@ -116,6 +116,21 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     }
   }
 
+  /** Salva os dados da empresa validando o CNPJ (quando preenchido). */
+  async function salvarEmpresa() {
+    const cnpj = config.empresa.cnpj.trim();
+    if (cnpj && !cnpjValido(cnpj)) {
+      toast.error("CNPJ inválido. Confira os dígitos.");
+      return;
+    }
+    const wpp = config.empresa.whatsappNumero.trim();
+    if (wpp && !isValidPhoneNumber(wpp)) {
+      toast.error("WhatsApp inválido. Confira o DDI, DDD e o número.");
+      return;
+    }
+    await salvar("Dados da empresa salvos.");
+  }
+
   // Helpers de atualização imutável.
   const setEmpresa = (k: keyof Configuracao["empresa"], v: string) =>
     setConfig((c) => ({ ...c, empresa: { ...c.empresa, [k]: v } }));
@@ -123,21 +138,6 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     setConfig((c) => ({ ...c, alertas: { ...c.alertas, [k]: v } }));
   const setBloqueio = (k: keyof Configuracao["bloqueio"], v: boolean) =>
     setConfig((c) => ({ ...c, bloqueio: { ...c.bloqueio, [k]: v } }));
-  const setIntervalo = (
-    cat: CategoriaIntervalo,
-    campo: "valor" | "unidade",
-    v: string,
-  ) =>
-    setConfig((c) => ({
-      ...c,
-      intervalos: {
-        ...c.intervalos,
-        [cat]: {
-          ...c.intervalos[cat],
-          [campo]: campo === "valor" ? Number(v.replace(/\D/g, "")) || 0 : v,
-        },
-      },
-    }));
 
   if (carregando) {
     return (
@@ -153,7 +153,7 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
       <h1 className="cfg__page-titulo">Configurações</h1>
       <p className="cfg__lead">
         Parâmetros operacionais da prefeitura — dados da empresa, alertas,
-        intervalos de revisão e a escala da jornada.
+        bloqueio por revisão e a escala da jornada.
       </p>
 
       <div className="cfg__grid">
@@ -165,6 +165,14 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               <Building2 size={15} aria-hidden="true" />
               <h2>Dados da empresa</h2>
             </header>
+            {!empresaCompleta(config.empresa) && (
+              <p className="cfg__aviso" role="status">
+                Dados fiscais incompletos para emissão legal (Portaria 671):
+                informe a <strong>razão social</strong> e o{" "}
+                <strong>CNPJ ou CAEPF/CEI</strong>. Sem isso o comprovante (CRPT)
+                e o AFD saem sem identificar o empregador.
+              </p>
+            )}
             <div className="cfg__form-grid">
               <label>
                 Razão social
@@ -178,8 +186,19 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
                 CNPJ
                 <input
                   value={config.empresa.cnpj}
-                  onChange={(e) => setEmpresa("cnpj", e.target.value)}
+                  onChange={(e) =>
+                    setEmpresa("cnpj", formatarCnpj(e.target.value))
+                  }
                   placeholder="12.345.678/0001-90"
+                  inputMode="numeric"
+                />
+              </label>
+              <label>
+                CAEPF/CEI <span className="cfg__opt">(se não houver CNPJ)</span>
+                <input
+                  value={config.empresa.caepf}
+                  onChange={(e) => setEmpresa("caepf", e.target.value)}
+                  placeholder="Inscrição do empregador"
                 />
               </label>
               <label>
@@ -207,61 +226,39 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
                   placeholder="gestor@empresa.com.br"
                 />
               </label>
+              <label className="cfg__col-span">
+                WhatsApp para emergências{" "}
+                <span className="cfg__opt">(código do país + DDD)</span>
+                <PhoneInput
+                  value={config.empresa.whatsappNumero || undefined}
+                  onChange={(v) => setEmpresa("whatsappNumero", v ?? "")}
+                  placeholder="Número com DDI"
+                />
+              </label>
             </div>
             <div className="cfg__card-foot">
               <button
                 type="button"
                 className="cfg__btn cfg__btn--primary"
                 disabled={salvando}
-                onClick={() => void salvar("Dados da empresa salvos.")}
+                onClick={() => void salvarEmpresa()}
               >
                 <Save size={14} /> Salvar
               </button>
             </div>
           </section>
 
-          {/* Intervalos de revisão + comportamento do bloqueio */}
+          {/* Comportamento do bloqueio por revisão */}
           <section className="cfg__card">
             <header className="cfg__card-head">
               <Wrench size={15} aria-hidden="true" />
-              <h2>Intervalos de revisão por tipo</h2>
+              <h2>Comportamento do bloqueio</h2>
             </header>
             <p className="cfg__card-sub">
-              Define o intervalo padrão por tipo. Cada equipamento pode ter valor
-              personalizado.
+              Defina quando bloquear o abastecimento e alertar sobre revisões
+              vencidas.
             </p>
 
-            <div className="cfg__intervalos">
-              {CATEGORIAS.map((cat) => (
-                <div key={cat.key} className="cfg__intervalo-row">
-                  <span className="cfg__intervalo-nome">
-                    {cat.icon} {cat.label}
-                  </span>
-                  <input
-                    className="cfg__intervalo-valor"
-                    inputMode="numeric"
-                    value={String(config.intervalos[cat.key].valor)}
-                    onChange={(e) =>
-                      setIntervalo(cat.key, "valor", e.target.value)
-                    }
-                  />
-                  <Select
-                    value={config.intervalos[cat.key].unidade}
-                    onValueChange={(v) => setIntervalo(cat.key, "unidade", v)}
-                  >
-                    <SelectTrigger className={`${SELECT_TRIGGER_CLS} cfg__intervalo-un`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="km">km</SelectItem>
-                      <SelectItem value="horas">horas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
-            </div>
-
-            <h3 className="cfg__sub-titulo">Comportamento do bloqueio</h3>
             <ToggleRow
               titulo="Bloquear abastecimento ao vencer"
               sub="Impede até o gestor registrar revisão e liberar"
@@ -331,6 +328,12 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               sub="Resumo toda segunda-feira às 08h"
               on={config.alertas.relatorioSemanal}
               onChange={(v) => setAlerta("relatorioSemanal", v)}
+            />
+            <ToggleRow
+              titulo="Notificar emergências por WhatsApp"
+              sub="Dispara para o WhatsApp cadastrado quando uma emergência é criada"
+              on={config.alertas.notificacaoWhatsapp}
+              onChange={(v) => setAlerta("notificacaoWhatsapp", v)}
             />
             <div className="cfg__card-foot">
               <button

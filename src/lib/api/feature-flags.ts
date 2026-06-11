@@ -18,10 +18,13 @@ export const featureFlagsApi = {
 };
 
 /**
- * Indica se o Ponto está ativo para a prefeitura (opt-in: default false).
- * `carregando` evita decidir o gating antes da flag chegar.
+ * Indica se uma feature flag está ativa para a prefeitura (opt-in: default
+ * false). `carregando` evita decidir o gating antes da flag chegar.
  */
-export function usePontoAtivo(prefeituraId: string | undefined) {
+export function useFeatureFlag(
+  prefeituraId: string | undefined,
+  chave: string,
+) {
   const [ativo, setAtivo] = useState(false);
   const [carregando, setCarregando] = useState(true);
 
@@ -36,7 +39,7 @@ export function usePontoAtivo(prefeituraId: string | undefined) {
     featureFlagsApi
       .obter(prefeituraId)
       .then((f) => {
-        if (vivo) setAtivo(f.ponto === true);
+        if (vivo) setAtivo(f[chave] === true);
       })
       .catch(() => {
         if (vivo) setAtivo(false);
@@ -47,7 +50,17 @@ export function usePontoAtivo(prefeituraId: string | undefined) {
     return () => {
       vivo = false;
     };
-  }, [prefeituraId]);
+  }, [prefeituraId, chave]);
 
   return { ativo, carregando };
+}
+
+/** Ponto ativo (registro pelo operador + aprovação do RH). */
+export function usePontoAtivo(prefeituraId: string | undefined) {
+  return useFeatureFlag(prefeituraId, "ponto");
+}
+
+/** Abastecimento ativo (tela de abastecimentos na prefeitura). */
+export function useAbastecimentoAtivo(prefeituraId: string | undefined) {
+  return useFeatureFlag(prefeituraId, "abastecimento");
 }
