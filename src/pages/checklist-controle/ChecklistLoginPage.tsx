@@ -81,8 +81,17 @@ export function ChecklistLoginPage() {
       const r = await funcionariosApi.autenticar(ident, senha);
       if (!r.ok) {
         // Offline, a consulta pode resolver "vazia" pelo cache do Firestore
-        // — antes de negar, tenta a credencial offline.
-        if (!navigator.onLine && (await tentarOffline())) return;
+        // — antes de negar, tenta a credencial offline. Se também não der,
+        // a mensagem explica a regra do offline (dizer "não encontrado"
+        // faria o operador achar que o cadastro sumiu).
+        if (!navigator.onLine) {
+          if (await tentarOffline()) return;
+          setErro(
+            "Sem conexão. Para entrar offline é preciso já ter feito login neste aparelho nos últimos 7 dias.",
+          );
+          setLoading(false);
+          return;
+        }
         // O servidor negou de verdade: a credencial local não vale mais.
         if (r.motivo === "senha-invalida" || r.motivo === "inativo") {
           removerCredencialOffline(ident);
