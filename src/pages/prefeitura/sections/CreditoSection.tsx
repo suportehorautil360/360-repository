@@ -525,7 +525,9 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
                   ) : dados.historico.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="crd-table-empty">
-                        Nenhum lançamento no período.
+                        {historicoCompleto.length > 0
+                          ? `Nenhum lançamento entre ${periodoExibicao}. Há ${historicoCompleto.length} registro(s) fora deste intervalo — ajuste o período acima.`
+                          : "Nenhum crédito lançado para esta prefeitura."}
                       </td>
                     </tr>
                   ) : (

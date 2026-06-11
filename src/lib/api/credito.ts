@@ -38,6 +38,8 @@ export interface SaldoFrenteTela {
 export interface LancamentoCreditoTela {
   id: string;
   dataLabel: string;
+  /** Data do lançamento em YYYY-MM-DD (fuso local) para filtro de período. */
+  dataIso: string;
   createdAt: string;
   tipo: CreditoAlocacao;
   tipoApi: CreditType;
@@ -146,6 +148,25 @@ function dataLabelDeIso(iso?: string): string {
   return `${dd}/${mm}/${yy}`;
 }
 
+/** YYYY-MM-DD em calendário local — usado no filtro de período da tela. */
+function dataIsoDeCredito(createdAt?: string, dateLabel?: string): string {
+  if (createdAt) {
+    const d = new Date(createdAt);
+    if (!Number.isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(createdAt)) {
+      return createdAt.slice(0, 10);
+    }
+  }
+  const m = dateLabel?.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return "";
+}
+
 function tipoApiParaTela(type: CreditType): CreditoAlocacao {
   return type === "equipment" ? "equipamento" : "frente";
 }
@@ -159,6 +180,7 @@ function itemApiParaTela(item: CreditoListItemApi): LancamentoCreditoTela {
   return {
     id: item.id,
     dataLabel: item.dateLabel?.trim() || dataLabelDeIso(item.createdAt),
+    dataIso: dataIsoDeCredito(item.createdAt, item.dateLabel),
     createdAt: item.createdAt ?? "",
     tipo: tipoApiParaTela(item.type),
     tipoApi: item.type,
@@ -196,7 +218,7 @@ export function filtrarHistoricoPorPeriodo(
   fim: string,
 ): LancamentoCreditoTela[] {
   return historico.filter((item) => {
-    const dia = item.createdAt?.slice(0, 10);
+    const dia = item.dataIso;
     if (!dia) return true;
     return dia >= inicio && dia <= fim;
   });
