@@ -3,7 +3,7 @@
  * Base configuravel por VITE_API_URL; em dev chama direto o backend local.
  */
 
-const BASE_URL =
+export const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   (import.meta.env.DEV ? "http://localhost:3000" : "/api");
 

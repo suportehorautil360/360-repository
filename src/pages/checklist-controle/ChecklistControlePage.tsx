@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { PontosFolha } from "./PontosFolha";
 import { checklistsApi } from "../../features/checklist/api/checklists-api";
+import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
   type ChecklistDocumentoItem,
@@ -1695,6 +1696,48 @@ export function ChecklistControlePage() {
         criadoEm: serverTimestamp(),
         dataHoraIso: dataHora,
       });
+      // Online, tira as fotos do doc subindo para o Supabase Storage via
+      // backend (viram URLs). Falhou ou offline → mantém base64, que o
+      // orçamento abaixo garante caber no doc.
+      if (navigator.onLine) {
+        try {
+          const fotosParaSubir: { nome: string; dataUrl: string }[] = [];
+          if (fotoHorimetroDoc.startsWith("data:image")) {
+            fotosParaSubir.push({
+              nome: "horimetro",
+              dataUrl: fotoHorimetroDoc,
+            });
+          }
+          for (const [k, resp] of Object.entries(answersDoc)) {
+            if (resp?.v === "nao" && resp.foto.startsWith("data:image")) {
+              fotosParaSubir.push({ nome: `item-${k}`, dataUrl: resp.foto });
+            }
+          }
+          if (fotosParaSubir.length > 0) {
+            const urls = await uploadChecklistFotos(id, fotosParaSubir);
+            const porNome = new Map(
+              fotosParaSubir.map((f, i) => [f.nome, urls[i]]),
+            );
+            const urlHorimetro = porNome.get("horimetro");
+            if (urlHorimetro) fotoHorimetroDoc = urlHorimetro;
+            answersDoc = Object.fromEntries(
+              Object.entries(answersDoc).map(([k, resp]) => {
+                const url = porNome.get(`item-${k}`);
+                return [
+                  k,
+                  resp?.v === "nao" && url ? { ...resp, foto: url } : resp,
+                ];
+              }),
+            );
+          }
+        } catch (e) {
+          console.warn(
+            "[Checklist] Upload de fotos indisponível; mantendo base64 no doc:",
+            e,
+          );
+        }
+      }
+
       let payload = montarPayload();
       if (tamanhoDocBytes(payload) > MAX_DOC_FIRESTORE_BYTES) {
         const fotoMenor = await recomprimirDataUrl(
