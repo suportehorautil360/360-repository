@@ -681,18 +681,23 @@
   box-sizing: border-box;
 }
 
-/* Faixa de aviso: registros salvos offline aguardando sincronização. */
+/* Faixa de aviso: registros salvos offline aguardando sincronização.
+   Fica como 1º filho do header (sticky). O margin negativo cobre o
+   padding do header — inclusive a safe-area-inset-top do iPhone — e o
+   próprio padding-top recompõe a safe area, mantendo o texto abaixo da
+   status bar (relógio/notch) e o fundo laranja cobrindo o topo. */
 .hu360-sync-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 -16px 12px;
-  padding: 10px 16px;
+  margin: calc(-12px - env(safe-area-inset-top, 0px)) -16px 0;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
   background: #fff7ed;
   color: #9a3412;
   border-bottom: 1px solid #fed7aa;
   font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .hu360-sync-banner__dot {

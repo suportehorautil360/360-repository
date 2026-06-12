@@ -2261,14 +2261,16 @@ export function ChecklistControlePage() {
       </aside>
 
       <main className="hu360-main hu360-main--light">
-        {pendentesSync > 0 && (
-          <div className="hu360-sync-banner" role="status" aria-live="polite">
-            <span className="hu360-sync-banner__dot" aria-hidden />
-            {pendentesSync} registro{pendentesSync > 1 ? "s" : ""} aguardando
-            sincronização — não apague o app.
-          </div>
-        )}
         <header className="hu360-app-head">
+          {pendentesSync > 0 && (
+            <div className="hu360-sync-banner" role="status" aria-live="polite">
+              <span className="hu360-sync-banner__dot" aria-hidden />
+              <span>
+                {pendentesSync} registro{pendentesSync > 1 ? "s" : ""} aguardando
+                sincronização — não apague o app.
+              </span>
+            </div>
+          )}
           <div className="hu360-app-head__bar">
             <div className="hu360-app-head__identity">
               <span className="hu360-app-head__avatar" aria-hidden>
