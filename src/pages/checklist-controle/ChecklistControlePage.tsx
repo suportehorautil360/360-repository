@@ -50,6 +50,8 @@ import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
 import { enviarWorkflowComFila } from "../../features/checklist/api/workflow-fila";
 import { useWorkflowSync } from "./useWorkflowSync";
 import { usePrefetchEscopo } from "./usePrefetchEscopo";
+import { useSyncPendencias } from "./useSyncPendencias";
+import { marcarPendente, removerPendente } from "./sync-pendencias";
 import { marcarTrabalhoEmAndamento } from "../../components/Pwa/atualizacao-segura";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
@@ -451,6 +453,9 @@ export function ChecklistControlePage() {
   // Aquece o cache offline com a frota/cliente do operador (busca de chassi e
   // emergência passam a funcionar sem rede).
   usePrefetchEscopo(session?.idCliente, session?.empresa);
+  // Quantos checklists/emergências salvos no aparelho ainda não confirmaram
+  // no servidor (badge de sincronização).
+  const { pendentes: pendentesSync } = useSyncPendencias();
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
   const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
 
@@ -1804,9 +1809,15 @@ export function ChecklistControlePage() {
       // confirmar — pode levar horas. A mutação já fica persistida no
       // IndexedDB e sincroniza sozinha, então não seguramos a UI: offline
       // avisa "salvo no aparelho" na hora; online espera o ack por até 15s.
+      // Conta como pendente até o servidor confirmar (badge "aguardando
+      // sincronização"). A escrita confirmada remove a pendência — mesmo que
+      // demore horas com o app aberto.
+      marcarPendente(id, "checklist");
       const escrita = addDoc(collection(db, "checklistsRegistros"), payload);
-      escrita.catch((e) =>
-        console.error("[Checklist] Sincronização com o servidor falhou:", e),
+      escrita.then(
+        () => removerPendente(id),
+        (e) =>
+          console.error("[Checklist] Sincronização com o servidor falhou:", e),
       );
       const ack = await esperarAckComTimeout(escrita, navigator.onLine, 15_000);
       // Workflow NestJS dos itens "Não": online envia agora; offline/erro de
@@ -1860,8 +1871,10 @@ export function ChecklistControlePage() {
           // Mesmo padrão do checklist: offline a promise só resolve com ack
           // do servidor, então não seguramos a UI — a mutação fica na fila
           // local do Firestore e sincroniza sozinha.
+          const emergId = crypto.randomUUID();
+          marcarPendente(emergId, "emergencia");
           const escritaEmerg = addDoc(collection(db, "emergenciasRegistros"), {
-            id: crypto.randomUUID(),
+            id: emergId,
             ...emergPayload,
             idOperadorSession: session.idCliente,
             funcionarioId: session.funcionarioId ?? "",
@@ -1874,11 +1887,13 @@ export function ChecklistControlePage() {
             criadoEm: serverTimestamp(),
             dataHoraIso: dataHora,
           });
-          escritaEmerg.catch((e) =>
-            console.error(
-              "[Checklist] Sincronização da emergência automática falhou:",
-              e,
-            ),
+          escritaEmerg.then(
+            () => removerPendente(emergId),
+            (e) =>
+              console.error(
+                "[Checklist] Sincronização da emergência automática falhou:",
+                e,
+              ),
           );
           const ackEmerg = await esperarAckComTimeout(
             escritaEmerg,
@@ -2102,8 +2117,14 @@ export function ChecklistControlePage() {
       };
       try {
         await emergenciasApi.criar(payload);
+        setEmergMsg("✅ Emergência registrada e enviada ao servidor.");
       } catch {
-        await addDoc(collection(db, "emergenciasRegistros"), {
+        // Backend indisponível/offline → grava no Firestore (fila offline do
+        // SDK). Offline a escrita só confirma com o servidor, então NÃO a
+        // aguardamos até o ack (senão "Salvando..." trava); marcamos pendente
+        // e a confirmação remove o badge.
+        marcarPendente(id, "emergencia");
+        const escrita = addDoc(collection(db, "emergenciasRegistros"), {
           id,
           ...payload,
           idOperadorSession: session.idCliente,
@@ -2119,8 +2140,17 @@ export function ChecklistControlePage() {
           criadoEm: serverTimestamp(),
           dataHoraIso: dataHora,
         });
+        escrita.then(
+          () => removerPendente(id),
+          (e) => console.error("[Emerg] Sincronização com o servidor falhou:", e),
+        );
+        const ack = await esperarAckComTimeout(escrita, navigator.onLine, 15_000);
+        setEmergMsg(
+          ack === "sincronizado"
+            ? "✅ Emergência registrada e enviada ao servidor."
+            : "📴 Sem internet: emergência salva no aparelho. Sincroniza sozinho quando a conexão voltar.",
+        );
       }
-      setEmergMsg("✅ Emergência registrada e enviada ao servidor.");
       setEmergTick((t) => t + 1);
     } catch (err) {
       console.error("[Emerg] Erro ao salvar no Firestore:", err);
@@ -2231,6 +2261,13 @@ export function ChecklistControlePage() {
       </aside>
 
       <main className="hu360-main hu360-main--light">
+        {pendentesSync > 0 && (
+          <div className="hu360-sync-banner" role="status" aria-live="polite">
+            <span className="hu360-sync-banner__dot" aria-hidden />
+            {pendentesSync} registro{pendentesSync > 1 ? "s" : ""} aguardando
+            sincronização — não apague o app.
+          </div>
+        )}
         <header className="hu360-app-head">
           <div className="hu360-app-head__bar">
             <div className="hu360-app-head__identity">

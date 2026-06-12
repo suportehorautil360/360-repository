@@ -681,6 +681,39 @@
   box-sizing: border-box;
 }
 
+/* Faixa de aviso: registros salvos offline aguardando sincronização. */
+.hu360-sync-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -16px 12px;
+  padding: 10px 16px;
+  background: #fff7ed;
+  color: #9a3412;
+  border-bottom: 1px solid #fed7aa;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.hu360-sync-banner__dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #f97316;
+  animation: hu360-sync-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes hu360-sync-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
 .hu360-app-head {
   position: sticky;
   top: 0;
