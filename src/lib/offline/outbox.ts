@@ -58,7 +58,8 @@ export async function contarPendentes(entity?: string): Promise<number> {
 
 /**
  * Claim atômico do item: só transiciona PENDING → SENDING e devolve se este
- * chamador venceu. Duas abas compartilhando o IndexedDB não enviam o mesmo item.
+ * chamador venceu. A garantia vale dentro de um ciclo: recuperarPresos() de
+ * outra aba pode devolver um envio em voo a PENDING (ver recuperarPresos).
  */
 export async function marcarEnviando(id: string): Promise<boolean> {
   const ganhos = await offlineDb.sync_queue
@@ -110,9 +111,11 @@ export async function registrarFalha(id: string, erro: string): Promise<void> {
 }
 
 /**
- * Devolve para PENDING todo item preso em SENDING (crash/reload no meio do
- * envio). Chamado no início de cada ciclo do motor de sync; reenviar é seguro
- * porque o id é a chave de idempotência no servidor.
+ * Devolve para PENDING todo item em SENDING — tanto os presos por crash/reload
+ * quanto, entre abas, um envio em voo de outro ciclo (não há como distinguir).
+ * Reenfileirar um envio vivo é aceitável: o id é a chave de idempotência no
+ * servidor, então duplicado vira replay. Evolução futura: carimbar `claimedAt`
+ * e só recuperar claims velhos (guarda de staleness).
  */
 export async function recuperarPresos(): Promise<number> {
   const agora = new Date().toISOString();

@@ -34,10 +34,18 @@ function erroDefinitivo(e: unknown): boolean {
   );
 }
 
-export async function processarFila(): Promise<{
-  enviados: number;
-  falhas: number;
-}> {
+let emExecucao: Promise<{ enviados: number; falhas: number }> | null = null;
+
+export function processarFila(): Promise<{ enviados: number; falhas: number }> {
+  // Gatilhos disparam juntos (online + intervalo + mount); ciclos sobrepostos
+  // fariam recuperarPresos() derrubar o claim do ciclo em andamento.
+  emExecucao ??= executarCiclo().finally(() => {
+    emExecucao = null;
+  });
+  return emExecucao;
+}
+
+async function executarCiclo(): Promise<{ enviados: number; falhas: number }> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     return { enviados: 0, falhas: 0 };
   }
@@ -50,14 +58,17 @@ export async function processarFila(): Promise<{
     if (!(await marcarEnviando(item.id))) continue;
     try {
       await enviar(item);
-      await concluir(item.id);
-      enviados++;
     } catch (e) {
       const motivo = e instanceof Error ? e.message : String(e);
       if (erroDefinitivo(e)) await marcarAtencao(item.id, motivo);
       else await registrarFalha(item.id, motivo);
       falhas++;
+      continue;
     }
+    // Fora do try: o envio deu certo — falha do Dexie ao concluir não pode
+    // ser contabilizada como falha do servidor.
+    await concluir(item.id);
+    enviados++;
   }
   return { enviados, falhas };
 }

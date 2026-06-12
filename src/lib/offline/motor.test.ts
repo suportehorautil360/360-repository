@@ -52,7 +52,8 @@ describe("processarFila", () => {
   it("erro definitivo (4xx) vira NEEDS_ATTENTION — nunca descarta", async () => {
     registrarEnviador("teste-4xx", vi.fn().mockRejectedValue(new ApiError(400, "inválido")));
     const item = await enfileirar("teste-4xx", {});
-    await processarFila();
+    const r = await processarFila();
+    expect(r.falhas).toBe(1);
     const salvo = await offlineDb.sync_queue.get(item.id);
     expect(salvo?.status).toBe("NEEDS_ATTENTION");
     expect(salvo?.lastError).toBe("inválido");
@@ -60,9 +61,58 @@ describe("processarFila", () => {
 
   it("408 e 429 são transitórios, não NEEDS_ATTENTION", async () => {
     registrarEnviador("teste-429", vi.fn().mockRejectedValue(new ApiError(429, "calma")));
-    const item = await enfileirar("teste-429", {});
+    const item429 = await enfileirar("teste-429", {});
+    registrarEnviador("teste-408", vi.fn().mockRejectedValue(new ApiError(408, "timeout")));
+    const item408 = await enfileirar("teste-408", {});
     await processarFila();
-    expect((await offlineDb.sync_queue.get(item.id))?.status).toBe("PENDING");
+    expect((await offlineDb.sync_queue.get(item429.id))?.status).toBe("PENDING");
+    expect((await offlineDb.sync_queue.get(item408.id))?.status).toBe("PENDING");
+  });
+
+  it("falha que não é ApiError (rede) é transitória", async () => {
+    registrarEnviador(
+      "teste-rede",
+      vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
+    );
+    const item = await enfileirar("teste-rede", {});
+    const r = await processarFila();
+    expect(r.falhas).toBe(1);
+    const salvo = await offlineDb.sync_queue.get(item.id);
+    expect(salvo?.status).toBe("PENDING");
+    expect(salvo?.retryCount).toBe(1);
+  });
+
+  it("falha em um item não impede o envio dos demais", async () => {
+    const enviar = vi.fn().mockImplementation(async (item) => {
+      if ((item.payload as { n: number }).n === 1) {
+        throw new ApiError(500, "erro");
+      }
+    });
+    registrarEnviador("teste-parcial", enviar);
+    await enfileirar("teste-parcial", { n: 1 });
+    await enfileirar("teste-parcial", { n: 2 });
+    const r = await processarFila();
+    expect(r).toEqual({ enviados: 1, falhas: 1 });
+    expect(await contarPendentes()).toBe(1);
+  });
+
+  it("chamadas sobrepostas compartilham o mesmo ciclo", async () => {
+    let liberar!: () => void;
+    const segura = new Promise<void>((resolve) => {
+      liberar = resolve;
+    });
+    const enviar = vi.fn().mockImplementation(() => segura);
+    registrarEnviador("teste-reentrante", enviar);
+    await enfileirar("teste-reentrante", {});
+    // Online + intervalo + mount disparam juntos: deve haver um ciclo só.
+    const p1 = processarFila();
+    const p2 = processarFila();
+    expect(p1).toBe(p2);
+    liberar();
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1).toBe(r2);
+    expect(r1).toEqual({ enviados: 1, falhas: 0 });
+    expect(enviar).toHaveBeenCalledTimes(1);
   });
 
   it("entidade sem enviador registrado fica na fila", async () => {
