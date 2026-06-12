@@ -1,11 +1,18 @@
 /**
  * Login offline do operador.
  *
- * Após um login online bem-sucedido, a credencial fica no aparelho por
- * 7 dias e permite entrar sem rede (campo sem sinal). Limitações aceitas:
- * só entra offline quem já logou neste aparelho, e um funcionário desligado
- * consegue logar offline até a credencial expirar — por isso o prazo curto
- * e a renovação/remoção a cada tentativa online.
+ * Credenciais (hash com o mesmo esquema do banco) ficam no aparelho por 7 dias
+ * e permitem entrar sem rede. Duas formas de popular: o login online
+ * individual (salvarCredencialOffline) e o provisionamento da prefeitura
+ * inteira no 1º acesso online (provisionarCredenciaisPrefeitura) — este último
+ * deixa qualquer operador da prefeitura logar offline, inclusive na 1ª vez
+ * dele neste aparelho (compartilhado). Limitações aceitas: um funcionário
+ * desligado loga offline até a credencial expirar — daí o prazo curto e a
+ * renovação/remoção a cada contato com rede.
+ *
+ * NOTA DE SEGURANÇA: o hash é SHA-256 sem salt (fraco). Com o provisionamento,
+ * os hashes de toda a prefeitura ficam no aparelho — risco aceito por ora;
+ * fortalecer o hash (bcrypt/salt no back) é dívida conhecida.
  */
 import { hashSenha } from "../../utils/hashSenha";
 import { limparCpf } from "../../lib/funcionarios/cpf";
@@ -50,6 +57,32 @@ function vigentes(lista: CredencialOffline[]): CredencialOffline[] {
   return lista.filter((c) => Date.now() < Date.parse(c.expiraEm));
 }
 
+function montarCredencial(
+  funcionario: Funcionario,
+  senhaHash: string,
+  empresa: string,
+): CredencialOffline {
+  return {
+    identificadores: [
+      limparCpf(funcionario.cpf ?? ""),
+      (funcionario.loginGerado ?? "").toLowerCase(),
+    ].filter(Boolean),
+    senhaHash,
+    funcionario,
+    empresa,
+    expiraEm: new Date(Date.now() + CREDENCIAL_TTL_MS).toISOString(),
+  };
+}
+
+/** Substitui/insere as credenciais por id do funcionário, mantendo as demais. */
+function mesclar(novas: CredencialOffline[]): void {
+  const ids = new Set(novas.map((c) => c.funcionario.id));
+  gravar([
+    ...vigentes(ler()).filter((c) => !ids.has(c.funcionario.id)),
+    ...novas,
+  ]);
+}
+
 /** Guarda/renova a credencial após um login online bem-sucedido. */
 export async function salvarCredencialOffline(entrada: {
   funcionario: Funcionario;
@@ -57,22 +90,26 @@ export async function salvarCredencialOffline(entrada: {
   senha: string;
 }): Promise<void> {
   const { funcionario, empresa, senha } = entrada;
-  const identificadores = [
-    limparCpf(funcionario.cpf ?? ""),
-    (funcionario.loginGerado ?? "").toLowerCase(),
-  ].filter(Boolean);
-  const credencial: CredencialOffline = {
-    identificadores,
-    // Mesmo salt do banco (CPF) — ver hashSenhaFuncionario em funcionarios.ts.
-    senhaHash: await hashSenha(`${limparCpf(funcionario.cpf ?? "")}:${senha}`),
-    funcionario,
-    empresa,
-    expiraEm: new Date(Date.now() + CREDENCIAL_TTL_MS).toISOString(),
-  };
-  gravar([
-    ...vigentes(ler()).filter((c) => c.funcionario.id !== funcionario.id),
-    credencial,
-  ]);
+  // Mesmo salt do banco (CPF) — ver hashSenhaFuncionario em funcionarios.ts.
+  const senhaHash = await hashSenha(`${limparCpf(funcionario.cpf ?? "")}:${senha}`);
+  mesclar([montarCredencial(funcionario, senhaHash, empresa)]);
+}
+
+/**
+ * Provisiona o aparelho com as credenciais de toda a prefeitura (hashes que já
+ * vêm dos docs do Firestore, não recalculados). Assim qualquer operador da
+ * prefeitura loga offline — inclusive na 1ª vez dele, num aparelho
+ * compartilhado. Renovado a cada bootstrap online; expira em 7 dias.
+ */
+export function provisionarCredenciaisPrefeitura(
+  itens: { funcionario: Funcionario; senhaHash: string }[],
+  empresa: string,
+): void {
+  mesclar(
+    itens
+      .filter((i) => i.senhaHash)
+      .map((i) => montarCredencial(i.funcionario, i.senhaHash, empresa)),
+  );
 }
 
 /** Tenta autenticar sem rede contra a credencial guardada. */

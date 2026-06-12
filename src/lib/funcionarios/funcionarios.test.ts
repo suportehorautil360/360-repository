@@ -77,3 +77,51 @@ describe("funcionariosApi.autenticar", () => {
     if (!r.ok) expect(r.motivo).toBe("nao-encontrado");
   });
 });
+
+describe("funcionariosApi.listarCredenciaisOffline", () => {
+  it("traz funcionario + senhaHash dos ativos com senha; ignora sem hash e inativos", async () => {
+    getDocsMock.mockResolvedValue(
+      snapCom([
+        {
+          id: "f1",
+          data: () => ({
+            nome: "Ativo Com Senha",
+            cpf: CPF,
+            prefeituraId: "pref-1",
+            status: "ativo",
+            senhaHash: "hash-1",
+          }),
+        },
+        {
+          id: "f2",
+          data: () => ({
+            nome: "Sem Senha",
+            cpf: "11144477735",
+            prefeituraId: "pref-1",
+            status: "ativo",
+          }),
+        },
+        {
+          id: "f3",
+          data: () => ({
+            nome: "Inativo",
+            cpf: "52998224725",
+            prefeituraId: "pref-1",
+            status: "inativo",
+            senhaHash: "hash-3",
+          }),
+        },
+      ]),
+    );
+    const r = await funcionariosApi.listarCredenciaisOffline("pref-1");
+    expect(r).toHaveLength(1);
+    expect(r[0].senhaHash).toBe("hash-1");
+    expect(r[0].funcionario.id).toBe("f1");
+  });
+
+  it("sem prefeituraId → lista vazia, sem consultar", async () => {
+    const r = await funcionariosApi.listarCredenciaisOffline("");
+    expect(r).toEqual([]);
+    expect(getDocsMock).not.toHaveBeenCalled();
+  });
+});

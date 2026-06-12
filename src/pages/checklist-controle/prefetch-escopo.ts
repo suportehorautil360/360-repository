@@ -18,32 +18,39 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
+import { funcionariosApi } from "../../lib/funcionarios/funcionarios";
+import { provisionarCredenciaisPrefeitura } from "./credenciais-offline";
 
 function online(): boolean {
   return typeof navigator === "undefined" || navigator.onLine;
 }
 
 /**
- * Aquece o cache offline com os dados que o operador precisa para começar um
- * checklist sem rede. Best-effort: nunca lança (offline ou erro só significa
- * que o cache não foi atualizado agora).
+ * Aquece o cache offline com o escopo do operador e provisiona o login
+ * offline da prefeitura. Com rede:
+ * - baixa a frota da prefeitura → busca de chassi e emergência offline;
+ * - baixa o cliente → nome correto da prefeitura offline;
+ * - baixa as credenciais da prefeitura → qualquer operador loga offline,
+ *   inclusive na 1ª vez dele neste aparelho.
+ * Best-effort: nunca lança (offline/erro só significa cache não atualizado).
  */
 export async function prefetchEscopoOperador(
   prefeituraId: string,
+  empresa = "",
 ): Promise<void> {
   if (!prefeituraId || !online()) return;
   try {
-    await Promise.all([
-      // Toda a frota da prefeitura → busca de chassi e emergência offline.
+    const [, , credenciais] = await Promise.all([
       getDocs(
         query(
           collection(db, "equipamentos"),
           where("prefeituraId", "==", prefeituraId),
         ),
       ),
-      // Nome do cliente → some o "Prefeitura" genérico offline.
       getDoc(doc(db, "clientes", prefeituraId)),
+      funcionariosApi.listarCredenciaisOffline(prefeituraId),
     ]);
+    provisionarCredenciaisPrefeitura(credenciais, empresa || prefeituraId);
   } catch {
     /* sem rede / indisponível — o cache fica como estava */
   }

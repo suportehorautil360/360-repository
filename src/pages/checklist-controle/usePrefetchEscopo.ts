@@ -6,14 +6,17 @@ import { prefetchEscopoOperador } from "./prefetch-escopo";
  * (com rede) e sempre que a conexão voltar. Depois disso, busca de chassi e
  * emergência funcionam offline.
  */
-export function usePrefetchEscopo(prefeituraId: string | undefined) {
+export function usePrefetchEscopo(
+  prefeituraId: string | undefined,
+  empresa: string | undefined,
+) {
   useEffect(() => {
     if (!prefeituraId) return;
     const aquecer = () => {
-      void prefetchEscopoOperador(prefeituraId);
+      void prefetchEscopoOperador(prefeituraId, empresa ?? "");
     };
     aquecer();
     window.addEventListener("online", aquecer);
     return () => window.removeEventListener("online", aquecer);
-  }, [prefeituraId]);
+  }, [prefeituraId, empresa]);
 }

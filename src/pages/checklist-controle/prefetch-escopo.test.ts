@@ -15,6 +15,12 @@ vi.mock("firebase/firestore", () => ({
   getDoc: vi.fn(),
 }));
 vi.mock("../../lib/firebase/firebase", () => ({ db: {} }));
+vi.mock("../../lib/funcionarios/funcionarios", () => ({
+  funcionariosApi: { listarCredenciaisOffline: vi.fn() },
+}));
+vi.mock("./credenciais-offline", () => ({
+  provisionarCredenciaisPrefeitura: vi.fn(),
+}));
 
 import {
   collection,
@@ -23,7 +29,12 @@ import {
   getDocs,
   where,
 } from "firebase/firestore";
+import { funcionariosApi } from "../../lib/funcionarios/funcionarios";
+import { provisionarCredenciaisPrefeitura } from "./credenciais-offline";
 import { prefetchEscopoOperador } from "./prefetch-escopo";
+
+const listarCredsMock = vi.mocked(funcionariosApi.listarCredenciaisOffline);
+const provisionarMock = vi.mocked(provisionarCredenciaisPrefeitura);
 
 const getDocsMock = vi.mocked(getDocs);
 const getDocMock = vi.mocked(getDoc);
@@ -43,6 +54,8 @@ beforeEach(() => {
     exists: () => true,
     data: () => ({ nome: "X" }),
   } as never);
+  listarCredsMock.mockReset().mockResolvedValue([]);
+  provisionarMock.mockReset();
   whereMock.mockClear();
   collectionMock.mockClear();
   docMock.mockClear();
@@ -61,6 +74,22 @@ describe("prefetchEscopoOperador", () => {
     expect(getDocsMock).toHaveBeenCalledTimes(1);
     expect(docMock).toHaveBeenCalledWith(expect.anything(), "clientes", "pref-1");
     expect(getDocMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("online: baixa as credenciais da prefeitura e provisiona o aparelho", async () => {
+    setOnline(true);
+    const creds = [{ funcionario: { id: "f1" }, senhaHash: "h" }];
+    listarCredsMock.mockResolvedValue(creds as never);
+    await prefetchEscopoOperador("pref-1", "Prefeitura X");
+    expect(listarCredsMock).toHaveBeenCalledWith("pref-1");
+    expect(provisionarMock).toHaveBeenCalledWith(creds, "Prefeitura X");
+  });
+
+  it("offline: não baixa nem provisiona credenciais", async () => {
+    setOnline(false);
+    await prefetchEscopoOperador("pref-1", "Prefeitura X");
+    expect(listarCredsMock).not.toHaveBeenCalled();
+    expect(provisionarMock).not.toHaveBeenCalled();
   });
 
   it("offline: não dispara consulta (não adianta aquecer sem rede)", async () => {

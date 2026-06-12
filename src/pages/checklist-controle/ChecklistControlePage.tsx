@@ -450,7 +450,7 @@ export function ChecklistControlePage() {
   useWorkflowSync();
   // Aquece o cache offline com a frota/cliente do operador (busca de chassi e
   // emergência passam a funcionar sem rede).
-  usePrefetchEscopo(session?.idCliente);
+  usePrefetchEscopo(session?.idCliente, session?.empresa);
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
   const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
 
