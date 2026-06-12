@@ -50,8 +50,10 @@ import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
 import { enviarWorkflowComFila } from "../../features/checklist/api/workflow-fila";
 import { useWorkflowSync } from "./useWorkflowSync";
 import { usePrefetchEscopo } from "./usePrefetchEscopo";
+import { prefetchEscopoOperador } from "./prefetch-escopo";
 import { useSyncPendencias } from "./useSyncPendencias";
 import { marcarPendente, removerPendente } from "./sync-pendencias";
+import { sincronizarTudo } from "./sincronizar-tudo";
 import { marcarTrabalhoEmAndamento } from "../../components/Pwa/atualizacao-segura";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
@@ -456,6 +458,31 @@ export function ChecklistControlePage() {
   // Quantos checklists/emergências salvos no aparelho ainda não confirmaram
   // no servidor (badge de sincronização).
   const { pendentes: pendentesSync } = useSyncPendencias();
+  const [sincronizandoManual, setSincronizandoManual] = useState(false);
+
+  async function handleSincronizarManual() {
+    if (!navigator.onLine) {
+      toast.info("Sem conexão. Sincroniza sozinho quando a rede voltar.");
+      return;
+    }
+    setSincronizandoManual(true);
+    try {
+      const r = await sincronizarTudo();
+      if (session?.idCliente) {
+        await prefetchEscopoOperador(session.idCliente, session.empresa);
+      }
+      toast.success(
+        r.total > 0
+          ? `${r.total} registro${r.total > 1 ? "s" : ""} sincronizado${r.total > 1 ? "s" : ""}.`
+          : "Tudo sincronizado.",
+      );
+      setChecklistsHojeTick((t) => t + 1);
+      setAuditoriaTick((t) => t + 1);
+      setEmergTick((t) => t + 1);
+    } finally {
+      setSincronizandoManual(false);
+    }
+  }
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
   const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
 
@@ -2429,6 +2456,15 @@ export function ChecklistControlePage() {
 
         {aba === "dashboard" ? (
           <section className="hu360-dash">
+            <button
+              type="button"
+              className="hu360-sync-btn"
+              onClick={handleSincronizarManual}
+              disabled={sincronizandoManual}
+            >
+              <Hu360NavIcon kind="clock" />
+              {sincronizandoManual ? "Sincronizando…" : "Sincronizar agora"}
+            </button>
             <div className="hu360-dash-kpis">
               <button
                 type="button"

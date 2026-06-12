@@ -18,6 +18,11 @@ import { escalaApi, type Escala } from "../../lib/api/escala";
 import { configuracoesApi, type Configuracao } from "../../lib/api/configuracoes";
 import { abonosApi, type Abono } from "../../lib/api/abonos";
 import {
+  lerCachePonto,
+  salvarCachePonto,
+  type PontoCache,
+} from "./ponto-cache";
+import {
   baixarCRPT,
   montarCRPT,
   podeEmitirCRPT,
@@ -351,22 +356,16 @@ export function PontosFolha({
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
     setCarregando(true);
-    try {
-      const [lista, esc, cfg, abs] = await Promise.all([
-        pontoApi.listar(prefeituraId),
-        escalaApi.obter(prefeituraId).catch(() => null),
-        configuracoesApi.obter(prefeituraId).catch(() => null),
-        abonosApi.listar(prefeituraId).catch(() => []),
-      ]);
-      setTodas(lista);
-      setEscala(esc);
-      setEmpresa(cfg?.empresa ?? null);
-      setAbonos(abs);
-      // Prefill do nome só a partir da entrada de hoje DO PRÓPRIO operador
-      // (nunca pega o nome de outro funcionário que bateu antes na prefeitura).
+    // Prefill do nome só a partir da entrada de hoje DO PRÓPRIO operador
+    // (nunca pega o nome de outro funcionário que bateu antes na prefeitura).
+    const aplicar = (dados: PontoCache) => {
+      setTodas(dados.lista);
+      setEscala(dados.escala);
+      setEmpresa(dados.empresa);
+      setAbonos(dados.abonos);
       const alvo = nomePadrao.trim().toLowerCase();
       const entradaHoje = alvo
-        ? lista.find(
+        ? dados.lista.find(
             (p) =>
               p.tipo === "entrada" &&
               ehHoje(p.timestampOriginal) &&
@@ -374,8 +373,35 @@ export function PontosFolha({
           )
         : undefined;
       if (entradaHoje?.name) setNome((n) => n || entradaHoje.name);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível carregar.");
+    };
+    try {
+      const [lista, esc, cfg, abs] = await Promise.all([
+        pontoApi.listar(prefeituraId),
+        escalaApi.obter(prefeituraId).catch(() => null),
+        configuracoesApi.obter(prefeituraId).catch(() => null),
+        abonosApi.listar(prefeituraId).catch(() => []),
+      ]);
+      const dados: PontoCache = {
+        lista,
+        escala: esc,
+        empresa: cfg?.empresa ?? null,
+        abonos: abs,
+      };
+      salvarCachePonto(prefeituraId, dados); // aquece o cache offline
+      aplicar(dados);
+    } catch {
+      // Offline / API fora: usa a última folha conhecida em vez de "load
+      // failed". As batidas ainda não sincronizadas aparecem no badge.
+      const cache = lerCachePonto(prefeituraId);
+      if (cache) {
+        aplicar(cache);
+        toast.info("Sem conexão: mostrando a folha salva no aparelho.");
+      } else {
+        aplicar({ lista: [], escala: null, empresa: null, abonos: [] });
+        toast.info(
+          "Sem conexão e sem dados salvos ainda. Conecte uma vez para baixar a folha.",
+        );
+      }
     } finally {
       setCarregando(false);
     }
