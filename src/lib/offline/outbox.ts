@@ -7,6 +7,8 @@ const BACKOFF_MAX_MS = 30 * 60_000;
 /**
  * Timestamp estritamente crescente: duas batidas no mesmo milissegundo não
  * podem embaralhar a ordem de envio (o ledger do ponto é sequencial — NSR).
+ * Limite conhecido: a ordem entre recargas da página depende do relógio do
+ * aparelho (regressão de relógio reordena; sequência persistida fica p/ depois).
  */
 let ultimoTs = 0;
 function agoraMonotonico(): string {
@@ -20,18 +22,20 @@ export async function enfileirar(
   payload: unknown,
   id: string = crypto.randomUUID(),
 ): Promise<ItemOutbox> {
-  const agora = agoraMonotonico();
   const item: ItemOutbox = {
     id,
     entity,
     action: "create",
     payload,
     status: "PENDING",
-    createdAt: agora,
+    // createdAt monotônico só ordena; o "devido" vem do relógio real, senão
+    // uma rajada no mesmo ms empurraria itens novos para o futuro.
+    createdAt: agoraMonotonico(),
     retryCount: 0,
-    proximaTentativaEm: agora,
+    proximaTentativaEm: new Date(Date.now()).toISOString(),
   };
-  await offlineDb.sync_queue.put(item);
+  // `add` (não `put`): id duplicado é erro — nunca sobrescrever um item da fila.
+  await offlineDb.sync_queue.add(item);
   return item;
 }
 
@@ -47,12 +51,22 @@ export async function listarDevidos(agora = new Date()): Promise<ItemOutbox[]> {
 
 /** Conta tudo que ainda não foi confirmado (inclui NEEDS_ATTENTION). */
 export async function contarPendentes(entity?: string): Promise<number> {
-  const todos = await offlineDb.sync_queue.toArray();
-  return entity ? todos.filter((i) => i.entity === entity).length : todos.length;
+  return entity
+    ? offlineDb.sync_queue.where("entity").equals(entity).count()
+    : offlineDb.sync_queue.count();
 }
 
-export async function marcarEnviando(id: string): Promise<void> {
-  await offlineDb.sync_queue.update(id, { status: "SENDING" });
+/**
+ * Claim atômico do item: só transiciona PENDING → SENDING e devolve se este
+ * chamador venceu. Duas abas compartilhando o IndexedDB não enviam o mesmo item.
+ */
+export async function marcarEnviando(id: string): Promise<boolean> {
+  const ganhos = await offlineDb.sync_queue
+    .where("id")
+    .equals(id)
+    .and((i) => i.status === "PENDING")
+    .modify({ status: "SENDING" });
+  return ganhos > 0;
 }
 
 /** Servidor confirmou — sai da fila. */
@@ -60,24 +74,50 @@ export async function concluir(id: string): Promise<void> {
   await offlineDb.sync_queue.delete(id);
 }
 
-/** Erro definitivo (validação): sai do envio automático, fica visível. */
+/**
+ * Erro definitivo (validação): sai do envio automático, fica visível.
+ * Só atua em item SENDING (reivindicado por este ciclo) — não atropela
+ * transições concorrentes de outra aba.
+ */
 export async function marcarAtencao(id: string, erro: string): Promise<void> {
-  await offlineDb.sync_queue.update(id, {
-    status: "NEEDS_ATTENTION",
-    lastError: erro,
-  });
+  await offlineDb.sync_queue
+    .where("id")
+    .equals(id)
+    .and((i) => i.status === "SENDING")
+    .modify({ status: "NEEDS_ATTENTION", lastError: erro });
 }
 
-/** Erro transitório: volta a PENDING com backoff exponencial. */
+/**
+ * Erro transitório: volta a PENDING com backoff exponencial.
+ * Só atua em item SENDING — nunca ressuscita NEEDS_ATTENTION nem
+ * sobrescreve transições feitas por outra aba.
+ */
 export async function registrarFalha(id: string, erro: string): Promise<void> {
-  const item = await offlineDb.sync_queue.get(id);
-  if (!item) return;
-  const retryCount = item.retryCount + 1;
-  const espera = Math.min(BACKOFF_BASE_MS * 2 ** (retryCount - 1), BACKOFF_MAX_MS);
-  await offlineDb.sync_queue.update(id, {
-    status: "PENDING",
-    retryCount,
-    lastError: erro,
-    proximaTentativaEm: new Date(Date.now() + espera).toISOString(),
-  });
+  await offlineDb.sync_queue
+    .where("id")
+    .equals(id)
+    .and((i) => i.status === "SENDING")
+    .modify((i) => {
+      i.retryCount += 1;
+      const espera = Math.min(
+        BACKOFF_BASE_MS * 2 ** (i.retryCount - 1),
+        BACKOFF_MAX_MS,
+      );
+      i.status = "PENDING";
+      i.lastError = erro;
+      i.proximaTentativaEm = new Date(Date.now() + espera).toISOString();
+    });
+}
+
+/**
+ * Devolve para PENDING todo item preso em SENDING (crash/reload no meio do
+ * envio). Chamado no início de cada ciclo do motor de sync; reenviar é seguro
+ * porque o id é a chave de idempotência no servidor.
+ */
+export async function recuperarPresos(): Promise<number> {
+  const agora = new Date().toISOString();
+  return offlineDb.sync_queue
+    .where("status")
+    .equals("SENDING")
+    .modify({ status: "PENDING", proximaTentativaEm: agora });
 }
