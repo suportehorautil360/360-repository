@@ -49,6 +49,7 @@ import { PontosFolha } from "./PontosFolha";
 import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
 import { enviarWorkflowComFila } from "../../features/checklist/api/workflow-fila";
 import { useWorkflowSync } from "./useWorkflowSync";
+import { usePrefetchEscopo } from "./usePrefetchEscopo";
 import { marcarTrabalhoEmAndamento } from "../../components/Pwa/atualizacao-segura";
 import { emergenciasApi } from "../../features/emergencia/api/emergencias-api";
 import {
@@ -447,6 +448,9 @@ export function ChecklistControlePage() {
   const { session, setSession } = useOperadorSession();
   // Reenvia workflows de checklist enfileirados offline quando a rede volta.
   useWorkflowSync();
+  // Aquece o cache offline com a frota/cliente do operador (busca de chassi e
+  // emergência passam a funcionar sem rede).
+  usePrefetchEscopo(session?.idCliente, session?.empresa);
   const { estado: pwaEstado, instalar: instalarApp } = usePwaInstallPrompt();
   const [pwaInstrucoesAberto, setPwaInstrucoesAberto] = useState(false);
 

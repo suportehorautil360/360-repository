@@ -5,9 +5,13 @@
  * já logou neste aparelho entra offline.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Funcionario } from "../../lib/funcionarios/funcionarios";
+import {
+  hashSenhaFuncionario,
+  type Funcionario,
+} from "../../lib/funcionarios/funcionarios";
 import {
   autenticarOffline,
+  provisionarCredenciaisPrefeitura,
   removerCredencialOffline,
   salvarCredencialOffline,
 } from "./credenciais-offline";
@@ -100,6 +104,55 @@ describe("credenciais-offline", () => {
     });
     removerCredencialOffline("joao.operador");
     expect(await autenticarOffline(FUNC.cpf, "segredo1")).toBeNull();
+  });
+
+  it("provisiona a prefeitura: operador loga offline sem nunca ter logado neste aparelho", async () => {
+    const maria = {
+      ...FUNC,
+      id: "f2",
+      nome: "Maria",
+      cpf: "52998224725",
+      loginGerado: "maria",
+    } as Funcionario;
+    // Hashes vêm prontos dos docs do Firestore (não recalculados da senha).
+    provisionarCredenciaisPrefeitura(
+      [
+        { funcionario: FUNC, senhaHash: await hashSenhaFuncionario(FUNC.cpf, "s1") },
+        { funcionario: maria, senhaHash: await hashSenhaFuncionario(maria.cpf, "s2") },
+      ],
+      "Prefeitura X",
+    );
+    expect((await autenticarOffline(FUNC.cpf, "s1"))?.funcionario.id).toBe("f1");
+    expect((await autenticarOffline("maria", "s2"))?.funcionario.id).toBe("f2");
+    expect(await autenticarOffline(FUNC.cpf, "errada")).toBeNull();
+  });
+
+  it("re-provisionar não duplica e renova o prazo", async () => {
+    const item = {
+      funcionario: FUNC,
+      senhaHash: await hashSenhaFuncionario(FUNC.cpf, "s1"),
+    };
+    provisionarCredenciaisPrefeitura([item], "Prefeitura X");
+    provisionarCredenciaisPrefeitura([item], "Prefeitura X");
+    const raw = JSON.parse(
+      localStorage.getItem("hu360-credenciais-offline") ?? "[]",
+    ) as unknown[];
+    expect(raw).toHaveLength(1);
+  });
+
+  it("provisionar preserva credencial de login individual já existente", async () => {
+    await salvarCredencialOffline({
+      funcionario: FUNC,
+      empresa: "Prefeitura X",
+      senha: "s1",
+    });
+    const outro = { ...FUNC, id: "f9", cpf: "11144477735", loginGerado: "ze" } as Funcionario;
+    provisionarCredenciaisPrefeitura(
+      [{ funcionario: outro, senhaHash: await hashSenhaFuncionario(outro.cpf, "s9") }],
+      "Prefeitura X",
+    );
+    expect(await autenticarOffline(FUNC.cpf, "s1")).not.toBeNull();
+    expect(await autenticarOffline("ze", "s9")).not.toBeNull();
   });
 
   it("suporta mais de um operador no mesmo aparelho", async () => {

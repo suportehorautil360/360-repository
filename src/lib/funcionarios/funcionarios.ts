@@ -219,6 +219,27 @@ export const funcionariosApi = {
   },
 
   /**
+   * Lê os funcionários da prefeitura **direto do Firestore** (a rota NestJS não
+   * devolve o hash). Usado para provisionar o login offline do aparelho: traz
+   * o `senhaHash` de cada um e, de quebra, aquece o cache offline. Só inclui
+   * quem tem senha cadastrada.
+   */
+  async listarCredenciaisOffline(
+    prefeituraId: string,
+  ): Promise<{ funcionario: Funcionario; senhaHash: string }[]> {
+    if (!prefeituraId) return [];
+    const snap = await getDocs(
+      query(collection(db, COLECAO), where("prefeituraId", "==", prefeituraId)),
+    );
+    return snap.docs
+      .map((d) => ({
+        funcionario: fromDoc(d.id, d.data()),
+        senhaHash: String(d.data().senhaHash ?? ""),
+      }))
+      .filter((x) => x.senhaHash && x.funcionario.status === "ativo");
+  },
+
+  /**
    * Verifica se já existe outro funcionário com o mesmo CPF na prefeitura.
    * Best-effort (sem backend, o Firestore Rules não garante unicidade).
    */
