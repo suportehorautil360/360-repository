@@ -66,6 +66,18 @@ describe("baterComFila (outbox)", () => {
     expect(await pendentes()).toBe(0);
   });
 
+  it("erro 5xx no envio direto enfileira com a mesma chave (proxy pode ter gravado)", async () => {
+    bater.mockRejectedValueOnce(new ApiError(503, "bad gateway"));
+    const r = await baterComFila(input);
+    expect(r.sincronizado).toBe(false);
+    expect(await pendentes()).toBe(1);
+    const chaveDireta = bater.mock.calls[0][1];
+    bater.mockResolvedValue({ id: "r1" } as never);
+    await sincronizar();
+    expect(bater.mock.calls[1][1]).toBe(chaveDireta);
+    expect(await pendentes()).toBe(0);
+  });
+
   it("erro do servidor (ApiError) propaga sem enfileirar", async () => {
     bater.mockRejectedValue(new ApiError(403, "ponto inativo"));
     await expect(baterComFila(input)).rejects.toThrow("ponto inativo");

@@ -8,7 +8,7 @@ import { ApiError } from "./client";
 import { pontosApi, type BaterPontoInput, type PontoRegistro } from "./pontos";
 import type { ItemOutbox } from "../offline/db";
 import { contarPendentes, enfileirar } from "../offline/outbox";
-import { processarFila, registrarEnviador } from "../offline/motor";
+import { erroDefinitivo, processarFila, registrarEnviador } from "../offline/motor";
 import { migrarFilaLegadaPonto } from "../offline/migrar-fila-ponto";
 
 const ENTIDADE = "ponto";
@@ -56,10 +56,10 @@ export async function baterComFila(
     const registro = await pontosApi.bater(input, id);
     return { sincronizado: true, registro };
   } catch (e) {
-    // Erro do servidor não é offline — propaga para o usuário ver.
-    if (e instanceof ApiError) throw e;
-    // Falha de rede: enfileira com a MESMA chave do envio que falhou —
-    // se o servidor chegou a gravar, o reenvio vira replay, não duplica.
+    // 4xx de validação é erro do usuário — propaga para a tela.
+    if (e instanceof ApiError && erroDefinitivo(e)) throw e;
+    // Falha de rede ou 5xx/408/429: o servidor PODE ter gravado — enfileira
+    // com a MESMA chave; se gravou, o reenvio vira replay, não duplica.
     await enfileirar(ENTIDADE, input, id);
     return { sincronizado: false };
   }

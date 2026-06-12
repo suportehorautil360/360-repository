@@ -24,7 +24,12 @@ export function registrarEnviador(entity: string, enviar: Enviador): void {
   enviadores.set(entity, enviar);
 }
 
-function erroDefinitivo(e: unknown): boolean {
+/**
+ * Decide o destino da falha de envio: definitiva (4xx de validação, exceto
+ * 408/429) propaga/vira NEEDS_ATTENTION; transitória (rede, 5xx, 408, 429)
+ * deve ser reenviada com a mesma chave de idempotência.
+ */
+export function erroDefinitivo(e: unknown): boolean {
   return (
     e instanceof ApiError &&
     e.status >= 400 &&
