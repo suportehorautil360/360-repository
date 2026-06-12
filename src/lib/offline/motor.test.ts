@@ -69,6 +69,19 @@ describe("processarFila", () => {
     expect((await offlineDb.sync_queue.get(item408.id))?.status).toBe("PENDING");
   });
 
+  it("409 (idempotência em processamento) é transitório", async () => {
+    registrarEnviador(
+      "teste-409",
+      vi.fn().mockRejectedValue(new ApiError(409, "em processamento")),
+    );
+    const item = await enfileirar("teste-409", {});
+    const r = await processarFila();
+    expect(r.falhas).toBe(1);
+    const salvo = await offlineDb.sync_queue.get(item.id);
+    expect(salvo?.status).toBe("PENDING");
+    expect(salvo?.retryCount).toBe(1);
+  });
+
   it("falha que não é ApiError (rede) é transitória", async () => {
     registrarEnviador(
       "teste-rede",

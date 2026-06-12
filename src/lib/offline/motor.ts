@@ -1,7 +1,7 @@
 /**
  * Motor de sincronização do outbox: recupera itens presos (crash anterior),
  * percorre os devidos em ordem, faz claim atômico (uma aba só) e envia pelo
- * enviador registrado da entidade. Falha transitória (rede, 5xx, 408, 429)
+ * enviador registrado da entidade. Falha transitória (rede, 5xx, 408, 409, 429)
  * volta pra fila com backoff; definitiva (4xx de validação) vira
  * NEEDS_ATTENTION, visível para o operador. Nada é descartado em silêncio.
  */
@@ -26,8 +26,10 @@ export function registrarEnviador(entity: string, enviar: Enviador): void {
 
 /**
  * Decide o destino da falha de envio: definitiva (4xx de validação, exceto
- * 408/429) propaga/vira NEEDS_ATTENTION; transitória (rede, 5xx, 408, 429)
- * deve ser reenviada com a mesma chave de idempotência.
+ * 408/409/429) propaga/vira NEEDS_ATTENTION; transitória (rede, 5xx, 408,
+ * 409, 429) deve ser reenviada com a mesma chave de idempotência.
+ * 409 = reserva de idempotência em voo no back (requisição idêntica em
+ * processamento); backoff e replay resolvem em qualquer estado do servidor.
  */
 export function erroDefinitivo(e: unknown): boolean {
   return (
@@ -35,6 +37,7 @@ export function erroDefinitivo(e: unknown): boolean {
     e.status >= 400 &&
     e.status < 500 &&
     e.status !== 408 &&
+    e.status !== 409 &&
     e.status !== 429
   );
 }
