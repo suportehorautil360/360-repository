@@ -87,8 +87,21 @@ interface RespostaCriar {
 }
 
 export const pontosApi = {
-  async bater(input: BaterPontoInput): Promise<PontoRegistro> {
-    const r = await api.post<RespostaCriar>("/time-records", input);
+  /**
+   * Registra uma batida. `idempotencyKey` é o id do item no outbox offline:
+   * reenvio com a mesma chave não duplica no servidor (interceptor no back).
+   */
+  async bater(
+    input: BaterPontoInput,
+    idempotencyKey?: string,
+  ): Promise<PontoRegistro> {
+    const r = await api.post<RespostaCriar>(
+      "/time-records",
+      input,
+      idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : undefined,
+    );
     return r.data;
   },
 
