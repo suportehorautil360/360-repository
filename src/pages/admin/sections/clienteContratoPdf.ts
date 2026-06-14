@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import type { ClienteApi, ContratoClienteApi } from "../../../lib/api/clientes";
+import type { ClienteApi } from "../../../lib/api/clientes";
 
 const MODALIDADE_LABEL: Record<string, string> = {
   pregao_eletronico: "Pregão eletrônico",
