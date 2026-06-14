@@ -1,0 +1,1114 @@
+.aos-page {
+  color: #e8ecf6;
+}
+
+.aos-wrap {
+  border-top: 2px solid var(--main-orange, #f97316);
+  padding-top: 14px;
+}
+
+.aos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.aos-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.04rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prefeitura-root #main h1.aos-title {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.04rem;
+}
+
+.aos-title__icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.aos-btn-abrir {
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #ff981a, var(--main-orange, #f97316));
+  color: #fff;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 800;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aos-btn-abrir:hover {
+  filter: brightness(1.05);
+}
+
+.aos-table-scroll {
+  overflow-x: auto;
+  border: 1px solid rgba(67, 112, 181, 0.54);
+  border-radius: 9px;
+  background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
+}
+
+.aos-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+}
+
+.aos-table thead th {
+  text-align: left;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+  padding: 11px 12px;
+  background: #1a3768;
+  box-shadow: inset 0 -1px 0 rgba(96, 165, 250, 0.35);
+  white-space: nowrap;
+}
+
+.aos-table tbody td {
+  padding: 11px 12px;
+  border-top: 1px solid rgba(96, 165, 250, 0.18);
+  color: #e6efff;
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+
+.aos-table tbody td.aos-col-os {
+  color: #f8fbff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.aos-table tbody td.aos-col-equip {
+  color: #f8fbff;
+  font-weight: 500;
+}
+
+.aos-status {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.aos-status--aprovado {
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.aos-status--aguard-orc {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.aos-status--aguard-aprov {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.aos-status--recusado {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.aos-status--outro {
+  background: rgba(148, 163, 184, 0.14);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.aos-empty {
+  margin: 0;
+  padding: 28px 16px;
+  text-align: center;
+  color: #9cc0ef;
+  font-size: 0.9rem;
+}
+
+.aos-erro {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  font-size: 0.86rem;
+}
+
+.aos-lista-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.aos-lista-filtros__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.aos-lista-filtros__grupo--status {
+  flex: 0 0 180px;
+}
+
+.aos-lista-filtros__label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.aos-lista-filtros__input,
+.aos-lista-filtros__select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(8, 18, 40, 0.65);
+  color: #e6efff;
+  font-size: 0.84rem;
+}
+
+.aos-lista-filtros__input {
+  color-scheme: dark;
+  min-width: 148px;
+}
+
+.aos-lista-filtros__limpar {
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  border-radius: 8px;
+  background: transparent;
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  cursor: pointer;
+  margin-bottom: 1px;
+}
+
+.aos-lista-filtros__limpar:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.aos-lista-contagem {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  color: #9cc0ef;
+}
+
+@media (max-width: 820px) {
+  .aos-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .aos-btn-abrir {
+    width: 100%;
+    text-align: center;
+  }
+
+  .aos-lista-filtros__grupo,
+  .aos-lista-filtros__grupo--status {
+    flex: 1 1 100%;
+  }
+
+  .aos-lista-filtros__input,
+  .aos-lista-filtros__select {
+    width: 100%;
+  }
+
+  .aos-lista-filtros__limpar {
+    width: 100%;
+  }
+}
+
+/* ===== Formulário incluir OS ===== */
+.aos-form {
+  border-top: 2px solid var(--main-orange, #f97316);
+  padding-top: 14px;
+}
+
+.aos-form__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.aos-form__title {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.prefeitura-root #main h1.aos-form__title {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.05rem;
+}
+
+.aos-form__top-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.aos-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aos-btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+}
+
+.aos-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.aos-btn--primary {
+  background: linear-gradient(180deg, #ff981a, var(--main-orange, #f97316));
+  color: #fff;
+}
+
+.aos-btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+.aos-btn--outline {
+  background: transparent;
+  border: 1px solid rgba(147, 197, 253, 0.45);
+  color: #93c5fd;
+}
+
+.aos-btn--outline:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.aos-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.25);
+  margin-bottom: 16px;
+}
+
+.aos-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  color: #9cc0ef;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.aos-tab:hover {
+  color: #dbeafe;
+}
+
+.aos-tab.is-active {
+  color: var(--main-orange, #f97316);
+  border-bottom-color: var(--main-orange, #f97316);
+}
+
+.aos-tab__shield {
+  color: #60a5fa;
+}
+
+.aos-form__body {
+  border: 1px solid rgba(67, 112, 181, 0.54);
+  border-radius: 9px;
+  background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.aos-form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.aos-field {
+  min-width: 0;
+}
+
+.aos-field--xs {
+  grid-column: span 2;
+}
+
+.aos-field--sm {
+  grid-column: span 2;
+}
+
+.aos-field--md {
+  grid-column: span 3;
+}
+
+.aos-field--lg {
+  grid-column: span 5;
+}
+
+.aos-field--full {
+  grid-column: 1 / -1;
+}
+
+.aos-field label {
+  display: block;
+  margin: 0 0 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.aos-req {
+  color: #f87171;
+}
+
+.aos-field input,
+.aos-field select,
+.aos-field textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(8, 18, 40, 0.65);
+  color: #e6efff;
+  font-size: 0.88rem;
+}
+
+.aos-field input:read-only {
+  cursor: default;
+  color: #cbd5e1;
+}
+
+.aos-field input[type="date"] {
+  color-scheme: dark;
+}
+
+.aos-field textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.aos-field textarea::placeholder {
+  color: #64748b;
+}
+
+.aos-tab-placeholder {
+  padding: 32px 12px;
+  text-align: center;
+  color: #9cc0ef;
+  font-size: 0.9rem;
+}
+
+.aos-form__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.aos-form__footer--solo {
+  justify-content: flex-end;
+}
+
+.aos-form__footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aos-link-btn {
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  border-radius: 8px;
+  background: rgba(15, 35, 72, 0.5);
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.aos-link-btn:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.aos-link-btn.is-active {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(180deg, #ff981a, var(--main-orange, #f97316));
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.25);
+}
+
+/* ===== Painéis Geral (insumos, etapas…) ===== */
+.aos-painel {
+  margin-bottom: 14px;
+  border: 1px solid rgba(67, 112, 181, 0.54);
+  border-radius: 9px;
+  background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
+  overflow: hidden;
+}
+
+.aos-painel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.aos-painel__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #f8fbff;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.prefeitura-root #main h3.aos-painel__title {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 0.88rem;
+}
+
+.aos-painel__title-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.aos-painel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #9cc0ef;
+  cursor: pointer;
+}
+
+.aos-painel__close:hover {
+  color: #f8fbff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.aos-painel-table-scroll {
+  overflow-x: auto;
+}
+
+.aos-painel-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+}
+
+.aos-painel-table thead th {
+  text-align: left;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+  padding: 10px 14px;
+  background: rgba(26, 55, 104, 0.65);
+  white-space: nowrap;
+}
+
+.aos-painel-table tbody td {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(96, 165, 250, 0.15);
+  color: #e6efff;
+  font-size: 0.86rem;
+}
+
+.aos-painel-col-cod {
+  color: #f8fbff;
+  font-weight: 600;
+}
+
+.aos-painel-col-unid {
+  color: #c4b5fd;
+  font-weight: 600;
+}
+
+.aos-painel-col-obs {
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.aos-painel-col-total {
+  color: #f8fbff;
+  font-weight: 600;
+}
+
+.aos-painel-status {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.aos-painel-status--pendente {
+  color: #fbbf24;
+}
+
+.aos-painel-status--aguardando {
+  color: #93c5fd;
+}
+
+.aos-painel-empty {
+  margin: 0;
+  padding: 24px 14px;
+  text-align: center;
+  color: #9cc0ef;
+  font-size: 0.88rem;
+}
+
+.aos-painel-log {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px 14px;
+}
+
+.aos-painel-log__item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+.aos-painel-log__item:first-child {
+  padding-top: 4px;
+}
+
+.aos-painel-log__item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.aos-painel-log__meta {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #9cc0ef;
+  letter-spacing: 0.02em;
+}
+
+.aos-painel-log__msg {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #e6efff;
+}
+
+@media (max-width: 1100px) {
+  .aos-field--xs,
+  .aos-field--sm,
+  .aos-field--md,
+  .aos-field--lg {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 720px) {
+  .aos-form__top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .aos-form__top-actions {
+    width: 100%;
+  }
+
+  .aos-form__top-actions .aos-btn {
+    flex: 1;
+  }
+
+  .aos-field--xs,
+  .aos-field--sm,
+  .aos-field--md,
+  .aos-field--lg,
+  .aos-field--full {
+    grid-column: 1 / -1;
+  }
+
+  .aos-form__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .aos-form__footer-links {
+    justify-content: center;
+  }
+}
+
+/* ===== Aba Oficina ===== */
+.aos-oficina__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: var(--main-orange, #f97316);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prefeitura-root #main h2.aos-oficina__title {
+  margin: 0 0 16px;
+  color: var(--main-orange, #f97316);
+  font-size: 0.78rem;
+}
+
+.aos-oficina__title-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.aos-oficina__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.aos-oficina__regra {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.aos-oficina__regra-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.aos-oficina__regra p {
+  margin: 0;
+  color: #fcd34d;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.aos-oficina__regra strong {
+  color: #fdba74;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .aos-oficina__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Aba Máquina Parada ===== */
+.aos-mp__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: var(--main-orange, #f97316);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.prefeitura-root #main h2.aos-mp__title {
+  margin: 0 0 16px;
+  color: var(--main-orange, #f97316);
+  font-size: 0.78rem;
+}
+
+.aos-mp__title-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.aos-mp__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.aos-mp-card {
+  padding: 14px 16px;
+  border-radius: 9px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: rgba(8, 18, 40, 0.55);
+}
+
+.aos-mp-card__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.aos-mp-card__valor {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: capitalize;
+}
+
+.aos-mp-card__valor--danger {
+  color: #f87171;
+}
+
+.aos-mp-card__valor--warn {
+  color: #fbbf24;
+}
+
+.aos-mp-table-scroll {
+  overflow-x: auto;
+  border: 1px solid rgba(67, 112, 181, 0.54);
+  border-radius: 9px;
+  background: rgba(8, 18, 40, 0.45);
+}
+
+.aos-mp-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.aos-mp-table thead th {
+  text-align: left;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+  padding: 11px 12px;
+  background: #1a3768;
+  box-shadow: inset 0 -1px 0 rgba(96, 165, 250, 0.35);
+  white-space: nowrap;
+}
+
+.aos-mp-table tbody td {
+  padding: 11px 12px;
+  border-top: 1px solid rgba(96, 165, 250, 0.18);
+  color: #e6efff;
+  font-size: 0.84rem;
+  vertical-align: top;
+}
+
+.aos-mp-col-os {
+  color: #f8fbff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.aos-mp-col-equip {
+  color: #f8fbff;
+  font-weight: 500;
+  min-width: 180px;
+}
+
+.aos-mp-col-motivo {
+  min-width: 280px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+.aos-mp-col-dias {
+  white-space: nowrap;
+}
+
+.aos-mp-col-dias.is-alert {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.aos-mp-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aos-mp-badge--laranja {
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.aos-mp-badge--vermelho {
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.aos-mp-badge--verde {
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+@media (max-width: 900px) {
+  .aos-mp__cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Aba Garantia ===== */
+.aos-gar__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: var(--main-orange, #f97316);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.prefeitura-root #main h2.aos-gar__title {
+  margin: 0 0 16px;
+  color: var(--main-orange, #f97316);
+  font-size: 0.78rem;
+}
+
+.aos-gar__title-icon {
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.aos-gar__cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.aos-gar-card {
+  padding: 14px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: rgba(8, 18, 40, 0.55);
+  text-align: center;
+}
+
+.aos-gar-card__label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.aos-gar-card__valor {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.aos-gar-card__valor--warn {
+  color: #fbbf24;
+}
+
+.aos-gar-card__valor--ok {
+  color: #4ade80;
+}
+
+.aos-gar__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.aos-gar__busca {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(8, 18, 40, 0.65);
+  color: #e6efff;
+  font-size: 0.86rem;
+}
+
+.aos-gar__busca::placeholder {
+  color: #64748b;
+}
+
+.aos-gar__busca:disabled,
+.aos-gar__select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.aos-gar__select {
+  flex: 0 0 auto;
+  min-width: 150px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: rgba(8, 18, 40, 0.65);
+  color: #e6efff;
+  font-size: 0.84rem;
+}
+
+.aos-gar-table-scroll {
+  overflow-x: auto;
+  border: 1px solid rgba(67, 112, 181, 0.54);
+  border-radius: 9px;
+  background: rgba(8, 18, 40, 0.45);
+  margin-bottom: 14px;
+}
+
+.aos-gar-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+}
+
+.aos-gar-table thead th {
+  text-align: left;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+  padding: 11px 10px;
+  background: #1a3768;
+  box-shadow: inset 0 -1px 0 rgba(96, 165, 250, 0.35);
+  white-space: nowrap;
+}
+
+.aos-gar-table tbody td {
+  padding: 11px 10px;
+  border-top: 1px solid rgba(96, 165, 250, 0.18);
+  color: #e6efff;
+  font-size: 0.82rem;
+  vertical-align: top;
+}
+
+.aos-gar-col-os {
+  color: #f8fbff;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.aos-gar-empty {
+  padding: 28px 16px !important;
+  text-align: center;
+  color: #9cc0ef;
+  font-size: 0.88rem;
+}
+
+.aos-gar__regra {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.aos-gar__regra-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.aos-gar__regra p {
+  margin: 0;
+  color: #fcd34d;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.aos-gar__regra strong {
+  color: #fdba74;
+  font-weight: 700;
+}
+
+@media (max-width: 1000px) {
+  .aos-gar__cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .aos-gar__cards {
+    grid-template-columns: 1fr;
+  }
+
+  .aos-gar__select {
+    width: 100%;
+  }
+}
