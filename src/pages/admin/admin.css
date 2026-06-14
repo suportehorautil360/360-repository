@@ -1135,6 +1135,71 @@
   background: rgba(59, 130, 246, 0.16);
 }
 
+#acessos .ac-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+#acessos .ac-btn-acao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(7, 11, 22, 0.65);
+  color: var(--secondary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+#acessos .ac-btn-acao:hover:not(:disabled) {
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.45);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+#acessos .ac-btn-acao:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#acessos .ac-btn-acao--danger {
+  color: #fca5a5;
+}
+
+#acessos .ac-btn-acao--danger:hover:not(:disabled) {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+#acessos .ac-btn-acao__spin {
+  animation: ac-btn-acao-spin 0.8s linear infinite;
+}
+
+@keyframes ac-btn-acao-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#acessos .btn-text--danger {
+  color: #fca5a5;
+}
+
+#acessos .btn-text--danger:hover {
+  color: #fecaca;
+}
+
 /* ===== Oficinas e Postos — rede de parceiros (overview) ===== */
 #oficinas-postos .parc-grid {
   display: grid;
