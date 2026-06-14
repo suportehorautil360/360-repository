@@ -42,8 +42,8 @@ export interface CriarAcessoPayload {
   notificaWhatsapp?: boolean;
 }
 
-/** Contrato enviado no cadastro de cliente. */
-export interface CriarClienteContrato {
+/** Contrato de prestação de serviços (cadastro e consulta). */
+export interface ContratoClienteApi {
   numero: string;
   vigenciaInicio: string;
   objeto: string;
@@ -65,6 +65,9 @@ export interface CriarClienteContrato {
   qtdInicialAtivos?: number;
 }
 
+/** @deprecated Use ContratoClienteApi */
+export type CriarClienteContrato = ContratoClienteApi;
+
 export interface CriarClientePayload {
   nome: string;
   uf: string;
@@ -74,10 +77,10 @@ export interface CriarClientePayload {
   caepf?: string;
   cidade?: string;
   whatsapp?: string;
-  contrato: CriarClienteContrato;
+  contrato: ContratoClienteApi;
 }
 
-/** Doc cru de um cliente (GET /clientes/:id) — campos da empresa. */
+/** Cliente completo (GET /clientes/:id). */
 export interface ClienteApi {
   id: string;
   nome: string;
@@ -87,7 +90,8 @@ export interface ClienteApi {
   caepf?: string;
   cidade?: string;
   whatsapp?: string;
-  contrato?: { emailContratante?: string };
+  criadoEm?: string;
+  contrato?: ContratoClienteApi;
 }
 
 export const clientesApi = {
@@ -122,7 +126,7 @@ export const clientesApi = {
     const r = await api.get<{ data: AcessoApi[] }>(
       `/clientes/${clienteId}/acessos`,
     );
-    return r.data ?? [];
+    return Array.isArray(r.data) ? r.data : [];
   },
 
   /** Cria um acesso vinculado a um cliente. */

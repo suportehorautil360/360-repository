@@ -270,6 +270,21 @@ export function CadastroParceiroSection({
     { id: "financeiro", label: "💳 Financeiro / Contrato" },
   ];
 
+  const abasVisiveis = useMemo(
+    () =>
+      ABAS.filter((a) => {
+        if (a.id === "posto") return form.tipo === "posto";
+        if (a.id === "oficina") return form.tipo === "oficina";
+        return true;
+      }),
+    [form.tipo],
+  );
+
+  useEffect(() => {
+    if (abasVisiveis.some((a) => a.id === aba)) return;
+    setAba("dados");
+  }, [aba, abasVisiveis]);
+
   return (
     <>
       <h2>Cadastro do Parceiro</h2>
@@ -279,7 +294,7 @@ export function CadastroParceiroSection({
 
       <article className="card">
         <div className="parc-tabs" role="tablist">
-          {ABAS.map((a) => (
+          {abasVisiveis.map((a) => (
             <button
               key={a.id}
               type="button"

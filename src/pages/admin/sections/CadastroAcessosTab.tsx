@@ -1,3 +1,4 @@
+import { FileText, Loader2, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   clientesApi,
@@ -54,7 +55,9 @@ export function CadastroAcessosTab() {
   const [form, setForm] = useState<AcessoForm>(FORM_INICIAL);
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [loadingAcessos, setLoadingAcessos] = useState(false);
+  const [erroAcessos, setErroAcessos] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [baixandoContrato, setBaixandoContrato] = useState(false);
   const [msg, setMsg] = useState("");
   const [msgTone, setMsgTone] = useState<"none" | "ok" | "err">("none");
 
@@ -90,16 +93,26 @@ export function CadastroAcessosTab() {
   useEffect(() => {
     if (!selId) {
       setAcessos([]);
+      setErroAcessos(null);
+      setLoadingAcessos(false);
       return;
     }
     let ativo = true;
     void (async () => {
       setLoadingAcessos(true);
+      setErroAcessos(null);
       try {
         const lista = await clientesApi.listarAcessos(selId);
         if (ativo) setAcessos(lista);
-      } catch {
-        if (ativo) setAcessos([]);
+      } catch (err) {
+        if (ativo) {
+          setAcessos([]);
+          setErroAcessos(
+            err instanceof Error
+              ? err.message
+              : "Não foi possível carregar os acessos.",
+          );
+        }
       } finally {
         if (ativo) setLoadingAcessos(false);
       }
@@ -162,6 +175,65 @@ export function CadastroAcessosTab() {
     }
   }
 
+  async function baixarContrato() {
+    if (!selId || baixandoContrato) return;
+    setMsgTexto("none", "");
+    setBaixandoContrato(true);
+    try {
+      const cliente = await clientesApi.obter(selId);
+      if (!cliente) {
+        setMsgTexto("err", "Cliente não encontrado.");
+        return;
+      }
+      const { baixarContratoClientePdf } = await import("./clienteContratoPdf");
+      baixarContratoClientePdf(cliente);
+      setMsgTexto("ok", "Contrato exportado em PDF.");
+    } catch (err) {
+      setMsgTexto(
+        "err",
+        err instanceof Error
+          ? err.message
+          : "Não foi possível gerar o PDF do contrato.",
+      );
+    } finally {
+      setBaixandoContrato(false);
+    }
+  }
+
+  function celulaAcoes(removerAcesso?: { id: string; nome: string }) {
+    return (
+      <td className="ac-acoes">
+        <button
+          type="button"
+          className="ac-btn-acao"
+          disabled={!selId || baixandoContrato}
+          onClick={() => void baixarContrato()}
+          title={baixandoContrato ? "Gerando PDF…" : "Baixar contrato PDF"}
+          aria-label={
+            baixandoContrato ? "Gerando contrato PDF" : "Baixar contrato PDF"
+          }
+        >
+          {baixandoContrato ? (
+            <Loader2 size={16} className="ac-btn-acao__spin" aria-hidden />
+          ) : (
+            <FileText size={16} aria-hidden />
+          )}
+        </button>
+        {removerAcesso ? (
+          <button
+            type="button"
+            className="ac-btn-acao ac-btn-acao--danger"
+            onClick={() => remover(removerAcesso.id, removerAcesso.nome)}
+            title={`Remover acesso de ${removerAcesso.nome}`}
+            aria-label={`Remover acesso de ${removerAcesso.nome}`}
+          >
+            <Trash2 size={16} aria-hidden />
+          </button>
+        ) : null}
+      </td>
+    );
+  }
+
   const msgClass =
     msgTone === "none"
       ? "status"
@@ -178,7 +250,11 @@ export function CadastroAcessosTab() {
       <div className="row-2">
         <div>
           <label htmlFor="acSelCliente">Cliente (contrato) {REQ}</label>
-          <Select value={selId} onValueChange={setSelId}>
+          <Select
+            value={selCliente ? selId : undefined}
+            onValueChange={setSelId}
+            disabled={loadingClientes || clientes.length === 0}
+          >
             <SelectTrigger id="acSelCliente" className="admin-select">
               <SelectValue
                 placeholder={
@@ -338,11 +414,14 @@ export function CadastroAcessosTab() {
           <tbody>
             {acessos.length === 0 ? (
               <tr>
-                <td colSpan={7} className="topbar-user">
+                <td colSpan={6} className="topbar-user">
                   {loadingAcessos
-                    ? "Carregando..."
-                    : "Nenhum acesso cadastrado."}
+                    ? "Carregando acessos…"
+                    : erroAcessos
+                      ? erroAcessos
+                      : "Nenhum acesso cadastrado."}
                 </td>
+                {!loadingAcessos ? celulaAcoes() : <td />}
               </tr>
             ) : (
               acessos.map((a) => (
@@ -369,15 +448,7 @@ export function CadastroAcessosTab() {
                       {a.perfil === "admin" ? "Admin" : "Gestor"}
                     </span>
                   </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-text"
-                      onClick={() => remover(a.id, a.nome)}
-                    >
-                      Remover
-                    </button>
-                  </td>
+                  {celulaAcoes({ id: a.id, nome: a.nome })}
                 </tr>
               ))
             )}
