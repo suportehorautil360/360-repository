@@ -22,7 +22,12 @@ const cliente: ClienteApi = {
 describe("baixarContratoClientePdf", () => {
   it("rejeita cliente sem dados mínimos de contrato", () => {
     expect(() =>
-      baixarContratoClientePdf({ id: "x", nome: "X", uf: "SP", contrato: {} }),
+      baixarContratoClientePdf({
+        id: "x",
+        nome: "X",
+        uf: "SP",
+        contrato: { numero: "", vigenciaInicio: "", objeto: "" },
+      }),
     ).toThrow(/não possui dados de contrato/);
   });
 
