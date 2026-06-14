@@ -25,6 +25,14 @@ export default defineConfig({
       },
     },
   },
+  // `vite preview` usado pra servir o build no Render (Web Service).
+  // host:true bina em 0.0.0.0; allowedHosts libera o domínio do Render
+  // (Vite 8 bloqueia hosts desconhecidos por padrão).
+  preview: {
+    host: true,
+    port: Number(process.env.PORT) || 10000,
+    allowedHosts: [".onrender.com"],
+  },
   plugins: [
     react(),
     tailwindcss(),
