@@ -30,6 +30,7 @@ import { FrentesTrabalhoSection } from "./sections/FrentesTrabalhoSection";
 import { AlocacaoSection } from "./sections/AlocacaoSection";
 import { RevisoesSection } from "./sections/RevisoesSection";
 import { PreventivaSection } from "./sections/PreventivaSection";
+import { PlanoPreventivoSection } from "./sections/PlanoPreventivoSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
@@ -350,7 +351,9 @@ export function PrefeituraPage() {
       case "funcionarios":
         return <FuncionariosSection prefeituraId={prefeituraId} />;
       case "abrir-os":
-        return <AbrirOsSection dados={dados!} prefeituraId={prefeituraId} />;
+        return <AbrirOsSection prefeituraId={prefeituraId} />;
+      case "plano-preventivo":
+        return <PlanoPreventivoSection prefeituraId={prefeituraId} />;
       case "orcamentos":
         return <OrcamentosSection prefeituraId={prefeituraId} />;
       case "pagamentos":
