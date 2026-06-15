@@ -166,7 +166,7 @@ export function ClientesSection() {
                 <th>Custo acumulado</th>
                 <th>O.S. em cotação</th>
                 <th>O.S. NF / pagamento</th>
-                <th>Abrir painel</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -206,13 +206,28 @@ export function ClientesSection() {
                       {c.tipoCliente === "locacao" ? "—" : c.osNfPagamento}
                     </td>
                     <td className="hub-dash-action">
-                      <button
-                        type="button"
-                        className="btn btn-primary hub-dash-btn"
-                        onClick={() => abrirPainel(c)}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          justifyContent: "flex-end",
+                        }}
                       >
-                        Abrir painel
-                      </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary hub-dash-btn"
+                          onClick={() => navigate(`/admin/cadastros/${c.id}`)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary hub-dash-btn"
+                          onClick={() => abrirPainel(c)}
+                        >
+                          Abrir painel
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

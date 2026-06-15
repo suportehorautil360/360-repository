@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { clientesApi } from "../../../lib/api/clientes";
+import { useNavigate, useParams } from "react-router-dom";
+import { clientesApi, type ClienteApi } from "../../../lib/api/clientes";
 import type { TipoCliente } from "../../../lib/hu360";
 import { CadastroAcessosTab } from "./CadastroAcessosTab";
 import {
@@ -96,12 +96,47 @@ const FORM_INICIAL: FormState = {
   observacoes: "",
 };
 
+/** Documento do cliente (banco) → estado do formulário, para o modo edição. */
+function clienteParaForm(c: ClienteApi): FormState {
+  const ct = c.contrato ?? {};
+  return {
+    tipoCliente: (c.tipoCliente ?? "prefeitura") as TipoCliente,
+    nome: c.nome ?? "",
+    uf: c.uf ?? "",
+    email: ct.emailContratante ?? "",
+    cnpj: c.cnpj ?? "",
+    caepf: c.caepf ?? "",
+    cidade: c.cidade ?? "",
+    whatsapp: c.whatsapp ?? "",
+    numero: ct.numero ?? "",
+    processo: ct.processo ?? "",
+    modalidade: ct.modalidade || "pregao_eletronico",
+    vigenciaInicio: ct.vigenciaInicio ?? "",
+    vigenciaFim: ct.vigenciaFim ?? "",
+    objeto: ct.objeto ?? "",
+    qtdAtivos: ct.qtdInicialAtivos != null ? String(ct.qtdInicialAtivos) : "",
+    resp: ct.responsavelContratante ?? "",
+    status: ct.status || "ativo",
+    dataAssinatura: ct.dataAssinatura ?? "",
+    periodicidade: ct.periodicidadeFaturamento || "mensal",
+    valorMensal: ct.valorMensal ?? "",
+    valorTotal: ct.valorTotal ?? "",
+    indiceReajuste: ct.indiceReajuste ?? "",
+    slaHoras: ct.slaRespostaHoras ?? "",
+    cargo: ct.cargoContratante ?? "",
+    telefone: ct.telefoneContratante ?? "",
+    observacoes: ct.observacoes ?? "",
+  };
+}
+
 const REQ = <span style={{ color: "#f87171" }}>*</span>;
 
 type Aba = "contrato" | "acessos";
 
 export function CadastroClientesSection() {
   const navigate = useNavigate();
+  const { clienteId } = useParams<{ clienteId?: string }>();
+  const ehEdicao = !!clienteId;
   const [aba, setAba] = useState<Aba>("contrato");
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [avancado, setAvancado] = useState(false);
@@ -110,6 +145,30 @@ export function CadastroClientesSection() {
   const [msgTone, setMsgTone] = useState<"none" | "ok" | "err">("none");
 
   const isLoc = form.tipoCliente === "locacao";
+
+  // Modo edição: carrega o cliente e pré-preenche o formulário.
+  useEffect(() => {
+    if (!clienteId) return;
+    let ativo = true;
+    void (async () => {
+      try {
+        const c = await clientesApi.obter(clienteId);
+        if (!ativo) return;
+        if (c) setForm(clienteParaForm(c));
+        else setMsgTexto("err", "Cliente não encontrado.");
+      } catch (err) {
+        if (ativo) {
+          setMsgTexto(
+            "err",
+            err instanceof Error ? err.message : "Falha ao carregar o cliente.",
+          );
+        }
+      }
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [clienteId]);
 
   const introTexto = useMemo(() => {
     if (isLoc) {
@@ -157,44 +216,51 @@ export function CadastroClientesSection() {
     e.preventDefault();
     setMsgTexto("none", "");
     setLoading(true);
+    const payload = {
+      nome: form.nome,
+      uf: form.uf,
+      tipoCliente: form.tipoCliente,
+      cnpj: form.cnpj.trim(),
+      caepf: form.caepf.trim(),
+      cidade: form.cidade.trim(),
+      whatsapp: form.whatsapp.trim(),
+      contrato: {
+        numero: form.numero.trim(),
+        processo: isLoc ? "" : form.processo.trim(),
+        modalidade: isLoc ? "contrato_privado_locacao" : form.modalidade,
+        dataAssinatura: form.dataAssinatura,
+        vigenciaInicio: form.vigenciaInicio,
+        vigenciaFim: form.vigenciaFim,
+        objeto: form.objeto.trim(),
+        valorMensal: form.valorMensal.trim(),
+        valorTotal: form.valorTotal.trim(),
+        indiceReajuste: form.indiceReajuste.trim(),
+        periodicidadeFaturamento: form.periodicidade,
+        slaRespostaHoras: form.slaHoras.trim(),
+        responsavelContratante: form.resp.trim(),
+        cargoContratante: form.cargo.trim(),
+        emailContratante: form.email.trim(),
+        telefoneContratante: form.telefone.trim(),
+        observacoes: form.observacoes.trim(),
+        status: form.status,
+        qtdInicialAtivos: form.qtdAtivos.trim() ? Number(form.qtdAtivos) : 0,
+      },
+    };
     try {
-      const { id } = await clientesApi.criar({
-        nome: form.nome,
-        uf: form.uf,
-        tipoCliente: form.tipoCliente,
-        cnpj: form.cnpj.trim(),
-        caepf: form.caepf.trim(),
-        cidade: form.cidade.trim(),
-        whatsapp: form.whatsapp.trim(),
-        contrato: {
-          numero: form.numero.trim(),
-          processo: isLoc ? "" : form.processo.trim(),
-          modalidade: isLoc ? "contrato_privado_locacao" : form.modalidade,
-          dataAssinatura: form.dataAssinatura,
-          vigenciaInicio: form.vigenciaInicio,
-          vigenciaFim: form.vigenciaFim,
-          objeto: form.objeto.trim(),
-          valorMensal: form.valorMensal.trim(),
-          valorTotal: form.valorTotal.trim(),
-          indiceReajuste: form.indiceReajuste.trim(),
-          periodicidadeFaturamento: form.periodicidade,
-          slaRespostaHoras: form.slaHoras.trim(),
-          responsavelContratante: form.resp.trim(),
-          cargoContratante: form.cargo.trim(),
-          emailContratante: form.email.trim(),
-          telefoneContratante: form.telefone.trim(),
-          observacoes: form.observacoes.trim(),
-          status: form.status,
-          qtdInicialAtivos: form.qtdAtivos.trim()
-            ? Number(form.qtdAtivos)
-            : 0,
-        },
-      });
-      setMsgTexto(
-        "ok",
-        `Cliente cadastrado: ${form.nome.trim()} (${form.uf.toUpperCase()}). ID interno: ${id || "—"}.`,
-      );
-      setForm({ ...FORM_INICIAL, tipoCliente: form.tipoCliente });
+      if (ehEdicao && clienteId) {
+        await clientesApi.atualizar(clienteId, payload);
+        setMsgTexto(
+          "ok",
+          `Cliente atualizado: ${form.nome.trim()} (${form.uf.toUpperCase()}).`,
+        );
+      } else {
+        const { id } = await clientesApi.criar(payload);
+        setMsgTexto(
+          "ok",
+          `Cliente cadastrado: ${form.nome.trim()} (${form.uf.toUpperCase()}). ID interno: ${id || "—"}.`,
+        );
+        setForm({ ...FORM_INICIAL, tipoCliente: form.tipoCliente });
+      }
     } catch (err) {
       setMsgTexto(
         "err",
@@ -214,7 +280,7 @@ export function CadastroClientesSection() {
 
   return (
     <section id="acessos" className="aba-conteudo ativa">
-      <h2>Cadastro de clientes</h2>
+      <h2>{ehEdicao ? "Editar cliente" : "Cadastro de clientes"}</h2>
       <p className="topbar-user" style={{ marginBottom: 16 }}>
         Contrato de prestação de serviços e gestão de acessos por cliente.
       </p>
@@ -652,7 +718,11 @@ export function CadastroClientesSection() {
                 type="submit"
                 disabled={loading}
               >
-                {loading ? "Salvando..." : "Salvar cliente e contrato"}
+                {loading
+                  ? "Salvando..."
+                  : ehEdicao
+                    ? "Salvar alterações"
+                    : "Salvar cliente e contrato"}
               </button>
             </div>
             <div id="msgPrefeituras" className={msgClass} role="status">

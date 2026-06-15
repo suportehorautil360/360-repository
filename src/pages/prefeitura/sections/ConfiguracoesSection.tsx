@@ -6,7 +6,6 @@ import {
   configuracoesApi,
   configPadrao,
   empresaCompleta,
-  mesclarEmpresaCliente,
   type Configuracao,
 } from "../../../lib/api/configuracoes";
 import { clientesApi } from "../../../lib/api/clientes";
@@ -62,15 +61,20 @@ function ToggleRow({
 function CampoEmpresa({
   rotulo,
   valor,
+  onChange,
   hint,
   largura = "metade",
+  placeholder = "Não informado",
+  type = "text",
 }: {
   rotulo: string;
   valor: string;
+  onChange: (v: string) => void;
   hint?: string;
   largura?: "metade" | "inteira";
+  placeholder?: string;
+  type?: string;
 }) {
-  const texto = valor.trim();
   return (
     <div
       className={`cfg__campo${largura === "inteira" ? " cfg__campo--full" : ""}`}
@@ -79,11 +83,13 @@ function CampoEmpresa({
         {rotulo}
         {hint ? <span className="cfg__opt"> {hint}</span> : null}
       </span>
-      <p
-        className={`cfg__campo-valor${texto ? "" : " cfg__campo-valor--vazio"}`}
-      >
-        {texto || "Não informado"}
-      </p>
+      <input
+        className="cfg__campo-input"
+        type={type}
+        value={valor}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }
@@ -103,11 +109,20 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
       const [cfg, esc, cliente] = await Promise.all([
         configuracoesApi.obter(prefeituraId),
         escalaApi.obter(prefeituraId).catch(() => null),
-        // Dados da empresa cadastrados no /admin — pré-preenchem o que estiver
-        // vazio aqui (a config salva sempre prevalece).
+        // O cliente (cadastro no /admin) é a fonte única dos dados da empresa.
         clientesApi.obter(prefeituraId).catch(() => null),
       ]);
-      const emp = mesclarEmpresaCliente(cfg.empresa, cliente);
+      // Cliente prevalece; só cai na config salva como retrocompat (legado).
+      const emp: Configuracao["empresa"] = {
+        razaoSocial: cliente?.nome || cfg.empresa.razaoSocial || "",
+        cnpj: cliente?.cnpj || cfg.empresa.cnpj || "",
+        caepf: cliente?.caepf || cfg.empresa.caepf || "",
+        cidade: cliente?.cidade || cfg.empresa.cidade || "",
+        estado: cliente?.uf || cfg.empresa.estado || "",
+        emailAlertas:
+          cliente?.contrato?.emailContratante || cfg.empresa.emailAlertas || "",
+        whatsappNumero: cliente?.whatsapp || cfg.empresa.whatsappNumero || "",
+      };
       const rawWhats = emp.whatsappNumero;
       setConfig({
         ...cfg,
@@ -147,6 +162,36 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
     setConfig((c) => ({ ...c, alertas: { ...c.alertas, [k]: v } }));
   const setBloqueio = (k: keyof Configuracao["bloqueio"], v: boolean) =>
     setConfig((c) => ({ ...c, bloqueio: { ...c.bloqueio, [k]: v } }));
+  const setEmpresa = (k: keyof Configuracao["empresa"], v: string) =>
+    setConfig((c) => ({ ...c, empresa: { ...c.empresa, [k]: v } }));
+
+  /** Grava os dados da empresa no cadastro de Clientes (fonte única). */
+  async function salvarEmpresa() {
+    if (salvando) return;
+    setSalvando(true);
+    try {
+      const e = config.empresa;
+      const payload: Parameters<typeof clientesApi.atualizar>[1] = {
+        cnpj: e.cnpj.trim(),
+        caepf: e.caepf.trim(),
+        cidade: e.cidade.trim(),
+        whatsapp: (toE164(e.whatsappNumero) ?? e.whatsappNumero ?? "").trim(),
+        contrato: { emailContratante: e.emailAlertas.trim() },
+      };
+      // nome/uf têm validação no backend — só envia quando preenchidos.
+      if (e.razaoSocial.trim()) payload.nome = e.razaoSocial.trim();
+      if (e.estado.trim()) payload.uf = e.estado.trim();
+      await clientesApi.atualizar(prefeituraId, payload);
+      toast.success("Dados da empresa salvos.");
+      await carregar();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível salvar.",
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   if (carregando) {
     return (
@@ -175,8 +220,8 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               <h2>Dados da empresa</h2>
             </header>
             <p className="cfg__card-sub">
-              Cadastro feito no Hub Mestre — aqui é só consulta. Para alterar,
-              use <strong>Gestão → Clientes</strong> no admin.
+              Mesma ficha do cadastro de <strong>Clientes</strong> no admin —
+              editar aqui altera a fonte única usada nos documentos legais.
             </p>
             {!empresaCompleta(config.empresa) && (
               <p className="cfg__aviso" role="status">
@@ -191,27 +236,58 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               <CampoEmpresa
                 rotulo="Razão social"
                 valor={config.empresa.razaoSocial}
+                onChange={(v) => setEmpresa("razaoSocial", v)}
                 largura="inteira"
               />
-              <CampoEmpresa rotulo="CNPJ" valor={config.empresa.cnpj} />
+              <CampoEmpresa
+                rotulo="CNPJ"
+                valor={config.empresa.cnpj}
+                onChange={(v) => setEmpresa("cnpj", v)}
+              />
               <CampoEmpresa
                 rotulo="CAEPF/CEI"
                 hint="(se não houver CNPJ)"
                 valor={config.empresa.caepf}
+                onChange={(v) => setEmpresa("caepf", v)}
               />
-              <CampoEmpresa rotulo="Cidade" valor={config.empresa.cidade} />
-              <CampoEmpresa rotulo="Estado" valor={config.empresa.estado} />
+              <CampoEmpresa
+                rotulo="Cidade"
+                valor={config.empresa.cidade}
+                onChange={(v) => setEmpresa("cidade", v)}
+              />
+              <CampoEmpresa
+                rotulo="Estado"
+                hint="(UF)"
+                valor={config.empresa.estado}
+                onChange={(v) => setEmpresa("estado", v.toUpperCase().slice(0, 2))}
+                placeholder="SP"
+              />
               <CampoEmpresa
                 rotulo="E-mail para alertas"
+                type="email"
                 valor={config.empresa.emailAlertas}
+                onChange={(v) => setEmpresa("emailAlertas", v)}
                 largura="inteira"
               />
               <CampoEmpresa
                 rotulo="WhatsApp para emergências"
                 hint="(DDI + DDD)"
                 valor={config.empresa.whatsappNumero}
+                onChange={(v) => setEmpresa("whatsappNumero", v)}
                 largura="inteira"
+                placeholder="+55 (67) 99999-9999"
               />
+            </div>
+            <div className="cfg__card-foot">
+              <button
+                type="button"
+                className="cfg__btn cfg__btn--primary"
+                onClick={() => void salvarEmpresa()}
+                disabled={salvando}
+              >
+                <Save size={14} aria-hidden="true" />{" "}
+                {salvando ? "Salvando…" : "Salvar dados da empresa"}
+              </button>
             </div>
           </section>
 
