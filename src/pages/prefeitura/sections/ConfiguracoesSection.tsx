@@ -10,6 +10,7 @@ import {
 } from "../../../lib/api/configuracoes";
 import { clientesApi } from "../../../lib/api/clientes";
 import { toE164 } from "@/lib/phone";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { EscalaConfig } from "./EscalaConfig";
 import "./configuracoes.css";
 
@@ -269,14 +270,18 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
                 onChange={(v) => setEmpresa("emailAlertas", v)}
                 largura="inteira"
               />
-              <CampoEmpresa
-                rotulo="WhatsApp para emergências"
-                hint="(DDI + DDD)"
-                valor={config.empresa.whatsappNumero}
-                onChange={(v) => setEmpresa("whatsappNumero", v)}
-                largura="inteira"
-                placeholder="+55 (67) 99999-9999"
-              />
+              <div className="cfg__campo cfg__campo--full">
+                <span className="cfg__campo-rotulo">
+                  WhatsApp para emergências
+                  <span className="cfg__opt"> (DDI + DDD)</span>
+                </span>
+                <PhoneInput
+                  id="empresaWhatsapp"
+                  value={config.empresa.whatsappNumero || undefined}
+                  onChange={(v) => setEmpresa("whatsappNumero", v ?? "")}
+                  placeholder="(67) 99999-9999"
+                />
+              </div>
             </div>
             <div className="cfg__card-foot">
               <button
