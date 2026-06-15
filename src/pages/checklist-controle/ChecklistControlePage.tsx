@@ -1279,10 +1279,19 @@ export function ChecklistControlePage() {
   // filtrar ao vivo (instantâneo e disponível offline via cache do Firestore).
   useEffect(() => {
     if (aba !== "checklist" || frotaBuscaCarregada) return;
+    // Isolamento por empresa: sem cliente na sessão não carrega nada (não vaza
+    // a frota de outras prefeituras no autocomplete).
+    const prefId = session?.idCliente ?? "";
+    if (!prefId) return;
     let ativo = true;
     void (async () => {
       try {
-        const snap = await getDocs(collection(db, "equipamentos"));
+        const snap = await getDocs(
+          query(
+            collection(db, "equipamentos"),
+            where("prefeituraId", "==", prefId),
+          ),
+        );
         if (!ativo) return;
         setFrotaBusca(snap.docs.map((d) => montarEquip(d.id, d.data())));
         setFrotaBuscaCarregada(true);
@@ -1293,7 +1302,7 @@ export function ChecklistControlePage() {
     return () => {
       ativo = false;
     };
-  }, [aba, frotaBuscaCarregada]);
+  }, [aba, frotaBuscaCarregada, session?.idCliente]);
 
   // Sugestões filtradas ao vivo pelo trecho digitado (chassi ou modelo/nome).
   // Comparação só por letras/números (ignora pontos, hífens, espaços) para
@@ -1500,19 +1509,30 @@ export function ChecklistControlePage() {
     setBuscandoChassis(true);
     try {
       // 1) Match exato (rápido): normalizado e, em fallback, o valor digitado.
+      // Restringe à empresa do operador — o chassi pode repetir entre clientes,
+      // então nunca abrir um equipamento de outra prefeitura.
+      const prefIdExato = session?.idCliente ?? "";
+      const daEmpresa = (data: Record<string, unknown>) =>
+        !prefIdExato || String(data.prefeituraId ?? "") === prefIdExato;
       let snap = await getDocs(
         query(
           collection(db, "equipamentos"),
           where("chassis", "==", normalizado),
         ),
       );
-      if (snap.empty) {
+      let achado = snap.docs.find((d) =>
+        daEmpresa(d.data() as Record<string, unknown>),
+      );
+      if (!achado) {
         snap = await getDocs(
           query(collection(db, "equipamentos"), where("chassis", "==", draft)),
         );
+        achado = snap.docs.find((d) =>
+          daEmpresa(d.data() as Record<string, unknown>),
+        );
       }
-      if (!snap.empty) {
-        abrirParaEquip(montarEquip(snap.docs[0].id, snap.docs[0].data()));
+      if (achado) {
+        abrirParaEquip(montarEquip(achado.id, achado.data()));
         return;
       }
 
@@ -2108,24 +2128,36 @@ export function ChecklistControlePage() {
     setSalvandoEmerg(true);
     try {
       let prefeituraId = "";
+      const prefIdSessao = session.idCliente ?? "";
       if (maquinaDaSessao?.Chassis) {
         const chassisNorm = normalizeChassis(String(maquinaDaSessao.Chassis));
+        // Resolve só dentro da empresa do operador (chassi pode repetir).
+        const naEmpresa = (data: Record<string, unknown>) =>
+          !prefIdSessao || String(data.prefeituraId ?? "") === prefIdSessao;
         let eqSnap = await getDocs(
           query(
             collection(db, "equipamentos"),
             where("chassis", "==", chassisNorm),
           ),
         );
-        if (eqSnap.empty) {
+        let eqDoc = eqSnap.docs.find((d) =>
+          naEmpresa(d.data() as Record<string, unknown>),
+        );
+        if (!eqDoc) {
           eqSnap = await getDocs(
             query(
               collection(db, "equipamentos"),
               where("chassis", "==", String(maquinaDaSessao.Chassis)),
             ),
           );
+          eqDoc = eqSnap.docs.find((d) =>
+            naEmpresa(d.data() as Record<string, unknown>),
+          );
         }
-        if (!eqSnap.empty) {
-          prefeituraId = String(eqSnap.docs[0].data().prefeituraId ?? "");
+        if (eqDoc) {
+          prefeituraId = String(
+            (eqDoc.data() as Record<string, unknown>).prefeituraId ?? "",
+          );
         }
       }
 
