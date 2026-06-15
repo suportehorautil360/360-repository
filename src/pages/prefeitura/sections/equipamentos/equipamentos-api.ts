@@ -51,6 +51,8 @@ export interface NovoEquip {
   medicaoAtual: number;
   intervaloRevisao: number;
   condutorResponsavel: string;
+  /** Condutores do comboio (ids de funcionários motoristas). Só p/ tipo Comboio. */
+  condutoresResponsaveis: string[];
   gestorResponsavel: string;
   // Localização
   centroCusto: string;
@@ -347,6 +349,7 @@ function montarPayload(input: NovoEquip, prefeituraId: string) {
     intervaloRevisao: input.intervaloRevisao,
     unidadeRevisao: unitForTipo(input.tipo),
     condutorResponsavel: input.condutorResponsavel,
+    condutoresResponsaveis: input.condutoresResponsaveis,
     gestorResponsavel: input.gestorResponsavel,
     centroCusto: input.centroCusto,
     cidade: input.cidade,
