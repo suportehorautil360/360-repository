@@ -1,6 +1,10 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { clientesApi, type ClienteApi } from "../../../lib/api/clientes";
+import {
+  clientesApi,
+  type ClienteApi,
+  type ContratoClienteApi,
+} from "../../../lib/api/clientes";
 import { formatarCnpj } from "../../../lib/funcionarios/cnpj";
 import type { TipoCliente } from "../../../lib/hu360";
 import { CadastroAcessosTab } from "./CadastroAcessosTab";
@@ -99,7 +103,7 @@ const FORM_INICIAL: FormState = {
 
 /** Documento do cliente (banco) → estado do formulário, para o modo edição. */
 function clienteParaForm(c: ClienteApi): FormState {
-  const ct = c.contrato ?? {};
+  const ct: Partial<ContratoClienteApi> = c.contrato ?? {};
   return {
     tipoCliente: (c.tipoCliente ?? "prefeitura") as TipoCliente,
     nome: c.nome ?? "",

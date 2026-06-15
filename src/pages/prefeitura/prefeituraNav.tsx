@@ -20,6 +20,7 @@ export const SECOES_REAIS = new Set([
   "cadastros",
   "funcionarios",
   "abrir-os",
+  "plano-preventivo",
   "orcamentos",
   "pagamentos",
   "auditoria-checklists",
@@ -54,7 +55,8 @@ export const SECAO_LABEL: Record<string, string> = {
   equipamentos: "Equipamentos",
   cadastros: "Cadastros",
   funcionarios: "Funcionários",
-  "abrir-os": "Abrir O.S.",
+  "abrir-os": "Abrir OS",
+  "plano-preventivo": "Plano preventivo",
   orcamentos: "Orçamentos e Aprovações",
   "auditoria-devolucao": "Auditoria de Devolução",
   "auditoria-checklists": "Auditoria de Checklists",
@@ -141,6 +143,16 @@ export function prefeituraNav(
     {
       label: "Manutenção",
       items: [
+        {
+          label: "Abrir OS",
+          to: to("abrir-os"),
+          icon: "📄",
+        },
+        {
+          label: "Plano preventivo",
+          to: to("plano-preventivo"),
+          icon: "📅",
+        },
         {
           label: "Preventiva",
           to: to("revisoes"),
