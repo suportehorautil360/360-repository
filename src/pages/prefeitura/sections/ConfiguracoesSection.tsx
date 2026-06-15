@@ -9,6 +9,7 @@ import {
   type Configuracao,
 } from "../../../lib/api/configuracoes";
 import { clientesApi } from "../../../lib/api/clientes";
+import { formatarCnpj } from "../../../lib/funcionarios/cnpj";
 import { toE164 } from "@/lib/phone";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { EscalaConfig } from "./EscalaConfig";
@@ -242,8 +243,9 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
               />
               <CampoEmpresa
                 rotulo="CNPJ"
-                valor={config.empresa.cnpj}
-                onChange={(v) => setEmpresa("cnpj", v)}
+                valor={formatarCnpj(config.empresa.cnpj)}
+                onChange={(v) => setEmpresa("cnpj", formatarCnpj(v))}
+                placeholder="00.000.000/0000-00"
               />
               <CampoEmpresa
                 rotulo="CAEPF/CEI"

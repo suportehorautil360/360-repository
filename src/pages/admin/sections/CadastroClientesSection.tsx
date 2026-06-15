@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { clientesApi, type ClienteApi } from "../../../lib/api/clientes";
+import { formatarCnpj } from "../../../lib/funcionarios/cnpj";
 import type { TipoCliente } from "../../../lib/hu360";
 import { CadastroAcessosTab } from "./CadastroAcessosTab";
 import {
@@ -104,7 +105,7 @@ function clienteParaForm(c: ClienteApi): FormState {
     nome: c.nome ?? "",
     uf: c.uf ?? "",
     email: ct.emailContratante ?? "",
-    cnpj: c.cnpj ?? "",
+    cnpj: formatarCnpj(c.cnpj ?? ""),
     caepf: c.caepf ?? "",
     cidade: c.cidade ?? "",
     whatsapp: c.whatsapp ?? "",
@@ -394,7 +395,7 @@ export function CadastroClientesSection() {
                     id="ctrCnpj"
                     placeholder="12.345.678/0001-90"
                     value={form.cnpj}
-                    onChange={(e) => update("cnpj", e.target.value)}
+                    onChange={(e) => update("cnpj", formatarCnpj(e.target.value))}
                   />
                 </div>
                 <div>
