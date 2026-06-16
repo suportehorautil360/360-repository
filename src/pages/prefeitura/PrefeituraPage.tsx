@@ -13,7 +13,7 @@ import { FuncionariosSection } from "./sections/FuncionariosSection";
 import { FuncionarioFormPage } from "./sections/FuncionarioFormPage";
 import { HistoricoPontoSection } from "./sections/HistoricoPontoSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
-import { OrcamentosSection } from "./sections/OrcamentosSection";
+import { OrcamentosAprovacoesSection } from "./sections/OrcamentosAprovacoesSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoVisaoGeralSection } from "./sections/AbastecimentoVisaoGeralSection";
 import { ConsumoCustoSection } from "./sections/ConsumoCustoSection";
@@ -31,6 +31,7 @@ import { AlocacaoSection } from "./sections/AlocacaoSection";
 import { RevisoesSection } from "./sections/RevisoesSection";
 import { PreventivaSection } from "./sections/PreventivaSection";
 import { PlanoPreventivoSection } from "./sections/PlanoPreventivoSection";
+import { AuditoriaDevolucaoSection } from "./sections/AuditoriaDevolucaoSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
@@ -355,11 +356,13 @@ export function PrefeituraPage() {
       case "plano-preventivo":
         return <PlanoPreventivoSection prefeituraId={prefeituraId} />;
       case "orcamentos":
-        return <OrcamentosSection prefeituraId={prefeituraId} />;
+        return <OrcamentosAprovacoesSection prefeituraId={prefeituraId} />;
       case "pagamentos":
         return (
           <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />
         );
+      case "auditoria-devolucao":
+        return <AuditoriaDevolucaoSection prefeituraId={prefeituraId} />;
       case "auditoria-checklists":
         return <AuditoriaSection prefeituraId={prefeituraId} />;
       case "riscos":
