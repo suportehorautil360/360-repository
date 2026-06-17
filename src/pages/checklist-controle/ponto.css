@@ -672,6 +672,36 @@
 .folha-modal__salvar--azul:hover {
   background: #3f7fcb;
 }
+
+/*
+ * Mobile (PWA): o modal vira TELA CHEIA. Em telas pequenas o cartão
+ * centralizado fica apertado e some atrás do teclado. Aqui neutralizamos o
+ * posicionamento centralizado do DialogContent (top/left 50% + translate, que
+ * vêm das utilities do Tailwind) e preenchemos a viewport, respeitando a
+ * safe-area do iPhone (notch em cima, barra de gestos embaixo). Como estas
+ * regras ficam fora das @layer do Tailwind, vencem as utilities sem !important.
+ */
+@media (max-width: 640px) {
+  .folha-dialog {
+    inset: 0;
+    top: 0;
+    left: 0;
+    transform: none;
+    translate: none;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .folha-modal__head {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
+  .folha-modal__body {
+    flex: 1;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  }
+}
 .folha-modal__anexo {
   display: flex;
   align-items: center;
