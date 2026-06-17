@@ -9,7 +9,7 @@ import { useHU360, type Prefeitura } from "../../../lib/hu360";
 import { useLogin } from "../../login/hooks/use-login";
 import { useAccess } from "../hooks/access/use-access";
 import { usePostos } from "../hooks/postos/use-postos";
-import { useOficinas } from "../hooks/oficinas/use-oficinas";
+import { clientesApi } from "../../../lib/api/clientes";
 import type { UsuarioFirestore } from "../hooks/access/types";
 import type { PostoFirestore } from "../hooks/postos/types";
 import type { OficinaFirestore } from "../hooks/oficinas/types";
@@ -67,7 +67,6 @@ export function AcessosLoginsSection() {
     removerUsuario: removerUsuarioFirestore,
   } = useAccess();
   const { listarPostosAtivos } = usePostos();
-  const { listarOficinas } = useOficinas();
 
   const [usuarios, setUsuarios] = useState<UsuarioFirestore[]>([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
@@ -164,12 +163,24 @@ export function AcessosLoginsSection() {
     if (!selMunOfi) return;
     setOficinasDoMun([]);
     setSelOfiId("");
-    void listarOficinas(selMunOfi).then((lista) => {
-      const ativas = lista.filter((o) => o.status === "Ativa");
-      setOficinasDoMun(ativas);
-      if (ativas[0]) setSelOfiId(ativas[0].id);
-    });
-  }, [selMunOfi, listarOficinas]);
+    void clientesApi
+      .listarOficinasCredenciadas(selMunOfi)
+      .then((lista) => {
+        const ativas: OficinaFirestore[] = lista
+          .filter((o) => o.status === "Ativa")
+          .map((o) => ({
+            id: o.id,
+            prefeituraId: selMunOfi,
+            nome: o.nome,
+            especialidade: o.especialidade,
+            status: o.status,
+            createdAt: "",
+          }));
+        setOficinasDoMun(ativas);
+        if (ativas[0]) setSelOfiId(ativas[0].id);
+      })
+      .catch(() => setOficinasDoMun([]));
+  }, [selMunOfi]);
 
   useEffect(() => {
     if (selPostoCred && !postosDoMun.some((p) => p.id === selPostoCred)) {

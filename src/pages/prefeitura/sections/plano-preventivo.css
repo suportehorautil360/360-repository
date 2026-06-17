@@ -73,8 +73,25 @@
   color: #93c5fd;
 }
 
-.pp-btn:hover {
+.pp-btn:hover:not(:disabled) {
   filter: brightness(1.06);
+}
+
+.pp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pp-loading {
+  padding: 2rem 1rem;
+  color: #9cc0ef;
+  text-align: center;
+}
+
+.pp-erro {
+  margin-top: 0.75rem;
+  color: #f87171;
+  font-size: 0.9rem;
 }
 
 .pp-table-scroll {

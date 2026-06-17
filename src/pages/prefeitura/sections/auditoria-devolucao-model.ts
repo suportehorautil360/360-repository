@@ -50,9 +50,132 @@ export function labelStatusOs(status: string): string {
   );
 }
 
-export const FORMATO_OPCOES = [
-  { value: "csv", label: "CSV (Excel)" },
-] as const;
+export interface ObservacaoAuditoriaFormatada {
+  titulo: string | null;
+  itens: string[];
+  resumo: string;
+  exportText: string;
+  ehLista: boolean;
+}
+
+/** Normaliza relato longo (preventivo ou texto com bullets) para exibição e export. */
+export function formatarObservacaoAuditoria(
+  texto: string,
+): ObservacaoAuditoriaFormatada {
+  const bruto = texto?.trim() || "—";
+  if (bruto === "—") {
+    return {
+      titulo: null,
+      itens: [],
+      resumo: "—",
+      exportText: "—",
+      ehLista: false,
+    };
+  }
+
+  let titulo: string | null = null;
+  let corpo = bruto;
+
+  const tituloPreventiva = /^Manutenção preventiva\s*—\s*[^\n•]+/i.exec(bruto);
+  if (tituloPreventiva) {
+    titulo = tituloPreventiva[0].trim();
+    corpo = bruto.slice(tituloPreventiva[0].length).trim().replace(/^[\n•\s]+/, "");
+  }
+
+  const itens = extrairItensObservacao(corpo);
+  if (itens.length === 0) {
+    return {
+      titulo,
+      itens: [],
+      resumo: bruto,
+      exportText: bruto,
+      ehLista: false,
+    };
+  }
+
+  const resumo = titulo
+    ? `${titulo} · ${itens.length} item${itens.length === 1 ? "" : "ns"}`
+    : `${itens.length} item${itens.length === 1 ? "" : "ns"}`;
+
+  const linhas = [
+    ...(titulo ? [titulo] : []),
+    ...itens.map((item) => `• ${item}`),
+  ];
+
+  return {
+    titulo,
+    itens,
+    resumo,
+    exportText: linhas.join("\n"),
+    ehLista: true,
+  };
+}
+
+function extrairItensObservacao(corpo: string): string[] {
+  const texto = corpo.trim();
+  if (!texto) return [];
+
+  if (texto.includes("\n")) {
+    return texto
+      .split("\n")
+      .map((linha) => linha.trim())
+      .filter(Boolean)
+      .map((linha) => linha.replace(/^•\s*/, "").trim())
+      .filter(Boolean);
+  }
+
+  if (/\s•\s/.test(texto)) {
+    return texto
+      .split(/\s•\s/)
+      .map((item) => item.replace(/^•\s*/, "").trim())
+      .filter(Boolean);
+  }
+
+  if (texto.startsWith("•")) {
+    return [texto.replace(/^•\s*/, "").trim()].filter(Boolean);
+  }
+
+  return [];
+}
+
+export interface LinhaAuditoriaTela {
+  dataLabel: string;
+  tipoLabel: string;
+  destino: string;
+  valorLabel: string;
+  responsavel: string;
+  observacao: string;
+  observacaoFmt: ObservacaoAuditoriaFormatada;
+}
+
+export function montarDestinoAuditoria(linha: LinhaAuditoriaDevolucao): string {
+  const protocolo = linha.protocolo?.trim() || "—";
+  const equipamento = linha.equipamento?.trim() || "—";
+  if (protocolo === "—" && equipamento === "—") return "—";
+  if (protocolo === "—") return equipamento;
+  if (equipamento === "—") return protocolo;
+  return `${protocolo} — ${equipamento}`;
+}
+
+export function fmtValorExportAuditoria(valor: number): string {
+  if (!valor || valor <= 0) return "—";
+  return `+ ${fmtBRL(valor)}`;
+}
+
+export function linhaAuditoriaParaTela(
+  linha: LinhaAuditoriaDevolucao,
+): LinhaAuditoriaTela {
+  const observacaoFmt = formatarObservacaoAuditoria(linha.defeito?.trim() || "—");
+  return {
+    dataLabel: fmtDataBr(linha.dataIso),
+    tipoLabel: labelStatusOs(linha.status),
+    destino: montarDestinoAuditoria(linha),
+    valorLabel: fmtValorExportAuditoria(linha.valor),
+    responsavel: linha.oficina?.trim() || "—",
+    observacao: observacaoFmt.exportText,
+    observacaoFmt,
+  };
+}
 
 export function fmtDataBr(iso: string): string {
   if (!iso) return "—";
@@ -149,29 +272,3 @@ export function filtrarPorOficina(
   return linhas.filter((r) => ids.has(r.osId));
 }
 
-export function linhasParaCsv(linhas: LinhaAuditoriaDevolucao[]) {
-  return {
-    colunas: [
-      "OS",
-      "Equipamento",
-      "Classificação",
-      "Protocolo",
-      "Oficina",
-      "Defeito",
-      "Valor",
-      "Data",
-      "Status",
-    ],
-    linhas: linhas.map((r) => [
-      r.protocolo,
-      r.equipamento,
-      r.classificacao,
-      r.protocolo,
-      r.oficina,
-      r.defeito,
-      fmtBRL(r.valor),
-      fmtDataBr(r.dataIso),
-      labelStatusOs(r.status),
-    ]),
-  };
-}

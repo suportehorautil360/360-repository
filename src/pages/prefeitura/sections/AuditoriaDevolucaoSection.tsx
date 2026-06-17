@@ -1,21 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase/firebase";
-import { baixarCSV } from "../../../lib/export/export-utils";
+import { useCallback, useEffect, useState } from "react";
+import { clientesApi } from "../../../lib/api/clientes";
 import {
-  FORMATO_OPCOES,
+  mensagemErroAuditoriaDevolucao,
+  osAuditoriaDevolucaoApi,
+} from "../../../lib/api/os-auditoria-devolucao";
+import {
   STATUS_OS_OPCOES,
-  filtrarLinhasAuditoria,
-  filtrarPorOficina,
-  fmtBRL,
-  fmtDataBr,
-  labelStatusOs,
-  linhasParaCsv,
-  montarLinhasAuditoria,
-  type FiltrosAuditoriaDevolucao,
-  type OrdemDevolucaoRaw,
-  type SolicitacaoOsRaw,
+  linhaAuditoriaParaTela,
+  type LinhaAuditoriaDevolucao,
 } from "./auditoria-devolucao-model";
+import { baixarPlanilhaAuditoriaDevolucao } from "./auditoriaDevolucaoExport";
+import { ObservacaoAuditoriaCell } from "./ObservacaoAuditoriaCell";
 import "./auditoria-devolucao.css";
 
 interface OficinaOpt {
@@ -28,134 +23,98 @@ export function AuditoriaDevolucaoSection({
 }: {
   prefeituraId: string;
 }) {
-  const [ordens, setOrdens] = useState<OrdemDevolucaoRaw[]>([]);
-  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoOsRaw[]>([]);
   const [oficinas, setOficinas] = useState<OficinaOpt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [equipamentosOpts, setEquipamentosOpts] = useState<string[]>([]);
+  const [linhasPreview, setLinhasPreview] = useState<LinhaAuditoriaDevolucao[]>(
+    [],
+  );
+  const [loadingMeta, setLoadingMeta] = useState(true);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [oficinaId, setOficinaId] = useState("todas");
   const [equipamento, setEquipamento] = useState("todos");
-  const [statusOs, setStatusOs] = useState("aprovado");
-  const [formato, setFormato] = useState("csv");
+  const [statusOs, setStatusOs] = useState("aguardando_orcamento");
   const [previewAtiva, setPreviewAtiva] = useState(false);
 
-  const carregar = useCallback(async () => {
+  const carregarMeta = useCallback(async () => {
     if (!prefeituraId) {
-      setOrdens([]);
-      setSolicitacoes([]);
       setOficinas([]);
-      setLoading(false);
+      setEquipamentosOpts([]);
+      setLoadingMeta(false);
       return;
     }
-    setLoading(true);
+    setLoadingMeta(true);
     setErro(null);
     try {
-      const [ordensSnap, solSnap, oficinasSnap] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "ordensServico"),
-            where("prefeituraId", "==", prefeituraId),
-          ),
-        ),
-        getDocs(
-          query(
-            collection(db, "solicitacoesOS"),
-            where("prefeituraId", "==", prefeituraId),
-          ),
-        ),
-        getDocs(
-          query(
-            collection(db, "oficinas"),
-            where("prefeituraId", "==", prefeituraId),
-          ),
-        ),
+      const [oficinasLista, equipamentos] = await Promise.all([
+        clientesApi.listarOficinasCredenciadas(prefeituraId),
+        osAuditoriaDevolucaoApi.listarEquipamentos(prefeituraId),
       ]);
-
-      setOrdens(
-        ordensSnap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<OrdemDevolucaoRaw, "id">),
-        })),
-      );
-      setSolicitacoes(
-        solSnap.docs.map((d) => ({
-          id: d.id,
-          ...(d.data() as Omit<SolicitacaoOsRaw, "id">),
-        })),
-      );
       setOficinas(
-        oficinasSnap.docs
-          .map((d) => ({
-            id: d.id,
-            nome: String(d.data().nome ?? "").trim() || d.id,
+        oficinasLista
+          .map((o) => ({
+            id: o.id,
+            nome: o.nome?.trim() || o.id,
           }))
           .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
       );
+      setEquipamentosOpts(equipamentos);
     } catch (err) {
-      setErro(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível carregar os dados de devolução.",
-      );
+      setErro(mensagemErroAuditoriaDevolucao(err));
     } finally {
-      setLoading(false);
+      setLoadingMeta(false);
     }
   }, [prefeituraId]);
 
   useEffect(() => {
-    void carregar();
-  }, [carregar]);
+    void carregarMeta();
+  }, [carregarMeta]);
 
-  const linhasBase = useMemo(
-    () => montarLinhasAuditoria(ordens, solicitacoes),
-    [ordens, solicitacoes],
-  );
-
-  const equipamentosOpts = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of linhasBase) {
-      if (r.equipamento && r.equipamento !== "—") set.add(r.equipamento);
+  async function handlePreview() {
+    if (!prefeituraId) return;
+    setLoadingPreview(true);
+    setErro(null);
+    try {
+      const linhas = await osAuditoriaDevolucaoApi.listarLinhas(prefeituraId, {
+        startDate: dataInicio || undefined,
+        endDate: dataFim || undefined,
+        status: statusOs,
+        oficinaId,
+        equipamento,
+      });
+      setLinhasPreview(linhas);
+      setPreviewAtiva(true);
+    } catch (err) {
+      setLinhasPreview([]);
+      setPreviewAtiva(true);
+      setErro(mensagemErroAuditoriaDevolucao(err));
+    } finally {
+      setLoadingPreview(false);
     }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [linhasBase]);
-
-  const filtros: FiltrosAuditoriaDevolucao = {
-    dataInicio,
-    dataFim,
-    oficinaId,
-    equipamento,
-    statusOs,
-  };
-
-  const linhasFiltradas = useMemo(() => {
-    const porFiltros = filtrarLinhasAuditoria(linhasBase, filtros);
-    return filtrarPorOficina(porFiltros, ordens, oficinaId);
-  }, [linhasBase, filtros, ordens, oficinaId]);
-
-  function handlePreview() {
-    setPreviewAtiva(true);
   }
 
   function handleDownload() {
-    if (linhasFiltradas.length === 0) return;
-    if (formato === "csv") {
-      baixarCSV(
-        `auditoria-devolucao-${prefeituraId}`,
-        linhasParaCsv(linhasFiltradas),
-      );
-    }
+    if (linhasPreview.length === 0) return;
+    baixarPlanilhaAuditoriaDevolucao(linhasPreview, {
+      prefeituraId,
+      dataInicio,
+      dataFim,
+    });
   }
+
+  const busy = loadingMeta || loadingPreview;
 
   return (
     <section className="adev-page">
       <div className="adev-wrap">
         <h1 className="adev-title">Auditoria de Devolução</h1>
         <p className="adev-subtitle">
-          Baixe relatórios de devolução filtrados por período, oficina e
-          equipamento.
+          Relatório via API do backend. Valor e oficina executora completos
+          quando a API de orçamentos estiver disponível; hoje lista as O.S. com
+          relato e oficinas convidadas.
         </p>
 
         {erro ? <div className="adev-erro">{erro}</div> : null}
@@ -199,6 +158,7 @@ export function AuditoriaDevolucaoSection({
                   setOficinaId(e.target.value);
                   setPreviewAtiva(false);
                 }}
+                disabled={loadingMeta}
               >
                 <option value="todas">Todas as oficinas</option>
                 {oficinas.map((o) => (
@@ -217,6 +177,7 @@ export function AuditoriaDevolucaoSection({
                   setEquipamento(e.target.value);
                   setPreviewAtiva(false);
                 }}
+                disabled={loadingMeta}
               >
                 <option value="todos">Todos os equipamentos</option>
                 {equipamentosOpts.map((eq) => (
@@ -243,36 +204,23 @@ export function AuditoriaDevolucaoSection({
                 ))}
               </select>
             </div>
-            <div className="adev-field">
-              <label htmlFor="adev-formato">Formato</label>
-              <select
-                id="adev-formato"
-                value={formato}
-                onChange={(e) => setFormato(e.target.value)}
-              >
-                {FORMATO_OPCOES.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="adev-acoes">
             <button
               type="button"
               className="adev-btn adev-btn--preview"
-              onClick={handlePreview}
-              disabled={loading}
+              onClick={() => void handlePreview()}
+              disabled={busy || !prefeituraId}
             >
-              <span aria-hidden>🔍</span> Pré-visualizar
+              <span aria-hidden>🔍</span>{" "}
+              {loadingPreview ? "Carregando…" : "Pré-visualizar"}
             </button>
             <button
               type="button"
               className="adev-btn adev-btn--download"
               onClick={handleDownload}
-              disabled={loading || linhasFiltradas.length === 0}
+              disabled={busy || linhasPreview.length === 0}
             >
               <span aria-hidden>⬇</span> Baixar relatório
             </button>
@@ -282,9 +230,9 @@ export function AuditoriaDevolucaoSection({
         {previewAtiva ? (
           <div className="adev-preview">
             <div className="adev-preview__head">Pré-visualização</div>
-            {loading ? (
+            {loadingPreview ? (
               <div className="adev-empty">Carregando registros…</div>
-            ) : linhasFiltradas.length === 0 ? (
+            ) : linhasPreview.length === 0 ? (
               <div className="adev-empty">
                 Nenhum registro encontrado com esses filtros.
               </div>
@@ -293,45 +241,44 @@ export function AuditoriaDevolucaoSection({
                 <table className="adev-table">
                   <thead>
                     <tr>
-                      <th>OS</th>
-                      <th>Equipamento</th>
-                      <th>Classificação</th>
-                      <th>Protocolo</th>
-                      <th>Oficina</th>
-                      <th>Defeito</th>
-                      <th>Valor</th>
                       <th>Data</th>
-                      <th>Status</th>
+                      <th>Tipo</th>
+                      <th>Destino</th>
+                      <th>Valor</th>
+                      <th>Responsável</th>
+                      <th>Obs.</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {linhasFiltradas.map((r) => (
-                      <tr key={r.osId}>
-                        <td>{r.protocolo}</td>
-                        <td>{r.equipamento}</td>
-                        <td>{r.classificacao}</td>
-                        <td>{r.protocolo}</td>
-                        <td>{r.oficina}</td>
-                        <td className="adev-table__defeito" title={r.defeito}>
-                          {r.defeito}
-                        </td>
-                        <td>{fmtBRL(r.valor)}</td>
-                        <td>{fmtDataBr(r.dataIso)}</td>
-                        <td>
-                          <span
-                            className={`adev-status adev-status--${r.status}`}
-                          >
-                            {labelStatusOs(r.status)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {linhasPreview.map((r) => {
+                      const item = linhaAuditoriaParaTela(r);
+                      return (
+                        <tr key={r.osId}>
+                          <td>{item.dataLabel}</td>
+                          <td>
+                            <span
+                              className={`adev-status adev-status--${r.status}`}
+                            >
+                              {item.tipoLabel}
+                            </span>
+                          </td>
+                          <td>{item.destino}</td>
+                          <td className="adev-valor-positivo">
+                            {item.valorLabel}
+                          </td>
+                          <td>{item.responsavel}</td>
+                          <td className="adev-table__obs">
+                            <ObservacaoAuditoriaCell fmt={item.observacaoFmt} />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
             <div className="adev-preview__foot">
-              {linhasFiltradas.length} registro(s) encontrado(s)
+              {linhasPreview.length} registro(s) encontrado(s)
             </div>
           </div>
         ) : null}

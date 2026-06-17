@@ -1,5 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  clientesApi,
+  type ClienteOverviewApi,
+} from "../../../lib/api/clientes";
+import {
   parceirosApi,
   type CriarParceiroPayload,
   type ParceirosOverviewApi,
@@ -136,6 +140,8 @@ export function CadastroParceiroSection({
     postos: [],
     oficinas: [],
   });
+  const [clientes, setClientes] = useState<ClienteOverviewApi[]>([]);
+  const [prefeituraId, setPrefeituraId] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
   const [msgTone, setMsgTone] = useState<"none" | "ok" | "err">("none");
@@ -172,6 +178,13 @@ export function CadastroParceiroSection({
 
   useEffect(() => {
     void carregar();
+    void clientesApi
+      .overview()
+      .then((lista) => {
+        setClientes(lista);
+        setPrefeituraId((cur) => cur || lista[0]?.id || "");
+      })
+      .catch(() => {});
   }, []);
 
   const linhas: ParceiroLinha[] = useMemo(() => {
@@ -204,10 +217,21 @@ export function CadastroParceiroSection({
       setMsgTexto("err", "Informe a razão social do parceiro.");
       return;
     }
+    if (!prefeituraId) {
+      setAba("dados");
+      setMsgTexto("err", "Selecione o cliente vinculado.");
+      return;
+    }
+    if (form.tipo === "oficina" && form.linhasAtuacao.length === 0) {
+      setAba("oficina");
+      setMsgTexto("err", "Marque ao menos uma linha de atuação.");
+      return;
+    }
     setSalvando(true);
     try {
       const payload: CriarParceiroPayload = {
         tipo: form.tipo,
+        prefeituraId,
         razaoSocial: form.razaoSocial.trim(),
         nomeFantasia: form.nomeFantasia.trim(),
         cnpj: form.cnpj.trim(),
@@ -228,8 +252,22 @@ export function CadastroParceiroSection({
         descontoComercial: form.descontoComercial.trim(),
         observacoesFaturamento: form.observacoesFaturamento.trim(),
       };
-      await parceirosApi.criar(payload);
-      setMsgTexto("ok", `Parceiro "${form.razaoSocial.trim()}" cadastrado.`);
+
+      const criado = await parceirosApi.criar(payload);
+
+      if (form.tipo === "oficina") {
+        await clientesApi.credenciarParceiro(prefeituraId, criado.id);
+      }
+
+      const cliente = clientes.find((c) => c.id === prefeituraId);
+      const sufixoCliente = cliente
+        ? ` · vinculado a ${cliente.nome} (${cliente.uf})`
+        : "";
+
+      setMsgTexto(
+        "ok",
+        `Parceiro "${form.razaoSocial.trim()}" cadastrado${sufixoCliente}.`,
+      );
       setForm(FORM_INICIAL);
       setAba("dados");
       await carregar();
@@ -350,6 +388,37 @@ export function CadastroParceiroSection({
                     }
                   />
                 </div>
+              </div>
+              <div style={{ marginTop: 10, maxWidth: 480 }}>
+                <label htmlFor="pcCliente">
+                  Cliente vinculado{" "}
+                  <span style={{ color: "#f87171" }}>*</span>
+                </label>
+                <Select value={prefeituraId} onValueChange={setPrefeituraId}>
+                  <SelectTrigger id="pcCliente" className="admin-select">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.length === 0 ? (
+                      <SelectItem value="_vazio" disabled>
+                        Nenhum cliente cadastrado
+                      </SelectItem>
+                    ) : (
+                      clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} ({c.uf})
+                          {c.tipoCliente === "locacao" ? " · Locação" : ""}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <p
+                  className="topbar-user"
+                  style={{ marginTop: 6, fontSize: "0.85rem" }}
+                >
+                  Posto e oficina ficam vinculados a este cliente no backend.
+                </p>
               </div>
               <div className="row-2" style={{ marginTop: 10 }}>
                 <div>

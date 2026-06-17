@@ -128,6 +128,35 @@
   color: #c7ddfc;
 }
 
+.oap-card__intro {
+  min-width: 0;
+}
+
+.oap-card__resumo {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #c7ddfc;
+  line-height: 1.4;
+}
+
+.oap-card__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.oap-btn--detalhe {
+  border: 1px solid rgba(147, 197, 253, 0.45);
+  background: rgba(15, 35, 72, 0.65);
+  color: #93c5fd;
+}
+
+.oap-btn--detalhe:hover {
+  background: rgba(59, 130, 246, 0.2);
+}
+
 .oap-card__relato {
   margin: 6px 0 0;
   font-size: 0.78rem;
@@ -343,4 +372,130 @@
 
 .oap-btn--aprovar:not(:disabled):hover {
   filter: brightness(1.06);
+}
+
+/* Modal de detalhes da O.S. (card) */
+.oap-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 12, 28, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.oap-modal {
+  width: min(560px, 100%);
+  max-height: min(88vh, 720px);
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(67, 112, 181, 0.45);
+  background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.oap-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.oap-modal__kicker {
+  margin: 0 0 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.oap-modal__titulo {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.oap-modal__fechar {
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(15, 35, 72, 0.8);
+  color: #93c5fd;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.oap-modal__fechar:hover {
+  background: rgba(37, 99, 235, 0.3);
+}
+
+.oap-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding: 16px 20px;
+}
+
+.oap-modal__campo {
+  min-width: 0;
+}
+
+.oap-modal__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.oap-modal__valor {
+  color: #e6efff;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.oap-modal__bloco {
+  padding: 0 20px 14px;
+}
+
+.oap-modal__texto {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: rgba(8, 18, 40, 0.55);
+  color: #dbeafe;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.oap-modal__texto--relato {
+  white-space: pre-wrap;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.oap-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px 18px;
+  border-top: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+@media (max-width: 560px) {
+  .oap-modal__grid {
+    grid-template-columns: 1fr;
+  }
 }
