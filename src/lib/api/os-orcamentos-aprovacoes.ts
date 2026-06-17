@@ -31,7 +31,7 @@ interface QuoteApi {
   defect?: string;
   defeito?: string;
   items?: QuoteItemApi[];
-  itens?: ItemOrdemOrcamento[];
+  itens?: QuoteItemApi[];
   totalValue?: number;
   valorTotal?: number;
   status: string;
