@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase/firebase";
+import { clientesApi } from "../../../lib/api/clientes";
 import { fmtClassificacao } from "./abrir-os-model";
 
 interface OficinaCredenciada {
@@ -24,6 +23,13 @@ function normEsp(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
+}
+
+function linhaCompat(equipLine: string, oficinaEsp: string): boolean {
+  const a = normEsp(equipLine);
+  const b = normEsp(oficinaEsp);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
 }
 
 function chaveLinha(linha: string): string {
@@ -56,34 +62,39 @@ export function AbrirOsAbaOficina({
 
   useEffect(() => {
     if (!prefeituraId) return;
+    let vivo = true;
     setCarregando(true);
-    getDocs(
-      query(
-        collection(db, "oficinas"),
-        where("prefeituraId", "==", prefeituraId),
-        where("status", "==", "Ativa"),
-      ),
-    )
-      .then((snap) => {
+    clientesApi
+      .listarOficinasCredenciadas(prefeituraId)
+      .then((lista) => {
+        if (!vivo) return;
         setOficinas(
-          snap.docs.map((d) => ({
-            id: d.id,
-            nome: (d.data().nome as string) ?? "",
-            especialidade: (d.data().especialidade as string) ?? "",
-          })),
+          lista
+            .filter((o) => o.status === "Ativa")
+            .map((o) => ({
+              id: o.id,
+              nome: o.nome,
+              especialidade: o.especialidade,
+            })),
         );
       })
-      .catch(() => setOficinas([]))
-      .finally(() => setCarregando(false));
+      .catch(() => {
+        if (vivo) setOficinas([]);
+      })
+      .finally(() => {
+        if (vivo) setCarregando(false);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [prefeituraId]);
 
   const oficinasDaLinha = useMemo(() => {
     if (!linhaEquipamento.trim()) return oficinas;
-    const alvo = normEsp(linhaEquipamento);
-    const filtradas = oficinas.filter(
-      (o) => normEsp(o.especialidade) === alvo,
+    const matches = oficinas.filter((o) =>
+      linhaCompat(linhaEquipamento, o.especialidade),
     );
-    return filtradas.length > 0 ? filtradas : oficinas;
+    return matches.length > 0 ? matches : oficinas;
   }, [oficinas, linhaEquipamento]);
 
   const boxes = useMemo(() => {
@@ -178,7 +189,7 @@ export function AbrirOsAbaOficina({
           <strong>Regra de negócio:</strong> o fluxo direciona a O.S. com base no
           cadastro estruturado do ativo (Linha Amarela, Verde, Branca ou Leve),
           otimizando a distribuição de ordens para os respectivos líderes de
-          box.
+          box. A seleção aqui é apenas informativa — o sorteio ocorre ao salvar.
         </p>
       </div>
     </div>

@@ -8,6 +8,8 @@ export interface SolicitacaoOrcamento {
   oficinas?: string[];
   oficinasIds?: string[];
   oficinasResponderam?: string[];
+  /** Total de oficinas convidadas (API: invitedCount). */
+  convidadas?: number;
   status: string;
   criadoEm: { seconds: number } | null;
 }
@@ -39,6 +41,9 @@ function mockTs(iso: string): { seconds: number } {
 export function isMockRegistro(id: string): boolean {
   return id.startsWith("mock-");
 }
+
+/** Máximo de orçamentos por O.S. (oficinas convidadas na criação). */
+export const LIMITE_ORCAMENTOS_POR_OS = 3;
 
 export function fmtBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -294,8 +299,19 @@ export function ordensParaExibicao(
   return [...ordensReaisFiltradas, ...ordensMock];
 }
 
-export function totalConvidadas(sol: SolicitacaoOrcamento): number {
-  return sol.oficinasIds?.length ?? sol.oficinas?.length ?? 3;
+/** Quantidade máxima de orçamentos exibida no card (regra: até 3 oficinas). */
+export function totalConvidadas(_sol: SolicitacaoOrcamento): number {
+  return LIMITE_ORCAMENTOS_POR_OS;
+}
+
+/** Oficinas efetivamente convidadas nesta O.S. (para detalhes/modal). */
+export function oficinasConvidadas(sol: SolicitacaoOrcamento): number {
+  return (
+    sol.oficinasIds?.length ??
+    sol.oficinas?.length ??
+    sol.convidadas ??
+    0
+  );
 }
 
 export function prontoParaAprovar(

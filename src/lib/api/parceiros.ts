@@ -32,6 +32,8 @@ export interface ParceirosOverviewApi {
 
 export interface CriarParceiroPayload {
   tipo: TipoParceiroApi;
+  /** Cliente/município vinculado — enviado como prefeituraId ao backend. */
+  prefeituraId?: string;
   razaoSocial: string;
   nomeFantasia?: string;
   cnpj?: string;

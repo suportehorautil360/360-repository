@@ -184,10 +184,21 @@
   background: rgba(15, 35, 72, 0.45);
 }
 
-.adev-table__defeito {
+.adev-table__obs {
   max-width: 220px;
+  vertical-align: middle;
+}
+
+.adev-obs-texto {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adev-valor-positivo {
+  color: #4ade80;
+  font-weight: 700;
   white-space: nowrap;
 }
 

@@ -297,3 +297,34 @@ export function matrizParaCsv(matriz: MatrizPreventiva): {
   ]);
   return { colunas, linhas };
 }
+
+/** Monta o relato da O.S. preventiva a partir dos itens do ciclo na matriz. */
+export function montarRelatoPreventivo(
+  matriz: MatrizPreventiva,
+  cicloId: string,
+): string {
+  const idx = matriz.ciclos.findIndex((c) => c.id === cicloId);
+  const ciclo = idx >= 0 ? matriz.ciclos[idx] : undefined;
+  if (!ciclo) return "";
+
+  const titulo = labelCiclo(ciclo, idx);
+  const itens: string[] = [];
+
+  for (const linha of matriz.linhas) {
+    const acao = linha.acoes[cicloId] ?? "na";
+    if (acao === "na") continue;
+
+    const cat = linha.categoria.trim();
+    const item = linha.item.trim();
+    const detalhe = linha.especificacao.trim();
+    let texto = `• ${cat} — ${item}: ${labelAcao(acao)}`;
+    if (detalhe) texto += ` (${detalhe})`;
+    itens.push(texto);
+  }
+
+  if (itens.length === 0) {
+    return `Manutenção preventiva — ${titulo}\n\n(Nenhum item configurado para este ciclo.)`;
+  }
+
+  return `Manutenção preventiva — ${titulo}\n\n${itens.join("\n")}`;
+}
