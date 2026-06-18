@@ -42,6 +42,41 @@ function asStr(v: unknown): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
+/**
+ * Rótulos PT dos pontos engraxáveis. O back grava a CHAVE (ex.: `boomPins`); a
+ * tela e a planilha não podem mostrar o nome da variável. Espelha o catálogo
+ * `PONTOS_ENGRAXE` do app do comboista (my-app/lib/api/lubrificacao.ts) — manter
+ * os dois em sincronia ao adicionar pontos novos.
+ */
+export const ROTULOS_PONTOS_ENGRAXE: Record<string, string> = {
+  boomPins: "Pinos da lança",
+  bucket: "Caçamba / concha",
+  articulation: "Articulação",
+  axles: "Eixos",
+  driveshaft: "Cardã",
+  bearings: "Rolamentos",
+};
+
+/** Quebra camelCase/snake e capitaliza — fallback p/ chave fora do catálogo. */
+function humanizarPonto(chave: string): string {
+  const texto = chave
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : chave;
+}
+
+/**
+ * Rótulo amigável de um ponto engraxado. Chave conhecida → rótulo do catálogo;
+ * desconhecida (ponto novo no back ainda não mapeado) → versão humanizada, nunca
+ * o nome cru da variável.
+ */
+export function rotuloPontoEngraxe(chave: string): string {
+  const k = chave.trim();
+  return ROTULOS_PONTOS_ENGRAXE[k] ?? humanizarPonto(k);
+}
+
 function equipamentoApi(item: LubrificacaoListaApi) {
   return item.equipment ?? item.vehicle;
 }
@@ -49,7 +84,13 @@ function equipamentoApi(item: LubrificacaoListaApi) {
 function pontosApi(item: LubrificacaoListaApi): string[] {
   const lista =
     item.greasedPoints ?? item.pontosEngraxados ?? item.points ?? [];
-  return Array.isArray(lista) ? lista.map((p) => asStr(p)).filter(Boolean) : [];
+  if (!Array.isArray(lista)) return [];
+  // Traduz a chave do back (ex.: `boomPins`) para o rótulo PT já aqui — assim a
+  // tela (chips) e a planilha (export) recebem o nome amigável, sem duplicação.
+  return lista
+    .map((p) => asStr(p))
+    .filter(Boolean)
+    .map((p) => rotuloPontoEngraxe(p));
 }
 
 function comboistaApi(item: LubrificacaoListaApi): string {
