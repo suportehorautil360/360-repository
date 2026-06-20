@@ -17,14 +17,21 @@ export class ApiError extends Error {
   }
 }
 
+/** Opções extras da requisição (ex.: headers adicionais como Idempotency-Key). */
+type Opcoes = { headers?: Record<string, string> };
+
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
+  opts?: Opcoes,
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: body != null ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(body != null ? { "Content-Type": "application/json" } : {}),
+      ...opts?.headers,
+    },
     body: body != null ? JSON.stringify(body) : undefined,
   });
 
@@ -51,7 +58,8 @@ async function request<T>(
 
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
-  post: <T>(path: string, body?: unknown) => request<T>("POST", path, body),
+  post: <T>(path: string, body?: unknown, opts?: Opcoes) =>
+    request<T>("POST", path, body, opts),
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
   del: <T>(path: string) => request<T>("DELETE", path),

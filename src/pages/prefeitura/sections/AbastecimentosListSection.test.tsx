@@ -13,6 +13,13 @@ const listar = vi.fn();
 vi.mock("@/lib/api/abastecimentos", () => ({
   abastecimentosApi: { listar: (...a: unknown[]) => listar(...a) },
 }));
+// O componente também resolve nomes de comboio/comboista — mocka vazio.
+vi.mock("./equipamentos/equipamentos-api", () => ({
+  equipamentosApi: { listar: () => Promise.resolve([]) },
+}));
+vi.mock("../../../lib/funcionarios/funcionarios", () => ({
+  funcionariosApi: { listar: () => Promise.resolve([]) },
+}));
 
 import { AbastecimentosListSection } from "./AbastecimentosListSection";
 
@@ -30,6 +37,10 @@ const mk = (p: Partial<Abastecimento>): Abastecimento => ({
   leitura: 0,
   leituraUnidade: "km",
   local: "",
+  comboioId: "",
+  funcionarioId: "",
+  comboio: "",
+  comboista: "",
   km: 0,
   postoNome: "",
   status: "",
@@ -72,8 +83,8 @@ describe("AbastecimentosListSection", () => {
 
     expect(await screen.findByText("Escavadeira CAT 320")).toBeInTheDocument();
     expect(screen.getByText("Hilux Cabine Dupla")).toBeInTheDocument();
-    // comboio: valor "—" e leitura em horas
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // comboio: valor "—" (há vários "—" agora: comboio/comboista vazios) e leitura em horas
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
     expect(screen.getByText("4.690 h")).toBeInTheDocument();
     // posto: valor em R$ e leitura em km
     expect(screen.getByText("R$ 306,00")).toBeInTheDocument();

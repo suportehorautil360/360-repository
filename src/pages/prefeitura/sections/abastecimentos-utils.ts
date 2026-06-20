@@ -14,7 +14,10 @@ export function filtrarAbastecimentos(
     if (origem !== "todas" && r.origem !== origem) return false;
     if (!q) return true;
     return (
-      r.placa.toLowerCase().includes(q) || r.veiculo.toLowerCase().includes(q)
+      r.placa.toLowerCase().includes(q) ||
+      r.veiculo.toLowerCase().includes(q) ||
+      r.comboio.toLowerCase().includes(q) ||
+      r.comboista.toLowerCase().includes(q)
     );
   });
 }
@@ -29,6 +32,8 @@ export function abastecimentosParaCSV(rows: Abastecimento[]): Dataset {
       "Placa",
       "Tipo",
       "Origem",
+      "Comboio",
+      "Comboista",
       "Litros",
       "Valor (R$)",
       "Leitura",
@@ -42,6 +47,8 @@ export function abastecimentosParaCSV(rows: Abastecimento[]): Dataset {
       r.placa,
       r.tipoVeiculo,
       r.origem === "comboio" ? "Comboio" : "Posto",
+      r.comboio,
+      r.comboista,
       r.litros,
       r.origem === "comboio" ? "" : r.valor,
       r.leitura,

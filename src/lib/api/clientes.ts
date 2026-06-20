@@ -80,7 +80,7 @@ export interface CriarClientePayload {
   contrato: ContratoClienteApi;
 }
 
-/** Cliente completo (GET /clientes/:id). */
+/** Cliente completo (GET /clientes/:id) — empresa + contrato. */
 export interface ClienteApi {
   id: string;
   nome: string;
@@ -92,6 +92,18 @@ export interface ClienteApi {
   whatsapp?: string;
   criadoEm?: string;
   contrato?: ContratoClienteApi;
+}
+
+/** Atualização parcial — qualquer subconjunto dos campos do cliente/empresa. */
+export interface AtualizarClientePayload {
+  nome?: string;
+  uf?: string;
+  tipoCliente?: TipoClienteApi;
+  cnpj?: string;
+  caepf?: string;
+  cidade?: string;
+  whatsapp?: string;
+  contrato?: Partial<ContratoClienteApi>;
 }
 
 /** Oficina credenciada no município (mesma fonte do sorteio da OS). */
@@ -120,6 +132,14 @@ export const clientesApi = {
       payload,
     );
     return { id: r.data?.id ?? "" };
+  },
+
+  /** Atualiza (parcial) os dados de um cliente/empresa — fonte única. */
+  async atualizar(
+    clienteId: string,
+    payload: AtualizarClientePayload,
+  ): Promise<void> {
+    await api.post(`/clientes/update/${clienteId}`, payload);
   },
 
   /** Dados de um cliente por id (= prefeituraId). null quando não encontrado. */

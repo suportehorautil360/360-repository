@@ -17,6 +17,8 @@ import {
   abastecimentosApi,
   type Abastecimento,
 } from "@/lib/api/abastecimentos";
+import { equipamentosApi } from "./equipamentos/equipamentos-api";
+import { funcionariosApi } from "../../../lib/funcionarios/funcionarios";
 import { baixarCSV } from "@/lib/export/export-utils";
 import {
   abastecimentosParaCSV,
@@ -62,13 +64,31 @@ export function AbastecimentosListSection({
   useEffect(() => {
     let vivo = true;
     setCarregando(true);
-    abastecimentosApi
-      .listar(prefeituraId)
-      .then((r) => {
-        if (vivo) {
-          setRows(r);
-          setErro(false);
-        }
+    Promise.all([
+      abastecimentosApi.listar(prefeituraId),
+      // Para resolver os nomes do comboio e do comboista de cada lançamento.
+      equipamentosApi.listar(prefeituraId).catch(() => []),
+      funcionariosApi.listar(prefeituraId).catch(() => []),
+    ])
+      .then(([abast, equips, funcs]) => {
+        if (!vivo) return;
+        const comboioMap = new Map(
+          equips.map((e) => [
+            e.id,
+            e.placa ? `${e.descricao} · ${e.placa}` : e.descricao,
+          ]),
+        );
+        const funcMap = new Map(funcs.map((f) => [f.id, f.nome]));
+        setRows(
+          abast.map((r) => ({
+            ...r,
+            comboio: r.comboioId ? (comboioMap.get(r.comboioId) ?? "") : "",
+            comboista: r.funcionarioId
+              ? (funcMap.get(r.funcionarioId) ?? "")
+              : "",
+          })),
+        );
+        setErro(false);
       })
       .catch(() => {
         if (vivo) setErro(true);
@@ -116,7 +136,7 @@ export function AbastecimentosListSection({
             <input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por placa ou veículo…"
+              placeholder="Buscar por placa, veículo, comboio ou comboista…"
               className="w-full rounded-full border border-white/10 bg-white/5 py-2 pr-3 pl-9 text-sm text-slate-100 placeholder:text-slate-500 focus:border-[#f97316] focus:outline-none"
             />
           </div>
@@ -155,6 +175,8 @@ export function AbastecimentosListSection({
                   <TableHead>Data</TableHead>
                   <TableHead>Veículo</TableHead>
                   <TableHead>Origem</TableHead>
+                  <TableHead>Comboio</TableHead>
+                  <TableHead>Comboista</TableHead>
                   <TableHead>Litros</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Leitura</TableHead>
@@ -184,6 +206,12 @@ export function AbastecimentosListSection({
                       <Badge variant={r.origem === "comboio" ? "comboio" : "posto"}>
                         {r.origem === "comboio" ? "Comboio" : "Posto"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300">
+                      {r.comboio || "—"}
+                    </TableCell>
+                    <TableCell className="text-slate-300">
+                      {r.comboista || "—"}
                     </TableCell>
                     <TableCell className="font-medium text-amber-200/90">
                       {fmtNum(r.litros)} L

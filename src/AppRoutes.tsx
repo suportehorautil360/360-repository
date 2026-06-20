@@ -209,6 +209,10 @@ export function AppRoutes() {
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />
+            <Route
+              path="cadastros/:clienteId"
+              element={<CadastroClientesSection />}
+            />
             <Route path="usuarios" element={<AcessosLoginsSection />} />
             <Route
               path="equipamentos-locacao"

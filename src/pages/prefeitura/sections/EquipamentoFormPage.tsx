@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   COMBUSTIVEL_OPTIONS,
   defaultInterval,
@@ -22,6 +23,7 @@ import {
   type NovoEquip,
   type StatusEquipamento,
 } from "./equipamentos/equipamentos-api";
+import { funcionariosApi, type Funcionario } from "../../../lib/funcionarios/funcionarios";
 import {
   configuracoesApi,
   categoriaDoTipo,
@@ -58,6 +60,7 @@ interface FormState {
   medicaoAtual: string;
   intervaloRevisao: string;
   condutorResponsavel: string;
+  condutoresResponsaveis: string[];
   gestorResponsavel: string;
   // Localização
   centroCusto: string;
@@ -95,6 +98,7 @@ const FORM_VAZIO: FormState = {
   medicaoAtual: "0",
   intervaloRevisao: "0",
   condutorResponsavel: "",
+  condutoresResponsaveis: [],
   gestorResponsavel: "",
   centroCusto: "",
   cidade: "",
@@ -150,6 +154,11 @@ function paraFormState(d: Record<string, unknown>): FormState {
     medicaoAtual: num(d.medicaoAtual, d.currentMeter) || "0",
     intervaloRevisao: num(d.intervaloRevisao),
     condutorResponsavel: asStr(d.condutorResponsavel),
+    condutoresResponsaveis: Array.isArray(d.condutoresResponsaveis)
+      ? (d.condutoresResponsaveis as unknown[]).filter(
+          (x): x is string => typeof x === "string",
+        )
+      : [],
     gestorResponsavel: asStr(d.gestorResponsavel),
     centroCusto: asStr(d.centroCusto),
     cidade: asStr(d.cidade),
@@ -172,6 +181,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
   const [salvando, setSalvando] = useState(false);
   const [carregando, setCarregando] = useState(modo === "editar");
   const [config, setConfig] = useState<Configuracao | null>(null);
+  const [motoristas, setMotoristas] = useState<Funcionario[]>([]);
 
   // Intervalos de revisão padrão da prefeitura (Configurações).
   useEffect(() => {
@@ -185,7 +195,25 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
     };
   }, [prefeituraId]);
 
+  // Motoristas da prefeitura — alimentam o multi-select de condutores do comboio.
+  useEffect(() => {
+    let ativo = true;
+    funcionariosApi
+      .listar(prefeituraId)
+      .then((lista) => {
+        if (!ativo) return;
+        setMotoristas(
+          lista.filter((f) => f.cargo.trim().toLowerCase() === "motorista"),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      ativo = false;
+    };
+  }, [prefeituraId]);
+
   const ehLocada = form.tipoFrota.toLowerCase().includes("locad");
+  const ehComboio = form.tipo.trim().toLowerCase() === "comboio";
 
   // Em "editar", carrega o equipamento e preenche o formulário.
   useEffect(() => {
@@ -278,6 +306,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
         medicaoAtual: asNumber(form.medicaoAtual),
         intervaloRevisao: intervalo,
         condutorResponsavel: form.condutorResponsavel.trim(),
+        condutoresResponsaveis: ehComboio ? form.condutoresResponsaveis : [],
         gestorResponsavel: form.gestorResponsavel.trim(),
         centroCusto: form.centroCusto.trim(),
         cidade: form.cidade.trim(),
@@ -448,7 +477,30 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
             numeric: true,
             placeholder: "0 = padrão por tipo",
           })}
-          {texto("condutorResponsavel", "Condutor responsável")}
+          {ehComboio ? (
+            <Campo label="Condutores responsáveis (motoristas)">
+              <MultiSelect
+                options={motoristas.map((m) => ({
+                  value: m.id,
+                  label: m.nome,
+                  keywords: [m.cpf, m.matricula ?? ""],
+                }))}
+                value={form.condutoresResponsaveis}
+                onValueChange={(v) => setCampo("condutoresResponsaveis", v)}
+                placeholder={
+                  motoristas.length
+                    ? "Selecione os motoristas"
+                    : "Nenhum motorista cadastrado"
+                }
+                searchPlaceholder="Buscar motorista…"
+                emptyText="Nenhum motorista encontrado."
+                disabled={motoristas.length === 0}
+                className="border-white/15 bg-white/[0.04] text-slate-100"
+              />
+            </Campo>
+          ) : (
+            texto("condutorResponsavel", "Condutor responsável")
+          )}
           {texto("gestorResponsavel", "Gestor responsável")}
         </div>
       </section>
