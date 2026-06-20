@@ -21,7 +21,7 @@ import { CreditoSection } from "./sections/CreditoSection";
 import { LubrificacaoSection } from "./sections/LubrificacaoSection";
 import { CargasComboioSection } from "./sections/CargasComboioSection";
 import { PostosSection } from "./sections/PostosSection";
-import { AbastecimentosListSection } from "./sections/AbastecimentosListSection";
+import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
@@ -316,7 +316,7 @@ export function PrefeituraPage() {
         return <CreditoSection dados={dados!} prefeituraId={prefeituraId} />;
       case "abastecimento":
         return abastecimentoAtivo ? (
-          <AbastecimentosListSection prefeituraId={prefeituraId} />
+          <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
         ) : (
           <EmConstrucao titulo="Abastecimentos" />
         );
