@@ -704,6 +704,11 @@
     max-width: none;
     height: auto;
     max-height: none;
+    /* Tailwind v4 centraliza o Dialog pelas PROPRIEDADES `translate`/`scale`
+       (não por `transform`). Sem zerar translate/scale, o `translate:-50%,-50%`
+       persiste e, com o inset:0, joga o modal pra fora (espremido no canto). */
+    translate: none;
+    scale: none;
     transform: none;
     animation: none;
     border-radius: 0;
