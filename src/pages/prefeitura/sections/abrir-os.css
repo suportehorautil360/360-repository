@@ -67,6 +67,7 @@
   width: 100%;
   min-width: 960px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .aos-table thead th {
@@ -98,6 +99,31 @@
 .aos-table tbody td.aos-col-equip {
   color: #f8fbff;
   font-weight: 500;
+}
+
+.aos-table th.aos-col-acoes-h,
+.aos-table tbody td.aos-col-acoes {
+  width: 120px;
+  text-align: center;
+}
+
+.aos-btn-detalhe {
+  border: 1px solid rgba(147, 197, 253, 0.45);
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: rgba(15, 35, 72, 0.65);
+  color: #93c5fd;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aos-btn-detalhe:hover {
+  background: rgba(37, 99, 235, 0.25);
+  border-color: rgba(147, 197, 253, 0.7);
 }
 
 .aos-status {
@@ -406,6 +432,10 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #9cc0ef;
+}
+
+.aos-field--ciclo-preventiva label {
+  color: var(--main-orange, #f97316);
 }
 
 .aos-req {
@@ -1110,5 +1140,128 @@
 
   .aos-gar__select {
     width: 100%;
+  }
+}
+
+/* Modal de detalhes da O.S. */
+.aos-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 12, 28, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.aos-modal {
+  width: min(560px, 100%);
+  max-height: min(88vh, 720px);
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  background: linear-gradient(180deg, #132b57 0%, #0f2347 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.aos-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.aos-modal__kicker {
+  margin: 0 0 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.aos-modal__titulo {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.aos-modal__fechar {
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  background: rgba(15, 35, 72, 0.8);
+  color: #93c5fd;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.aos-modal__fechar:hover {
+  background: rgba(37, 99, 235, 0.3);
+}
+
+.aos-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding: 16px 20px;
+}
+
+.aos-modal__campo {
+  min-width: 0;
+}
+
+.aos-modal__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9cc0ef;
+}
+
+.aos-modal__valor {
+  color: #e6efff;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.aos-modal__relato {
+  padding: 0 20px 16px;
+}
+
+.aos-modal__relato-texto {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  background: rgba(8, 18, 40, 0.55);
+  color: #e6efff;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.aos-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px 18px;
+  border-top: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+@media (max-width: 560px) {
+  .aos-modal__grid {
+    grid-template-columns: 1fr;
   }
 }

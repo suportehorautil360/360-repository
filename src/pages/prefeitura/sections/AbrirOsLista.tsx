@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
-import type { FiltroStatusOs, SolicitacaoOS } from "./abrir-os-model";
+import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import type { FiltroStatusOs, FiltrosOsLista, SolicitacaoOS } from "./abrir-os-model";
 import {
-  filtrarOsLista,
   fmtClassificacao,
   fmtDataOs,
   statusBadgeOs,
 } from "./abrir-os-model";
+import { AbrirOsDetalheModal } from "./AbrirOsDetalheModal";
 
 interface AbrirOsListaProps {
   rows: SolicitacaoOS[];
   loading: boolean;
   erro: string | null;
+  filtros: FiltrosOsLista;
+  onFiltrosChange: (filtros: FiltrosOsLista) => void;
   onAbrirOs: () => void;
 }
 
@@ -20,22 +23,26 @@ const STATUS_OPCOES: { value: FiltroStatusOs; label: string }[] = [
   { value: "aguardando_orcamento", label: "Aguard. Orçamento" },
 ];
 
+const FILTROS_LIMPOS: FiltrosOsLista = {
+  dataInicio: "",
+  dataFim: "",
+  status: "todos",
+};
+
 export function AbrirOsLista({
   rows,
   loading,
   erro,
+  filtros,
+  onFiltrosChange,
   onAbrirOs,
 }: AbrirOsListaProps) {
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
-  const [status, setStatus] = useState<FiltroStatusOs>("todos");
+  const [detalheOs, setDetalheOs] = useState<SolicitacaoOS | null>(null);
+  const { dataInicio, dataFim, status } = filtros;
 
-  const filtradas = useMemo(
-    () => filtrarOsLista(rows, { dataInicio, dataFim, status }),
-    [rows, dataInicio, dataFim, status],
+  const temFiltro = Boolean(
+    dataInicio || dataFim || status !== "todos",
   );
-
-  const temFiltro = Boolean(dataInicio || dataFim || status !== "todos");
 
   return (
     <div className="aos-wrap">
@@ -63,7 +70,9 @@ export function AbrirOsLista({
             type="date"
             className="aos-lista-filtros__input"
             value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
+            onChange={(e) =>
+              onFiltrosChange({ ...filtros, dataInicio: e.target.value })
+            }
             max={dataFim || undefined}
           />
         </div>
@@ -76,7 +85,9 @@ export function AbrirOsLista({
             type="date"
             className="aos-lista-filtros__input"
             value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
+            onChange={(e) =>
+              onFiltrosChange({ ...filtros, dataFim: e.target.value })
+            }
             min={dataInicio || undefined}
           />
         </div>
@@ -88,7 +99,12 @@ export function AbrirOsLista({
             id="aos-filtro-status"
             className="aos-lista-filtros__select"
             value={status}
-            onChange={(e) => setStatus(e.target.value as FiltroStatusOs)}
+            onChange={(e) =>
+              onFiltrosChange({
+                ...filtros,
+                status: e.target.value as FiltroStatusOs,
+              })
+            }
           >
             {STATUS_OPCOES.map((o) => (
               <option key={o.value} value={o.value}>
@@ -101,11 +117,7 @@ export function AbrirOsLista({
           <button
             type="button"
             className="aos-lista-filtros__limpar"
-            onClick={() => {
-              setDataInicio("");
-              setDataFim("");
-              setStatus("todos");
-            }}
+            onClick={() => onFiltrosChange(FILTROS_LIMPOS)}
           >
             Limpar filtros
           </button>
@@ -114,8 +126,7 @@ export function AbrirOsLista({
 
       {!loading && rows.length > 0 ? (
         <p className="aos-lista-contagem">
-          {filtradas.length} de {rows.length} ordem
-          {rows.length === 1 ? "" : "ens"}
+          {rows.length} ordem{rows.length === 1 ? "" : "ens"}
         </p>
       ) : null}
 
@@ -127,9 +138,9 @@ export function AbrirOsLista({
               <th>Equipamento</th>
               <th>Classificação</th>
               <th>Operador</th>
-              <th>Problema</th>
               <th>Data</th>
               <th>Status</th>
+              <th className="aos-col-acoes-h">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -139,16 +150,14 @@ export function AbrirOsLista({
                   Carregando ordens de serviço…
                 </td>
               </tr>
-            ) : filtradas.length === 0 ? (
+            ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="aos-empty">
-                  {rows.length === 0
-                    ? "Nenhuma ordem de serviço cadastrada."
-                    : "Nenhuma O.S. encontrada com os filtros selecionados."}
+                  Nenhuma ordem de serviço cadastrada.
                 </td>
               </tr>
             ) : (
-              filtradas.map((os) => {
+              rows.map((os) => {
                 const st = statusBadgeOs(os.status);
                 return (
                   <tr key={os.id}>
@@ -156,10 +165,18 @@ export function AbrirOsLista({
                     <td className="aos-col-equip">{os.equipamento || "—"}</td>
                     <td>{fmtClassificacao(os.linha)}</td>
                     <td>{os.operador || "—"}</td>
-                    <td>{os.relato?.trim() || "—"}</td>
                     <td>{fmtDataOs(os.criadoEm)}</td>
                     <td>
                       <span className={`aos-status ${st.cls}`}>{st.label}</span>
+                    </td>
+                    <td className="aos-col-acoes">
+                      <button
+                        type="button"
+                        className="aos-btn-detalhe"
+                        onClick={() => setDetalheOs(os)}
+                      >
+                        Ver detalhes
+                      </button>
                     </td>
                   </tr>
                 );
@@ -168,6 +185,16 @@ export function AbrirOsLista({
           </tbody>
         </table>
       </div>
+
+      <AnimatePresence>
+        {detalheOs ? (
+          <AbrirOsDetalheModal
+            key={detalheOs.id}
+            os={detalheOs}
+            onFechar={() => setDetalheOs(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

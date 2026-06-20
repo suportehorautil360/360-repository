@@ -106,6 +106,17 @@ export interface AtualizarClientePayload {
   contrato?: Partial<ContratoClienteApi>;
 }
 
+/** Oficina credenciada no município (mesma fonte do sorteio da OS). */
+export interface OficinaCredenciadaApi {
+  id: string;
+  nome: string;
+  especialidade: string;
+  status: "Ativa" | "Suspensa";
+  parceiroId?: string;
+  cidadeUf?: string;
+  linhasAtuacao?: string[];
+}
+
 export const clientesApi = {
   async overview(): Promise<ClienteOverviewApi[]> {
     const r = await api.get<{ data: ClienteOverviewApi[] }>(
@@ -164,5 +175,34 @@ export const clientesApi = {
   /** Remove um acesso pelo id. */
   async removerAcesso(clienteId: string, acessoId: string): Promise<void> {
     await api.del(`/clientes/${clienteId}/acessos/${acessoId}`);
+  },
+
+  /** Oficinas credenciadas no município (GET — mesma fonte do POST /os/solicitacoes). */
+  async listarOficinasCredenciadas(
+    prefeituraId: string,
+  ): Promise<OficinaCredenciadaApi[]> {
+    const r = await api.get<{ data: OficinaCredenciadaApi[] }>(
+      `/clientes/${encodeURIComponent(prefeituraId)}/oficinas`,
+    );
+    return r.data ?? [];
+  },
+
+  /** Vincula parceiro oficina global ao município (credenciamento). */
+  async credenciarParceiro(
+    prefeituraId: string,
+    parceiroId: string,
+  ): Promise<void> {
+    await api.post(
+      `/clientes/${encodeURIComponent(prefeituraId)}/parceiros/${encodeURIComponent(parceiroId)}/credenciar`,
+    );
+  },
+
+  async descredenciarParceiro(
+    prefeituraId: string,
+    parceiroId: string,
+  ): Promise<void> {
+    await api.del(
+      `/clientes/${encodeURIComponent(prefeituraId)}/parceiros/${encodeURIComponent(parceiroId)}/descredenciar`,
+    );
   },
 };

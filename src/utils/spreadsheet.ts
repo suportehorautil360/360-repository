@@ -14,6 +14,8 @@ export type ColunaPlanilha = {
   /** Largura mínima em pixels. */
   largura?: number;
   alinhamento?: "left" | "center" | "right";
+  /** Preserva quebras de linha na célula (útil para textos longos). */
+  quebraLinha?: boolean;
 };
 
 export function downloadPlanilhaEstilizada(
@@ -34,8 +36,12 @@ export function downloadPlanilhaEstilizada(
       const zebra = idx % 2 === 1 ? " class=\"zebra\"" : "";
       const cells = linha
         .map((valor, colIdx) => {
-          const alinhamento = colunas[colIdx]?.alinhamento ?? "left";
-          return `<td style="text-align:${alinhamento};">${escapeHtml(valor)}</td>`;
+          const col = colunas[colIdx];
+          const alinhamento = col?.alinhamento ?? "left";
+          const wrap = col?.quebraLinha
+            ? "white-space:pre-wrap;vertical-align:top;line-height:1.35;"
+            : "";
+          return `<td style="text-align:${alinhamento};${wrap}">${escapeHtml(valor)}</td>`;
         })
         .join("");
       return `<tr${zebra}>${cells}</tr>`;

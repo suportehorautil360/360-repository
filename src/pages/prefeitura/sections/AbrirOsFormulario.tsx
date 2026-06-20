@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { Shield } from "lucide-react";
+import { toast } from "sonner";
 import { db } from "../../../lib/firebase/firebase";
 import {
   equipamentosApi,
   type EquipRow,
 } from "./equipamentos/equipamentos-api";
 import {
+  criarSolicitacaoOs,
+  mensagemErroCriarOs,
+} from "./criar-solicitacao-os";
+import {
   type AbaOsForm,
-  gerarProtocoloOs,
   hojeISO,
 } from "./abrir-os-model";
 import { AbrirOsAbaOficina } from "./AbrirOsAbaOficina";
@@ -19,7 +23,19 @@ import {
   type PainelGeralOs,
 } from "./AbrirOsPainelGeral";
 
-const TIPOS_OS = [{ value: "C", label: "C - Corretiva" }];
+import { planosPreventivosApi } from "../../../lib/api/planos-preventivos";
+import {
+  clonarMatrizPadrao,
+  labelCiclo,
+  montarRelatoPreventivo,
+  type MatrizPreventiva,
+} from "./plano-preventivo-model";
+
+const TIPOS_OS = [
+  { value: "C", label: "C - Corretiva", titulo: "O.S. Corretiva – INCLUIR" },
+  { value: "P", label: "P - Preditiva", titulo: "O.S. Preditiva – INCLUIR" },
+  { value: "V", label: "V - Preventiva", titulo: "O.S. Preventiva – INCLUIR" },
+] as const;
 
 const SITUACOES = [{ value: "aberta", label: "Aberta" }];
 
@@ -51,22 +67,30 @@ interface AbrirOsFormularioProps {
   prefeituraId: string;
   onCancelar: () => void;
   onVoltarLista: () => void;
+  onSalvo: () => void;
 }
 
 export function AbrirOsFormulario({
   prefeituraId,
   onCancelar,
   onVoltarLista,
+  onSalvo,
 }: AbrirOsFormularioProps) {
   const [aba, setAba] = useState<AbaOsForm>("geral");
-  const [protocolo] = useState(() => gerarProtocoloOs());
   const [dataAgendamento, setDataAgendamento] = useState(hojeISO);
   const [tipoOs, setTipoOs] = useState("C");
+  const [cicloId, setCicloId] = useState("");
+  const [matrizPreventiva, setMatrizPreventiva] = useState<MatrizPreventiva>(
+    clonarMatrizPadrao,
+  );
+  const [carregandoCiclos, setCarregandoCiclos] = useState(false);
   const [equipamentoId, setEquipamentoId] = useState("");
   const [situacao, setSituacao] = useState("aberta");
   const [operador, setOperador] = useState("");
   const [relato, setRelato] = useState("");
   const [painelGeral, setPainelGeral] = useState<PainelGeralOs | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
 
   function togglePainelGeral(id: PainelGeralOs) {
     setPainelGeral((atual) => (atual === id ? null : id));
@@ -94,6 +118,39 @@ export function AbrirOsFormulario({
       vivo = false;
     };
   }, [prefeituraId]);
+
+  useEffect(() => {
+    if (!prefeituraId) {
+      setMatrizPreventiva(clonarMatrizPadrao());
+      return;
+    }
+
+    let vivo = true;
+    setCarregandoCiclos(true);
+
+    void planosPreventivosApi
+      .obter(prefeituraId)
+      .then((salva) => {
+        if (!vivo) return;
+        setMatrizPreventiva(salva ?? clonarMatrizPadrao());
+      })
+      .catch(() => {
+        if (!vivo) return;
+        setMatrizPreventiva(clonarMatrizPadrao());
+      })
+      .finally(() => {
+        if (vivo) setCarregandoCiclos(false);
+      });
+
+    return () => {
+      vivo = false;
+    };
+  }, [prefeituraId]);
+
+  useEffect(() => {
+    if (tipoOs !== "V" || !cicloId) return;
+    setRelato(montarRelatoPreventivo(matrizPreventiva, cicloId));
+  }, [matrizPreventiva, tipoOs, cicloId]);
 
   useEffect(() => {
     if (!prefeituraId) return;
@@ -128,11 +185,76 @@ export function AbrirOsFormulario({
   const nomeBem = equipSel?.descricao ?? "";
   const classificacao = equipSel?.linha || equipSel?.tipo || "";
   const horimetro = fmtHorimetro(equipSel);
+  const tipoOsSel = TIPOS_OS.find((t) => t.value === tipoOs) ?? TIPOS_OS[0];
+  const isPreventiva = tipoOs === "V";
+
+  function handleTipoOsChange(value: string) {
+    setTipoOs(value);
+    if (value !== "V") {
+      setCicloId("");
+      setRelato("");
+    }
+  }
+
+  function handleCicloChange(id: string) {
+    setCicloId(id);
+    setRelato(id ? montarRelatoPreventivo(matrizPreventiva, id) : "");
+  }
+
+  async function handleSalvar() {
+    setErroSalvar(null);
+
+    if (!equipamentoId) {
+      setErroSalvar("Selecione um equipamento.");
+      return;
+    }
+    if (!operador.trim()) {
+      setErroSalvar("Selecione o operador solicitante.");
+      return;
+    }
+    if (!relato.trim()) {
+      setErroSalvar("Informe o relato do problema.");
+      return;
+    }
+    if (isPreventiva && !cicloId) {
+      setErroSalvar("Selecione o ciclo da preventiva.");
+      return;
+    }
+    if (!equipSel) {
+      setErroSalvar("Selecione um equipamento.");
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      const resultado = await criarSolicitacaoOs({
+        prefeituraId,
+        equipamento: equipSel,
+        operador: operador.trim(),
+        relato: relato.trim(),
+        tipoOs,
+        cicloId: isPreventiva ? cicloId : undefined,
+        dataAgendamento: dataAgendamento || undefined,
+      });
+
+      const nomes = resultado.invitedWorkshops.map((w) => w.name).join(", ");
+      toast.success(
+        `O.S. criada! Protocolo: ${resultado.protocolo} · Enviada para ${resultado.invitedWorkshops.length} oficina(s)${nomes ? `: ${nomes}` : ""}.`,
+      );
+      onSalvo();
+    } catch (err) {
+      const msg = mensagemErroCriarOs(err);
+      setErroSalvar(msg);
+      toast.error(msg);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   return (
     <div className="aos-form">
       <div className="aos-form__top">
-        <h1 className="aos-form__title">O.S. Corretiva – INCLUIR</h1>
+        <h1 className="aos-form__title">{tipoOsSel.titulo}</h1>
         <div className="aos-form__top-actions">
           <button
             type="button"
@@ -141,8 +263,13 @@ export function AbrirOsFormulario({
           >
             Cancelar
           </button>
-          <button type="button" className="aos-btn aos-btn--primary">
-            Salvar OS
+          <button
+            type="button"
+            className="aos-btn aos-btn--primary"
+            onClick={() => void handleSalvar()}
+            disabled={salvando}
+          >
+            {salvando ? "Salvando…" : "Salvar OS"}
           </button>
         </div>
       </div>
@@ -166,6 +293,7 @@ export function AbrirOsFormulario({
       </div>
 
       <div className="aos-form__body">
+        {erroSalvar ? <p className="aos-erro">{erroSalvar}</p> : null}
         {aba === "geral" ? (
           <div className="aos-form-grid">
             <div className="aos-field aos-field--sm">
@@ -173,7 +301,12 @@ export function AbrirOsFormulario({
                 Ordem serv.
                 <Req />
               </label>
-              <input type="text" readOnly value={protocolo} />
+              <input
+                type="text"
+                readOnly
+                value="Gerado ao salvar"
+                title="O protocolo é gerado pelo sistema ao salvar"
+              />
             </div>
             <div className="aos-field aos-field--sm">
               <label>
@@ -193,7 +326,7 @@ export function AbrirOsFormulario({
               </label>
               <select
                 value={tipoOs}
-                onChange={(e) => setTipoOs(e.target.value)}
+                onChange={(e) => handleTipoOsChange(e.target.value)}
               >
                 {TIPOS_OS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -202,6 +335,28 @@ export function AbrirOsFormulario({
                 ))}
               </select>
             </div>
+            {isPreventiva ? (
+              <div className="aos-field aos-field--md aos-field--ciclo-preventiva">
+                <label>
+                  Ciclo da preventiva (do plano de manutenção)
+                  <Req />
+                </label>
+                <select
+                  value={cicloId}
+                  onChange={(e) => handleCicloChange(e.target.value)}
+                  disabled={carregandoCiclos}
+                >
+                  <option value="">
+                    {carregandoCiclos ? "Carregando…" : "Selecione o ciclo…"}
+                  </option>
+                  {matrizPreventiva.ciclos.map((c, idx) => (
+                    <option key={c.id} value={c.id}>
+                      {labelCiclo(c, idx)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             <div className="aos-field aos-field--md">
               <label>
                 Bem
@@ -278,7 +433,11 @@ export function AbrirOsFormulario({
               </label>
               <textarea
                 rows={4}
-                placeholder="Descreva o sintoma ou defeito…"
+                placeholder={
+                  isPreventiva
+                    ? "Preenchido automaticamente ao selecionar o ciclo…"
+                    : "Descreva o sintoma ou defeito…"
+                }
                 value={relato}
                 onChange={(e) => setRelato(e.target.value)}
               />
