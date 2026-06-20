@@ -688,19 +688,24 @@
  */
 @media (max-width: 640px) {
   /*
-   * Full-screen no mobile SEM brigar com o transform do Dialog. O modal é
-   * centralizado pelo Radix/Tailwind (top/left 50% + translate -50%), e essa
-   * translação é COMPOSTA pela animação `zoom-in`/`fade-in` — que, por ser
-   * animação, vence até `transform: none !important` (foi por isso que a
-   * tentativa anterior de zerar o transform falhou no iOS). A solução é usar o
-   * centramento a nosso favor: um box de 100vw × 100dvh centralizado preenche a
-   * viewport exatamente. Então só forçamos o TAMANHO; deixamos o transform quieto.
+   * Full-screen no mobile FIXANDO na viewport (inset:0), em vez de depender do
+   * centramento top/left:50% + translate do Radix. Aquele truque dependia de o
+   * box ter exatamente 100dvh centralizado, mas no aparelho `top:50%` resolve
+   * contra um vh diferente do `100dvh` (barra do navegador) e a animação de
+   * entrada compõe o transform — o modal ficava deslocado e o rodapé (botão de
+   * enviar) caía fora da tela. `inset:0` + `transform/animation:none` ancora o
+   * modal na viewport visível; com o overflow do body, o botão sempre rola até.
+   * Fora das @layer do Tailwind, então vence as utilities sem !important.
    */
   .folha-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100dvh;
-    max-height: 100dvh;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    transform: none;
+    animation: none;
     border-radius: 0;
   }
   .folha-modal__head {
