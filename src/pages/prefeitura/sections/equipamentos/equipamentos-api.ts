@@ -45,6 +45,8 @@ export interface NovoEquip {
   anoFabricacao: string;
   anoModelo: string;
   capacidadeTanque: number;
+  /** Capacidade do tanque do próprio caminhão (L). Só p/ tipo Comboio. */
+  capacidadeTanqueCaminhao: number;
   valorVeiculo: number;
   // Operação / revisão
   status: StatusEquipamento;
@@ -343,6 +345,7 @@ function montarPayload(input: NovoEquip, prefeituraId: string) {
     anoFabricacao: input.anoFabricacao,
     anoModelo: input.anoModelo,
     capacidadeTanque: input.capacidadeTanque,
+    capacidadeTanqueCaminhao: input.capacidadeTanqueCaminhao,
     valorVeiculo: input.valorVeiculo,
     status: input.status,
     medicaoAtual: input.medicaoAtual,
