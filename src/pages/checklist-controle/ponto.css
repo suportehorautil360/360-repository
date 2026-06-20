@@ -602,6 +602,11 @@
   padding: 22px;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  /* min-height:0 deixa o flex item encolher abaixo do conteúdo e o overflow
+     rolar. Sem isso (min-height:auto), o body cresce até o tamanho do conteúdo,
+     estoura o dialog (overflow:hidden) e o botão de enviar some no aparelho. */
+  min-height: 0;
   overflow-y: auto;
 }
 .folha-modal__textarea {
