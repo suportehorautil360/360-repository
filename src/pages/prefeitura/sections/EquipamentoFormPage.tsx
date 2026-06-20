@@ -54,6 +54,7 @@ interface FormState {
   anoFabricacao: string;
   anoModelo: string;
   capacidadeTanque: string;
+  capacidadeTanqueCaminhao: string;
   valorVeiculo: string;
   // Operação / revisão
   status: StatusEquipamento;
@@ -93,6 +94,7 @@ const FORM_VAZIO: FormState = {
   anoFabricacao: "",
   anoModelo: "",
   capacidadeTanque: "",
+  capacidadeTanqueCaminhao: "",
   valorVeiculo: "",
   status: "ativo",
   medicaoAtual: "0",
@@ -146,6 +148,7 @@ function paraFormState(d: Record<string, unknown>): FormState {
     anoFabricacao: asStr(d.anoFabricacao) || asStr(d.ano),
     anoModelo: asStr(d.anoModelo),
     capacidadeTanque: num(d.capacidadeTanque),
+    capacidadeTanqueCaminhao: num(d.capacidadeTanqueCaminhao),
     valorVeiculo: num(d.valorVeiculo),
     status:
       st === "bloqueado" || st === "inativo"
@@ -301,6 +304,9 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
         anoFabricacao: form.anoFabricacao.trim(),
         anoModelo: form.anoModelo.trim(),
         capacidadeTanque: asNumber(form.capacidadeTanque),
+        capacidadeTanqueCaminhao: ehComboio
+          ? asNumber(form.capacidadeTanqueCaminhao)
+          : 0,
         valorVeiculo: asNumber(form.valorVeiculo),
         status: form.status,
         medicaoAtual: asNumber(form.medicaoAtual),
@@ -456,9 +462,16 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
             numeric: true,
             placeholder: "2023",
           })}
-          {texto("capacidadeTanque", "Capacidade do tanque (L)", {
-            numeric: true,
-          })}
+          {texto(
+            "capacidadeTanque",
+            ehComboio ? "Capacidade do reservatório (L)" : "Capacidade do tanque (L)",
+            { numeric: true },
+          )}
+          {ehComboio
+            ? texto("capacidadeTanqueCaminhao", "Capacidade do tanque do caminhão (L)", {
+                numeric: true,
+              })
+            : null}
           {texto("valorVeiculo", "Valor do veículo (R$)", { numeric: true })}
         </div>
       </section>
