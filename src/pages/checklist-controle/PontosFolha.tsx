@@ -34,11 +34,11 @@ import { EspelhoDetalhado } from "./EspelhoDetalhado";
 import { DiaDetalheOperador } from "./DiaDetalheOperador";
 import { MinhasSolicitacoes } from "./MinhasSolicitacoes";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   fmtMin,
   minutosPrevistos,
@@ -784,13 +784,13 @@ export function PontosFolha({
         </aside>
       </div>
 
-      <Dialog
+      <Sheet
         open={!!editando}
         onOpenChange={(aberto) => {
           if (!aberto) fecharEdicao();
         }}
       >
-        <DialogContent showCloseButton={false} className="folha-dialog">
+        <SheetContent side="bottom" showCloseButton={false} className="folha-sheet">
           <header className="folha-modal__head">
             <button
               type="button"
@@ -800,16 +800,16 @@ export function PontosFolha({
             >
               ‹
             </button>
-            <DialogTitle asChild>
+            <SheetTitle asChild>
               <h2>Editar registro</h2>
-            </DialogTitle>
+            </SheetTitle>
           </header>
 
           <div className="folha-modal__body">
-            <DialogDescription className="folha-modal__lead">
+            <SheetDescription className="folha-modal__lead">
               Corrija o horário desta batida. A alteração ficará pendente de
               aprovação do gestor.
-            </DialogDescription>
+            </SheetDescription>
 
             <label className="folha-modal__label" htmlFor="folha-edit-hora">
                 Novo horário
@@ -847,13 +847,14 @@ export function PontosFolha({
                 {salvando ? "Salvando…" : "Salvar correção"}
               </button>
             </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      <Dialog open={incluirAberto} onOpenChange={setIncluirAberto}>
-        <DialogContent
+      <Sheet open={incluirAberto} onOpenChange={setIncluirAberto}>
+        <SheetContent
+          side="bottom"
           showCloseButton={false}
-          className="folha-dialog folha-dialog--azul"
+          className="folha-sheet"
         >
           <header className="folha-modal__head folha-modal__head--azul">
             <button
@@ -864,13 +865,13 @@ export function PontosFolha({
             >
               ‹
             </button>
-            <DialogTitle asChild>
+            <SheetTitle asChild>
               <h2>Incluir batida</h2>
-            </DialogTitle>
+            </SheetTitle>
           </header>
 
           <div className="folha-modal__body">
-            <DialogDescription className="folha-modal__lead" asChild>
+            <SheetDescription className="folha-modal__lead" asChild>
               <p>
                 <strong>
                   Use esta tela para incluir batidas não gravadas ou esquecidas.
@@ -879,7 +880,7 @@ export function PontosFolha({
                 Todos os campos são obrigatórios, exceto quando indicado como
                 opcional.
               </p>
-            </DialogDescription>
+            </SheetDescription>
 
             <label className="folha-modal__label" htmlFor="inc-data">
                 Data de inclusão
@@ -941,12 +942,12 @@ export function PontosFolha({
                 {enviandoInclusao ? "Enviando…" : "Enviar solicitação"}
               </button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
 
       {/* Cancelar batida */}
-      <Dialog open={cancelarAberto} onOpenChange={setCancelarAberto}>
-        <DialogContent showCloseButton={false} className="folha-dialog">
+      <Sheet open={cancelarAberto} onOpenChange={setCancelarAberto}>
+        <SheetContent side="bottom" showCloseButton={false} className="folha-sheet">
           <header className="folha-modal__head folha-modal__head--azul">
             <button
               type="button"
@@ -956,15 +957,15 @@ export function PontosFolha({
             >
               ‹
             </button>
-            <DialogTitle asChild>
+            <SheetTitle asChild>
               <h2>Cancelar batida</h2>
-            </DialogTitle>
+            </SheetTitle>
           </header>
           <div className="folha-modal__body">
-            <DialogDescription className="folha-modal__lead">
+            <SheetDescription className="folha-modal__lead">
               Selecione a batida do dia que deseja cancelar e descreva o motivo.
               A solicitação fica pendente de aprovação do gestor.
-            </DialogDescription>
+            </SheetDescription>
 
             <label className="folha-modal__label" htmlFor="canc-batida">
               Batida do dia
@@ -1012,12 +1013,12 @@ export function PontosFolha({
               {enviandoCancelar ? "Enviando…" : "Enviar solicitação"}
             </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Solicitar abono */}
-      <Dialog open={abonoAberto} onOpenChange={setAbonoAberto}>
-        <DialogContent showCloseButton={false} className="folha-dialog">
+      <Sheet open={abonoAberto} onOpenChange={setAbonoAberto}>
+        <SheetContent side="bottom" showCloseButton={false} className="folha-sheet">
           <header className="folha-modal__head folha-modal__head--azul">
             <button
               type="button"
@@ -1027,15 +1028,15 @@ export function PontosFolha({
             >
               ‹
             </button>
-            <DialogTitle asChild>
+            <SheetTitle asChild>
               <h2>Solicitar abono</h2>
-            </DialogTitle>
+            </SheetTitle>
           </header>
           <div className="folha-modal__body">
-            <DialogDescription className="folha-modal__lead">
+            <SheetDescription className="folha-modal__lead">
               Informe o dia, o motivo e — se houver — anexe o documento
               comprovante (atestado, declaração, etc.).
-            </DialogDescription>
+            </SheetDescription>
 
             <label className="folha-modal__label" htmlFor="abono-data">
               Data do abono
@@ -1091,12 +1092,12 @@ export function PontosFolha({
               {enviandoAbono ? "Enviando…" : "Enviar solicitação"}
             </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Enviar mensagem */}
-      <Dialog open={mensagemAberta} onOpenChange={setMensagemAberta}>
-        <DialogContent showCloseButton={false} className="folha-dialog">
+      <Sheet open={mensagemAberta} onOpenChange={setMensagemAberta}>
+        <SheetContent side="bottom" showCloseButton={false} className="folha-sheet">
           <header className="folha-modal__head folha-modal__head--azul">
             <button
               type="button"
@@ -1106,15 +1107,15 @@ export function PontosFolha({
             >
               ‹
             </button>
-            <DialogTitle asChild>
+            <SheetTitle asChild>
               <h2>Enviar mensagem</h2>
-            </DialogTitle>
+            </SheetTitle>
           </header>
           <div className="folha-modal__body">
-            <DialogDescription className="folha-modal__lead">
+            <SheetDescription className="folha-modal__lead">
               Mande uma observação ao seu gestor sobre o seu ponto. Você
               receberá a resposta no mesmo painel.
-            </DialogDescription>
+            </SheetDescription>
 
             <label className="folha-modal__label" htmlFor="msg-texto">
               Mensagem
@@ -1141,8 +1142,8 @@ export function PontosFolha({
               {enviandoMensagem ? "Enviando…" : "Enviar"}
             </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
