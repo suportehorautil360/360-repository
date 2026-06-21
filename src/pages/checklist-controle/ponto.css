@@ -573,6 +573,25 @@
   overflow: hidden;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
 }
+
+/*
+ * Modal de batida via shadcn Sheet (side="bottom"). Ancorado em bottom:0 /
+ * inset-x:0 — sem o centramento por transform do Dialog (que no mobile, com
+ * vh != dvh + as propriedades translate/scale do Tailwind v4, deslocava o modal
+ * e jogava o botão pra fora da tela). O SheetContent é flex-column: o header
+ * fica fixo e o .folha-modal__body (flex:1; min-height:0; overflow-y:auto) rola
+ * até o botão. Fora das @layer do Tailwind, então vence as utilities.
+ */
+.folha-sheet {
+  gap: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  max-height: 92dvh;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
 .folha-modal__head {
   display: flex;
   align-items: center;
@@ -588,6 +607,8 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 800;
+  /* SheetTitle injeta text-foreground via asChild; mantém o título branco. */
+  color: #ffffff;
 }
 .folha-modal__voltar {
   background: transparent;
