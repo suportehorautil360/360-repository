@@ -6,6 +6,7 @@ import {
   type PostoParceiroApi,
 } from "../../../lib/api/parceiros";
 import { CadastroParceiroSection } from "./CadastroParceiroSection";
+import { PostoDetalheDrawer } from "./PostoDetalheDrawer";
 
 function StatusBadge({ ativo }: { ativo: boolean }) {
   return (
@@ -17,7 +18,13 @@ function StatusBadge({ ativo }: { ativo: boolean }) {
   );
 }
 
-function PostoRow({ posto }: { posto: PostoParceiroApi }) {
+function PostoRow({
+  posto,
+  onAbrir,
+}: {
+  posto: PostoParceiroApi;
+  onAbrir: (p: PostoParceiroApi) => void;
+}) {
   const sub = [posto.cidadeUf, posto.bandeira].filter(Boolean).join(" · ");
   return (
     <div className="parc-row">
@@ -25,8 +32,14 @@ function PostoRow({ posto }: { posto: PostoParceiroApi }) {
         <div className="parc-row__nome">{posto.nome}</div>
         {sub && <div className="parc-row__sub">{sub}</div>}
       </div>
-      <span className="parc-row__status">
+      <span
+        className="parc-row__status"
+        style={{ display: "flex", alignItems: "center", gap: 8 }}
+      >
         <StatusBadge ativo={posto.ativo} />
+        <button type="button" className="btn-text" onClick={() => onAbrir(posto)}>
+          Detalhes / Acesso
+        </button>
       </span>
     </div>
   );
@@ -55,6 +68,7 @@ export function OficinasPostosSection() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [modo, setModo] = useState<"overview" | "cadastro">("overview");
+  const [postoSel, setPostoSel] = useState<PostoParceiroApi | null>(null);
 
   useEffect(() => {
     if (modo !== "overview") return;
@@ -113,7 +127,9 @@ export function OficinasPostosSection() {
           ) : dados.postos.length === 0 ? (
             <div className="parc-empty">Nenhum posto credenciado.</div>
           ) : (
-            dados.postos.map((p) => <PostoRow key={p.id} posto={p} />)
+            dados.postos.map((p) => (
+              <PostoRow key={p.id} posto={p} onAbrir={setPostoSel} />
+            ))
           )}
         </article>
 
@@ -140,6 +156,12 @@ export function OficinasPostosSection() {
       >
         + Cadastrar novo parceiro
       </button>
+
+      <PostoDetalheDrawer
+        posto={postoSel}
+        open={postoSel !== null}
+        onClose={() => setPostoSel(null)}
+      />
     </section>
   );
 }
