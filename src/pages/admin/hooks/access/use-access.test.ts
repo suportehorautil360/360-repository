@@ -40,6 +40,13 @@ describe("useAccess.listarUsuarios", () => {
     expect(whereMock).toHaveBeenCalledWith("postoId", "==", "posto-1");
     expect(r[0]).toMatchObject({ id: "u1", usuario: "p01" });
   });
+  it("usa o doc id do Firestore, não o campo id legado salvo no doc", async () => {
+    getDocsMock.mockResolvedValue({
+      docs: [{ id: "DOCID", data: () => ({ id: "uuid-legado", usuario: "p01" }) }],
+    });
+    const r = await useAccess.getState().listarUsuarios({ postoId: "posto-1" });
+    expect(r[0].id).toBe("DOCID");
+  });
 });
 
 describe("useAccess.resetarSenha", () => {

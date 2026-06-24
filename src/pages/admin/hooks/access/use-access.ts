@@ -72,8 +72,10 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
     const snap = await getDocs(
       constraints.length > 0 ? query(ref, ...constraints) : ref,
     );
+    // `id` DEPOIS do spread: o doc id do Firestore vence o campo `id` legado
+    // (randomUUID) salvo no doc — senão remover/resetar usam o id errado (no-op).
     return snap.docs.map(
-      (d) => ({ id: d.id, ...d.data() }) as import("./types").UsuarioFirestore,
+      (d) => ({ ...d.data(), id: d.id }) as import("./types").UsuarioFirestore,
     );
   },
 
