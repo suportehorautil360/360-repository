@@ -6,6 +6,7 @@ import {
   doc,
   getDocs,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "../../../../lib/firebase/firebase";
@@ -65,12 +66,26 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
     if (filtros?.vinculo) {
       constraints.push(where("vinculo", "==", filtros.vinculo));
     }
+    if (filtros?.postoId) {
+      constraints.push(where("postoId", "==", filtros.postoId));
+    }
     const snap = await getDocs(
       constraints.length > 0 ? query(ref, ...constraints) : ref,
     );
     return snap.docs.map(
       (d) => ({ id: d.id, ...d.data() }) as import("./types").UsuarioFirestore,
     );
+  },
+
+  resetarSenha: async (id, novaSenha) => {
+    const senha = novaSenha.trim();
+    if (!id) return { ok: false, message: "ID inválido." };
+    if (senha.length < 4) {
+      return { ok: false, message: "A senha deve ter no mínimo 4 caracteres." };
+    }
+    const senhaHash = await hashSenha(senha);
+    await updateDoc(doc(db, "users", id), { senha: senhaHash });
+    return { ok: true, message: "Senha redefinida." };
   },
 
   removerUsuario: async (id) => {
