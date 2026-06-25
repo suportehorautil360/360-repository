@@ -67,10 +67,10 @@ export function statusSolicitacao(
   if (status === "aprovado") {
     return { label: "Aprovado", cls: "oap-badge--aprovado" };
   }
-  if (status === "aguardando_orcamento") {
+  if (status === "aguardando_orcamento" || status === "em_orcamento") {
     return { label: "Aguardando Orçamento", cls: "oap-badge--aguard-orc" };
   }
-  if (status === "aguardando_aprovacao") {
+  if (status === "aguardando_aprovacao" || status === "em_pregao") {
     return { label: "Aguardando Aprovação", cls: "oap-badge--aguard-aprov" };
   }
   if (status === "recusado") {
@@ -88,6 +88,9 @@ export function statusOrdem(status: string): { label: string; cls: string } {
   }
   if (status === "aguardando_aprovacao") {
     return { label: "Pendente", cls: "oap-ordem--pendente" };
+  }
+  if (status === "em_pregao") {
+    return { label: "Em pregão", cls: "oap-ordem--pregao" };
   }
   return { label: status || "—", cls: "oap-ordem--outro" };
 }
@@ -300,8 +303,13 @@ export function ordensParaExibicao(
 }
 
 /** Quantidade máxima de orçamentos exibida no card (regra: até 3 oficinas). */
-export function totalConvidadas(_sol: SolicitacaoOrcamento): number {
-  return LIMITE_ORCAMENTOS_POR_OS;
+export function totalConvidadas(sol: SolicitacaoOrcamento): number {
+  return (
+    sol.convidadas ??
+    sol.oficinasIds?.length ??
+    sol.oficinas?.length ??
+    LIMITE_ORCAMENTOS_POR_OS
+  );
 }
 
 /** Oficinas efetivamente convidadas nesta O.S. (para detalhes/modal). */
@@ -318,6 +326,21 @@ export function prontoParaAprovar(
   sol: SolicitacaoOrcamento,
   ordens: OrdemOrcamento[],
 ): boolean {
-  if (sol.status === "aprovado") return false;
-  return ordens.some((o) => o.status === "aguardando_aprovacao");
+  return ordens.some((o) => podeAprovarOrcamento(sol, o));
+}
+
+const STATUS_SOL_BLOQUEIA_APROVACAO = new Set([
+  "aprovado",
+  "concluido",
+  "recusado",
+]);
+
+/** Orçamento elegível para PATCH /aprovar (inclui em_pregao do back atual). */
+export function podeAprovarOrcamento(
+  sol: SolicitacaoOrcamento,
+  ord: OrdemOrcamento,
+): boolean {
+  if (STATUS_SOL_BLOQUEIA_APROVACAO.has(sol.status)) return false;
+  if (ord.status === "aprovado" || ord.status === "recusado") return false;
+  return ord.status === "aguardando_aprovacao" || ord.status === "em_pregao";
 }

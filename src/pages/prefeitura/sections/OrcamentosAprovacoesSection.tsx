@@ -8,6 +8,7 @@ import {
 } from "../../../lib/api/os-orcamentos-aprovacoes";
 import {
   fmtBRL,
+  podeAprovarOrcamento,
   prontoParaAprovar,
   statusOrdem,
   statusSolicitacao,
@@ -60,20 +61,29 @@ export function OrcamentosAprovacoesSection({
     void carregar();
   }, [carregar]);
 
-  async function handleAprovar(ordemId: string, solicitacaoId: string) {
-    setAprovando(ordemId);
+  async function handleAprovar(ord: OrdemOrcamento, sol: SolicitacaoOrcamento) {
+    if (!podeAprovarOrcamento(sol, ord)) return;
+
+    const oficina = ord.oficinaNome ?? ord.operador ?? "oficina";
+    const confirmado = window.confirm(
+      `Aprovar orçamento de ${oficina} (${fmtBRL(ord.valorTotal)})?\n\n` +
+        "As demais propostas desta O.S. serão recusadas automaticamente.",
+    );
+    if (!confirmado) return;
+
+    setAprovando(ord.id);
     setMsgAcao(null);
     try {
-      await osOrcamentosAprovacoesApi.aprovar(solicitacaoId, ordemId);
+      await osOrcamentosAprovacoesApi.aprovar(sol.id, ord.id);
       setMsgAcao({
-        id: solicitacaoId,
-        text: "Orçamento aprovado com sucesso!",
+        id: sol.id,
+        text: `Orçamento de ${oficina} aprovado com sucesso!`,
         ok: true,
       });
       await carregar();
     } catch (err) {
       setMsgAcao({
-        id: solicitacaoId,
+        id: sol.id,
         text: mensagemErroAprovarOrcamento(err),
         ok: false,
       });
@@ -187,9 +197,7 @@ export function OrcamentosAprovacoesSection({
                         <tbody>
                           {ordensDoOs.map((ord) => {
                             const os = statusOrdem(ord.status);
-                            const podeAprovar =
-                              ord.status === "aguardando_aprovacao" &&
-                              sol.status !== "aprovado";
+                            const podeAprovar = podeAprovarOrcamento(sol, ord);
                             const isAprovando = aprovando === ord.id;
 
                             return (
@@ -223,7 +231,7 @@ export function OrcamentosAprovacoesSection({
                                           isAprovando || aprovando !== null
                                         }
                                         onClick={() =>
-                                          void handleAprovar(ord.id, sol.id)
+                                          void handleAprovar(ord, sol)
                                         }
                                       >
                                         {isAprovando
@@ -308,6 +316,33 @@ export function OrcamentosAprovacoesSection({
             <p className="pf-modal-total">
               Total: {fmtBRL(modalOrdem.valorTotal)}
             </p>
+            {(() => {
+              const solCard = cards.find(
+                (c) => c.solicitacao.id === modalOrdem.solicitacaoOsId,
+              );
+              const sol = solCard?.solicitacao;
+              const podeAprovar =
+                sol && podeAprovarOrcamento(sol, modalOrdem);
+              if (!podeAprovar || !sol) return null;
+              return (
+                <div className="oap-modal-acoes">
+                  <button
+                    type="button"
+                    className="oap-btn oap-btn--aprovar"
+                    disabled={aprovando !== null}
+                    onClick={() => {
+                      void handleAprovar(modalOrdem, sol).then(() =>
+                        setModalOrdem(null),
+                      );
+                    }}
+                  >
+                    {aprovando === modalOrdem.id
+                      ? "Aprovando…"
+                      : "✓ Aprovar orçamento"}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       ) : null}

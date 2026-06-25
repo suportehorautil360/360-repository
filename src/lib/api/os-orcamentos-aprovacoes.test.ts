@@ -21,35 +21,47 @@ import {
 import { ApiError } from "./client";
 
 describe("osOrcamentosAprovacoesApi", () => {
-  it("listarCards usa GET /os/solicitacoes e mapeia campos EN/PT", async () => {
+  it("listarCards usa GET com-orcamentos e mapeia orçamentos", async () => {
     getMock.mockResolvedValue({
       data: [
         {
           id: "sol-1",
-          protocol: "OS-2026-001",
-          equipment: "Sany SYL956H",
-          line: "Amarela",
-          operator: "João Silva",
-          report: "Vazamento",
-          status: "aguardando_orcamento",
-          workshops: ["Oficina A"],
-          workshopIds: ["uuid-oficina"],
-          createdAt: "2026-06-05T14:30:00.000Z",
+          protocolo: "OS-2026-004",
+          equipamento: "Escavadeira",
+          status: "em_orcamento",
+          oficinasIds: ["of-1", "of-2", "of-3"],
+          invitedCount: 3,
+          quotesReceived: 1,
+          orcamentos: [
+            {
+              id: "ord-1",
+              protocolo: "OS-2026-004",
+              oficinaNome: "Mecânica Silva",
+              valorTotal: 570,
+              itens: [{ descricao: "Kit reparo", valor: 420 }],
+              status: "em_pregao",
+              prazoDias: 7,
+            },
+          ],
         },
       ],
     });
 
     const cards = await osOrcamentosAprovacoesApi.listarCards("pref-1");
-    expect(getMock).toHaveBeenCalledWith("/os/solicitacoes/pref-1");
+    expect(getMock).toHaveBeenCalledWith(
+      "/os/solicitacoes/pref-1/com-orcamentos",
+    );
     expect(cards).toHaveLength(1);
     expect(cards[0].solicitacao).toMatchObject({
-      protocolo: "OS-2026-001",
-      equipamento: "Sany SYL956H",
-      relato: "Vazamento",
-      oficinas: ["Oficina A"],
-      oficinasIds: ["uuid-oficina"],
+      protocolo: "OS-2026-004",
+      convidadas: 3,
     });
-    expect(cards[0].ordens).toEqual([]);
+    expect(cards[0].ordens).toHaveLength(1);
+    expect(cards[0].ordens[0]).toMatchObject({
+      oficinaNome: "Mecânica Silva",
+      valorTotal: 570,
+      status: "em_pregao",
+    });
   });
 
   it("aprovar envia PATCH com ordemServicoId", async () => {
@@ -63,7 +75,7 @@ describe("osOrcamentosAprovacoesApi", () => {
 });
 
 describe("quoteApiParaOrdem", () => {
-  it("mapeia orçamento para tabela (API futura)", () => {
+  it("mapeia orçamento EN/PT para tabela", () => {
     expect(
       quoteApiParaOrdem(
         {

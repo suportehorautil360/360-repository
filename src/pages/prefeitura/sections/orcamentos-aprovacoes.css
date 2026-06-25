@@ -327,6 +327,12 @@
   border: 1px solid rgba(248, 113, 113, 0.45);
 }
 
+.oap-ordem--pregao {
+  background: rgba(234, 179, 8, 0.15);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
 .oap-ordem--outro {
   background: rgba(100, 116, 139, 0.25);
   color: #cbd5e1;
@@ -372,6 +378,14 @@
 
 .oap-btn--aprovar:not(:disabled):hover {
   filter: brightness(1.06);
+}
+
+.oap-modal-acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(96, 165, 250, 0.15);
 }
 
 /* Modal de detalhes da O.S. (card) */
