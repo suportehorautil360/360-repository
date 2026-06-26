@@ -20,4 +20,15 @@ describe("prefeituraNav — gating de Abastecimento", () => {
     const grupos = prefeituraNav("pref-1");
     expect(grupos.find((g) => g.label === "Abastecimento")).toBeUndefined();
   });
+
+  it("exibe badge de mensagens pendentes no item Mensagens dos Postos", () => {
+    const grupos = prefeituraNav("pref-1", {
+      abastecimentoAtivo: true,
+      badges: { mensagensPostos: 3 },
+    });
+    const grupo = grupos.find((g) => g.label === "Abastecimento");
+    const item = grupo?.items.find((i) => i.to.endsWith("/mensagens-postos"));
+    expect(item?.badge).toBe(3);
+    expect(item?.badgeTone).toBe("warning");
+  });
 });
