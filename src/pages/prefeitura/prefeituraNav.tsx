@@ -13,6 +13,8 @@ export const SECOES_REAIS = new Set([
   "lubrificacao",
   "cargas-comboio",
   "postos",
+  "notas-fiscais",
+  "mensagens-postos",
   "frota",
   "revisoes",
   "preventiva",
@@ -42,6 +44,8 @@ export const SECAO_LABEL: Record<string, string> = {
   lubrificacao: "Lubrificação",
   "cargas-comboio": "Cargas do Comboio",
   postos: "Postos Cadastrados",
+  "notas-fiscais": "Notas Fiscais",
+  "mensagens-postos": "Mensagens dos Postos",
   tanques: "Tanques",
   frota: "Frota",
   "frentes-trabalho": "Frentes de Trabalho",
@@ -83,6 +87,8 @@ export interface PrefeituraNavBadges {
   pontosRh?: number;
   /** Veículos com revisão vencida. */
   revisoes?: number;
+  /** Mensagens de postos aguardando resposta do gestor. */
+  mensagensPostos?: number;
 }
 
 /** Monta os grupos da sidebar da prefeitura, com as rotas /prefeitura/:id/<slug>. */
@@ -124,6 +130,14 @@ export function prefeituraNav(
                 icon: "🚛",
               },
               { label: "Postos", to: to("postos"), icon: "🏪" },
+              { label: "Notas Fiscais", to: to("notas-fiscais"), icon: "📄" },
+              {
+                label: "Mensagens dos Postos",
+                to: to("mensagens-postos"),
+                icon: "💬",
+                badge: badges.mensagensPostos,
+                badgeTone: "warning" as const,
+              },
             ],
           },
         ]

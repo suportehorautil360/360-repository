@@ -118,7 +118,7 @@ export function PostoDetalheDrawer({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full gap-0 overflow-y-auto border-white/10 bg-[#0e1424] text-slate-100 sm:max-w-md"
+        className="w-full gap-0 overflow-x-hidden overflow-y-auto border-white/10 bg-[#0e1424] text-slate-100 sm:max-w-xl"
       >
         <SheetHeader>
           <SheetTitle className="text-slate-100">{posto?.nome ?? "Posto"}</SheetTitle>
