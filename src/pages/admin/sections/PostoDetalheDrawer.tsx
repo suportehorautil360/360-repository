@@ -12,6 +12,7 @@ import {
   SheetDescription,
 } from "../../../components/ui/sheet";
 import { Button } from "../../../components/ui/button";
+import { userPostoApi } from "../../../lib/api/user-posto";
 
 type Msg = { tone: "ok" | "err"; text: string } | null;
 
@@ -33,6 +34,7 @@ export function PostoDetalheDrawer({
   const [acessos, setAcessos] = useState<UsuarioFirestore[]>([]);
   const [nome, setNome] = useState("");
   const [usuario, setUsuario] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [msg, setMsg] = useState<Msg>(null);
   const [salvando, setSalvando] = useState(false);
@@ -50,6 +52,7 @@ export function PostoDetalheDrawer({
     setMsg(null);
     setNome("");
     setUsuario("");
+    setEmail("");
     setSenha("");
     setCarregando(true);
     void (async () => {
@@ -83,6 +86,7 @@ export function PostoDetalheDrawer({
     const r = await adicionarUsuario({
       nome,
       usuario,
+      email: email.trim() || undefined,
       senha,
       perfil: "gestor",
       vinculo: "posto",
@@ -91,8 +95,18 @@ export function PostoDetalheDrawer({
     });
     setMsg({ tone: r.ok ? "ok" : "err", text: r.message });
     if (r.ok) {
+      if (email.trim()) {
+        void userPostoApi.enviarBoasVindas({
+          email: email.trim().toLowerCase(),
+          nome: nome.trim(),
+          usuario: usuario.trim(),
+          postoNome: posto.nome,
+          senhaTemporaria: senha,
+        });
+      }
       setNome("");
       setUsuario("");
+      setEmail("");
       setSenha("");
       await recarregar(posto.id);
     }
@@ -150,7 +164,10 @@ export function PostoDetalheDrawer({
                   <li key={a.id} className="flex items-center justify-between gap-2 p-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{a.usuario}</p>
-                      <p className="truncate text-xs text-slate-400">{a.nome}</p>
+                      <p className="truncate text-xs text-slate-400">
+                        {a.nome}
+                        {a.email ? ` · ${a.email}` : ""}
+                      </p>
                     </div>
                     <div className="flex shrink-0 gap-2">
                       <Button
@@ -191,6 +208,13 @@ export function PostoDetalheDrawer({
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
+            />
+            <input
+              className={inputCls}
+              type="email"
+              placeholder="E-mail (login e recuperação de senha)"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
             <input
               className={inputCls}

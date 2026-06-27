@@ -17,10 +17,15 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
   adicionarUsuario: async (data) => {
     const nome = data.nome.trim();
     const usuario = data.usuario.trim();
+    const email = data.email?.trim().toLowerCase() ?? "";
     const senha = data.senha.trim();
 
     if (!nome || !usuario || !senha) {
       return { ok: false, message: "Preencha nome, login e senha inicial." };
+    }
+
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { ok: false, message: "E-mail inválido." };
     }
 
     if (senha.length < 4) {
@@ -38,11 +43,21 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
       return { ok: false, message: "Já existe um usuário com esse login." };
     }
 
+    if (email) {
+      const emailDup = await getDocs(
+        query(collection(db, "users"), where("email", "==", email)),
+      );
+      if (!emailDup.empty) {
+        return { ok: false, message: "Já existe um usuário com esse e-mail." };
+      }
+    }
+
     const senhaHash = await hashSenha(senha);
 
     await addDoc(collection(db, "users"), {
       nome,
       usuario,
+      ...(email ? { email } : {}),
       senha: senhaHash,
       perfil: data.perfil,
       type: data.vinculo,
