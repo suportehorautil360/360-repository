@@ -14,6 +14,7 @@ import { FuncionarioFormPage } from "./sections/FuncionarioFormPage";
 import { HistoricoPontoSection } from "./sections/HistoricoPontoSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosAprovacoesSection } from "./sections/OrcamentosAprovacoesSection";
+import { NotasFiscaisSection } from "./sections/NotasFiscaisSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoVisaoGeralSection } from "./sections/AbastecimentoVisaoGeralSection";
 import { ConsumoCustoSection } from "./sections/ConsumoCustoSection";
@@ -357,6 +358,8 @@ export function PrefeituraPage() {
         return <PlanoPreventivoSection prefeituraId={prefeituraId} />;
       case "orcamentos":
         return <OrcamentosAprovacoesSection prefeituraId={prefeituraId} />;
+      case "notas-fiscais":
+        return <NotasFiscaisSection prefeituraId={prefeituraId} />;
       case "pagamentos":
         return (
           <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />
