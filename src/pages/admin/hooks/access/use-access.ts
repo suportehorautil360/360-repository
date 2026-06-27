@@ -84,6 +84,9 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
     if (filtros?.postoId) {
       constraints.push(where("postoId", "==", filtros.postoId));
     }
+    if (filtros?.officinaId) {
+      constraints.push(where("officinaId", "==", filtros.officinaId));
+    }
     const snap = await getDocs(
       constraints.length > 0 ? query(ref, ...constraints) : ref,
     );

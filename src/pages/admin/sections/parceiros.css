@@ -1,0 +1,393 @@
+/* Drawer e refinamentos — Postos e oficinas (#oficinas-postos) */
+
+.parc-drawer__hero {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 14px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(249, 115, 22, 0.12) 0%,
+    rgba(59, 130, 246, 0.08) 100%
+  );
+}
+
+.parc-drawer__hero-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(249, 115, 22, 0.18);
+  color: #fb923c;
+}
+
+.parc-drawer__status {
+  align-self: start;
+}
+
+.parc-drawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 16px 24px;
+}
+
+.parc-drawer__card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px 16px;
+}
+
+.parc-drawer__card--form {
+  border-color: rgba(249, 115, 22, 0.25);
+  background: rgba(249, 115, 22, 0.04);
+}
+
+.parc-drawer__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.parc-drawer__card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.parc-drawer__card-head .parc-drawer__card-title {
+  margin-bottom: 0;
+}
+
+.parc-drawer__dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.parc-drawer__dl div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.parc-drawer__dl dt {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.parc-drawer__dl dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-align: right;
+}
+
+.parc-drawer__loading,
+.parc-drawer__empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 0;
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+.parc-drawer__logins {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.parc-drawer__login-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.parc-drawer__avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #fdba74;
+  background: rgba(249, 115, 22, 0.15);
+}
+
+.parc-drawer__login-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.parc-drawer__login-info strong {
+  font-size: 0.9rem;
+  color: #f1f5f9;
+}
+
+.parc-drawer__login-info span {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parc-drawer__login-actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.parc-drawer__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.parc-drawer__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.parc-drawer__field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.parc-drawer__field input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: #f8fafc;
+  outline: none;
+}
+
+.parc-drawer__field input:focus {
+  border-color: rgba(249, 115, 22, 0.55);
+}
+
+.parc-drawer__hint {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.parc-drawer__hint code {
+  font-size: 0.72rem;
+  color: #fdba74;
+}
+
+.parc-drawer__msg {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.parc-drawer__msg--ok {
+  color: #4ade80;
+}
+
+.parc-drawer__msg--err {
+  color: #f87171;
+}
+
+#oficinas-postos .parc-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+#oficinas-postos .parc-page-head__text h2 {
+  margin: 0 0 6px;
+}
+
+#oficinas-postos .parc-page-head__text p {
+  margin: 0;
+  max-width: 42rem;
+}
+
+#oficinas-postos .parc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--glass);
+}
+
+#oficinas-postos .parc-toolbar__cliente {
+  flex: 1;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+#oficinas-postos .parc-toolbar__stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#oficinas-postos .parc-stat {
+  min-width: 88px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.15);
+  text-align: center;
+}
+
+#oficinas-postos .parc-stat strong {
+  display: block;
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+#oficinas-postos .parc-stat span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+#oficinas-postos .parc-row__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  background: rgba(249, 115, 22, 0.1);
+  color: #fdba74;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#oficinas-postos .parc-row__btn:hover {
+  background: rgba(249, 115, 22, 0.18);
+  border-color: rgba(249, 115, 22, 0.55);
+}
+
+.parc-drawer__form-note {
+  margin: -4px 0 12px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.parc-login-gerado {
+  max-width: 520px;
+}
+
+.parc-login-gerado h2 {
+  margin-bottom: 8px;
+}
+
+.parc-login-gerado__card {
+  margin: 18px 0;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.parc-login-gerado__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.parc-login-gerado__row:last-of-type {
+  border-bottom: none;
+}
+
+.parc-login-gerado__row span {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.parc-login-gerado__row code {
+  font-size: 0.95rem;
+  color: #bbf7d0;
+  word-break: break-all;
+}
+
+.parc-login-gerado__row strong {
+  color: #e2e8f0;
+}
+
+.parc-login-gerado__hint {
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+  color: #86efac;
+}
+
+.parc-login-gerado__hint code {
+  color: #bbf7d0;
+}
+
+@media (max-width: 640px) {
+  .parc-drawer__dl div {
+    grid-template-columns: 1fr;
+  }
+
+  .parc-drawer__dl dd {
+    text-align: left;
+  }
+
+  .parc-drawer__login-row {
+    flex-wrap: wrap;
+  }
+
+  .parc-drawer__login-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
