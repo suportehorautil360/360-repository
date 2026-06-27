@@ -2,10 +2,13 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   isAdminAuthenticated,
-  isAdminSecretConfigured,
   setAdminAuthenticated,
   verifyAdminSecret,
 } from "../../admin/adminSession";
+import {
+  getAdminSecret,
+  verifyAdminSecretWithBackend,
+} from "../../lib/api/admin-secret";
 import { useHU360Auth } from "../../lib/hu360";
 import { AdminLayout } from "./AdminLayout";
 import logoUrl from "../../assets/logo.jpeg";
@@ -20,9 +23,11 @@ export function AdminPage() {
   const { user } = useLogin();
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [validando, setValidando] = useState(false);
 
-  const secretOk = isAdminSecretConfigured();
-  const sessionAuthenticated = isAdminAuthenticated() || user?.type === "admin";
+  const hasAdminSecret = Boolean(getAdminSecret());
+  const sessionAuthenticated =
+    (isAdminAuthenticated() || user?.type === "admin") && hasAdminSecret;
 
   useEffect(() => {
     if (!sessionAuthenticated) return;
@@ -34,22 +39,31 @@ export function AdminPage() {
   if (sessionAuthenticated) {
     return <AdminLayout />;
   }
-  function handleLogin(e: FormEvent) {
+
+  async function handleLogin(e: FormEvent) {
     e.preventDefault();
     setErro("");
-    if (!secretOk) {
-      setErro(
-        "Defina VITE_ADMIN_SECRET no arquivo .env na raiz do projeto e reinicie o servidor.",
-      );
+    if (!senha.trim()) {
+      setErro("Informe a senha administrativa.");
       return;
     }
-    if (!verifyAdminSecret(senha)) {
-      setErro("Senha incorreta.");
-      return;
+    setValidando(true);
+    try {
+      const okLocal = verifyAdminSecret(senha);
+      const ok =
+        okLocal || (await verifyAdminSecretWithBackend(senha));
+      if (!ok) {
+        setErro("Senha administrativa incorreta.");
+        return;
+      }
+      setAdminAuthenticated(senha);
+      auth.loginPorUsuario(ADMIN_USUARIO_HU360, { persist: false });
+      setSenha("");
+    } catch {
+      setErro("Não foi possível validar a senha. Tente novamente.");
+    } finally {
+      setValidando(false);
     }
-    setAdminAuthenticated();
-    auth.loginPorUsuario(ADMIN_USUARIO_HU360, { persist: false });
-    setSenha("");
   }
 
   return (
@@ -70,21 +84,12 @@ export function AdminPage() {
             Painel administrativo
           </h1>
           <p className="admin-lead">
-            Área restrita. Informe a senha configurada em{" "}
-            <code className="admin-code">VITE_ADMIN_SECRET</code> no seu{" "}
-            <code className="admin-code">.env</code> local.
+            {user?.type === "admin"
+              ? "Confirme a senha administrativa para acessar integrações com o servidor (suporte dos postos, WhatsApp, etc.)."
+              : "Área restrita. Informe a senha administrativa (mesmo valor de ADMIN_SECRET no servidor)."}
           </p>
-          {!secretOk ? (
-            <p className="admin-warn" role="alert">
-              Nenhuma senha foi configurada. Crie um arquivo{" "}
-              <code className="admin-code">.env</code> na raiz com:{" "}
-              <code className="admin-code">
-                VITE_ADMIN_SECRET=sua_senha_forte
-              </code>
-            </p>
-          ) : null}
-          <form onSubmit={handleLogin} className="admin-form">
-            <label htmlFor="admin-senha">Senha</label>
+          <form onSubmit={(e) => void handleLogin(e)} className="admin-form">
+            <label htmlFor="admin-senha">Senha administrativa</label>
             <input
               id="admin-senha"
               name="senha"
@@ -93,14 +98,15 @@ export function AdminPage() {
               value={senha}
               onChange={(ev) => setSenha(ev.target.value)}
               placeholder="Senha de acesso"
+              disabled={validando}
             />
             {erro ? (
               <p className="admin-error" role="alert">
                 {erro}
               </p>
             ) : null}
-            <button type="submit" className="admin-submit">
-              Entrar
+            <button type="submit" className="admin-submit" disabled={validando}>
+              {validando ? "Validando…" : "Entrar"}
             </button>
           </form>
         </div>
