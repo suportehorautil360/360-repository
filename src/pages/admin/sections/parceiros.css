@@ -292,6 +292,20 @@
   color: var(--muted);
 }
 
+#oficinas-postos .parc-row__info--clickable {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+#oficinas-postos .parc-row__info--clickable:hover .parc-row__nome {
+  color: #fdba74;
+}
+
 #oficinas-postos .parc-row__btn {
   display: inline-flex;
   align-items: center;

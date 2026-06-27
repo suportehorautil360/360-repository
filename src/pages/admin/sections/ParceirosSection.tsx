@@ -22,6 +22,7 @@ import {
   ParceiroDetalheDrawer,
   type ParceiroSelecionado,
 } from "./ParceiroDetalheDrawer";
+import { PostoDetalheDrawer } from "./PostoDetalheDrawer";
 import "./parceiros.css";
 
 function StatusBadge({ ativo }: { ativo: boolean }) {
@@ -39,24 +40,28 @@ function PostoRow({
   onAbrir,
 }: {
   posto: PostoParceiroApi;
-  onAbrir: (sel: ParceiroSelecionado) => void;
+  onAbrir: (posto: PostoParceiroApi) => void;
 }) {
   const sub = [posto.cidadeUf, posto.bandeira].filter(Boolean).join(" · ");
   return (
     <div className="parc-row">
-      <div className="parc-row__info">
+      <button
+        type="button"
+        className="parc-row__info parc-row__info--clickable"
+        onClick={() => onAbrir(posto)}
+      >
         <div className="parc-row__nome">{posto.nome}</div>
         {sub ? <div className="parc-row__sub">{sub}</div> : null}
-      </div>
+      </button>
       <span className="parc-row__status">
         <StatusBadge ativo={posto.ativo} />
         <button
           type="button"
           className="parc-row__btn"
-          onClick={() => onAbrir({ tipo: "posto", parceiro: posto })}
+          onClick={() => onAbrir(posto)}
         >
           <KeyRound size={14} aria-hidden />
-          Logins
+          Detalhes
         </button>
       </span>
     </div>
@@ -103,6 +108,7 @@ export function ParceirosSection() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [sel, setSel] = useState<ParceiroSelecionado | null>(null);
+  const [postoSel, setPostoSel] = useState<PostoParceiroApi | null>(null);
 
   const carregar = useCallback(async (clienteId: string) => {
     setLoading(true);
@@ -172,8 +178,8 @@ export function ParceirosSection() {
         <div className="parc-page-head__text">
           <h2>Postos e oficinas</h2>
           <p className="topbar-user">
-            Cadastre parceiros vinculados ao cliente e gerencie logins
-            operacionais (portal posto / oficina).
+            Cadastre parceiros vinculados ao cliente. Clique em um posto para ver
+            dados completos, logins (e-mail e senha na criação) e portal operacional.
           </p>
         </div>
         <button
@@ -250,7 +256,7 @@ export function ParceirosSection() {
             </div>
           ) : (
             dados.postos.map((p) => (
-              <PostoRow key={p.id} posto={p} onAbrir={setSel} />
+              <PostoRow key={p.id} posto={p} onAbrir={setPostoSel} />
             ))
           )}
         </article>
@@ -279,6 +285,12 @@ export function ParceirosSection() {
           )}
         </article>
       </div>
+
+      <PostoDetalheDrawer
+        posto={postoSel}
+        open={postoSel !== null}
+        onClose={() => setPostoSel(null)}
+      />
 
       <ParceiroDetalheDrawer
         selecionado={sel}

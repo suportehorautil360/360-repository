@@ -37,16 +37,16 @@ describe("PostoDetalheDrawer", () => {
     render(<PostoDetalheDrawer posto={posto} open onClose={() => {}} />);
     expect(await screen.findByText("Posto Teste")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByPlaceholderText("Nome do operador"), {
+    fireEvent.change(screen.getByPlaceholderText("Ex.: Operador caixa"), {
       target: { value: "Caixa 1" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Usuário (login do caixa)"), {
+    fireEvent.change(screen.getByPlaceholderText("Ex.: posto.caixa1"), {
       target: { value: "posto1caixa" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Senha (mín. 4)"), {
+    fireEvent.change(screen.getByPlaceholderText("Mínimo 4 caracteres"), {
       target: { value: "1234" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Criar acesso" }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar login" }));
 
     await waitFor(() =>
       expect(adicionarUsuario).toHaveBeenCalledWith(
