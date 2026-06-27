@@ -320,7 +320,7 @@ export function SuportePostosAdminSection() {
                 ) : (
                   <>
                     {mensagens.map((m) => (
-                      <Bolha key={m.id} msg={m} channel={selecionado.channel} />
+                      <Bolha key={m.id} msg={m} />
                     ))}
                     <div ref={fimRef} />
                   </>
@@ -360,13 +360,7 @@ export function SuportePostosAdminSection() {
   );
 }
 
-function Bolha({
-  msg,
-  channel,
-}: {
-  msg: MensagemSuporte;
-  channel: SuporteChannel;
-}) {
+function Bolha({ msg }: { msg: MensagemSuporte }) {
   const ehOperador = msg.sender === "user";
   const label = ehOperador ? "OPERADOR" : "HORA ÚTIL";
 
