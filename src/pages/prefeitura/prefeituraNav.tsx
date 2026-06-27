@@ -81,7 +81,18 @@ export const PREFEITURA_BRAND: SidebarBrand = {
       <span className="accent-2">360</span>
     </>
   ),
-  subtitle: "Frota · Frentes de trabalho · Abastecimento",
+  subtitle: (
+    <>
+      <span style={{ display: "block", fontSize: "0.66rem", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+        Frota · Frentes de trabalho · Abastecimento
+      </span>
+      <img
+        src="/logo.png"
+        alt="Hora Útil"
+        style={{ display: "block", width: "85%", margin: "10px auto 0" }}
+      />
+    </>
+  ),
 };
 
 export interface PrefeituraNavBadges {
