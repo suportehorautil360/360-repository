@@ -150,7 +150,12 @@ export function SuportePostosAdminSection() {
       setThreads(inbox);
       setPostoNomes(new Map(overview.postos.map((p) => [p.id, p.nome])));
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
+      const msg = e instanceof Error ? e.message : "Não foi possível carregar.";
+      setErro(
+        msg.includes("Acesso administrativo negado")
+          ? "Acesso administrativo negado. Saia e entre novamente no hub informando a senha administrativa (ADMIN_SECRET)."
+          : msg,
+      );
     } finally {
       setCarregando(false);
     }

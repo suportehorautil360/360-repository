@@ -22,6 +22,7 @@ import { PostoDetalheDrawer } from "./PostoDetalheDrawer";
 
 const posto = {
   id: "posto-1",
+  prefeituraId: "pref-1",
   nome: "Posto Teste",
   razaoSocial: "Teste LTDA",
   cidadeUf: "São Paulo/SP",
