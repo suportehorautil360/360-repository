@@ -145,7 +145,7 @@ function useLoginForm(
       u.toLowerCase() === ADMIN_LOGIN_EMAIL.toLowerCase() &&
       senha === ADMIN_LOGIN_PASSWORD
     ) {
-      setAdminAuthenticated();
+      setAdminAuthenticated(senha);
       navigate("/admin", { replace: true });
       return;
     }

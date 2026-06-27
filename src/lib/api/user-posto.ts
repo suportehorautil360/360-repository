@@ -2,12 +2,11 @@
  * API de acesso do posto (boas-vindas por e-mail). Usa x-admin-secret como whatsapp.
  */
 import { ApiError } from "./client";
+import { adminSecretHeaders } from "./admin-secret";
 
 const BASE_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   (import.meta.env.DEV ? "http://localhost:3000" : "/api");
-
-const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET as string | undefined;
 
 export interface BoasVindasPostoPayload {
   email: string;
@@ -20,10 +19,9 @@ export interface BoasVindasPostoPayload {
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: {
-      ...(body != null ? { "Content-Type": "application/json" } : {}),
-      ...(ADMIN_SECRET ? { "x-admin-secret": ADMIN_SECRET } : {}),
-    },
+    headers: adminSecretHeaders(
+      body != null ? { "Content-Type": "application/json" } : undefined,
+    ),
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
