@@ -67,6 +67,12 @@ export const ADMIN_NAV: SidebarGroup[] = [
         id: "nav-hub-whatsapp",
       },
       {
+        label: "Suporte dos Postos",
+        to: "/admin/suporte-postos",
+        icon: "📨",
+        id: "nav-hub-suporte-postos",
+      },
+      {
         label: "Cadastro de parceiros",
         to: "/admin/oficinas-postos",
         icon: "🤝",
