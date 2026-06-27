@@ -24,7 +24,6 @@ import { LubrificacaoSection } from "./sections/LubrificacaoSection";
 import { CargasComboioSection } from "./sections/CargasComboioSection";
 import { PostosSection } from "./sections/PostosSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
-import { SuportePostosSection } from "./sections/SuportePostosSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
@@ -338,12 +337,6 @@ export function PrefeituraPage() {
           <NotasFiscaisSection prefeituraId={prefeituraId} />
         ) : (
           <EmConstrucao titulo="Notas Fiscais" />
-        );
-      case "mensagens-postos":
-        return abastecimentoAtivo ? (
-          <SuportePostosSection prefeituraId={prefeituraId} />
-        ) : (
-          <EmConstrucao titulo="Mensagens dos Postos" />
         );
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
