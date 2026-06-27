@@ -1,5 +1,6 @@
 /** Crédito de abastecimento — GET/POST /creditos (back-360). */
 import { api } from "./client";
+import type { Abastecimento } from "./abastecimentos";
 
 export type CreditType = "equipment" | "workFront";
 export type CreditoAlocacao = "equipamento" | "frente";
@@ -49,6 +50,8 @@ export interface LancamentoCreditoTela {
   valorLabel: string;
   responsavel: string;
   observacao: string;
+  /** Entrada de crédito (+) ou saída por abastecimento (−). */
+  direcao: "entrada" | "saida";
 }
 
 export interface CreditoSaldosTela {
@@ -190,7 +193,60 @@ function itemApiParaTela(item: CreditoListItemApi): LancamentoCreditoTela {
     valorLabel: item.amountLabel?.trim() || `+ ${fmtMoeda(amount)}`,
     responsavel: item.responsible?.trim() || "—",
     observacao: item.observation?.trim() || "—",
+    direcao: "entrada",
   };
+}
+
+/** Abastecimento em posto credenciado → linha de saída no histórico de crédito. */
+export function abastecimentoParaLancamento(item: Abastecimento): LancamentoCreditoTela | null {
+  if (item.origem !== "posto" || item.valor <= 0) return null;
+
+  const horaNorm = item.hora?.trim() || "12:00";
+  const createdAt = item.data ? `${item.data}T${horaNorm}:00` : "";
+
+  const destino = [item.placa, item.veiculo].filter(Boolean).join(" — ") || "—";
+  const obsParts = [
+    item.postoNome || item.local,
+    item.litros > 0 ? `${item.litros} L` : "",
+  ].filter(Boolean);
+
+  const dataLabel = item.data
+    ? (() => {
+        const [y, m, d] = item.data.split("-");
+        return y && m && d ? `${d}/${m}/${y}` : dataLabelDeIso(createdAt);
+      })()
+    : "—";
+
+  return {
+    id: `abast-${item.id}`,
+    dataLabel,
+    dataIso: item.data || dataIsoDeCredito(createdAt),
+    createdAt,
+    tipo: "equipamento",
+    tipoApi: "equipment",
+    tipoLabel: "Saída (posto)",
+    destino,
+    amount: -item.valor,
+    valorLabel: `− ${fmtMoeda(item.valor)}`,
+    responsavel: "—",
+    observacao: obsParts.join(" · ") || "Abastecimento",
+    direcao: "saida",
+  };
+}
+
+export function mesclarHistoricoLancamentos(
+  entradas: LancamentoCreditoTela[],
+  abastecimentos: Abastecimento[],
+): LancamentoCreditoTela[] {
+  const saidas = abastecimentos
+    .map(abastecimentoParaLancamento)
+    .filter((item): item is LancamentoCreditoTela => item != null);
+
+  return [...entradas, ...saidas].sort((a, b) => {
+    const da = a.createdAt || a.dataIso;
+    const db = b.createdAt || b.dataIso;
+    return db.localeCompare(da);
+  });
 }
 
 function opcoesApiParaTela(data: CreditoFormOpcoesApi): CreditoOpcoesTela {
@@ -264,13 +320,13 @@ export function montarResumoCredito(
   periodoLabel: string,
   saldos: CreditoSaldosTela = { saldosEquipamento: [], saldosFrente: [] },
 ): CreditoResumoTela {
-  const total = historico.reduce((s, h) => s + h.amount, 0);
+  const entradas = historico.filter((h) => h.direcao !== "saida");
+  const total = entradas.reduce((s, h) => s + h.amount, 0);
   return {
     periodoLabel,
     totalCreditadoLabel: fmtMoeda(total),
-    qtdCreditosEquipamento: historico.filter((h) => h.tipo === "equipamento")
-      .length,
-    qtdCreditosFrente: historico.filter((h) => h.tipo === "frente").length,
+    qtdCreditosEquipamento: entradas.filter((h) => h.tipo === "equipamento").length,
+    qtdCreditosFrente: entradas.filter((h) => h.tipo === "frente").length,
     saldosEquipamento: saldos.saldosEquipamento,
     saldosFrente: saldos.saldosFrente,
     historico,

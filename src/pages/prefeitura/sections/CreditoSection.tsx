@@ -12,11 +12,14 @@ import { ApiError } from "../../../lib/api/client";
 import {
   creditoApi,
   filtrarHistoricoPorPeriodo,
+  mesclarHistoricoLancamentos,
   montarResumoCredito,
   type CreditoAlocacao,
   type CreditoOpcoesTela,
   type CreditoSaldosTela,
+  type LancamentoCreditoTela,
 } from "../../../lib/api/credito";
+import { abastecimentosApi } from "../../../lib/api/abastecimentos";
 import type { DadosPrefeitura } from "../../../lib/hu360/types";
 import { fmtPeriodoExibicao } from "./abastecimentoVisaoGeral";
 import { baixarPlanilhaCredito } from "./creditoExport";
@@ -73,9 +76,9 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
   const [periodoInicio, setPeriodoInicio] = useState(isoInicioMes);
   const [periodoFim, setPeriodoFim] = useState(isoHoje);
   const [opcoes, setOpcoes] = useState<CreditoOpcoesTela | null>(null);
-  const [historicoCompleto, setHistoricoCompleto] = useState<
-    Awaited<ReturnType<typeof creditoApi.listar>>
-  >([]);
+  const [historicoCompleto, setHistoricoCompleto] = useState<LancamentoCreditoTela[]>(
+    [],
+  );
   const [saldos, setSaldos] = useState<CreditoSaldosTela>({
     saldosEquipamento: [],
     saldosFrente: [],
@@ -110,13 +113,14 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
     setCarregando(true);
     setErro(null);
     try {
-      const [opts, lista, saldosData] = await Promise.all([
+      const [opts, creditos, abastecimentos, saldosData] = await Promise.all([
         creditoApi.obterOpcoes(prefeituraId),
         creditoApi.listar(prefeituraId),
+        abastecimentosApi.listar(prefeituraId),
         creditoApi.obterSaldos(prefeituraId),
       ]);
       setOpcoes(opts);
-      setHistoricoCompleto(lista);
+      setHistoricoCompleto(mesclarHistoricoLancamentos(creditos, abastecimentos));
       setSaldos(saldosData);
       setResponsavel((atual) =>
         opts.responsaveis.includes(atual)
@@ -536,13 +540,23 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
                         <td>{item.dataLabel}</td>
                         <td>
                           <span
-                            className={`crd-badge crd-badge--${item.tipo}`}
+                            className={`crd-badge crd-badge--${
+                              item.direcao === "saida" ? "saida" : item.tipo
+                            }`}
                           >
                             {item.tipoLabel}
                           </span>
                         </td>
                         <td>{item.destino}</td>
-                        <td className="crd-valor-positivo">{item.valorLabel}</td>
+                        <td
+                          className={
+                            item.direcao === "saida"
+                              ? "crd-valor-negativo"
+                              : "crd-valor-positivo"
+                          }
+                        >
+                          {item.valorLabel}
+                        </td>
                         <td>{item.responsavel}</td>
                         <td>{item.observacao}</td>
                       </tr>

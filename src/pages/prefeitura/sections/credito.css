@@ -513,8 +513,19 @@
   background: rgba(245, 158, 11, 0.15);
 }
 
+.crd-badge--saida {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+}
+
 .crd-valor-positivo {
   color: #4ade80;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.crd-valor-negativo {
+  color: #f87171;
   font-weight: 700;
   white-space: nowrap;
 }
