@@ -1,12 +1,27 @@
+export type ServiceTypeOs = "corrective" | "preventive" | "predictive";
+
 export interface SolicitacaoOS {
   id: string;
   protocolo: string;
+  /** ID do equipamento (Firestore) — usado na aba Garantia. */
+  equipamentoId?: string;
   equipamento: string;
   linha: string;
   operador: string;
   relato: string;
   status: string;
   criadoEm: { seconds: number } | null;
+  /** Tipo da O.S. (API: serviceType). */
+  serviceType?: ServiceTypeOs;
+  serviceTypeLabel?: string;
+  /** Data agendada (YYYY-MM-DD). */
+  dataAgendamento?: string;
+  horimetro?: string;
+  cicloId?: string;
+  oficinas?: string[];
+  oficinasIds?: string[];
+  oficinasResponderam?: string[];
+  convidadas?: number;
 }
 
 export type AbaOsForm = "geral" | "oficina" | "maquina-parada" | "garantia";
@@ -112,6 +127,33 @@ export function fmtClassificacao(linha: string | undefined): string {
   if (!t) return "—";
   if (/^linha\s/i.test(t)) return t;
   return `Linha ${t}`;
+}
+
+export function fmtTipoOs(
+  serviceType?: ServiceTypeOs,
+  label?: string,
+): string {
+  if (label?.trim()) return label.trim();
+  if (serviceType === "preventive") return "Preventiva";
+  if (serviceType === "predictive") return "Preditiva";
+  if (serviceType === "corrective") return "Corretiva";
+  return "—";
+}
+
+export function fmtDataAgendamento(iso?: string): string {
+  if (!iso?.trim()) return "—";
+  const d = new Date(`${iso.trim()}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("pt-BR");
+}
+
+export function totalOficinasConvidadas(os: SolicitacaoOS): number {
+  return (
+    os.convidadas ??
+    os.oficinasIds?.length ??
+    os.oficinas?.length ??
+    0
+  );
 }
 
 export function statusBadgeOs(status: string): { label: string; cls: string } {

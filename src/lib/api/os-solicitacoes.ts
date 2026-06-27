@@ -110,6 +110,24 @@ export interface SolicitacaoOsApi {
 
   dateLabel?: string;
 
+  scheduledDate?: string;
+
+  dataAgendamento?: string;
+
+  horimetro?: string;
+
+  equipamentoId?: string;
+
+  equipmentId?: string;
+
+  cicloId?: string;
+
+  oficinasResponderam?: string[];
+
+  workshopsResponded?: string[];
+
+  invitedCount?: number;
+
   createdAt?: string;
 
   criadoEm?: { seconds: number } | null;
@@ -210,26 +228,36 @@ export function solicitacaoApiParaTela(item: SolicitacaoOsApi): SolicitacaoOS {
 
 
 
+  const oficinasIds = item.oficinasIds ?? item.workshopIds;
+  const oficinas = item.oficinas ?? item.workshops;
+  const convidadas =
+    item.invitedCount ??
+    oficinasIds?.length ??
+    oficinas?.length ??
+    undefined;
+
   return {
-
     id: item.id,
-
     protocolo: item.protocolo ?? item.protocol ?? "",
-
+    equipamentoId: item.equipamentoId ?? item.equipmentId,
     equipamento: item.equipamento ?? item.equipment ?? "",
-
     linha: item.linha ?? item.line ?? "",
-
     operador: item.operador ?? item.operator ?? "",
-
     relato: item.relato ?? item.report ?? "",
-
     status: item.status,
-
     criadoEm,
-
+    serviceType: item.serviceType,
+    serviceTypeLabel: item.serviceTypeLabel,
+    dataAgendamento:
+      item.dataAgendamento ?? item.scheduledDate ?? item.dateLabel,
+    horimetro: item.horimetro,
+    cicloId: item.cicloId,
+    oficinas,
+    oficinasIds,
+    oficinasResponderam:
+      item.oficinasResponderam ?? item.workshopsResponded,
+    convidadas,
   };
-
 }
 
 

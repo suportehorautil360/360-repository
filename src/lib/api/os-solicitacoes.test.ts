@@ -47,6 +47,7 @@ describe("solicitacaoApiParaTela", () => {
         id: "x2",
         protocol: "OS-2026-049",
         equipment: "Scania",
+        equipmentId: "eq-scan-1",
         line: "Pesada",
         operator: "Maria",
         report: "freio",
@@ -56,6 +57,7 @@ describe("solicitacaoApiParaTela", () => {
     ).toMatchObject({
       protocolo: "OS-2026-049",
       equipamento: "Scania",
+      equipamentoId: "eq-scan-1",
       relato: "freio",
     });
   });

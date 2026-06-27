@@ -1,12 +1,9 @@
-import { useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import type { FiltroStatusOs, FiltrosOsLista, SolicitacaoOS } from "./abrir-os-model";
 import {
   fmtClassificacao,
   fmtDataOs,
   statusBadgeOs,
 } from "./abrir-os-model";
-import { AbrirOsDetalheModal } from "./AbrirOsDetalheModal";
 
 interface AbrirOsListaProps {
   rows: SolicitacaoOS[];
@@ -15,6 +12,7 @@ interface AbrirOsListaProps {
   filtros: FiltrosOsLista;
   onFiltrosChange: (filtros: FiltrosOsLista) => void;
   onAbrirOs: () => void;
+  onVerDetalhes: (os: SolicitacaoOS) => void;
 }
 
 const STATUS_OPCOES: { value: FiltroStatusOs; label: string }[] = [
@@ -36,8 +34,8 @@ export function AbrirOsLista({
   filtros,
   onFiltrosChange,
   onAbrirOs,
+  onVerDetalhes,
 }: AbrirOsListaProps) {
-  const [detalheOs, setDetalheOs] = useState<SolicitacaoOS | null>(null);
   const { dataInicio, dataFim, status } = filtros;
 
   const temFiltro = Boolean(
@@ -173,7 +171,7 @@ export function AbrirOsLista({
                       <button
                         type="button"
                         className="aos-btn-detalhe"
-                        onClick={() => setDetalheOs(os)}
+                        onClick={() => onVerDetalhes(os)}
                       >
                         Ver detalhes
                       </button>
@@ -185,16 +183,6 @@ export function AbrirOsLista({
           </tbody>
         </table>
       </div>
-
-      <AnimatePresence>
-        {detalheOs ? (
-          <AbrirOsDetalheModal
-            key={detalheOs.id}
-            os={detalheOs}
-            onFechar={() => setDetalheOs(null)}
-          />
-        ) : null}
-      </AnimatePresence>
     </div>
   );
 }

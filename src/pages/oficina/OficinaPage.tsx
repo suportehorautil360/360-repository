@@ -57,12 +57,13 @@ interface OrdemServico {
 }
 
 interface ItemOrcamento {
+  codigo: string;
   descricao: string;
   valor: string;
 }
 
 function novoItemOrcamento(): ItemOrcamento {
-  return { descricao: "", valor: "" };
+  return { codigo: "", descricao: "", valor: "" };
 }
 
 export function OficinaPage() {
@@ -439,10 +440,17 @@ export function OficinaPage() {
         oficinaId,
         equipamento: osSel?.equipamento ?? om.equipLabel,
         defeito: osSel?.relato ?? om.defeito,
-        itens: itensOrcamento.map((it) => ({
-          descricao: it.descricao.trim(),
-          valor: parseFloat(it.valor.replace(",", ".")) || 0,
-        })),
+        itens: itensOrcamento.map((it) => {
+          const descricao = it.descricao.trim();
+          const valor = parseFloat(it.valor.replace(",", ".")) || 0;
+          const codigo = it.codigo.trim();
+          const item: Record<string, unknown> = { descricao, valor };
+          if (codigo) {
+            item.code = codigo;
+            item.codigo = codigo;
+          }
+          return item;
+        }),
         valorTotal: itensOrcamento.reduce(
           (acc, it) => acc + (parseFloat(it.valor.replace(",", ".")) || 0),
           0,
@@ -802,11 +810,30 @@ export function OficinaPage() {
                               <div
                                 style={{
                                   display: "grid",
-                                  gridTemplateColumns: "2fr 1fr 40px",
+                                  gridTemplateColumns: "1fr 2fr 1fr 40px",
                                   gap: 12,
                                   alignItems: "flex-start",
                                 }}
                               >
+                                <div>
+                                  <input
+                                    type="text"
+                                    placeholder={`Código${
+                                      itensOrcamento.length > 1
+                                        ? ` (${idx + 1})`
+                                        : ""
+                                    }`}
+                                    value={item.codigo}
+                                    onChange={(e) => {
+                                      atualizarItemOrcamento(
+                                        idx,
+                                        "codigo",
+                                        e.target.value,
+                                      );
+                                      setOsErro("");
+                                    }}
+                                  />
+                                </div>
                                 <div>
                                   <input
                                     type="text"

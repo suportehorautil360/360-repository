@@ -1,17 +1,11 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Shield } from "lucide-react";
-
-interface HistoricoGarantiaRow {
-  osOrigem: string;
-  dataExec: string;
-  tipo: string;
-  item: string;
-  fornecedor: string;
-  prazo: string;
-  limiteHorimetro: string;
-  venceEm: string;
-  status: string;
-}
+import {
+  garantiasApi,
+  labelStatusGarantia,
+  type GarantiaListItem,
+  type GarantiaResumoEquipamento,
+} from "../../../lib/api/garantias";
 
 const TIPOS_FILTRO = [
   { value: "todos", label: "Todos os tipos" },
@@ -27,44 +21,102 @@ const STATUS_FILTRO = [
 ];
 
 interface AbrirOsAbaGarantiaProps {
+  /** Quando informado (detalhe da O.S.), busca garantias do CHD desta solicitação. */
+  solicitacaoOsId?: string;
+  equipamentoId?: string;
   nomeEquipamento: string;
   horimetro: string;
   equipamentoSelecionado: boolean;
+  /** Protocolo da O.S. atual — destaca linhas com mesma origem. */
+  osOrigemAtual?: string;
+  somenteLeitura?: boolean;
 }
 
 export function AbrirOsAbaGarantia({
+  solicitacaoOsId,
+  equipamentoId,
   nomeEquipamento,
   horimetro,
   equipamentoSelecionado,
+  osOrigemAtual,
+  somenteLeitura = false,
 }: AbrirOsAbaGarantiaProps) {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [historico, setHistorico] = useState<GarantiaListItem[]>([]);
+  const [resumo, setResumo] = useState<GarantiaResumoEquipamento | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const historico: HistoricoGarantiaRow[] = [];
+  const idSolicitacao = solicitacaoOsId?.trim() ?? "";
+  const idEquipamento = equipamentoId?.trim() ?? "";
+  const modoOs = Boolean(idSolicitacao);
+  const podeConsultar = modoOs
+    ? true
+    : equipamentoSelecionado && Boolean(idEquipamento);
 
-  const filtrado = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return historico.filter((r) => {
-      if (filtroTipo !== "todos" && r.tipo.toLowerCase() !== filtroTipo) {
-        return false;
-      }
-      if (filtroStatus !== "todos" && r.status.toLowerCase() !== filtroStatus) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        r.osOrigem.toLowerCase().includes(q) ||
-        r.item.toLowerCase().includes(q) ||
-        r.fornecedor.toLowerCase().includes(q)
-      );
-    });
-  }, [historico, busca, filtroTipo, filtroStatus]);
+  const carregar = useCallback(async () => {
+    if (!podeConsultar) {
+      setHistorico([]);
+      setResumo(null);
+      setInfo(null);
+      setErro(null);
+      return;
+    }
 
-  const itensGarantia = historico.filter((r) => r.status === "vigente").length;
-  const prestesVencer = historico.filter(
-    (r) => r.status === "vencendo",
-  ).length;
+    setCarregando(true);
+    setErro(null);
+    try {
+      const filtros = {
+        horimetroAtual: horimetro.trim() || undefined,
+        status: filtroStatus,
+        tipo: filtroTipo,
+        busca,
+      };
+
+      const resp = modoOs
+        ? await garantiasApi.listarPorSolicitacao(idSolicitacao, filtros)
+        : await garantiasApi.listarPorEquipamento(idEquipamento, filtros);
+
+      setHistorico(resp.data);
+      setResumo(resp.resumo);
+      setInfo(resp.message);
+    } catch {
+      setHistorico([]);
+      setResumo(null);
+      setInfo(null);
+      setErro("Não foi possível carregar o histórico de garantia.");
+    } finally {
+      setCarregando(false);
+    }
+  }, [
+    podeConsultar,
+    modoOs,
+    idSolicitacao,
+    idEquipamento,
+    horimetro,
+    filtroStatus,
+    filtroTipo,
+    busca,
+  ]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void carregar();
+    }, busca.trim() ? 300 : 0);
+
+    return () => window.clearTimeout(timer);
+  }, [carregar, busca]);
+
+  const itensGarantia = resumo?.itensEmGarantia ?? 0;
+  const prestesVencer = resumo?.prestesAVencer ?? 0;
+  const nomeExibicao = resumo?.equipamento ?? nomeEquipamento;
+
+  const emptyMessage = modoOs
+    ? "Nenhum item de garantia — aguardando checklist de devolução (CHD) da oficina para esta O.S."
+    : "Nenhum item de garantia encontrado para este equipamento.";
 
   return (
     <div className="aos-gar">
@@ -77,25 +129,25 @@ export function AbrirOsAbaGarantia({
         <article className="aos-gar-card">
           <span className="aos-gar-card__label">Equipamento</span>
           <strong className="aos-gar-card__valor aos-gar-card__valor--warn">
-            {equipamentoSelecionado ? nomeEquipamento || "—" : "—"}
+            {podeConsultar ? nomeExibicao || "—" : "—"}
           </strong>
         </article>
         <article className="aos-gar-card">
           <span className="aos-gar-card__label">Horímetro atual</span>
           <strong className="aos-gar-card__valor aos-gar-card__valor--warn">
-            {equipamentoSelecionado ? horimetro || "—" : "—"}
+            {podeConsultar ? horimetro || "—" : "—"}
           </strong>
         </article>
         <article className="aos-gar-card">
           <span className="aos-gar-card__label">Itens em garantia</span>
           <strong className="aos-gar-card__valor aos-gar-card__valor--ok">
-            {equipamentoSelecionado ? itensGarantia : 0}
+            {podeConsultar ? itensGarantia : 0}
           </strong>
         </article>
         <article className="aos-gar-card">
           <span className="aos-gar-card__label">Prestes a vencer</span>
           <strong className="aos-gar-card__valor aos-gar-card__valor--warn">
-            {equipamentoSelecionado ? prestesVencer : 0}
+            {podeConsultar ? prestesVencer : 0}
           </strong>
         </article>
       </div>
@@ -107,13 +159,13 @@ export function AbrirOsAbaGarantia({
           placeholder="Peça, serviço ou O.S…"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          disabled={!equipamentoSelecionado}
+          disabled={!podeConsultar}
         />
         <select
           className="aos-gar__select"
           value={filtroTipo}
           onChange={(e) => setFiltroTipo(e.target.value)}
-          disabled={!equipamentoSelecionado}
+          disabled={!podeConsultar}
         >
           {TIPOS_FILTRO.map((o) => (
             <option key={o.value} value={o.value}>
@@ -125,7 +177,7 @@ export function AbrirOsAbaGarantia({
           className="aos-gar__select"
           value={filtroStatus}
           onChange={(e) => setFiltroStatus(e.target.value)}
-          disabled={!equipamentoSelecionado}
+          disabled={!podeConsultar}
         >
           {STATUS_FILTRO.map((o) => (
             <option key={o.value} value={o.value}>
@@ -151,33 +203,61 @@ export function AbrirOsAbaGarantia({
             </tr>
           </thead>
           <tbody>
-            {!equipamentoSelecionado ? (
+            {!podeConsultar ? (
               <tr>
                 <td colSpan={9} className="aos-gar-empty">
-                  Selecione um equipamento na aba Geral para carregar o histórico
-                  de garantia.
+                  {modoOs
+                    ? "O.S. sem identificador — não foi possível consultar garantias."
+                    : "Selecione um equipamento na aba Geral para carregar o histórico de garantia."}
                 </td>
               </tr>
-            ) : filtrado.length === 0 ? (
+            ) : carregando ? (
               <tr>
                 <td colSpan={9} className="aos-gar-empty">
-                  Nenhum item de garantia encontrado para este equipamento.
+                  Carregando histórico de garantia…
+                </td>
+              </tr>
+            ) : erro ? (
+              <tr>
+                <td colSpan={9} className="aos-gar-empty aos-gar-empty--erro">
+                  {erro}
+                </td>
+              </tr>
+            ) : historico.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="aos-gar-empty">
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
-              filtrado.map((r) => (
-                <tr key={`${r.osOrigem}-${r.item}`}>
-                  <td className="aos-gar-col-os">{r.osOrigem}</td>
-                  <td>{r.dataExec}</td>
-                  <td>{r.tipo}</td>
-                  <td>{r.item}</td>
-                  <td>{r.fornecedor}</td>
-                  <td>{r.prazo}</td>
-                  <td>{r.limiteHorimetro}</td>
-                  <td>{r.venceEm}</td>
-                  <td>{r.status}</td>
-                </tr>
-              ))
+              historico.map((r) => {
+                const destaque =
+                  osOrigemAtual?.trim() &&
+                  r.osOrigem.trim().toLowerCase() ===
+                    osOrigemAtual.trim().toLowerCase();
+                return (
+                  <tr
+                    key={r.id}
+                    className={destaque ? "aos-gar-row--destaque" : undefined}
+                  >
+                    <td className="aos-gar-col-os">{r.osOrigem}</td>
+                    <td>{r.dataExec}</td>
+                    <td>{r.tipoLabel}</td>
+                    <td>{r.item}</td>
+                    <td>{r.fornecedor}</td>
+                    <td>{r.prazo}</td>
+                    <td>{r.limiteHorimetro}</td>
+                    <td>{r.venceEm}</td>
+                    <td>
+                      <span
+                        className={`aos-gar-status aos-gar-status--${r.status}`}
+                      >
+                        {labelStatusGarantia(r.status)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -188,11 +268,22 @@ export function AbrirOsAbaGarantia({
           💡
         </span>
         <p>
-          <strong>Regra de negócio:</strong> o sistema cruza o histórico de
-          serviços executados no ativo com as regras de garantia de cada item
-          (prazo em meses e limite de horímetro). Se a nova O.S. envolver peça
-          ou serviço ainda coberto, o responsável é notificado para acionar o
-          fornecedor/oficina antes de gerar custo, evitando retrabalho pago.
+          {somenteLeitura ? (
+            <>
+              <strong>Consulta:</strong> peças e serviços em garantia derivados
+              do checklist de devolução (CHD) desta O.S. —{" "}
+              <strong>não é necessário aceitar o CHD</strong> para visualizar.
+              {info ? <> {info}</> : null} Quando houver itens vigentes, acione o
+              fornecedor antes de gerar custo.
+            </>
+          ) : (
+            <>
+              <strong>Regra de negócio:</strong> o sistema cruza CHDs anteriores
+              do equipamento com prazo em meses e limite de horímetro. Se a nova
+              O.S. envolver peça ou serviço ainda coberto, acione o
+              fornecedor/oficina antes de gerar custo.
+            </>
+          )}
         </p>
       </div>
     </div>

@@ -452,6 +452,7 @@ export function AbrirOsFormulario({
           <AbrirOsAbaMaquinaParada />
         ) : aba === "garantia" ? (
           <AbrirOsAbaGarantia
+            equipamentoId={equipamentoId}
             nomeEquipamento={nomeBem}
             horimetro={horimetro}
             equipamentoSelecionado={Boolean(equipamentoId)}
