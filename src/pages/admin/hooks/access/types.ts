@@ -3,6 +3,7 @@ export type VinculoUsuario = "prefeitura" | "oficina" | "posto" | "locacao";
 export interface DTOAddUsuario {
   nome: string;
   usuario: string;
+  email?: string;
   senha: string;
   perfil: "gestor" | "admin";
   prefeituraId: string;
@@ -15,6 +16,7 @@ export interface UsuarioFirestore {
   id: string;
   nome: string;
   usuario: string;
+  email?: string;
   senha: string;
   perfil: string;
   type: string;
@@ -36,6 +38,7 @@ export interface AcessoLoginProps {
     prefeituraId?: string;
     vinculo?: VinculoUsuario;
     postoId?: string;
+    officinaId?: string;
   }) => Promise<UsuarioFirestore[]>;
   resetarSenha: (id: string, novaSenha: string) => Promise<AddLocacaoResult>;
   removerUsuario: (id: string) => Promise<AddLocacaoResult>;

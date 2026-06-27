@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  suporteApi,
+  suporteAdminApi,
   CANAL_LABEL,
+  notificarInboxSuporteAdminAtualizado,
   type MensagemSuporte,
   type SuporteChannel,
   type SuporteThread,
-} from "@/lib/api/suporte";
-import { postosApi, type PostoTela } from "@/lib/api/postos";
-import { notificarInboxSuporteAtualizado } from "@/pages/prefeitura/usePrefeituraBadges";
+} from "../../../lib/api/suporte-admin";
+import { parceirosApi } from "../../../lib/api/parceiros";
 
 type FiltroCanal = "todos" | SuporteChannel;
 
@@ -124,13 +124,9 @@ function ThreadItem({
   );
 }
 
-export function SuportePostosSection({
-  prefeituraId,
-}: {
-  prefeituraId: string;
-}) {
+export function SuportePostosAdminSection() {
   const [threads, setThreads] = useState<SuporteThread[]>([]);
-  const [postos, setPostos] = useState<PostoTela[]>([]);
+  const [postoNomes, setPostoNomes] = useState<Map<string, string>>(new Map());
   const [selecionado, setSelecionado] = useState<SuporteThread | null>(null);
   const [mensagens, setMensagens] = useState<MensagemSuporte[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -141,69 +137,54 @@ export function SuportePostosSection({
   const [filtro, setFiltro] = useState<FiltroCanal>("todos");
   const fimRef = useRef<HTMLDivElement>(null);
 
-  const postoMap = useMemo(
-    () => new Map(postos.map((p) => [p.id, p.nome])),
-    [postos],
-  );
+  const postoMap = postoNomes;
 
   const carregarInbox = useCallback(async () => {
-    if (!prefeituraId) return;
     setCarregando(true);
     setErro("");
     try {
-      const [inbox, listaPostos] = await Promise.all([
-        suporteApi.listarInbox(
-          prefeituraId,
-          filtro === "todos" ? undefined : filtro,
-        ),
-        postosApi.listar(prefeituraId).catch(() => []),
+      const [inbox, overview] = await Promise.all([
+        suporteAdminApi.listarInbox(filtro === "todos" ? undefined : filtro),
+        parceirosApi.overview().catch(() => ({ postos: [], oficinas: [] })),
       ]);
       setThreads(inbox);
-      setPostos(listaPostos);
+      setPostoNomes(new Map(overview.postos.map((p) => [p.id, p.nome])));
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Não foi possível carregar.");
     } finally {
       setCarregando(false);
     }
-  }, [prefeituraId, filtro]);
+  }, [filtro]);
 
   useEffect(() => {
     void carregarInbox();
   }, [carregarInbox]);
 
-  const abrirThread = useCallback(
-    async (thread: SuporteThread) => {
-      setSelecionado(thread);
-      setCarregandoChat(true);
-      setErro("");
-      try {
-        const msgs = await suporteApi.listarMensagens(
-          prefeituraId,
-          thread.postoId,
-          thread.channel,
-        );
-        setMensagens(msgs);
-        await suporteApi.marcarLidasAdmin(
-          prefeituraId,
-          thread.postoId,
-          thread.channel,
-        );
-        setThreads((prev) =>
-          prev.map((t) =>
-            t.postoId === thread.postoId && t.channel === thread.channel
-              ? { ...t, unreadUserCount: 0 }
-              : t,
-          ),
-        );
-        notificarInboxSuporteAtualizado(prefeituraId);
-      } catch (e) {
-        setErro(e instanceof Error ? e.message : "Erro ao abrir conversa.");
-      } finally {
-        setCarregandoChat(false);
-      }
-    },
-    [prefeituraId],
-  );
+  const abrirThread = useCallback(async (thread: SuporteThread) => {
+    setSelecionado(thread);
+    setCarregandoChat(true);
+    setErro("");
+    try {
+      const msgs = await suporteAdminApi.listarMensagens(
+        thread.postoId,
+        thread.channel,
+      );
+      setMensagens(msgs);
+      await suporteAdminApi.marcarLidasAdmin(thread.postoId, thread.channel);
+      setThreads((prev) =>
+        prev.map((t) =>
+          t.postoId === thread.postoId && t.channel === thread.channel
+            ? { ...t, unreadUserCount: 0 }
+            : t,
+        ),
+      );
+      notificarInboxSuporteAdminAtualizado();
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Erro ao abrir conversa.");
+    } finally {
+      setCarregandoChat(false);
+    }
+  }, []);
 
   useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -215,8 +196,7 @@ export function SuportePostosSection({
     setEnviando(true);
     setErro("");
     try {
-      const msg = await suporteApi.responder(
-        prefeituraId,
+      const msg = await suporteAdminApi.responder(
         selecionado.postoId,
         selecionado.channel,
         texto.trim(),
@@ -248,11 +228,11 @@ export function SuportePostosSection({
     <section className="flex flex-col gap-5 pb-10">
       <header>
         <div className="text-2xl font-semibold text-slate-100">
-          Mensagens dos Postos
+          Suporte dos Postos
         </div>
         <div className="mt-1 text-sm text-slate-400">
-          Responda dúvidas de Financeiro e TI enviadas pelos operadores dos
-          postos.
+          Mensagens enviadas pelos operadores no portal do posto — atendimento
+          Hora Útil 360.
           {totalPendentes > 0 ? (
             <span className="ml-2 text-amber-300">
               {totalPendentes} pendente{totalPendentes > 1 ? "s" : ""}
@@ -340,7 +320,7 @@ export function SuportePostosSection({
                 ) : (
                   <>
                     {mensagens.map((m) => (
-                      <Bolha key={m.id} msg={m} channel={selecionado.channel} />
+                      <Bolha key={m.id} msg={m} />
                     ))}
                     <div ref={fimRef} />
                   </>
@@ -380,15 +360,9 @@ export function SuportePostosSection({
   );
 }
 
-function Bolha({
-  msg,
-  channel,
-}: {
-  msg: MensagemSuporte;
-  channel: SuporteChannel;
-}) {
+function Bolha({ msg }: { msg: MensagemSuporte }) {
   const ehOperador = msg.sender === "user";
-  const label = ehOperador ? "OPERADOR" : CANAL_LABEL[channel].toUpperCase();
+  const label = ehOperador ? "OPERADOR" : "HORA ÚTIL";
 
   if (ehOperador) {
     return (

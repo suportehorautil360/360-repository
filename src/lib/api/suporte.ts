@@ -1,4 +1,4 @@
-/** Inbox de mensagens dos postos — endpoints /suporte/prefeitura do back. */
+/** Inbox de mensagens dos postos — endpoints /suporte/prefeitura (legado, inbox vazio). */
 import { api } from "./client";
 
 export type SuporteChannel = "financeiro" | "ti";

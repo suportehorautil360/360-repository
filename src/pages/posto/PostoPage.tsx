@@ -762,8 +762,7 @@ export function PostoPage() {
               </li>
               <li>
                 Para novos postos e logins, use o Hub:{" "}
-                <strong>Gestão → Parceiros e postos</strong> e{" "}
-                <strong>Controle → Acessos e logins</strong>.
+                <strong>Gestão → Postos e oficinas → Detalhes / Login</strong>.
               </li>
             </ul>
           </div>

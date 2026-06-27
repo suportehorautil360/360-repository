@@ -26,6 +26,11 @@ const PortalPostoSection = lazy(() =>
     default: m.PortalPostoSection,
   })),
 );
+const ParceirosSection = lazy(() =>
+  import("./pages/admin/sections/ParceirosSection").then((m) => ({
+    default: m.ParceirosSection,
+  })),
+);
 const OficinasPostosSection = lazy(() =>
   import("./pages/admin/sections/OficinasPostosSection").then((m) => ({
     default: m.OficinasPostosSection,
@@ -59,6 +64,11 @@ const EquipamentosLocacaoSection = lazy(() =>
 const WhatsappSection = lazy(() =>
   import("./pages/admin/sections/WhatsappSection").then((m) => ({
     default: m.WhatsappSection,
+  })),
+);
+const SuportePostosAdminSection = lazy(() =>
+  import("./pages/admin/sections/SuportePostosAdminSection").then((m) => ({
+    default: m.SuportePostosAdminSection,
   })),
 );
 const ChecklistsSection = lazy(() =>
@@ -205,8 +215,10 @@ export function AppRoutes() {
               element={<FuncionalidadesSection />}
             />
             <Route path="whatsapp" element={<WhatsappSection />} />
+            <Route path="suporte-postos" element={<SuportePostosAdminSection />} />
             <Route path="checklists" element={<ChecklistsSection />} />
             <Route path="portal-posto" element={<PortalPostoSection />} />
+            <Route path="parceiros" element={<ParceirosSection />} />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />
             <Route

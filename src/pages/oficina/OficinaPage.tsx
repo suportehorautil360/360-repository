@@ -619,7 +619,8 @@ export function OficinaPage() {
         >
           Para <strong>cadastrar ou remover</strong> usuários (prefeitura,
           oficina ou posto), use o Hub:{" "}
-          <strong>Controle → Acessos e logins</strong>.
+          Cadastre logins em{" "}
+          <strong>Gestão → Postos e oficinas → Detalhes / Login</strong>.
         </p>
 
         <div

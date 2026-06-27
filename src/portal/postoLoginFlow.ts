@@ -29,7 +29,7 @@ export function tratarUsuarioApiPosto(
   if (!user.postoId) {
     return {
       text:
-        'Seu usuário não está vinculado a um posto. Peça ao administrador no Hub (Acessos e logins).',
+        'Seu usuário não está vinculado a um posto. Peça ao administrador no Hub (Postos e oficinas → Detalhes / Login).',
       tone: 'error',
     }
   }
