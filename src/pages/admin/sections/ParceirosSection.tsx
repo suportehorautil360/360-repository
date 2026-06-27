@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { KeyRound, Plus, Users } from "lucide-react";
 import {
   clientesApi,
@@ -22,7 +23,6 @@ import {
   ParceiroDetalheDrawer,
   type ParceiroSelecionado,
 } from "./ParceiroDetalheDrawer";
-import { PostoDetalheDrawer } from "./PostoDetalheDrawer";
 import "./parceiros.css";
 
 function StatusBadge({ ativo }: { ativo: boolean }) {
@@ -98,9 +98,13 @@ function OficinaRow({
 }
 
 export function ParceirosSection() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [modo, setModo] = useState<"lista" | "cadastro">("lista");
   const [clientes, setClientes] = useState<ClienteOverviewApi[]>([]);
-  const [prefeituraId, setPrefeituraId] = useState("");
+  const [prefeituraId, setPrefeituraId] = useState(
+    () => searchParams.get("prefeituraId") ?? "",
+  );
   const [dados, setDados] = useState<ParceirosOverviewApi>({
     postos: [],
     oficinas: [],
@@ -108,7 +112,13 @@ export function ParceirosSection() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [sel, setSel] = useState<ParceiroSelecionado | null>(null);
-  const [postoSel, setPostoSel] = useState<PostoParceiroApi | null>(null);
+
+  function abrirPosto(posto: PostoParceiroApi) {
+    const qs = prefeituraId
+      ? `?prefeituraId=${encodeURIComponent(prefeituraId)}`
+      : "";
+    navigate(`/admin/parceiros/posto/${encodeURIComponent(posto.id)}${qs}`);
+  }
 
   const carregar = useCallback(async (clienteId: string) => {
     setLoading(true);
@@ -256,7 +266,7 @@ export function ParceirosSection() {
             </div>
           ) : (
             dados.postos.map((p) => (
-              <PostoRow key={p.id} posto={p} onAbrir={setPostoSel} />
+              <PostoRow key={p.id} posto={p} onAbrir={abrirPosto} />
             ))
           )}
         </article>
@@ -285,12 +295,6 @@ export function ParceirosSection() {
           )}
         </article>
       </div>
-
-      <PostoDetalheDrawer
-        posto={postoSel}
-        open={postoSel !== null}
-        onClose={() => setPostoSel(null)}
-      />
 
       <ParceiroDetalheDrawer
         selecionado={sel}

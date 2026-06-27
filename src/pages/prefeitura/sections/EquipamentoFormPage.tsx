@@ -125,6 +125,13 @@ function asStr(v: unknown): string {
   return String(v);
 }
 
+function nomesCondutores(ids: string[], motoristas: Funcionario[]): string {
+  return ids
+    .map((id) => motoristas.find((m) => m.id === id)?.nome)
+    .filter((nome): nome is string => Boolean(nome))
+    .join(", ");
+}
+
 /** Documento bruto (banco) → estado do formulário, para o modo edição. */
 function paraFormState(d: Record<string, unknown>): FormState {
   const num = (...vs: unknown[]) => {
@@ -198,7 +205,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
     };
   }, [prefeituraId]);
 
-  // Motoristas da prefeitura — alimentam o multi-select de condutores do comboio.
+  // Motoristas da prefeitura — alimentam o multi-select de condutores.
   useEffect(() => {
     let ativo = true;
     funcionariosApi
@@ -214,6 +221,28 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
       ativo = false;
     };
   }, [prefeituraId]);
+
+  // Equipamentos antigos guardavam só o nome em texto; tenta mapear para IDs.
+  useEffect(() => {
+    if (!motoristas.length) return;
+    setForm((prev) => {
+      if (prev.condutoresResponsaveis.length > 0) return prev;
+      const legado = prev.condutorResponsavel.trim();
+      if (!legado) return prev;
+      const partes = legado
+        .split(/[,;]+/)
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+      const ids = motoristas
+        .filter((m) => {
+          const nome = m.nome.trim().toLowerCase();
+          return partes.includes(nome) || legado.toLowerCase() === nome;
+        })
+        .map((m) => m.id);
+      if (!ids.length) return prev;
+      return { ...prev, condutoresResponsaveis: ids };
+    });
+  }, [motoristas]);
 
   const ehLocada = form.tipoFrota.toLowerCase().includes("locad");
   const ehComboio = form.tipo.trim().toLowerCase() === "comboio";
@@ -311,8 +340,10 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
         status: form.status,
         medicaoAtual: asNumber(form.medicaoAtual),
         intervaloRevisao: intervalo,
-        condutorResponsavel: form.condutorResponsavel.trim(),
-        condutoresResponsaveis: ehComboio ? form.condutoresResponsaveis : [],
+        condutorResponsavel:
+          nomesCondutores(form.condutoresResponsaveis, motoristas) ||
+          form.condutorResponsavel.trim(),
+        condutoresResponsaveis: form.condutoresResponsaveis,
         gestorResponsavel: form.gestorResponsavel.trim(),
         centroCusto: form.centroCusto.trim(),
         cidade: form.cidade.trim(),
@@ -490,30 +521,32 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
             numeric: true,
             placeholder: "0 = padrão por tipo",
           })}
-          {ehComboio ? (
-            <Campo label="Condutores responsáveis (motoristas)">
-              <MultiSelect
-                options={motoristas.map((m) => ({
-                  value: m.id,
-                  label: m.nome,
-                  keywords: [m.cpf, m.matricula ?? ""],
-                }))}
-                value={form.condutoresResponsaveis}
-                onValueChange={(v) => setCampo("condutoresResponsaveis", v)}
-                placeholder={
-                  motoristas.length
-                    ? "Selecione os motoristas"
-                    : "Nenhum motorista cadastrado"
-                }
-                searchPlaceholder="Buscar motorista…"
-                emptyText="Nenhum motorista encontrado."
-                disabled={motoristas.length === 0}
-                className="border-white/15 bg-white/[0.04] text-slate-100"
-              />
-            </Campo>
-          ) : (
-            texto("condutorResponsavel", "Condutor responsável")
-          )}
+          <Campo
+            label={
+              ehComboio
+                ? "Condutores responsáveis (motoristas)"
+                : "Condutor responsável (motorista)"
+            }
+          >
+            <MultiSelect
+              options={motoristas.map((m) => ({
+                value: m.id,
+                label: m.nome,
+                keywords: [m.cpf, m.matricula ?? ""],
+              }))}
+              value={form.condutoresResponsaveis}
+              onValueChange={(v) => setCampo("condutoresResponsaveis", v)}
+              placeholder={
+                motoristas.length
+                  ? "Selecione os motoristas"
+                  : "Nenhum motorista cadastrado"
+              }
+              searchPlaceholder="Buscar motorista…"
+              emptyText="Nenhum motorista encontrado."
+              disabled={motoristas.length === 0}
+              className="border-white/15 bg-white/[0.04] text-slate-100"
+            />
+          </Campo>
           {texto("gestorResponsavel", "Gestor responsável")}
         </div>
       </section>
