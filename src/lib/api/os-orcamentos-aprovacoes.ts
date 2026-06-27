@@ -1,6 +1,6 @@
 /**
- * Orçamentos e Aprovações — lista O.S. via GET /os/solicitacoes;
- * orçamentos (ordensServico) virão em endpoint separado (Fase 3b).
+ * Orçamentos e Aprovações — GET /os/solicitacoes/:id/com-orcamentos;
+ * aprovação via PATCH /os/solicitacoes/:id/aprovar.
  */
 import type {
   ItemOrdemOrcamento,
@@ -35,12 +35,20 @@ interface QuoteApi {
   totalValue?: number;
   valorTotal?: number;
   status: string;
+  prazoDias?: number;
   createdAt?: string;
   criadoEm?: { seconds: number } | null;
 }
 
-interface RespListarSolicitacoes {
-  data: SolicitacaoOsApi[];
+interface SolicitacaoComOrcamentosApi extends SolicitacaoOsApi {
+  invitedCount?: number;
+  quotesReceived?: number;
+  quotes?: QuoteApi[];
+  orcamentos?: QuoteApi[];
+}
+
+interface RespListarComOrcamentos {
+  data: SolicitacaoComOrcamentosApi[];
   message: string;
 }
 
@@ -60,8 +68,16 @@ function parseCriadoEm(item: {
   return { seconds: Math.floor(ms / 1000) };
 }
 
-function solicitacaoApiParaOrcamento(item: SolicitacaoOsApi): SolicitacaoOrcamento {
+function solicitacaoApiParaOrcamento(
+  item: SolicitacaoComOrcamentosApi,
+): SolicitacaoOrcamento {
   const oficinasIds = item.oficinasIds ?? item.workshopIds;
+  const convidadas =
+    item.invitedCount ??
+    oficinasIds?.length ??
+    item.oficinas?.length ??
+    item.workshops?.length;
+
   return {
     id: item.id,
     protocolo: item.protocolo ?? item.protocol ?? "",
@@ -71,12 +87,12 @@ function solicitacaoApiParaOrcamento(item: SolicitacaoOsApi): SolicitacaoOrcamen
     relato: item.relato ?? item.report ?? "",
     oficinas: item.oficinas ?? item.workshops,
     oficinasIds,
+    convidadas,
     status: item.status,
     criadoEm: parseCriadoEm(item),
   };
 }
 
-/** Pronto para quando existir GET de orçamentos por solicitação. */
 export function quoteApiParaOrdem(
   q: QuoteApi,
   solicitacaoId: string,
@@ -131,23 +147,24 @@ export function mensagemErroListarOrcamentos(err: unknown): string {
 }
 
 export const osOrcamentosAprovacoesApi = {
-  /** Lista O.S. do município (mesmo GET da tela Abrir OS). */
+  /** Lista O.S. do município com orçamentos (ordensServico) aninhados. */
   async listarCards(prefeituraId: string): Promise<OsComOrcamentosCard[]> {
-    const r = await api.get<RespListarSolicitacoes>(
-      `/os/solicitacoes/${encodeURIComponent(prefeituraId)}`,
+    const r = await api.get<RespListarComOrcamentos>(
+      `/os/solicitacoes/${encodeURIComponent(prefeituraId)}/com-orcamentos`,
     );
-    return r.data.map((item) => ({
-      solicitacao: solicitacaoApiParaOrcamento(item),
-      ordens: [],
-    }));
+
+    return (r.data ?? []).map((item) => {
+      const quotes = item.quotes ?? item.orcamentos ?? [];
+      return {
+        solicitacao: solicitacaoApiParaOrcamento(item),
+        ordens: quotes.map((q) => quoteApiParaOrdem(q, item.id)),
+      };
+    });
   },
 
-  /**
-   * TODO (Fase 3b): buscar orçamentos e mesclar nos cards.
-   * Sugestão: GET /os/orcamentos/:prefeituraId ou por solicitacaoOsId.
-   */
-  async listarOrcamentos(_prefeituraId: string): Promise<OrdemOrcamento[]> {
-    return [];
+  async listarOrcamentos(prefeituraId: string): Promise<OrdemOrcamento[]> {
+    const cards = await this.listarCards(prefeituraId);
+    return cards.flatMap((c) => c.ordens);
   },
 
   async aprovar(solicitacaoId: string, ordemServicoId: string): Promise<void> {

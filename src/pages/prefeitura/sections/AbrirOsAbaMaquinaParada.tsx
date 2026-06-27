@@ -1,70 +1,12 @@
-type TomOficina = "laranja" | "vermelho" | "verde";
-
-interface MaquinaParadaRow {
-  os: string;
-  equipamento: string;
-  motivo: string;
-  diasParado: number;
-  horasTotais: number;
-  oficina: string;
-  tomOficina: TomOficina;
-  diasDestaque?: boolean;
-}
-
-const MAQUINAS_PARADAS_MOCK: MaquinaParadaRow[] = [
-  {
-    os: "013295",
-    equipamento: "Escavadeira hidráulica CAT 320",
-    motivo:
-      "Vazamento crítico no cilindro mestre do braço primário. Aguardando kit de vedações.",
-    diasParado: 0,
-    horasTotais: 9,
-    oficina: "L. Amarela",
-    tomOficina: "laranja",
-  },
-  {
-    os: "013142",
-    equipamento: "Retroescavadeira JCB 3CX",
-    motivo:
-      "Falha severa na transmissão e travamento do conversor de torque.",
-    diasParado: 12,
-    horasTotais: 288,
-    oficina: "L. Amarela",
-    tomOficina: "vermelho",
-    diasDestaque: true,
-  },
-  {
-    os: "013210",
-    equipamento: "Motoniveladora John Deere 620G",
-    motivo:
-      "Revisão do sistema elétrico / módulo central e substituição do chicote principal.",
-    diasParado: 4,
-    horasTotais: 96,
-    oficina: "L. Amarela",
-    tomOficina: "laranja",
-  },
-  {
-    os: "013254",
-    equipamento: "Escavadeira Sany SY215C",
-    motivo:
-      "Troca preventiva e alinhamento de sapatas e roletes do conjunto de esteiras.",
-    diasParado: 2,
-    horasTotais: 48,
-    oficina: "L. Amarela",
-    tomOficina: "verde",
-  },
-];
-
-function badgeOficinaCls(tom: TomOficina): string {
-  if (tom === "vermelho") return "aos-mp-badge--vermelho";
-  if (tom === "verde") return "aos-mp-badge--verde";
-  return "aos-mp-badge--laranja";
-}
+import {
+  badgeOficinaCls,
+  MAQUINAS_PARADAS_MOCK,
+} from "./abrir-os-paineis-dados";
 
 export function AbrirOsAbaMaquinaParada() {
   const rows = MAQUINAS_PARADAS_MOCK;
   const totalParados = rows.length;
-  const maiorParada = Math.max(...rows.map((r) => r.diasParado));
+  const maiorParada = rows.length > 0 ? Math.max(...rows.map((r) => r.diasParado)) : 0;
   const aguardandoPecas = rows.filter((r) =>
     /aguardando|peça|peças|kit/i.test(r.motivo),
   ).length;

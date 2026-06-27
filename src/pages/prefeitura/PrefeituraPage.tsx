@@ -14,6 +14,8 @@ import { FuncionarioFormPage } from "./sections/FuncionarioFormPage";
 import { HistoricoPontoSection } from "./sections/HistoricoPontoSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosAprovacoesSection } from "./sections/OrcamentosAprovacoesSection";
+import { NotasFiscaisSection } from "./sections/NotasFiscaisSection";
+import { NotasFiscaisOficinasSection } from "./sections/NotasFiscaisOficinasSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoVisaoGeralSection } from "./sections/AbastecimentoVisaoGeralSection";
 import { ConsumoCustoSection } from "./sections/ConsumoCustoSection";
@@ -21,8 +23,7 @@ import { CreditoSection } from "./sections/CreditoSection";
 import { LubrificacaoSection } from "./sections/LubrificacaoSection";
 import { CargasComboioSection } from "./sections/CargasComboioSection";
 import { PostosSection } from "./sections/PostosSection";
-import { AbastecimentosListSection } from "./sections/AbastecimentosListSection";
-import { NotasFiscaisSection } from "./sections/NotasFiscaisSection";
+import { AbastecimentoSection } from "./sections/AbastecimentoSection";
 import { SuportePostosSection } from "./sections/SuportePostosSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
@@ -318,7 +319,7 @@ export function PrefeituraPage() {
         return <CreditoSection dados={dados!} prefeituraId={prefeituraId} />;
       case "abastecimento":
         return abastecimentoAtivo ? (
-          <AbastecimentosListSection prefeituraId={prefeituraId} />
+          <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
         ) : (
           <EmConstrucao titulo="Abastecimentos" />
         );
@@ -371,6 +372,8 @@ export function PrefeituraPage() {
         return <PlanoPreventivoSection prefeituraId={prefeituraId} />;
       case "orcamentos":
         return <OrcamentosAprovacoesSection prefeituraId={prefeituraId} />;
+      case "notas-fiscais-oficinas":
+        return <NotasFiscaisOficinasSection prefeituraId={prefeituraId} />;
       case "pagamentos":
         return (
           <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />

@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { listarSolicitacoesOs } from "./criar-solicitacao-os";
 import { AbrirOsFormulario } from "./AbrirOsFormulario";
 import { AbrirOsLista } from "./AbrirOsLista";
+import { AbrirOsDetalhePage } from "./AbrirOsDetalhePage";
 import type { FiltrosOsLista, SolicitacaoOS } from "./abrir-os-model";
 import "./abrir-os.css";
 
-type TelaOs = "lista" | "formulario";
+type TelaOs = "lista" | "formulario" | "detalhe";
 
 const FILTROS_INICIAIS: FiltrosOsLista = {
   dataInicio: "",
@@ -15,6 +16,7 @@ const FILTROS_INICIAIS: FiltrosOsLista = {
 
 export function AbrirOsSection({ prefeituraId }: { prefeituraId: string }) {
   const [tela, setTela] = useState<TelaOs>("lista");
+  const [osDetalhe, setOsDetalhe] = useState<SolicitacaoOS | null>(null);
   const [rows, setRows] = useState<SolicitacaoOS[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -62,15 +64,28 @@ export function AbrirOsSection({ prefeituraId }: { prefeituraId: string }) {
           filtros={filtros}
           onFiltrosChange={setFiltros}
           onAbrirOs={() => setTela("formulario")}
+          onVerDetalhes={(os) => {
+            setOsDetalhe(os);
+            setTela("detalhe");
+          }}
         />
-      ) : (
+      ) : tela === "formulario" ? (
         <AbrirOsFormulario
           prefeituraId={prefeituraId}
           onCancelar={() => setTela("lista")}
           onVoltarLista={() => setTela("lista")}
           onSalvo={handleOsCriada}
         />
-      )}
+      ) : osDetalhe ? (
+        <AbrirOsDetalhePage
+          prefeituraId={prefeituraId}
+          os={osDetalhe}
+          onVoltar={() => {
+            setOsDetalhe(null);
+            setTela("lista");
+          }}
+        />
+      ) : null}
     </section>
   );
 }

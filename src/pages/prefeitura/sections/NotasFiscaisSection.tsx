@@ -17,11 +17,11 @@ import {
   documentoLabel,
   notasFiscaisApi,
   STATUS_LABEL,
-  type NotaFiscal,
-  type NotaStatus,
-} from "@/lib/api/notas-fiscais";
+  type NotaFiscalCombustivel,
+  type NotaFiscalStatus,
+} from "../../../lib/api/notas-fiscais";
 
-type Filtro = "todas" | NotaStatus;
+type Filtro = "todas" | NotaFiscalStatus;
 
 function fmtData(iso: string): string {
   const d = new Date(iso);
@@ -36,8 +36,7 @@ function fmtBRL(n: number): string {
   });
 }
 
-function badgeVariant(status: NotaStatus): "comboio" | "posto" | "local" {
-  // Variantes do Badge: posto=verde, comboio=âmbar, local=cinza.
+function badgeVariant(status: NotaFiscalStatus): "comboio" | "posto" | "local" {
   if (status === "aprovada") return "posto";
   if (status === "rejeitada") return "local";
   return "comboio";
@@ -48,7 +47,7 @@ export function NotasFiscaisSection({
 }: {
   prefeituraId: string;
 }) {
-  const [rows, setRows] = useState<NotaFiscal[]>([]);
+  const [rows, setRows] = useState<NotaFiscalCombustivel[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
   const [aba, setAba] = useState<Filtro>("todas");
@@ -59,7 +58,7 @@ export function NotasFiscaisSection({
     let vivo = true;
     setCarregando(true);
     notasFiscaisApi
-      .listar(prefeituraId)
+      .listarCombustivel(prefeituraId)
       .then((data) => {
         if (!vivo) return;
         setRows(data);
@@ -76,7 +75,7 @@ export function NotasFiscaisSection({
     };
   }, [prefeituraId]);
 
-  async function decidir(id: string, status: NotaStatus) {
+  async function decidir(id: string, status: NotaFiscalStatus) {
     setOcupadoId(id);
     try {
       await notasFiscaisApi.atualizarStatus(id, status);
