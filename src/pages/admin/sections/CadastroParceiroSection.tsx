@@ -5,6 +5,7 @@ import {
 } from "../../../lib/api/clientes";
 import {
   parceirosApi,
+  type CriarParceiroLoginGeradoApi,
   type CriarParceiroPayload,
   type ParceirosOverviewApi,
   type TipoParceiroApi,
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import "./parceiros.css";
 
 const BANDEIRAS = [
   "Petrobras / BR",
@@ -131,8 +133,14 @@ interface ParceiroLinha {
 
 export function CadastroParceiroSection({
   onVoltar,
+  defaultPrefeituraId,
+  hideLista = false,
+  onSalvo,
 }: {
   onVoltar: () => void;
+  defaultPrefeituraId?: string;
+  hideLista?: boolean;
+  onSalvo?: () => void;
 }) {
   const [aba, setAba] = useState<Aba>("dados");
   const [form, setForm] = useState<ParceiroForm>(FORM_INICIAL);
@@ -145,6 +153,11 @@ export function CadastroParceiroSection({
   const [salvando, setSalvando] = useState(false);
   const [msg, setMsg] = useState("");
   const [msgTone, setMsgTone] = useState<"none" | "ok" | "err">("none");
+  const [loginGerado, setLoginGerado] = useState<{
+    parceiro: string;
+    tipo: TipoParceiroApi;
+    login: CriarParceiroLoginGeradoApi;
+  } | null>(null);
 
   function setMsgTexto(tone: "none" | "ok" | "err", texto: string) {
     setMsgTone(tone);
@@ -182,10 +195,14 @@ export function CadastroParceiroSection({
       .overview()
       .then((lista) => {
         setClientes(lista);
-        setPrefeituraId((cur) => cur || lista[0]?.id || "");
+        setPrefeituraId((cur) => {
+          if (cur) return cur;
+          if (defaultPrefeituraId) return defaultPrefeituraId;
+          return lista[0]?.id || "";
+        });
       })
       .catch(() => {});
-  }, []);
+  }, [defaultPrefeituraId]);
 
   const linhas: ParceiroLinha[] = useMemo(() => {
     const dePosto: ParceiroLinha[] = dados.postos.map((p) => ({
@@ -259,6 +276,18 @@ export function CadastroParceiroSection({
         await clientesApi.credenciarParceiro(prefeituraId, criado.id);
       }
 
+      if (criado.login) {
+        setLoginGerado({
+          parceiro: form.razaoSocial.trim(),
+          tipo: criado.tipo,
+          login: criado.login,
+        });
+        setForm(FORM_INICIAL);
+        setAba("dados");
+        await carregar();
+        return;
+      }
+
       const cliente = clientes.find((c) => c.id === prefeituraId);
       const sufixoCliente = cliente
         ? ` · vinculado a ${cliente.nome} (${cliente.uf})`
@@ -271,6 +300,7 @@ export function CadastroParceiroSection({
       setForm(FORM_INICIAL);
       setAba("dados");
       await carregar();
+      onSalvo?.();
     } catch (err) {
       setMsgTexto(
         "err",
@@ -322,6 +352,49 @@ export function CadastroParceiroSection({
     if (abasVisiveis.some((a) => a.id === aba)) return;
     setAba("dados");
   }, [aba, abasVisiveis]);
+
+  if (loginGerado) {
+    const destino = loginGerado.tipo === "posto" ? "posto" : "oficina";
+    return (
+      <section className="parc-login-gerado">
+        <h2>Parceiro cadastrado</h2>
+        <p className="topbar-user">
+          <strong>{loginGerado.parceiro}</strong> foi salvo com sucesso. Anote o
+          login operacional gerado automaticamente:
+        </p>
+        <article className="parc-login-gerado__card">
+          <div className="parc-login-gerado__row">
+            <span>Usuário</span>
+            <code>{loginGerado.login.usuario}</code>
+          </div>
+          <div className="parc-login-gerado__row">
+            <span>Senha inicial</span>
+            <code>{loginGerado.login.senhaInicial}</code>
+          </div>
+          <div className="parc-login-gerado__row">
+            <span>Nome no sistema</span>
+            <strong>{loginGerado.login.nome}</strong>
+          </div>
+          <p className="parc-login-gerado__hint">
+            Entrada:{" "}
+            <code>/login-operacional?destino={destino}</code>
+          </p>
+        </article>
+        <div className="cad-actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setLoginGerado(null);
+              onSalvo?.();
+            }}
+          >
+            Concluir
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
@@ -648,6 +721,8 @@ export function CadastroParceiroSection({
         </form>
       </article>
 
+      {!hideLista ? (
+        <>
       <h3 className="parc-lista-titulo">Parceiros cadastrados</h3>
       <div className="hub-table-scroll">
         <table>
@@ -699,6 +774,8 @@ export function CadastroParceiroSection({
           </tbody>
         </table>
       </div>
+        </>
+      ) : null}
     </>
   );
 }

@@ -36,6 +36,7 @@ export interface AcessoLoginProps {
     prefeituraId?: string;
     vinculo?: VinculoUsuario;
     postoId?: string;
+    officinaId?: string;
   }) => Promise<UsuarioFirestore[]>;
   resetarSenha: (id: string, novaSenha: string) => Promise<AddLocacaoResult>;
   removerUsuario: (id: string) => Promise<AddLocacaoResult>;

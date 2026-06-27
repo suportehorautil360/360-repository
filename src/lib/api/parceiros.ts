@@ -5,6 +5,7 @@ export type TipoParceiroApi = "posto" | "oficina";
 
 export interface PostoParceiroApi {
   id: string;
+  prefeituraId: string;
   nome: string;
   razaoSocial: string;
   cidadeUf: string;
@@ -16,6 +17,7 @@ export interface PostoParceiroApi {
 
 export interface OficinaParceiroApi {
   id: string;
+  prefeituraId: string;
   nome: string;
   razaoSocial: string;
   cidadeUf: string;
@@ -56,19 +58,55 @@ export interface CriarParceiroPayload {
   observacoesFaturamento?: string;
 }
 
+export interface ParceiroLoginApi {
+  id: string;
+  nome: string;
+  usuario: string;
+  perfil: string;
+  vinculo: TipoParceiroApi;
+  prefeituraId: string;
+  postoId?: string;
+  officinaId?: string;
+  createdAt: string;
+}
+
+export interface CriarParceiroLoginGeradoApi {
+  nome: string;
+  usuario: string;
+  senhaInicial: string;
+}
+
+export interface CriarParceiroLoginPayload {
+  nome: string;
+  usuario: string;
+  senha: string;
+  perfil?: "gestor" | "admin";
+}
+
 export const parceirosApi = {
-  async overview(): Promise<ParceirosOverviewApi> {
+  async overview(prefeituraId?: string): Promise<ParceirosOverviewApi> {
+    const qs = prefeituraId?.trim()
+      ? `?prefeituraId=${encodeURIComponent(prefeituraId.trim())}`
+      : "";
     const r = await api.get<{ data: ParceirosOverviewApi }>(
-      "/parceiros/overview",
+      `/parceiros/overview${qs}`,
     );
     return r.data ?? { postos: [], oficinas: [] };
   },
 
   async criar(
     payload: CriarParceiroPayload,
-  ): Promise<{ id: string; tipo: TipoParceiroApi }> {
+  ): Promise<{
+    id: string;
+    tipo: TipoParceiroApi;
+    login?: CriarParceiroLoginGeradoApi;
+  }> {
     const r = await api.post<{
-      data: { id: string; tipo: TipoParceiroApi };
+      data: {
+        id: string;
+        tipo: TipoParceiroApi;
+        login?: CriarParceiroLoginGeradoApi;
+      };
       message: string;
     }>("/parceiros", payload);
     return r.data;
@@ -76,5 +114,38 @@ export const parceirosApi = {
 
   async remover(tipo: TipoParceiroApi, id: string): Promise<void> {
     await api.del(`/parceiros/${tipo}/${id}`);
+  },
+
+  async listarLogins(
+    tipo: TipoParceiroApi,
+    parceiroId: string,
+  ): Promise<ParceiroLoginApi[]> {
+    const r = await api.get<{ data: ParceiroLoginApi[] }>(
+      `/parceiros/${tipo}/${encodeURIComponent(parceiroId)}/logins`,
+    );
+    return r.data ?? [];
+  },
+
+  async criarLogin(
+    tipo: TipoParceiroApi,
+    parceiroId: string,
+    payload: CriarParceiroLoginPayload,
+  ): Promise<ParceiroLoginApi> {
+    const r = await api.post<{ data: ParceiroLoginApi; message: string }>(
+      `/parceiros/${tipo}/${encodeURIComponent(parceiroId)}/logins`,
+      payload,
+    );
+    return r.data;
+  },
+
+  async resetarLoginSenha(acessoId: string, senha: string): Promise<void> {
+    await api.patch(
+      `/parceiros/logins/${encodeURIComponent(acessoId)}/senha`,
+      { senha },
+    );
+  },
+
+  async removerLogin(acessoId: string): Promise<void> {
+    await api.del(`/parceiros/logins/${encodeURIComponent(acessoId)}`);
   },
 };
