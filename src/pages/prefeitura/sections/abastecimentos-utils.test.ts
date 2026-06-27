@@ -19,6 +19,10 @@ const base: Abastecimento = {
   leitura: 85260,
   leituraUnidade: "km",
   local: "Posto Trevo",
+  comboioId: "",
+  funcionarioId: "",
+  comboio: "",
+  comboista: "",
   km: 85260,
   postoNome: "Posto Trevo",
   status: "",
@@ -54,15 +58,15 @@ describe("abastecimentosParaCSV", () => {
   it("monta colunas e linhas; comboio sem valor", () => {
     const ds = abastecimentosParaCSV(rows);
     expect(ds.colunas[0]).toBe("Data");
-    expect(ds.colunas).toHaveLength(11);
+    expect(ds.colunas).toHaveLength(13);
     expect(ds.linhas).toHaveLength(2);
     // linha do comboio (id 1): célula de valor vazia
     const comboio = ds.linhas[0];
     expect(comboio[5]).toBe("Comboio");
-    expect(comboio[7]).toBe(""); // valor vazio p/ comboio
+    expect(comboio[9]).toBe(""); // valor vazio p/ comboio
     // linha do posto (id 2): valor numérico
     const posto = ds.linhas[1];
     expect(posto[5]).toBe("Posto");
-    expect(posto[7]).toBe(306);
+    expect(posto[9]).toBe(306);
   });
 });

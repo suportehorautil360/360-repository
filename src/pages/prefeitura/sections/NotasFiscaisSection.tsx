@@ -1,335 +1,288 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, FileText, Loader2, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Building2,
-  CalendarDays,
-  Clock3,
-  DollarSign,
-  FileText,
-  CheckCircle2,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
-  fmtDataNotaFiscal,
-  fmtPeriodoNotasFiscais,
-  fmtValorNotaFiscal,
-  fmtValorNotaFiscalRow,
-  labelStatusNotaFiscal,
-  mensagemErroListarNotasFiscais,
+  documentoLabel,
   notasFiscaisApi,
-  type NotaFiscalListItem,
-  type NotasFiscaisResumo,
+  STATUS_LABEL,
+  type NotaFiscalCombustivel,
   type NotaFiscalStatus,
 } from "../../../lib/api/notas-fiscais";
-import {
-  fmtMoedaGrafico,
-  NotasFiscaisGraficoBarras,
-} from "./NotasFiscaisGraficoBarras";
-import "./notas-fiscais.css";
 
-function isoInicioMes(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}-01`;
+type Filtro = "todas" | NotaFiscalStatus;
+
+function fmtData(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR");
 }
 
-function isoHoje(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+function fmtBRL(n: number): string {
+  return (Number(n) || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
-const RESUMO_VAZIO: NotasFiscaisResumo = {
-  totalNotas: 0,
-  valorTotal: 0,
-  pendentes: 0,
-  aprovadas: 0,
-  rejeitadas: 0,
-  oficinas: 0,
-  porMes: [],
-  porStatus: [],
-  porOficina: [],
-};
+function badgeVariant(status: NotaFiscalStatus): "comboio" | "posto" | "local" {
+  if (status === "aprovada") return "posto";
+  if (status === "rejeitada") return "local";
+  return "comboio";
+}
 
-export function NotasFiscaisSection({ prefeituraId }: { prefeituraId: string }) {
-  const [rows, setRows] = useState<NotaFiscalListItem[]>([]);
-  const [resumo, setResumo] = useState<NotasFiscaisResumo>(RESUMO_VAZIO);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+export function NotasFiscaisSection({
+  prefeituraId,
+}: {
+  prefeituraId: string;
+}) {
+  const [rows, setRows] = useState<NotaFiscalCombustivel[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  const [aba, setAba] = useState<Filtro>("todas");
   const [busca, setBusca] = useState("");
-  const [status, setStatus] = useState<NotaFiscalStatus | "todos">("todos");
-  const [dataInicio, setDataInicio] = useState(isoInicioMes);
-  const [dataFim, setDataFim] = useState(isoHoje);
-
-  const carregar = useCallback(async () => {
-    if (!prefeituraId) {
-      setRows([]);
-      setResumo(RESUMO_VAZIO);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setErro(null);
-    try {
-      const resp = await notasFiscaisApi.listarPorPrefeitura(prefeituraId, {
-        busca,
-        status,
-        startDate: dataInicio,
-        endDate: dataFim,
-      });
-      setRows(resp.data);
-      setResumo(resp.resumo ?? RESUMO_VAZIO);
-    } catch (err) {
-      setRows([]);
-      setResumo(RESUMO_VAZIO);
-      setErro(mensagemErroListarNotasFiscais(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [prefeituraId, busca, status, dataInicio, dataFim]);
+  const [ocupadoId, setOcupadoId] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void carregar();
-    }, busca ? 300 : 0);
-    return () => window.clearTimeout(timer);
-  }, [carregar, busca]);
+    let vivo = true;
+    setCarregando(true);
+    notasFiscaisApi
+      .listarCombustivel(prefeituraId)
+      .then((data) => {
+        if (!vivo) return;
+        setRows(data);
+        setErro(false);
+      })
+      .catch(() => {
+        if (vivo) setErro(true);
+      })
+      .finally(() => {
+        if (vivo) setCarregando(false);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [prefeituraId]);
 
-  const kpis = useMemo(
-    () => [
-      {
-        id: "total",
-        icon: FileText,
-        label: "Notas no período",
-        valor: String(resumo.totalNotas),
-      },
-      {
-        id: "valor",
-        icon: DollarSign,
-        label: "Valor identificado",
-        valor: fmtValorNotaFiscal(resumo.valorTotal),
-      },
-      {
-        id: "pendentes",
-        icon: Clock3,
-        label: "Pendentes",
-        valor: String(resumo.pendentes),
-      },
-      {
-        id: "aprovadas",
-        icon: CheckCircle2,
-        label: "Aprovadas",
-        valor: String(resumo.aprovadas),
-      },
-      {
-        id: "oficinas",
-        icon: Building2,
-        label: "Oficinas",
-        valor: String(resumo.oficinas),
-      },
-    ],
-    [resumo],
-  );
+  async function decidir(id: string, status: NotaFiscalStatus) {
+    setOcupadoId(id);
+    try {
+      await notasFiscaisApi.atualizarStatus(id, status);
+      setRows((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, status } : n)),
+      );
+    } catch {
+      setErro(true);
+    } finally {
+      setOcupadoId(null);
+    }
+  }
+
+  const totais = useMemo(() => {
+    const total = rows.reduce((s, n) => s + (n.value || 0), 0);
+    const aprovadas = rows
+      .filter((n) => n.status === "aprovada")
+      .reduce((s, n) => s + (n.value || 0), 0);
+    const pendentes = rows.filter((n) => n.status === "pendente").length;
+    return { total, aprovadas, pendentes };
+  }, [rows]);
+
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return rows.filter((n) => {
+      if (aba !== "todas" && n.status !== aba) return false;
+      if (!q) return true;
+      return [n.number, n.issuerName, n.description, n.accessKey]
+        .join(" ")
+        .toLowerCase()
+        .includes(q);
+    });
+  }, [rows, aba, busca]);
 
   return (
-    <section className="nf-page">
-      <div className="nf-wrap">
-        <h1 className="nf-title">Notas Fiscais</h1>
-        <p className="nf-subtitle">
-          Notas enviadas pelas oficinas credenciadas após conclusão do serviço.
-          Veja de qual oficina veio cada NF, a O.S. vinculada e baixe o PDF.
-        </p>
+    <section className="flex flex-col gap-5 pb-10">
+      <header>
+        <div className="text-2xl font-semibold text-slate-100">
+          Notas Fiscais de Combustível
+        </div>
+        <div className="mt-1 text-sm text-slate-400">
+          PDFs enviados pelos postos para conferência e aprovação.
+        </div>
+      </header>
 
-        <div className="nf-periodo">
-          <CalendarDays size={16} aria-hidden />
-          <span>{fmtPeriodoNotasFiscais(dataInicio, dataFim)}</span>
+      {erro && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
+          Não foi possível concluir a operação. Tente novamente.
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Kpi rotulo="Total" valor={fmtBRL(totais.total)} />
+        <Kpi rotulo="Aprovadas" valor={fmtBRL(totais.aprovadas)} cor="text-emerald-300" />
+        <Kpi
+          rotulo="Pendentes"
+          valor={String(totais.pendentes)}
+          cor="text-amber-300"
+        />
+      </div>
+
+      <Card>
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-500" />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por número, emitente ou chave…"
+              className="w-full rounded-full border border-white/10 bg-white/5 py-2 pr-3 pl-9 text-sm text-slate-100 placeholder:text-slate-500 focus:border-[#f97316] focus:outline-none"
+            />
+          </div>
+          <Tabs value={aba} onValueChange={(v) => setAba(v as Filtro)}>
+            <TabsList>
+              <TabsTrigger value="todas">Todas</TabsTrigger>
+              <TabsTrigger value="pendente">Pendentes</TabsTrigger>
+              <TabsTrigger value="aprovada">Aprovadas</TabsTrigger>
+              <TabsTrigger value="rejeitada">Rejeitadas</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        <div className="nf-kpis">
-          {kpis.map(({ id, icon: Icon, label, valor }) => (
-            <article key={id} className="nf-kpi">
-              <div className="nf-kpi__icon">
-                <Icon size={18} aria-hidden />
-              </div>
-              <div>
-                <strong className="nf-kpi__valor">{valor}</strong>
-                <span className="nf-kpi__label">{label}</span>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {!loading && (resumo.porMes.length > 0 || resumo.porStatus.length > 0) ? (
-          <div className="nf-charts">
-            {resumo.porMes.length > 0 ? (
-              <article className="nf-chart-card">
-                <h2 className="nf-chart-title">Valor por mês</h2>
-                <NotasFiscaisGraficoBarras
-                  dados={resumo.porMes.map((p) => ({
-                    label: p.label,
-                    valor: p.valor,
-                  }))}
-                  formato={fmtMoedaGrafico}
-                />
-              </article>
-            ) : null}
-            {resumo.porStatus.length > 0 ? (
-              <article className="nf-chart-card">
-                <h2 className="nf-chart-title">Por status</h2>
-                <NotasFiscaisGraficoBarras dados={resumo.porStatus} />
-              </article>
-            ) : null}
-            {resumo.porOficina.length > 0 ? (
-              <article className="nf-chart-card nf-chart-card--wide">
-                <h2 className="nf-chart-title">Top oficinas (valor)</h2>
-                <NotasFiscaisGraficoBarras
-                  dados={resumo.porOficina.map((p) => ({
-                    label: p.label,
-                    valor: p.valor,
-                  }))}
-                  formato={fmtMoedaGrafico}
-                />
-              </article>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="nf-toolbar">
-          <div className="nf-toolbar-fields">
-            <label className="nf-toolbar-field">
-              <span className="nf-toolbar-field__label">De</span>
-              <input
-                type="date"
-                value={dataInicio}
-                max={dataFim}
-                onChange={(e) => setDataInicio(e.target.value)}
-              />
-            </label>
-            <label className="nf-toolbar-field">
-              <span className="nf-toolbar-field__label">Até</span>
-              <input
-                type="date"
-                value={dataFim}
-                min={dataInicio}
-                onChange={(e) => setDataFim(e.target.value)}
-              />
-            </label>
-            <label className="nf-toolbar-field nf-toolbar-field--search">
-              <span className="nf-toolbar-field__label">Busca</span>
-              <input
-                type="search"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Oficina, O.S.…"
-                aria-label="Buscar notas fiscais"
-              />
-            </label>
-            <label className="nf-toolbar-field nf-toolbar-field--status">
-              <span className="nf-toolbar-field__label">Status</span>
-              <select
-                value={status}
-                onChange={(e) =>
-                  setStatus(e.target.value as NotaFiscalStatus | "todos")
-                }
-                aria-label="Filtrar por status"
-              >
-                <option value="todos">Todos</option>
-                <option value="pendente">Pendente</option>
-                <option value="aprovada">Aprovada</option>
-                <option value="rejeitada">Rejeitada</option>
-              </select>
-            </label>
-          </div>
-          <div className="nf-toolbar-actions">
-            <button
-              type="button"
-              className="nf-btn-reload"
-              onClick={() => void carregar()}
-              disabled={loading}
-            >
-              {loading ? "Carregando…" : "Atualizar"}
-            </button>
-            {!loading ? (
-              <span className="nf-toolbar__count">
-                {rows.length} nota{rows.length === 1 ? "" : "s"}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        {erro ? <div className="nf-erro">{erro}</div> : null}
-
-        {loading ? (
-          <div className="nf-loading">Carregando notas fiscais…</div>
-        ) : rows.length === 0 ? (
-          <div className="nf-empty">
-            Nenhuma nota fiscal encontrada
-            {busca || status !== "todos" ? " com os filtros atuais" : ""}.
-          </div>
-        ) : (
-          <div className="nf-table-wrap">
-            <table className="nf-table">
-              <thead>
-                <tr>
-                  <th>Enviada em</th>
-                  <th>Oficina</th>
-                  <th>Nº O.S.</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                  <th>Arquivo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{fmtDataNotaFiscal(row.createdAt)}</td>
-                    <td>{row.oficinaNome || row.oficinaId}</td>
-                    <td>
-                      {row.osProtocolo ? (
-                        <>
-                          <strong>{row.osProtocolo}</strong>
-                          {row.osEquipamento ? (
-                            <div style={{ color: "#9cc0ef", marginTop: 4 }}>
-                              {row.osEquipamento}
-                            </div>
-                          ) : null}
-                        </>
-                      ) : row.solicitacaoOsId ? (
-                        <span title="Protocolo não encontrado; ID interno da solicitação">
-                          {row.solicitacaoOsId}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>{fmtValorNotaFiscalRow(row)}</td>
-                    <td>
-                      <span className={`nf-badge nf-badge--${row.status}`}>
-                        {labelStatusNotaFiscal(row.status)}
+        <div className="border-t border-white/10">
+          {carregando ? (
+            <div className="space-y-2 p-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full" />
+              ))}
+            </div>
+          ) : filtrados.length === 0 ? (
+            <p className="px-4 py-12 text-center text-sm text-slate-500">
+              {rows.length === 0
+                ? "Nenhuma nota fiscal enviada pelos postos ainda."
+                : "Nenhuma nota encontrada com esse filtro."}
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Emitente</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>PDF</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtrados.map((n) => (
+                  <TableRow key={n.id}>
+                    <TableCell className="text-slate-400">
+                      {fmtData(n.issuedAt || n.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium text-slate-100">
+                        {n.issuerName || "Emitente não identificado"}
                       </span>
-                    </td>
-                    <td>
-                      {row.fileUrl ? (
+                      <span className="block text-xs text-slate-500">
+                        {n.description || "Combustível"}
+                        {n.parseCompleteness === "parcial" ? " · revisar" : ""}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-slate-300">
+                      {documentoLabel(n.documentType)} nº {n.number || "—"}
+                    </TableCell>
+                    <TableCell className="font-medium text-orange-300">
+                      {fmtBRL(n.value)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={badgeVariant(n.status)}>
+                        {STATUS_LABEL[n.status]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {n.fileUrl ? (
                         <a
-                          className="nf-link-pdf"
-                          href={row.fileUrl}
+                          href={n.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-orange-300 hover:underline"
                         >
-                          PDF
+                          <FileText className="size-4" /> Ver
                         </a>
                       ) : (
-                        "—"
+                        <span className="text-slate-500">—</span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {n.status === "pendente" ? (
+                        <div className="inline-flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={ocupadoId === n.id}
+                            onClick={() => decidir(n.id, "aprovada")}
+                            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                          >
+                            {ocupadoId === n.id ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Check className="size-4" />
+                            )}
+                            Aprovar
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={ocupadoId === n.id}
+                            onClick={() => decidir(n.id, "rejeitada")}
+                          >
+                            <X className="size-4" /> Rejeitar
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      </Card>
     </section>
+  );
+}
+
+function Kpi({
+  rotulo,
+  valor,
+  cor,
+}: {
+  rotulo: string;
+  valor: string;
+  cor?: string;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="text-xs font-medium uppercase tracking-wider text-slate-400">
+        {rotulo}
+      </div>
+      <div className={`mt-1 text-xl font-semibold ${cor ?? "text-slate-100"}`}>
+        {valor}
+      </div>
+    </Card>
   );
 }

@@ -1,22 +1,20 @@
 /**
- * Notas fiscais enviadas pelas oficinas — GET /notas-fiscais/prefeitura/:prefeituraId
+ * API de notas fiscais — combustível (postos) e oficinas (O.S.).
  */
 import { ApiError, api } from "./client";
 
 export type NotaFiscalStatus = "pendente" | "aprovada" | "rejeitada";
 export type NotaFiscalCategory = "servico" | "peca" | "combustivel" | "outros";
+export type NotaDocumentType = "nfe-55" | "nfce-65";
 
-export interface NotaFiscalListItem {
+/** NF de combustível enviada por posto. */
+export interface NotaFiscalCombustivel {
   id: string;
-  oficinaId: string;
-  oficinaNome: string;
+  postoId?: string;
   prefeituraId?: string;
-  solicitacaoOsId?: string;
-  osProtocolo: string;
-  osEquipamento: string;
   description: string;
   category: NotaFiscalCategory;
-  documentType: "nfe-55" | "nfce-65";
+  documentType: NotaDocumentType;
   number: string;
   issuerName: string;
   issuedAt: string;
@@ -29,7 +27,31 @@ export interface NotaFiscalListItem {
   parseCompleteness?: "completo" | "parcial";
 }
 
-export interface ListarNotasFiscaisFiltros {
+/** NF enviada por oficina, enriquecida com O.S. */
+export interface NotaFiscalOficinaListItem {
+  id: string;
+  oficinaId: string;
+  oficinaNome: string;
+  prefeituraId?: string;
+  solicitacaoOsId?: string;
+  osProtocolo: string;
+  osEquipamento: string;
+  description: string;
+  category: NotaFiscalCategory;
+  documentType: NotaDocumentType;
+  number: string;
+  issuerName: string;
+  issuedAt: string;
+  accessKey: string;
+  value: number;
+  status: NotaFiscalStatus;
+  fileName: string;
+  fileUrl: string;
+  createdAt: string;
+  parseCompleteness?: "completo" | "parcial";
+}
+
+export interface ListarNotasFiscaisOficinasFiltros {
   busca?: string;
   oficinaId?: string;
   status?: NotaFiscalStatus | "todos";
@@ -43,7 +65,7 @@ export interface NotaFiscalResumoGrafico {
   quantidade?: number;
 }
 
-export interface NotasFiscaisResumo {
+export interface NotasFiscaisOficinasResumo {
   totalNotas: number;
   valorTotal: number;
   pendentes: number;
@@ -55,13 +77,7 @@ export interface NotasFiscaisResumo {
   porOficina: NotaFiscalResumoGrafico[];
 }
 
-interface RespListar {
-  data: NotaFiscalListItem[];
-  resumo: NotasFiscaisResumo;
-  message: string;
-}
-
-const RESUMO_VAZIO: NotasFiscaisResumo = {
+const RESUMO_OFICINAS_VAZIO: NotasFiscaisOficinasResumo = {
   totalNotas: 0,
   valorTotal: 0,
   pendentes: 0,
@@ -73,7 +89,13 @@ const RESUMO_VAZIO: NotasFiscaisResumo = {
   porOficina: [],
 };
 
-function queryListar(filtros?: ListarNotasFiscaisFiltros): string {
+export const STATUS_LABEL: Record<NotaFiscalStatus, string> = {
+  pendente: "Pendente",
+  aprovada: "Aprovada",
+  rejeitada: "Rejeitada",
+};
+
+function queryOficinas(filtros?: ListarNotasFiscaisOficinasFiltros): string {
   const params = new URLSearchParams();
   if (filtros?.busca?.trim()) params.set("busca", filtros.busca.trim());
   if (filtros?.oficinaId?.trim()) params.set("oficinaId", filtros.oficinaId.trim());
@@ -87,24 +109,49 @@ function queryListar(filtros?: ListarNotasFiscaisFiltros): string {
 }
 
 export const notasFiscaisApi = {
-  async listarPorPrefeitura(
+  /** NF de combustível dos postos. */
+  async listarCombustivel(prefeituraId: string): Promise<NotaFiscalCombustivel[]> {
+    const r = await api.get<{ data: NotaFiscalCombustivel[] }>(
+      `/notas-fiscais/prefeitura/${encodeURIComponent(prefeituraId)}/combustivel`,
+    );
+    return r.data ?? [];
+  },
+
+  /** NF das oficinas (O.S.) com resumo agregado. */
+  async listarOficinasPorPrefeitura(
     prefeituraId: string,
-    filtros?: ListarNotasFiscaisFiltros,
-  ): Promise<RespListar> {
-    const resp = await api.get<RespListar>(
-      `/notas-fiscais/prefeitura/${encodeURIComponent(prefeituraId)}${queryListar(filtros)}`,
+    filtros?: ListarNotasFiscaisOficinasFiltros,
+  ): Promise<{
+    data: NotaFiscalOficinaListItem[];
+    resumo: NotasFiscaisOficinasResumo;
+    message: string;
+  }> {
+    const resp = await api.get<{
+      data: NotaFiscalOficinaListItem[];
+      resumo: NotasFiscaisOficinasResumo;
+      message: string;
+    }>(
+      `/notas-fiscais/prefeitura/${encodeURIComponent(prefeituraId)}/oficinas${queryOficinas(filtros)}`,
     );
     return {
       ...resp,
-      resumo: resp.resumo ?? RESUMO_VAZIO,
+      resumo: resp.resumo ?? RESUMO_OFICINAS_VAZIO,
     };
+  },
+
+  async atualizarStatus(id: string, status: NotaFiscalStatus): Promise<void> {
+    await api.patch(`/notas-fiscais/${encodeURIComponent(id)}/status`, {
+      status,
+    });
   },
 };
 
+export function documentoLabel(t: NotaDocumentType): string {
+  return t === "nfce-65" ? "NFC-e" : "NF-e";
+}
+
 export function labelStatusNotaFiscal(status: NotaFiscalStatus): string {
-  if (status === "aprovada") return "Aprovada";
-  if (status === "rejeitada") return "Rejeitada";
-  return "Pendente";
+  return STATUS_LABEL[status];
 }
 
 export function mensagemErroListarNotasFiscais(err: unknown): string {
@@ -119,7 +166,6 @@ export function fmtValorNotaFiscal(valor: number): string {
   });
 }
 
-/** NF com leitura incompleta do PDF (sem chave de 44 dígitos ou texto ilegível). */
 export function leituraPdfIncompleta(row: {
   parseCompleteness?: "completo" | "parcial";
   accessKey?: string;
@@ -135,36 +181,6 @@ export function leituraPdfIncompleta(row: {
     (row.value === 0 || row.value == null) &&
     row.issuerName === "Aguardando leitura do PDF";
   return semChave || defaults;
-}
-
-export function labelNumeroNotaFiscal(row: {
-  number?: string;
-  parseCompleteness?: "completo" | "parcial";
-  accessKey?: string;
-  value?: number;
-  issuerName?: string;
-}): string {
-  const n = row.number?.trim();
-  if (n && n !== "0") return n;
-  if (leituraPdfIncompleta(row)) return "Não identificado no PDF";
-  return "Sem número";
-}
-
-export function labelEmitenteNotaFiscal(row: {
-  issuerName?: string;
-  description?: string;
-  parseCompleteness?: "completo" | "parcial";
-  accessKey?: string;
-  number?: string;
-  value?: number;
-}): string {
-  if (
-    row.issuerName === "Aguardando leitura do PDF" ||
-    (leituraPdfIncompleta(row) && !row.issuerName?.trim())
-  ) {
-    return "Dados não extraídos — abra o PDF";
-  }
-  return row.issuerName || row.description || "—";
 }
 
 export function fmtValorNotaFiscalRow(row: {

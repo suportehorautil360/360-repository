@@ -45,12 +45,16 @@ export interface NovoEquip {
   anoFabricacao: string;
   anoModelo: string;
   capacidadeTanque: number;
+  /** Capacidade do tanque do próprio caminhão (L). Só p/ tipo Comboio. */
+  capacidadeTanqueCaminhao: number;
   valorVeiculo: number;
   // Operação / revisão
   status: StatusEquipamento;
   medicaoAtual: number;
   intervaloRevisao: number;
   condutorResponsavel: string;
+  /** Condutores do comboio (ids de funcionários motoristas). Só p/ tipo Comboio. */
+  condutoresResponsaveis: string[];
   gestorResponsavel: string;
   // Localização
   centroCusto: string;
@@ -341,12 +345,14 @@ function montarPayload(input: NovoEquip, prefeituraId: string) {
     anoFabricacao: input.anoFabricacao,
     anoModelo: input.anoModelo,
     capacidadeTanque: input.capacidadeTanque,
+    capacidadeTanqueCaminhao: input.capacidadeTanqueCaminhao,
     valorVeiculo: input.valorVeiculo,
     status: input.status,
     medicaoAtual: input.medicaoAtual,
     intervaloRevisao: input.intervaloRevisao,
     unidadeRevisao: unitForTipo(input.tipo),
     condutorResponsavel: input.condutorResponsavel,
+    condutoresResponsaveis: input.condutoresResponsaveis,
     gestorResponsavel: input.gestorResponsavel,
     centroCusto: input.centroCusto,
     cidade: input.cidade,

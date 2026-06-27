@@ -19,6 +19,14 @@ export interface Abastecimento {
   leitura: number; // km ou horas
   leituraUnidade: UnidadeLeitura;
   local: string;
+  /** Id do comboio cujo tanque foi debitado (ou do comboio operado). */
+  comboioId: string;
+  /** Id do funcionário (comboista) que registrou. */
+  funcionarioId: string;
+  /** Nome do comboio resolvido (preenchido na tela). */
+  comboio: string;
+  /** Nome do comboista resolvido (preenchido na tela). */
+  comboista: string;
   // Compat com consumidores atuais (dashboard, relatórios):
   km: number;
   postoNome: string;
@@ -102,6 +110,10 @@ function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
     leitura,
     leituraUnidade,
     local,
+    comboioId: asStr(d.comboioId),
+    funcionarioId: asStr(d.funcionarioId),
+    comboio: "",
+    comboista: "",
     km: leituraUnidade === "km" ? leitura : 0,
     postoNome: asStr(d.postoNome ?? local),
     status: asStr(d.status).toLowerCase(),

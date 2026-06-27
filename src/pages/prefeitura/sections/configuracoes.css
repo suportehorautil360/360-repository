@@ -158,6 +158,23 @@
   font-weight: 400;
   font-style: italic;
 }
+/* Dados da empresa — campos editáveis (gravam no cadastro de Clientes). */
+.cfg__campo-input {
+  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  color: #f1f5f9;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  width: 100%;
+}
+.cfg__campo-input:focus {
+  outline: 2px solid var(--main-orange);
+  outline-offset: 1px;
+  border-color: transparent;
+}
 @media (max-width: 560px) {
   .cfg__dados-empresa {
     grid-template-columns: 1fr;

@@ -15,6 +15,7 @@ import { HistoricoPontoSection } from "./sections/HistoricoPontoSection";
 import { AbrirOsSection } from "./sections/AbrirOsSection";
 import { OrcamentosAprovacoesSection } from "./sections/OrcamentosAprovacoesSection";
 import { NotasFiscaisSection } from "./sections/NotasFiscaisSection";
+import { NotasFiscaisOficinasSection } from "./sections/NotasFiscaisOficinasSection";
 import { FinalizarOsSection } from "./sections/FinalizarOsSection";
 import { AbastecimentoVisaoGeralSection } from "./sections/AbastecimentoVisaoGeralSection";
 import { ConsumoCustoSection } from "./sections/ConsumoCustoSection";
@@ -23,6 +24,7 @@ import { LubrificacaoSection } from "./sections/LubrificacaoSection";
 import { CargasComboioSection } from "./sections/CargasComboioSection";
 import { PostosSection } from "./sections/PostosSection";
 import { AbastecimentoSection } from "./sections/AbastecimentoSection";
+import { SuportePostosSection } from "./sections/SuportePostosSection";
 import { PontosRhSection } from "./sections/PontosRhSection";
 import { SolicitacoesPontoSection } from "./sections/SolicitacoesPontoSection";
 import { ConfiguracoesSection } from "./sections/ConfiguracoesSection";
@@ -140,7 +142,7 @@ export function PrefeituraPage() {
 
   const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
   const { ativo: abastecimentoAtivo } = useAbastecimentoAtivo(prefeituraId);
-  const badges = usePrefeituraBadges(prefeituraId, pontoAtivo);
+  const badges = usePrefeituraBadges(prefeituraId, pontoAtivo, abastecimentoAtivo);
 
   const dados = useMemo(
     () => (prefeituraId ? obterDadosPrefeitura(prefeituraId) : null),
@@ -331,6 +333,18 @@ export function PrefeituraPage() {
         );
       case "postos":
         return <PostosSection dados={dados!} prefeituraId={prefeituraId} />;
+      case "notas-fiscais":
+        return abastecimentoAtivo ? (
+          <NotasFiscaisSection prefeituraId={prefeituraId} />
+        ) : (
+          <EmConstrucao titulo="Notas Fiscais" />
+        );
+      case "mensagens-postos":
+        return abastecimentoAtivo ? (
+          <SuportePostosSection prefeituraId={prefeituraId} />
+        ) : (
+          <EmConstrucao titulo="Mensagens dos Postos" />
+        );
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
       case "frentes-trabalho":
@@ -358,8 +372,8 @@ export function PrefeituraPage() {
         return <PlanoPreventivoSection prefeituraId={prefeituraId} />;
       case "orcamentos":
         return <OrcamentosAprovacoesSection prefeituraId={prefeituraId} />;
-      case "notas-fiscais":
-        return <NotasFiscaisSection prefeituraId={prefeituraId} />;
+      case "notas-fiscais-oficinas":
+        return <NotasFiscaisOficinasSection prefeituraId={prefeituraId} />;
       case "pagamentos":
         return (
           <FinalizarOsSection dados={dados!} prefeituraId={prefeituraId} />

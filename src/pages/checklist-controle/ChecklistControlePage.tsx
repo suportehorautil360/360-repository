@@ -21,6 +21,7 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { carregarFrotaOperador } from "./frota-operador";
 import {
   comprimirAteOrcamento,
   esperarAckComTimeout,
@@ -1279,21 +1280,22 @@ export function ChecklistControlePage() {
   // filtrar ao vivo (instantâneo e disponível offline via cache do Firestore).
   useEffect(() => {
     if (aba !== "checklist" || frotaBuscaCarregada) return;
+    // Isolamento por empresa garantido NO SERVIDOR (NestJS escopa por
+    // prefeitura). Sem cliente na sessão não carrega nada (fail-closed) —
+    // antes a tela vazava a frota de todas as prefeituras.
+    const prefId = session?.idCliente ?? "";
+    if (!prefId) return;
     let ativo = true;
     void (async () => {
-      try {
-        const snap = await getDocs(collection(db, "equipamentos"));
-        if (!ativo) return;
-        setFrotaBusca(snap.docs.map((d) => montarEquip(d.id, d.data())));
-        setFrotaBuscaCarregada(true);
-      } catch (err) {
-        console.error("[Checklist] Erro ao carregar frota para busca:", err);
-      }
+      const frota = await carregarFrotaOperador(prefId);
+      if (!ativo) return;
+      setFrotaBusca(frota);
+      setFrotaBuscaCarregada(true);
     })();
     return () => {
       ativo = false;
     };
-  }, [aba, frotaBuscaCarregada]);
+  }, [aba, frotaBuscaCarregada, session?.idCliente]);
 
   // Sugestões filtradas ao vivo pelo trecho digitado (chassi ou modelo/nome).
   // Comparação só por letras/números (ignora pontos, hífens, espaços) para
@@ -1450,21 +1452,6 @@ export function ChecklistControlePage() {
     setAba("dashboard");
   }
 
-  function montarEquip(
-    id: string,
-    data: Record<string, unknown>,
-  ): EquipFirestore {
-    return {
-      id,
-      prefeituraId: String(data.prefeituraId ?? ""),
-      label: String(data.label ?? data.descricao ?? ""),
-      chassis: String(data.chassis ?? ""),
-      modelo: String(data.modelo ?? ""),
-      linha: String(data.linha ?? ""),
-      tipo: String(data.tipo ?? ""),
-    };
-  }
-
   // Abre o checklist para o equipamento escolhido. Preenche o campo com o chassi
   // COMPLETO (mesmo numa busca por dígitos), senão o efeito que sincroniza
   // draft × chassi ativo zera tudo logo em seguida.
@@ -1497,22 +1484,33 @@ export function ChecklistControlePage() {
       setCheckMsg("Informe o chassi antes de abrir a lista.");
       return;
     }
+    // Isolamento por empresa: sem prefeitura na sessão não há frota
+    // (fail-closed) — nunca cair numa busca sem escopo.
+    const prefId = session?.idCliente ?? "";
+    if (!prefId) {
+      setCheckMsg("Sessão sem prefeitura vinculada. Saia e entre novamente.");
+      setChassisChecklistAtivo("");
+      setEquipamentoAtual(null);
+      return;
+    }
     setBuscandoChassis(true);
     try {
-      // 1) Match exato (rápido): normalizado e, em fallback, o valor digitado.
-      let snap = await getDocs(
-        query(
-          collection(db, "equipamentos"),
-          where("chassis", "==", normalizado),
-        ),
-      );
-      if (snap.empty) {
-        snap = await getDocs(
-          query(collection(db, "equipamentos"), where("chassis", "==", draft)),
-        );
+      // A frota já vem isolada por prefeitura (NestJS + cache offline). Toda a
+      // busca é em memória sobre essa lista — nunca toca equipamento de outra
+      // empresa, mesmo offline.
+      let frota = frotaBusca;
+      if (frota.length === 0) {
+        frota = await carregarFrotaOperador(prefId);
+        setFrotaBusca(frota);
+        setFrotaBuscaCarregada(true);
       }
-      if (!snap.empty) {
-        abrirParaEquip(montarEquip(snap.docs[0].id, snap.docs[0].data()));
+
+      // 1) Match exato pelo chassi normalizado.
+      const achado = frota.find(
+        (e) => normalizeChassis(e.chassis) === normalizado,
+      );
+      if (achado) {
+        abrirParaEquip(achado);
         return;
       }
 
@@ -1525,18 +1523,9 @@ export function ChecklistControlePage() {
         setEquipamentoAtual(null);
         return;
       }
-      const prefId = session?.idCliente ?? "";
-      const frotaSnap = prefId
-        ? await getDocs(
-            query(
-              collection(db, "equipamentos"),
-              where("prefeituraId", "==", prefId),
-            ),
-          )
-        : await getDocs(collection(db, "equipamentos"));
-      const matches = frotaSnap.docs
-        .map((d) => montarEquip(d.id, d.data()))
-        .filter((e) => normalizeChassis(e.chassis).includes(normalizado));
+      const matches = frota.filter((e) =>
+        normalizeChassis(e.chassis).includes(normalizado),
+      );
 
       if (matches.length === 0) {
         setCheckMsg("Chassi não encontrado no cadastro de equipamentos.");
@@ -2104,34 +2093,16 @@ export function ChecklistControlePage() {
     }
     setEmergRows(next);
 
-    // Busca prefeituraId pelo chassi da máquina da sessão
     setSalvandoEmerg(true);
     try {
-      let prefeituraId = "";
-      if (maquinaDaSessao?.Chassis) {
-        const chassisNorm = normalizeChassis(String(maquinaDaSessao.Chassis));
-        let eqSnap = await getDocs(
-          query(
-            collection(db, "equipamentos"),
-            where("chassis", "==", chassisNorm),
-          ),
-        );
-        if (eqSnap.empty) {
-          eqSnap = await getDocs(
-            query(
-              collection(db, "equipamentos"),
-              where("chassis", "==", String(maquinaDaSessao.Chassis)),
-            ),
-          );
-        }
-        if (!eqSnap.empty) {
-          prefeituraId = String(eqSnap.docs[0].data().prefeituraId ?? "");
-        }
-      }
+      // A emergência é sempre da prefeitura vinculada ao operador na sessão.
+      // (Antes resolvia pelo chassi no Firestore, o que podia tocar
+      // equipamento de outra empresa.)
+      const prefeituraId = session.idCliente;
 
       const fotos = fotosEmergencia.filter((u) => u.startsWith("data:image"));
       const payload = {
-        prefeituraId: prefeituraId || session.idCliente,
+        prefeituraId,
         source: "manual" as const,
         severity: "critical" as const,
         equipamentoId: mid,

@@ -13,6 +13,8 @@ export const SECOES_REAIS = new Set([
   "lubrificacao",
   "cargas-comboio",
   "postos",
+  "notas-fiscais",
+  "mensagens-postos",
   "frota",
   "revisoes",
   "preventiva",
@@ -22,7 +24,7 @@ export const SECOES_REAIS = new Set([
   "abrir-os",
   "plano-preventivo",
   "orcamentos",
-  "notas-fiscais",
+  "notas-fiscais-oficinas",
   "pagamentos",
   "auditoria-devolucao",
   "auditoria-checklists",
@@ -43,6 +45,8 @@ export const SECAO_LABEL: Record<string, string> = {
   lubrificacao: "Lubrificação",
   "cargas-comboio": "Cargas do Comboio",
   postos: "Postos Cadastrados",
+  "notas-fiscais": "Notas Fiscais",
+  "mensagens-postos": "Mensagens dos Postos",
   tanques: "Tanques",
   frota: "Frota",
   "frentes-trabalho": "Frentes de Trabalho",
@@ -60,7 +64,7 @@ export const SECAO_LABEL: Record<string, string> = {
   "abrir-os": "Abrir OS",
   "plano-preventivo": "Plano preventivo",
   orcamentos: "Orçamentos e Aprovações",
-  "notas-fiscais": "Notas Fiscais",
+  "notas-fiscais-oficinas": "Notas Fiscais (Oficinas)",
   "auditoria-devolucao": "Auditoria de Devolução",
   "auditoria-checklists": "Auditoria de Checklists",
   riscos: "Triagem de Riscos",
@@ -85,6 +89,8 @@ export interface PrefeituraNavBadges {
   pontosRh?: number;
   /** Veículos com revisão vencida. */
   revisoes?: number;
+  /** Mensagens de postos aguardando resposta do gestor. */
+  mensagensPostos?: number;
 }
 
 /** Monta os grupos da sidebar da prefeitura, com as rotas /prefeitura/:id/<slug>. */
@@ -126,6 +132,14 @@ export function prefeituraNav(
                 icon: "🚛",
               },
               { label: "Postos", to: to("postos"), icon: "🏪" },
+              { label: "Notas Fiscais", to: to("notas-fiscais"), icon: "📄" },
+              {
+                label: "Mensagens dos Postos",
+                to: to("mensagens-postos"),
+                icon: "💬",
+                badge: badges.mensagensPostos,
+                badgeTone: "warning" as const,
+              },
             ],
           },
         ]
@@ -180,7 +194,7 @@ export function prefeituraNav(
         },
         {
           label: "Notas Fiscais",
-          to: to("notas-fiscais"),
+          to: to("notas-fiscais-oficinas"),
           icon: "🧾",
         },
       ],

@@ -33,6 +33,7 @@ describe("pontoApi.bater", () => {
       tipo: "entrada",
     });
 
+    // 3º argumento: opções (headers de idempotência) — undefined sem chave.
     expect(postMock).toHaveBeenCalledWith(
       "/time-records",
       expect.objectContaining({
@@ -40,6 +41,7 @@ describe("pontoApi.bater", () => {
         prefeituraId: "pref-1",
         tipo: "entrada",
       }),
+      undefined,
     );
     expect(r).toEqual(reg);
   });
