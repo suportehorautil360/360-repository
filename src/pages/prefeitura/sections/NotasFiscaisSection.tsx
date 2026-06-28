@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -15,12 +13,8 @@ import {
 import {
   documentoLabel,
   notasFiscaisApi,
-  STATUS_LABEL,
   type NotaFiscalCombustivel,
-  type NotaFiscalStatus,
 } from "../../../lib/api/notas-fiscais";
-
-type Filtro = "todas" | NotaFiscalStatus;
 
 function fmtData(iso: string): string {
   const d = new Date(iso);
@@ -35,12 +29,6 @@ function fmtBRL(n: number): string {
   });
 }
 
-function badgeVariant(status: NotaFiscalStatus): "comboio" | "posto" | "local" {
-  if (status === "aprovada") return "posto";
-  if (status === "rejeitada") return "local";
-  return "comboio";
-}
-
 export function NotasFiscaisSection({
   prefeituraId,
 }: {
@@ -49,7 +37,6 @@ export function NotasFiscaisSection({
   const [rows, setRows] = useState<NotaFiscalCombustivel[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(false);
-  const [aba, setAba] = useState<Filtro>("todas");
   const [busca, setBusca] = useState("");
 
   useEffect(() => {
@@ -73,26 +60,21 @@ export function NotasFiscaisSection({
     };
   }, [prefeituraId]);
 
-  const totais = useMemo(() => {
-    const total = rows.reduce((s, n) => s + (n.value || 0), 0);
-    const aprovadas = rows
-      .filter((n) => n.status === "aprovada")
-      .reduce((s, n) => s + (n.value || 0), 0);
-    const pendentes = rows.filter((n) => n.status === "pendente").length;
-    return { total, aprovadas, pendentes };
-  }, [rows]);
+  const total = useMemo(
+    () => rows.reduce((s, n) => s + (n.value || 0), 0),
+    [rows],
+  );
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    return rows.filter((n) => {
-      if (aba !== "todas" && n.status !== aba) return false;
-      if (!q) return true;
-      return [n.number, n.issuerName, n.description, n.accessKey]
+    if (!q) return rows;
+    return rows.filter((n) =>
+      [n.number, n.issuerName, n.description, n.accessKey]
         .join(" ")
         .toLowerCase()
-        .includes(q);
-    });
-  }, [rows, aba, busca]);
+        .includes(q),
+    );
+  }, [rows, busca]);
 
   return (
     <section className="flex flex-col gap-5 pb-10">
@@ -111,18 +93,10 @@ export function NotasFiscaisSection({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Kpi rotulo="Total" valor={fmtBRL(totais.total)} />
-        <Kpi rotulo="Aprovadas" valor={fmtBRL(totais.aprovadas)} cor="text-emerald-300" />
-        <Kpi
-          rotulo="Pendentes"
-          valor={String(totais.pendentes)}
-          cor="text-amber-300"
-        />
-      </div>
+      <Kpi rotulo="Total" valor={fmtBRL(total)} />
 
       <Card>
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="p-4">
           <div className="relative w-full sm:max-w-xs">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-500" />
             <input
@@ -132,14 +106,6 @@ export function NotasFiscaisSection({
               className="w-full rounded-full border border-white/10 bg-white/5 py-2 pr-3 pl-9 text-sm text-slate-100 placeholder:text-slate-500 focus:border-[#f97316] focus:outline-none"
             />
           </div>
-          <Tabs value={aba} onValueChange={(v) => setAba(v as Filtro)}>
-            <TabsList>
-              <TabsTrigger value="todas">Todas</TabsTrigger>
-              <TabsTrigger value="pendente">Pendentes</TabsTrigger>
-              <TabsTrigger value="aprovada">Aprovadas</TabsTrigger>
-              <TabsTrigger value="rejeitada">Rejeitadas</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </div>
 
         <div className="border-t border-white/10">
@@ -153,7 +119,7 @@ export function NotasFiscaisSection({
             <p className="px-4 py-12 text-center text-sm text-slate-500">
               {rows.length === 0
                 ? "Nenhuma nota fiscal enviada pelos postos ainda."
-                : "Nenhuma nota encontrada com esse filtro."}
+                : "Nenhuma nota encontrada com essa busca."}
             </p>
           ) : (
             <Table>
@@ -163,7 +129,6 @@ export function NotasFiscaisSection({
                   <TableHead>Emitente</TableHead>
                   <TableHead>Documento</TableHead>
                   <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>PDF</TableHead>
                 </TableRow>
               </TableHeader>
@@ -179,7 +144,6 @@ export function NotasFiscaisSection({
                       </span>
                       <span className="block text-xs text-slate-500">
                         {n.description || "Combustível"}
-                        {n.parseCompleteness === "parcial" ? " · revisar" : ""}
                       </span>
                     </TableCell>
                     <TableCell className="text-slate-300">
@@ -187,11 +151,6 @@ export function NotasFiscaisSection({
                     </TableCell>
                     <TableCell className="font-medium text-orange-300">
                       {fmtBRL(n.value)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={badgeVariant(n.status)}>
-                        {STATUS_LABEL[n.status]}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       {n.fileUrl ? (
@@ -218,23 +177,13 @@ export function NotasFiscaisSection({
   );
 }
 
-function Kpi({
-  rotulo,
-  valor,
-  cor,
-}: {
-  rotulo: string;
-  valor: string;
-  cor?: string;
-}) {
+function Kpi({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <Card className="p-4">
       <div className="text-xs font-medium uppercase tracking-wider text-slate-400">
         {rotulo}
       </div>
-      <div className={`mt-1 text-xl font-semibold ${cor ?? "text-slate-100"}`}>
-        {valor}
-      </div>
+      <div className="mt-1 text-xl font-semibold text-slate-100">{valor}</div>
     </Card>
   );
 }
