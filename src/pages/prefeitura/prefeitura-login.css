@@ -215,20 +215,6 @@
   color: #fca5a5;
 }
 
-.pf-login-back {
-  display: block;
-  margin-top: 18px;
-  text-align: center;
-  color: var(--pf-login-orange);
-  font-size: 0.88rem;
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.pf-login-back:hover {
-  opacity: 0.85;
-}
-
 @keyframes pf-login-fade-up {
   from {
     opacity: 0;

@@ -57,20 +57,30 @@ export function Sidebar({
   onLogout,
   className,
 }: SidebarProps) {
+  const hasBrandText =
+    (brand.title != null && brand.title !== "") || brand.subtitle != null;
+
   return (
     <aside className={`hu-sidebar ${className ?? ""}`}>
       <div className="hu-sidebar__brand">
         {brand.logo != null && (
-          <span className="hu-sidebar__brand-logo" aria-hidden="true">
+          <span
+            className="hu-sidebar__brand-logo"
+            aria-hidden={hasBrandText ? true : undefined}
+          >
             {brand.logo}
           </span>
         )}
-        <div className="hu-sidebar__brand-text">
-          <strong className="hu-sidebar__brand-title">{brand.title}</strong>
-          {brand.subtitle != null && (
-            <span className="hu-sidebar__brand-subtitle">{brand.subtitle}</span>
-          )}
-        </div>
+        {hasBrandText && (
+          <div className="hu-sidebar__brand-text">
+            <strong className="hu-sidebar__brand-title">{brand.title}</strong>
+            {brand.subtitle != null && (
+              <span className="hu-sidebar__brand-subtitle">
+                {brand.subtitle}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       <nav className="hu-sidebar__nav" aria-label="Menu principal">

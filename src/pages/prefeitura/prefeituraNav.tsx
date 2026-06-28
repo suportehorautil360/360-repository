@@ -73,24 +73,20 @@ export const SECAO_LABEL: Record<string, string> = {
 };
 
 export const PREFEITURA_BRAND: SidebarBrand = {
-  title: (
-    <>
-      HORA <span className="accent">ÚTIL</span>{" "}
-      <span className="accent-2">360</span>
-    </>
+  logo: (
+    <img
+      src="/logo.png"
+      alt="Hora Útil 360"
+      style={{
+        display: "block",
+        width: "92%",
+        maxWidth: "240px",
+        margin: "0 auto",
+        borderRadius: "12px",
+      }}
+    />
   ),
-  subtitle: (
-    <>
-      <span style={{ display: "block", fontSize: "0.66rem", fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-        Frota · Frentes de trabalho · Abastecimento
-      </span>
-      <img
-        src="/logo.png"
-        alt="Hora Útil"
-        style={{ display: "block", width: "85%", margin: "10px auto 0" }}
-      />
-    </>
-  ),
+  title: "",
 };
 
 export interface PrefeituraNavBadges {
