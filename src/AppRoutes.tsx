@@ -36,6 +36,11 @@ const PostoDetalhePage = lazy(() =>
     default: m.PostoDetalhePage,
   })),
 );
+const OficinaDetalhePage = lazy(() =>
+  import("./pages/admin/sections/OficinaDetalhePage").then((m) => ({
+    default: m.OficinaDetalhePage,
+  })),
+);
 const OficinasPostosSection = lazy(() =>
   import("./pages/admin/sections/OficinasPostosSection").then((m) => ({
     default: m.OficinasPostosSection,
@@ -225,6 +230,10 @@ export function AppRoutes() {
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="parceiros" element={<ParceirosSection />} />
             <Route path="parceiros/posto/:postoId" element={<PostoDetalhePage />} />
+            <Route
+              path="parceiros/oficina/:oficinaId"
+              element={<OficinaDetalhePage />}
+            />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />
             <Route

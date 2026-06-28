@@ -12,6 +12,8 @@ interface AbrirOsListaProps {
   filtros: FiltrosOsLista;
   onFiltrosChange: (filtros: FiltrosOsLista) => void;
   onAbrirOs: () => void;
+  onVerMaquinasParadas: () => void;
+  qtdMaquinasParadas: number;
   onVerDetalhes: (os: SolicitacaoOS) => void;
 }
 
@@ -34,6 +36,8 @@ export function AbrirOsLista({
   filtros,
   onFiltrosChange,
   onAbrirOs,
+  onVerMaquinasParadas,
+  qtdMaquinasParadas,
   onVerDetalhes,
 }: AbrirOsListaProps) {
   const { dataInicio, dataFim, status } = filtros;
@@ -51,9 +55,21 @@ export function AbrirOsLista({
           </span>
           Ordens de serviço
         </h1>
-        <button type="button" className="aos-btn-abrir" onClick={onAbrirOs}>
-          + Abrir OS
-        </button>
+        <div className="aos-head__actions">
+          <button
+            type="button"
+            className="aos-btn-maquina-parada"
+            onClick={onVerMaquinasParadas}
+          >
+            ⚠️ Máquinas paradas
+            {!loading && qtdMaquinasParadas > 0 ? (
+              <span className="aos-head__badge">{qtdMaquinasParadas}</span>
+            ) : null}
+          </button>
+          <button type="button" className="aos-btn-abrir" onClick={onAbrirOs}>
+            + Abrir OS
+          </button>
+        </div>
       </div>
 
       {erro ? <p className="aos-erro">{erro}</p> : null}

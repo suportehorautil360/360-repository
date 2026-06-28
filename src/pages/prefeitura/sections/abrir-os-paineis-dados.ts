@@ -86,6 +86,22 @@ export const ETAPAS_MOCK: EtapaRow[] = [
   },
 ];
 
+export function sintomasDeRelato(relato: string): SintomaRow[] {
+  const texto = relato.trim();
+  if (!texto) return [];
+
+  const partes = texto
+    .split(/\r?\n|;/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  return partes.map((descricao, i) => ({
+    cod: String(i + 1).padStart(2, "0"),
+    descricao,
+    observacao: "—",
+  }));
+}
+
 export const SINTOMAS_MOCK: SintomaRow[] = [
   {
     cod: "S02",

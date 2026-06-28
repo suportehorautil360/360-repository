@@ -19,10 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CadastroParceiroSection } from "./CadastroParceiroSection";
-import {
-  ParceiroDetalheDrawer,
-  type ParceiroSelecionado,
-} from "./ParceiroDetalheDrawer";
 import "./parceiros.css";
 
 function StatusBadge({ ativo }: { ativo: boolean }) {
@@ -73,24 +69,28 @@ function OficinaRow({
   onAbrir,
 }: {
   oficina: OficinaParceiroApi;
-  onAbrir: (sel: ParceiroSelecionado) => void;
+  onAbrir: (oficina: OficinaParceiroApi) => void;
 }) {
   const sub = oficina.cidadeUf || oficina.especialidade;
   return (
     <div className="parc-row">
-      <div className="parc-row__info">
+      <button
+        type="button"
+        className="parc-row__info parc-row__info--clickable"
+        onClick={() => onAbrir(oficina)}
+      >
         <div className="parc-row__nome">{oficina.nome}</div>
         {sub ? <div className="parc-row__sub">{sub}</div> : null}
-      </div>
+      </button>
       <span className="parc-row__status">
         <StatusBadge ativo={oficina.ativo} />
         <button
           type="button"
           className="parc-row__btn"
-          onClick={() => onAbrir({ tipo: "oficina", parceiro: oficina })}
+          onClick={() => onAbrir(oficina)}
         >
           <KeyRound size={14} aria-hidden />
-          Logins
+          Detalhes
         </button>
       </span>
     </div>
@@ -111,13 +111,19 @@ export function ParceirosSection() {
   });
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [sel, setSel] = useState<ParceiroSelecionado | null>(null);
 
   function abrirPosto(posto: PostoParceiroApi) {
     const qs = prefeituraId
       ? `?prefeituraId=${encodeURIComponent(prefeituraId)}`
       : "";
     navigate(`/admin/parceiros/posto/${encodeURIComponent(posto.id)}${qs}`);
+  }
+
+  function abrirOficina(oficina: OficinaParceiroApi) {
+    const qs = prefeituraId
+      ? `?prefeituraId=${encodeURIComponent(prefeituraId)}`
+      : "";
+    navigate(`/admin/parceiros/oficina/${encodeURIComponent(oficina.id)}${qs}`);
   }
 
   const carregar = useCallback(async (clienteId: string) => {
@@ -188,8 +194,8 @@ export function ParceirosSection() {
         <div className="parc-page-head__text">
           <h2>Postos e oficinas</h2>
           <p className="topbar-user">
-            Cadastre parceiros vinculados ao cliente. Clique em um posto para ver
-            dados completos, logins (e-mail e senha na criação) e portal operacional.
+            Cadastre parceiros vinculados ao cliente. Clique em um posto ou oficina
+            para ver dados completos, logins e credenciais de acesso.
           </p>
         </div>
         <button
@@ -290,17 +296,11 @@ export function ParceirosSection() {
             </div>
           ) : (
             dados.oficinas.map((o) => (
-              <OficinaRow key={o.id} oficina={o} onAbrir={setSel} />
+              <OficinaRow key={o.id} oficina={o} onAbrir={abrirOficina} />
             ))
           )}
         </article>
       </div>
-
-      <ParceiroDetalheDrawer
-        selecionado={sel}
-        open={sel !== null}
-        onClose={() => setSel(null)}
-      />
     </section>
   );
 }
