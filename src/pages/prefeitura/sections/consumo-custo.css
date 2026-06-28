@@ -140,7 +140,48 @@
 .ccu-toolbar {
   display: flex;
   justify-content: flex-end;
+  gap: 0.65rem;
   margin-bottom: 1rem;
+}
+
+.ccu-btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-primary, #e2e8f0);
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.ccu-btn-refresh:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.55);
+}
+
+.ccu-btn-refresh:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ccu-btn-refresh-icon--spin {
+  animation: ccu-spin 0.8s linear infinite;
+}
+
+@keyframes ccu-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ccu-btn-export {

@@ -476,60 +476,6 @@ function ultimaTaxaConsumoEmAbastecimentos(
   return ultima;
 }
 
-/**
- * Fallback quando não há intervalo calculável:
- * 1 abastecimento → litros do registro; 2+ com mesma leitura → média dos litros.
- */
-function mediaFallbackLitrosAbastecimentos(
-  ordenados: AbastecimentoBrutoOrdenado[],
-  porHora: boolean,
-): MediaTaxa | null {
-  if (ordenados.length === 0) return null;
-
-  if (ordenados.length === 1) {
-    const litros = ordenados[0].litros;
-    if (litros == null || litros <= 0) return null;
-    return { valor: litros, exibicao: fmtTaxaConsumo(litros, porHora) };
-  }
-
-  const primeira = ordenados[0].currentReading;
-  if (primeira == null) return null;
-  if (!ordenados.every((o) => o.currentReading === primeira)) return null;
-
-  const litrosMedio =
-    ordenados.reduce((s, o) => s + (o.litros ?? 0), 0) / ordenados.length;
-  if (litrosMedio <= 0) return null;
-
-  return {
-    valor: litrosMedio,
-    exibicao: fmtTaxaConsumo(litrosMedio, porHora),
-  };
-}
-
-function mediaFallbackGastoAbastecimentos(
-  ordenados: AbastecimentoBrutoOrdenado[],
-  porHora: boolean,
-): MediaTaxa | null {
-  if (ordenados.length === 0) return null;
-
-  if (ordenados.length === 1) {
-    const gasto = ordenados[0].gasto;
-    if (gasto == null || gasto <= 0) return null;
-    return { valor: gasto, exibicao: fmtTaxaCusto(gasto, porHora) };
-  }
-
-  const primeira = ordenados[0].currentReading;
-  if (primeira == null) return null;
-  if (!ordenados.every((o) => o.currentReading === primeira)) return null;
-
-  const comGasto = ordenados.filter((o) => o.gasto != null && o.gasto > 0);
-  if (comGasto.length === 0) return null;
-
-  const gastoMedio =
-    comGasto.reduce((s, o) => s + (o.gasto ?? 0), 0) / comGasto.length;
-  return { valor: gastoMedio, exibicao: fmtTaxaCusto(gastoMedio, porHora) };
-}
-
 /** Médio L/h (ou L/km) = Σ litros dos intervalos ÷ Σ horas/km rodadas. */
 function mediaConsumoDeAbastecimentos(
   brutos: unknown[],
@@ -549,13 +495,7 @@ function mediaConsumoDeAbastecimentos(
     return { valor: taxa, exibicao: fmtTaxaConsumo(taxa, porHora) };
   }
 
-  const ultima = ultimaTaxaConsumoEmAbastecimentos(brutos, porHora);
-  if (ultima) return ultima;
-
-  return mediaFallbackLitrosAbastecimentos(
-    ordenarAbastecimentosBrutos(brutos),
-    porHora,
-  );
+  return ultimaTaxaConsumoEmAbastecimentos(brutos, porHora);
 }
 
 function mediaCustoDeAbastecimentos(
@@ -577,43 +517,7 @@ function mediaCustoDeAbastecimentos(
     return { valor: taxa, exibicao: fmtTaxaCusto(taxa, porHora) };
   }
 
-  return mediaFallbackGastoAbastecimentos(
-    ordenarAbastecimentosBrutos(brutos),
-    porHora,
-  );
-}
-
-function mediaTaxaIntervalos(
-  intervalos: IntervaloHistorico[],
-  porHora: boolean,
-): MediaTaxa | null {
-  let totalLitros = 0;
-  let totalDeslocamento = 0;
-
-  for (const iv of intervalos) {
-    if (iv.consumoLabel === "—" || iv.duracaoLabel === "—") continue;
-
-    const consumoMatch = iv.consumoLabel.match(/^([\d.]+(?:,\d+)?)/);
-    const duracaoMatch = iv.duracaoLabel.match(/^([\d.]+(?:,\d+)?)/);
-    if (!consumoMatch || !duracaoMatch) continue;
-
-    const litrosPorUnidade = Number(
-      consumoMatch[1].replace(/\./g, "").replace(",", "."),
-    );
-    const deslocamento = Number(
-      duracaoMatch[1].replace(/\./g, "").replace(",", "."),
-    );
-    if (!Number.isFinite(litrosPorUnidade) || !Number.isFinite(deslocamento)) {
-      continue;
-    }
-
-    totalLitros += litrosPorUnidade * deslocamento;
-    totalDeslocamento += deslocamento;
-  }
-
-  if (totalDeslocamento <= 0) return null;
-  const taxa = totalLitros / totalDeslocamento;
-  return { valor: taxa, exibicao: fmtTaxaConsumo(taxa, porHora) };
+  return null;
 }
 
 function normalizarIntervalo(
@@ -712,15 +616,12 @@ function veiculoBrutoParaTela(raw: unknown): VeiculoConsumoCusto | null {
   }
 
   const mediaConsumoDerivada =
-    consumoMedio?.valor == null
-      ? mediaConsumoDeAbastecimentos(abastecimentosBrutos, porHora) ??
-        (intervalos.length > 0
-          ? mediaTaxaIntervalos(intervalos, porHora)
-          : null)
+    consumoMedio?.valor == null && intervalos.length === 0
+      ? mediaConsumoDeAbastecimentos(abastecimentosBrutos, porHora)
       : null;
 
   const mediaCustoDerivada =
-    custoMedio?.valor == null
+    custoMedio?.valor == null && intervalos.length === 0
       ? mediaCustoDeAbastecimentos(abastecimentosBrutos, porHora)
       : null;
 
