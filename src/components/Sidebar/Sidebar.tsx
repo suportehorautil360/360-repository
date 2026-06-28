@@ -76,7 +76,7 @@ export function Sidebar({
       <nav className="hu-sidebar__nav" aria-label="Menu principal">
         <Accordion
           type="multiple"
-          defaultValue={groups.map((group, gi) => groupValue(group.label, gi))}
+          defaultValue={[]}
           className="hu-sidebar__accordion"
         >
           {groups.map((group, gi) => {
