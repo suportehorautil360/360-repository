@@ -19,11 +19,13 @@ export function PrefeituraLoginNetwork() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const maybeCanvas = canvasRef.current;
+    if (!maybeCanvas) return;
+    const canvasEl: HTMLCanvasElement = maybeCanvas;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const context = canvasEl.getContext("2d");
+    if (!context) return;
+    const ctx: CanvasRenderingContext2D = context;
 
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let slowMotion = motionQuery.matches;
@@ -78,7 +80,12 @@ export function PrefeituraLoginNetwork() {
       });
     }
 
-    function applySize(w: number, h: number, resetNodes: boolean) {
+    function applySize(
+      target: HTMLCanvasElement,
+      w: number,
+      h: number,
+      resetNodes: boolean,
+    ) {
       if (w < 2 || h < 2) return;
 
       const sizeChanged =
@@ -91,10 +98,10 @@ export function PrefeituraLoginNetwork() {
       height = h;
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      target.width = Math.floor(width * dpr);
+      target.height = Math.floor(height * dpr);
+      target.style.width = `${width}px`;
+      target.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       center = { x: width / 2, y: height / 2 };
 
@@ -104,9 +111,9 @@ export function PrefeituraLoginNetwork() {
     }
 
     function measure(resetNodes = false) {
-      const parent = canvas.parentElement;
+      const parent = canvasEl.parentElement;
       if (!parent) return;
-      applySize(parent.clientWidth, parent.clientHeight, resetNodes);
+      applySize(canvasEl, parent.clientWidth, parent.clientHeight, resetNodes);
     }
 
     function drawHub(now: number) {
@@ -199,8 +206,8 @@ export function PrefeituraLoginNetwork() {
     const observer = new ResizeObserver(() => {
       measure(false);
     });
-    if (canvas.parentElement) {
-      observer.observe(canvas.parentElement);
+    if (canvasEl.parentElement) {
+      observer.observe(canvasEl.parentElement);
     }
 
     measure(true);

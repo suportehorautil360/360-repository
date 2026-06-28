@@ -33,15 +33,6 @@ export interface Abastecimento {
   status: string;
 }
 
-/** Converte "R$ 1.234,56" (ou número) em número. */
-function parseValor(v: unknown): number {
-  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
-  if (typeof v !== "string") return 0;
-  const limpo = v.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".");
-  const n = Number(limpo);
-  return Number.isFinite(n) ? n : 0;
-}
-
 function resolveValor(
   d: Record<string, unknown>,
   origem: OrigemAbastecimento,
@@ -65,6 +56,16 @@ function resolveValor(
   }
 
   return direto ?? 0;
+}
+
+/** Converte "R$ 1.234,56" (ou número) em número. */
+function parseValorAbastecimento(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const limpo = v.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** Rótulo da coluna Total no painel (comboio vs valor vs ausente). */
@@ -232,15 +233,6 @@ function addDaysIso(iso: string, days: number): string {
   const mm = String(dt.getMonth() + 1).padStart(2, "0");
   const dd = String(dt.getDate()).padStart(2, "0");
   return `${yy}-${mm}-${dd}`;
-}
-
-function parseValorAbastecimento(v: unknown): number | null {
-  if (v === null || v === undefined) return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  if (typeof v !== "string") return null;
-  const limpo = v.replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".");
-  const n = Number(limpo);
-  return Number.isFinite(n) ? n : null;
 }
 
 function normalizarItemLista(raw: unknown): AbastecimentoListaApi | null {
