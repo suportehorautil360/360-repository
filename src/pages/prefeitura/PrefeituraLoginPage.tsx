@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useLogin } from "../login/hooks/use-login";
 import { PrefeituraLoginNetwork } from "./PrefeituraLoginNetwork";
 import "./prefeitura-login.css";
@@ -116,10 +116,6 @@ export function PrefeituraLoginPage() {
               {mensagem}
             </div>
           </form>
-
-          <Link className="pf-login-back" to="/">
-            ← Voltar ao Hub
-          </Link>
         </div>
       </div>
     </section>
