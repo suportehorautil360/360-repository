@@ -18,6 +18,8 @@ import {
 } from "./equipamentos/equipamentos-api";
 import {
   abastecimentosApi,
+  fmtTotalAbastecimento,
+  totalAbastecimentoEhComboio,
   type Abastecimento,
 } from "../../../lib/api/abastecimentos";
 import { categoriaDoTipo } from "../../../lib/api/configuracoes";
@@ -48,6 +50,12 @@ function fmtBRL(v: number): string {
     currency: "BRL",
     maximumFractionDigits: 0,
   });
+}
+function fmtStatus(s: string): string {
+  if (s === "pendente") return "Pendente";
+  if (s === "aprovado") return "Aprovado";
+  if (s === "irregular") return "Rejeitado";
+  return "—";
 }
 function fmtKBRL(v: number): string {
   if (v >= 1000) return `R$${(v / 1000).toFixed(1)}k`;
@@ -261,12 +269,29 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
                       </td>
                       <td>{a.combustivel}</td>
                       <td>{a.litros} L</td>
-                      <td>{fmtBRL(a.valor)}</td>
+                      <td
+                        className={
+                          totalAbastecimentoEhComboio(a)
+                            ? "pnl__total-comboio"
+                            : a.valor <= 0
+                              ? "pnl__total-sem-valor"
+                              : undefined
+                        }
+                        title={
+                          totalAbastecimentoEhComboio(a)
+                            ? "Abastecimento interno — sem cobrança em posto"
+                            : a.valor <= 0
+                              ? "Posto não registrou valor total neste abastecimento"
+                              : undefined
+                        }
+                      >
+                        {fmtTotalAbastecimento(a)}
+                      </td>
                       <td>
                         <span
                           className={`pnl__st pnl__st--${a.status || "aprovado"}`}
                         >
-                          {a.status || "—"}
+                          {fmtStatus(a.status)}
                         </span>
                       </td>
                     </tr>

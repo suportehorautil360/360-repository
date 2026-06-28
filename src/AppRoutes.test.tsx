@@ -48,6 +48,9 @@ vi.mock("./pages/posto/PostoPage", () => ({
 vi.mock("./pages/prefeitura/PrefeituraPage", () => ({
   PrefeituraPage: () => <div>Prefeitura</div>,
 }));
+vi.mock("./pages/prefeitura/PrefeituraLoginPage", () => ({
+  PrefeituraLoginPage: () => <div>Login prefeitura</div>,
+}));
 vi.mock("./pages/login/OperacionalLoginPage", () => ({
   OperacionalLoginPage: () => <div>Login operacional</div>,
 }));

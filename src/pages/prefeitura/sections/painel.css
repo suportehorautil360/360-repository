@@ -191,6 +191,18 @@
   background: rgba(239, 68, 68, 0.16);
   color: #f87171;
 }
+.pnl__total-comboio {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.pnl__total-sem-valor {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-style: italic;
+}
 
 /* Listas (bloqueios / manutenções) */
 .pnl__lista {

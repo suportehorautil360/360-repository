@@ -42,6 +42,69 @@ function parseValor(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function resolveValor(
+  d: Record<string, unknown>,
+  origem: OrigemAbastecimento,
+): number {
+  if (origem === "comboio") return 0;
+
+  const direto = parseValorAbastecimento(
+    d.value ?? d.total ?? d.valor ?? d.valorTotal,
+  );
+  if (direto != null && direto > 0) return direto;
+
+  const ppl = Number(d.pricePerLiter);
+  const lit = Number(d.liters ?? d.litros);
+  if (
+    Number.isFinite(ppl) &&
+    ppl > 0 &&
+    Number.isFinite(lit) &&
+    lit > 0
+  ) {
+    return Math.round(ppl * lit * 100) / 100;
+  }
+
+  return direto ?? 0;
+}
+
+/** Rótulo da coluna Total no painel (comboio vs valor vs ausente). */
+export function fmtTotalAbastecimento(a: Abastecimento): string {
+  if (a.origem === "comboio") return "Comboio";
+  if (a.valor > 0) {
+    return a.valor.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      maximumFractionDigits: 0,
+    });
+  }
+  return "Sem valor";
+}
+
+export function totalAbastecimentoEhComboio(a: Abastecimento): boolean {
+  return a.origem === "comboio";
+}
+
+/** Normaliza status do back (en/pt) para classes do painel. */
+function normalizeStatus(
+  raw: unknown,
+  origem: OrigemAbastecimento,
+): string {
+  const s = asStr(raw).toLowerCase();
+  if (s === "pendente_aprovacao" || s === "pendente") return "pendente";
+  if (s === "rejeitado" || s === "irregular") return "irregular";
+  if (s === "aprovado") return "aprovado";
+  if (origem === "posto" || origem === "comboio") return "aprovado";
+  return "";
+}
+
+function resolveCombustivel(d: Record<string, unknown>): string {
+  const vehicle = (d.vehicle ?? null) as Record<string, unknown> | null;
+  return (
+    asStr(d.fuelType ?? d.combustivel ?? d.tipoCombustivel ?? vehicle?.fuelType) ||
+    "—"
+  );
+}
+
 function asStr(v: unknown): string {
   return v === null || v === undefined ? "" : String(v);
 }
@@ -77,6 +140,7 @@ function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
   const origem = classificarOrigemAbastecimento(
     asStr(d.origin ?? d.origem),
     (d.postoId ?? d.posto_id ?? null) as string | null,
+    (d.comboioId ?? null) as string | null,
   );
   const leituraUnidade: UnidadeLeitura =
     d.measurementType === "horimetro" ||
@@ -87,14 +151,7 @@ function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
       ? "h"
       : "km";
   const leitura = Number(d.currentReading ?? d.leitura ?? d.km) || 0;
-  const valor =
-    origem === "comboio"
-      ? 0
-      : typeof d.value === "number"
-        ? d.value
-        : typeof d.valor === "number"
-          ? d.valor
-          : parseValor(d.valorTotal ?? d.valor ?? d.total);
+  const valor = resolveValor(d, origem);
   const local = asStr(d.local ?? d.postoNome);
   return {
     id: asStr(d.id),
@@ -104,7 +161,7 @@ function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
     veiculo: asStr(d.veiculo ?? vehicle?.name),
     placa: asStr(d.placa ?? vehicle?.plate),
     tipoVeiculo: asStr(d.tipoVeiculo ?? d.tipo ?? vehicle?.type),
-    combustivel: asStr(d.combustivel) || "—",
+    combustivel: resolveCombustivel(d),
     litros: Number(d.litros ?? d.liters) || 0,
     valor,
     leitura,
@@ -116,7 +173,7 @@ function fromDoc(d: Record<string, unknown> & { id?: string }): Abastecimento {
     comboista: "",
     km: leituraUnidade === "km" ? leitura : 0,
     postoNome: asStr(d.postoNome ?? local),
-    status: asStr(d.status).toLowerCase(),
+    status: normalizeStatus(d.status, origem),
   };
 }
 
@@ -159,8 +216,10 @@ export interface AbastecimentoTela {
 export function classificarOrigemAbastecimento(
   origin: string,
   postoId?: string | null,
+  comboioId?: string | null,
 ): OrigemAbastecimento {
   if (postoId != null && String(postoId).trim() !== "") return "posto";
+  if (comboioId != null && String(comboioId).trim() !== "") return "comboio";
   return origin.toLowerCase().includes("posto") ? "posto" : "comboio";
 }
 

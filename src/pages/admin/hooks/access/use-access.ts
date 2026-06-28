@@ -59,6 +59,7 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
       usuario,
       ...(email ? { email } : {}),
       senha: senhaHash,
+      mustChangePassword: true,
       perfil: data.perfil,
       type: data.vinculo,
       vinculo: data.vinculo,
@@ -104,7 +105,10 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
       return { ok: false, message: "A senha deve ter no mínimo 4 caracteres." };
     }
     const senhaHash = await hashSenha(senha);
-    await updateDoc(doc(db, "users", id), { senha: senhaHash });
+    await updateDoc(doc(db, "users", id), {
+      senha: senhaHash,
+      mustChangePassword: true,
+    });
     return { ok: true, message: "Senha redefinida." };
   },
 

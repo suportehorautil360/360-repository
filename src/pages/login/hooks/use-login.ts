@@ -66,7 +66,7 @@ export const useLogin = create<LoginProps>()(
           return {};
         }
         if (userData.type === "prefeitura") {
-          navigate(`/prefeitura/${userData.prefeituraId}`);
+          navigate(`/prefeitura/${userData.prefeituraId}/dashboard`);
           return {};
         }
         navigate("/admin");
