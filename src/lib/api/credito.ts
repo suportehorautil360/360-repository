@@ -8,6 +8,7 @@ export type CreditoAlocacao = "equipamento" | "frente";
 export interface CreditoOpcao {
   id: string;
   label: string;
+  keywords?: string[];
 }
 
 export interface CreditoOpcoesTela {
@@ -77,7 +78,7 @@ export interface LancarCreditoInput {
 
 interface CreditoFormOpcoesApi {
   typeOptions?: Array<{ value: CreditType; label: string }>;
-  equipment?: Array<{ id: string; label: string }>;
+  equipment?: Array<{ id: string; label: string; keywords?: string[] }>;
   workFronts?: Array<{ id: string; label: string }>;
   responsibleOptions?: string[];
   suggestedAmounts?: number[];
@@ -258,6 +259,7 @@ function opcoesApiParaTela(data: CreditoFormOpcoesApi): CreditoOpcoesTela {
     equipamentos: (data.equipment ?? []).map((e) => ({
       id: e.id,
       label: e.label,
+      keywords: e.keywords,
     })),
     frentes: (data.workFronts ?? []).map((f) => ({
       id: f.id,

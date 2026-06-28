@@ -1,3 +1,5 @@
+import type { MaquinaParadaRow, TomOficina } from "./abrir-os-paineis-dados";
+
 export type ServiceTypeOs = "corrective" | "preventive" | "predictive";
 
 export interface SolicitacaoOS {
@@ -24,7 +26,12 @@ export interface SolicitacaoOS {
   convidadas?: number;
 }
 
-export type AbaOsForm = "geral" | "oficina" | "maquina-parada" | "garantia";
+export type AbaOsForm = "geral" | "oficina" | "garantia";
+
+/** O.S. corretiva (ou legado sem tipo) entra no painel de máquina parada. */
+export function isOsCorretiva(os: SolicitacaoOS): boolean {
+  return os.serviceType !== "preventive" && os.serviceType !== "predictive";
+}
 
 function mockTs(iso: string): { seconds: number } {
   return { seconds: Math.floor(new Date(iso).getTime() / 1000) };
@@ -215,4 +222,43 @@ export function filtrarOsLista(
     if (fim !== null && ms > fim) return false;
     return true;
   });
+}
+
+function diasParadoDesde(criadoEm: SolicitacaoOS["criadoEm"]): number {
+  if (!criadoEm?.seconds) return 0;
+  const diff = Date.now() - criadoEm.seconds * 1000;
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+function horasTotaisDesde(criadoEm: SolicitacaoOS["criadoEm"]): number {
+  if (!criadoEm?.seconds) return 0;
+  const diff = Date.now() - criadoEm.seconds * 1000;
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
+}
+
+function tomOficinaPorDias(dias: number): TomOficina {
+  if (dias >= 7) return "vermelho";
+  if (dias >= 3) return "laranja";
+  return "verde";
+}
+
+/** O.S. corretivas abertas no painel de down-time. */
+export function filtrarMaquinasParadas(rows: SolicitacaoOS[]): SolicitacaoOS[] {
+  return rows.filter(isOsCorretiva);
+}
+
+export function maquinaParadaDeOs(os: SolicitacaoOS): MaquinaParadaRow {
+  const diasParado = diasParadoDesde(os.criadoEm);
+  const oficina = os.oficinas?.find(Boolean) ?? "—";
+
+  return {
+    os: os.protocolo || "—",
+    equipamento: os.equipamento || "—",
+    motivo: os.relato?.trim() || "—",
+    diasParado,
+    horasTotais: horasTotaisDesde(os.criadoEm),
+    oficina,
+    tomOficina: tomOficinaPorDias(diasParado),
+    diasDestaque: diasParado >= 7,
+  };
 }

@@ -64,6 +64,9 @@ describe("useAccess.resetarSenha", () => {
   it("grava o hash da nova senha", async () => {
     const r = await useAccess.getState().resetarSenha("u1", "novaSenha");
     expect(r.ok).toBe(true);
-    expect(updateDocMock).toHaveBeenCalledWith({ col: "users", id: "u1" }, { senha: "hash:novaSenha" });
+    expect(updateDocMock).toHaveBeenCalledWith(
+      { col: "users", id: "u1" },
+      { senha: "hash:novaSenha", mustChangePassword: true },
+    );
   });
 });

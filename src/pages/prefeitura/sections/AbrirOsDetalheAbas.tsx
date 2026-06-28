@@ -5,22 +5,18 @@ import { PAINEL_META } from "./abrir-os-paineis-dados";
 import { AbrirOsPainelGeralConteudo } from "./AbrirOsPainelGeralConteudo";
 import { AbrirOsAbaGarantia } from "./AbrirOsAbaGarantia";
 import { AbrirOsAbaMaquinaParada } from "./AbrirOsAbaMaquinaParada";
-import type { SolicitacaoOS } from "./abrir-os-model";
+import { isOsCorretiva, maquinaParadaDeOs, type SolicitacaoOS } from "./abrir-os-model";
 
-export type AbaDetalheOs =
-  | "resumo"
-  | PainelGeralOs
-  | "garantia"
-  | "maquina-parada";
+export type AbaDetalheOs = "resumo" | PainelGeralOs | "garantia" | "maquina-parada";
 
-const ABAS: { id: AbaDetalheOs; label: string; icon?: "shield" }[] = [
+const ABAS_BASE: { id: AbaDetalheOs; label: string; icon?: "shield" }[] = [
   { id: "resumo", label: "Resumo" },
   { id: "insumos", label: "Insumos" },
   { id: "etapas", label: "Etapas" },
   { id: "sintomas", label: "Sintomas" },
   { id: "ocorrencias", label: "Ocorrências" },
-  { id: "garantia", label: "Garantia", icon: "shield" },
   { id: "maquina-parada", label: "Máq. parada" },
+  { id: "garantia", label: "Garantia", icon: "shield" },
 ];
 
 interface AbrirOsDetalheAbasProps {
@@ -30,6 +26,11 @@ interface AbrirOsDetalheAbasProps {
 
 export function AbrirOsDetalheAbas({ os, resumo }: AbrirOsDetalheAbasProps) {
   const [aba, setAba] = useState<AbaDetalheOs>("resumo");
+  const exibeMaquinaParada = isOsCorretiva(os);
+
+  const abas = exibeMaquinaParada
+    ? ABAS_BASE
+    : ABAS_BASE.filter((t) => t.id !== "maquina-parada");
 
   const painelAtual =
     aba === "insumos" ||
@@ -42,7 +43,7 @@ export function AbrirOsDetalheAbas({ os, resumo }: AbrirOsDetalheAbasProps) {
   return (
     <>
       <nav className="aos-tabs aos-detalhe__tabs" aria-label="Seções da O.S.">
-        {ABAS.map((t) => (
+        {abas.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -68,6 +69,7 @@ export function AbrirOsDetalheAbas({ os, resumo }: AbrirOsDetalheAbasProps) {
           <AbrirOsPainelGeralConteudo
             painel={painelAtual}
             solicitacaoOsId={os.id}
+            relatoOs={os.relato}
           />
         </section>
       ) : aba === "garantia" ? (
@@ -84,7 +86,11 @@ export function AbrirOsDetalheAbas({ os, resumo }: AbrirOsDetalheAbasProps) {
         </section>
       ) : aba === "maquina-parada" ? (
         <section className="aos-detalhe__secao aos-detalhe__secao--painel">
-          <AbrirOsAbaMaquinaParada />
+          <AbrirOsAbaMaquinaParada
+            compacto
+            rows={[maquinaParadaDeOs(os)]}
+            emptyText="Esta O.S. não está registrada como máquina parada."
+          />
         </section>
       ) : null}
     </>

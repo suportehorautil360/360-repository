@@ -252,9 +252,21 @@
 
 .crd-form-field input:focus,
 .crd-form-field select:focus,
-.crd-form-field textarea:focus {
+.crd-form-field textarea:focus,
+.crd-combobox-trigger:focus-visible {
   border-color: rgba(249, 115, 22, 0.5);
   box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.crd-combobox-trigger {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.4rem;
 }
 
 .crd-alocacao {

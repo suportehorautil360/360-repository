@@ -13,6 +13,7 @@ vi.mock("./client", async (orig) => {
 import {
   abastecimentoListaParaTela,
   abastecimentosApi,
+  fmtTotalAbastecimento,
   type AbastecimentoListaApi,
 } from "./abastecimentos";
 
@@ -97,9 +98,11 @@ describe("abastecimentosApi.listar (mapeia resposta real do backend en->pt)", ()
     vehicle: { name: "Golf", plate: "ABC-1234", type: "Motoniveladora" },
     origin: "Posto Exemplo",
     postoId: "posto-1",
+    fuelType: "Diesel S10",
     liters: 1000,
     pricePerLiter: 5,
     value: 5000,
+    status: "aprovado",
     reading: "1.234 km",
     currentReading: 1234,
     measurementType: "hodometro",
@@ -116,12 +119,14 @@ describe("abastecimentosApi.listar (mapeia resposta real do backend en->pt)", ()
       veiculo: "Golf",
       placa: "ABC-1234",
       tipoVeiculo: "Motoniveladora",
+      combustivel: "Diesel S10",
       litros: 1000,
       valor: 5000,
       leitura: 1234,
       leituraUnidade: "km",
       origem: "posto",
       local: "Pirituba",
+      status: "aprovado",
     });
     // data derivada do createdAt (ISO), para fmtData/ordenacao funcionarem.
     expect(rows[0].data).toMatch(/^2026-06-\d{2}$/);
@@ -135,7 +140,9 @@ describe("abastecimentosApi.listar (mapeia resposta real do backend en->pt)", ()
           id: "c1",
           origin: "Comboio",
           postoId: null,
+          fuelType: "Diesel S10",
           value: null,
+          status: "aprovado",
           reading: "10 h",
           currentReading: 10,
           measurementType: "horimetro",
@@ -146,10 +153,57 @@ describe("abastecimentosApi.listar (mapeia resposta real do backend en->pt)", ()
     const [row] = await abastecimentosApi.listar("p1");
     expect(row).toMatchObject({
       origem: "comboio",
+      combustivel: "Diesel S10",
       leitura: 10,
       leituraUnidade: "h",
       valor: 0,
+      status: "aprovado",
     });
+  });
+
+  it("normaliza status pendente_aprovacao", async () => {
+    getMock.mockResolvedValue({
+      data: [{ ...backendPosto, status: "pendente_aprovacao" }],
+    });
+    const [row] = await abastecimentosApi.listar("p1");
+    expect(row.status).toBe("pendente");
+  });
+
+  it("calcula valor a partir de pricePerLiter quando value vem null", async () => {
+    getMock.mockResolvedValue({
+      data: [{ ...backendPosto, value: null, pricePerLiter: 5.5, liters: 280 }],
+    });
+    const [row] = await abastecimentosApi.listar("p1");
+    expect(row.valor).toBe(1540);
+    expect(fmtTotalAbastecimento(row)).toMatch(/R\$\s*1\.540/);
+  });
+
+  it("comboio com value null exibe rótulo Comboio, não R$ 0", async () => {
+    getMock.mockResolvedValue({
+      data: [
+        {
+          ...backendPosto,
+          id: "c2",
+          origin: "Comboio",
+          postoId: null,
+          comboioId: "comboio-1",
+          value: null,
+          liters: 280,
+        },
+      ],
+    });
+    const [row] = await abastecimentosApi.listar("p1");
+    expect(row.origem).toBe("comboio");
+    expect(fmtTotalAbastecimento(row)).toBe("Comboio");
+  });
+
+  it("posto com value null exibe Sem valor", async () => {
+    getMock.mockResolvedValue({
+      data: [{ ...backendPosto, value: null, pricePerLiter: null }],
+    });
+    const [row] = await abastecimentosApi.listar("p1");
+    expect(row.origem).toBe("posto");
+    expect(fmtTotalAbastecimento(row)).toBe("Sem valor");
   });
 });
 

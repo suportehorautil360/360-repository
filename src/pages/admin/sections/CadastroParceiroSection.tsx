@@ -355,6 +355,10 @@ export function CadastroParceiroSection({
 
   if (loginGerado) {
     const destino = loginGerado.tipo === "posto" ? "posto" : "oficina";
+    const entradaHint =
+      loginGerado.tipo === "posto"
+        ? `/login-operacional?destino=${destino}`
+        : "app da oficina (postoapp) — use o usuário abaixo";
     return (
       <section className="parc-login-gerado">
         <h2>Parceiro cadastrado</h2>
@@ -377,7 +381,11 @@ export function CadastroParceiroSection({
           </div>
           <p className="parc-login-gerado__hint">
             Entrada:{" "}
-            <code>/login-operacional?destino={destino}</code>
+            {loginGerado.tipo === "posto" ? (
+              <code>{entradaHint}</code>
+            ) : (
+              <span>{entradaHint}</span>
+            )}
           </p>
         </article>
         <div className="cad-actions">

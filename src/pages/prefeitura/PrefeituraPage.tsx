@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useHU360 } from "../../lib/hu360";
 import { Sidebar } from "../../components/Sidebar/Sidebar";
@@ -94,15 +94,8 @@ export function PrefeituraPage() {
     /\/funcionarios\/([^/]+)\/historico\/([^/]+)$/,
   );
   const ehPontoDia = !!pontoDiaMatch;
-  const { user, handleLogin: login, logout } = useLogin();
+  const { user, logout } = useLogin();
   const { obterDadosPrefeitura, prefeituraLabel } = useHU360();
-
-  const [usuario, setUsuario] = useState("");
-  const [senha, setSenha] = useState("");
-  const [authMsg, setAuthMsg] = useState<{
-    tone: "none" | "ok" | "err";
-    text: string;
-  }>({ tone: "none", text: "" });
 
   useEffect(() => {
     document.body.classList.add("prefeitura-root");
@@ -148,88 +141,12 @@ export function PrefeituraPage() {
     [prefeituraId, obterDadosPrefeitura],
   );
 
-  async function handleLogin(e: FormEvent) {
-    e.preventDefault();
-    setAuthMsg({ tone: "none", text: "" });
-    if (!usuario.trim() || !senha) {
-      setAuthMsg({ tone: "err", text: "Informe usuário e senha." });
-      return;
-    }
-    const r = await login(usuario.trim(), senha, navigate);
-    if (r.error) {
-      setAuthMsg({ tone: "err", text: r.error });
-      return;
-    }
-    setSenha("");
-  }
-
   function handleLogout() {
     logout(navigate);
-    setUsuario("");
-    setSenha("");
-    setAuthMsg({ tone: "none", text: "" });
   }
 
   if (!user) {
-    return (
-      <div className="prefeitura-root">
-        <section id="authScreen" className="auth-screen">
-          <div className="auth-card">
-            <h1>Acesso ao sistema</h1>
-            <p className="sub">Use o mesmo login do Hub Mestre horautil360.</p>
-            <form id="loginForm" onSubmit={handleLogin}>
-              <label htmlFor="loginUsuario">Usuário</label>
-              <input
-                id="loginUsuario"
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                required
-                placeholder="Digite seu usuário"
-                autoComplete="username"
-              />
-              <label htmlFor="loginSenha">Senha</label>
-              <input
-                id="loginSenha"
-                type="password"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                required
-                placeholder="Digite sua senha"
-                autoComplete="current-password"
-              />
-              <button className="btn" type="submit">
-                Entrar
-              </button>
-              <div
-                id="authMsg"
-                className={`auth-msg ${
-                  authMsg.tone === "ok"
-                    ? "ok"
-                    : authMsg.tone === "err"
-                      ? "err"
-                      : ""
-                }`}
-              >
-                {authMsg.text}
-              </div>
-            </form>
-            <Link
-              to="/"
-              style={{
-                display: "block",
-                marginTop: 14,
-                color: "var(--main-orange)",
-                fontSize: "0.88rem",
-                textAlign: "center",
-                textDecoration: "none",
-              }}
-            >
-              ← Voltar ao Hub
-            </Link>
-          </div>
-        </section>
-      </div>
-    );
+    return null;
   }
 
   if (!dados || !prefeituraId) {

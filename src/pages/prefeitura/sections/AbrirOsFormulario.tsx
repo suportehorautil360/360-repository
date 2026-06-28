@@ -16,7 +16,6 @@ import {
   hojeISO,
 } from "./abrir-os-model";
 import { AbrirOsAbaOficina } from "./AbrirOsAbaOficina";
-import { AbrirOsAbaMaquinaParada } from "./AbrirOsAbaMaquinaParada";
 import { AbrirOsAbaGarantia } from "./AbrirOsAbaGarantia";
 import {
   AbrirOsPainelGeral,
@@ -42,7 +41,6 @@ const SITUACOES = [{ value: "aberta", label: "Aberta" }];
 const ABAS: { id: AbaOsForm; label: string; icon?: "shield" }[] = [
   { id: "geral", label: "Geral" },
   { id: "oficina", label: "Oficina" },
-  { id: "maquina-parada", label: "Máquina Parada" },
   { id: "garantia", label: "Garantia", icon: "shield" },
 ];
 
@@ -67,7 +65,7 @@ interface AbrirOsFormularioProps {
   prefeituraId: string;
   onCancelar: () => void;
   onVoltarLista: () => void;
-  onSalvo: () => void;
+  onSalvo: (opts?: { irMaquinaParada?: boolean }) => void;
 }
 
 export function AbrirOsFormulario({
@@ -241,7 +239,7 @@ export function AbrirOsFormulario({
       toast.success(
         `O.S. criada! Protocolo: ${resultado.protocolo} · Enviada para ${resultado.invitedWorkshops.length} oficina(s)${nomes ? `: ${nomes}` : ""}.`,
       );
-      onSalvo();
+      onSalvo({ irMaquinaParada: tipoOs === "C" });
     } catch (err) {
       const msg = mensagemErroCriarOs(err);
       setErroSalvar(msg);
@@ -448,8 +446,6 @@ export function AbrirOsFormulario({
             prefeituraId={prefeituraId}
             linhaEquipamento={classificacao}
           />
-        ) : aba === "maquina-parada" ? (
-          <AbrirOsAbaMaquinaParada />
         ) : aba === "garantia" ? (
           <AbrirOsAbaGarantia
             equipamentoId={equipamentoId}

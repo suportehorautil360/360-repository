@@ -286,9 +286,8 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
   }
 
   function validar(): Record<string, string> {
-    // Apenas o essencial é obrigatório: chassi, número de série e a leitura
-    // atual (KM/horímetro). O resto é opcional para agilizar o cadastro.
     const obrigatorios: (keyof FormState)[] = [
+      "placa",
       "chassis",
       "numeroSerie",
       "medicaoAtual",
@@ -462,7 +461,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
           <h2>Identificação</h2>
         </div>
         <div className="ff__grid">
-          {texto("placa", "Placa nova", { placeholder: "ABC-1234" })}
+          {texto("placa", "Placa nova", { req: true, placeholder: "ABC-1234" })}
           {texto("chassis", "Chassi", {
             req: true,
             placeholder: "9BWZZZ...",

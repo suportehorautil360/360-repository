@@ -36,6 +36,11 @@ const PostoDetalhePage = lazy(() =>
     default: m.PostoDetalhePage,
   })),
 );
+const OficinaDetalhePage = lazy(() =>
+  import("./pages/admin/sections/OficinaDetalhePage").then((m) => ({
+    default: m.OficinaDetalhePage,
+  })),
+);
 const OficinasPostosSection = lazy(() =>
   import("./pages/admin/sections/OficinasPostosSection").then((m) => ({
     default: m.OficinasPostosSection,
@@ -119,6 +124,11 @@ const PrefeituraPage = lazy(() =>
     default: m.PrefeituraPage,
   })),
 );
+const PrefeituraLoginPage = lazy(() =>
+  import("./pages/prefeitura/PrefeituraLoginPage").then((m) => ({
+    default: m.PrefeituraLoginPage,
+  })),
+);
 const OperacionalLoginPage = lazy(() =>
   import("./pages/login/OperacionalLoginPage").then((m) => ({
     default: m.OperacionalLoginPage,
@@ -177,6 +187,24 @@ function RequireOperacionalAuth({
   return <>{children}</>;
 }
 
+function RequirePrefeituraAuth({ children }: { children: ReactNode }) {
+  const { user } = useLogin();
+
+  if (!user) {
+    return <Navigate to="/login-prefeitura" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function PrefeituraRoute() {
+  return (
+    <RequirePrefeituraAuth>
+      <PrefeituraPage />
+    </RequirePrefeituraAuth>
+  );
+}
+
 function RootRoute() {
   const { user } = useLogin();
 
@@ -225,6 +253,10 @@ export function AppRoutes() {
             <Route path="portal-posto" element={<PortalPostoSection />} />
             <Route path="parceiros" element={<ParceirosSection />} />
             <Route path="parceiros/posto/:postoId" element={<PostoDetalhePage />} />
+            <Route
+              path="parceiros/oficina/:oficinaId"
+              element={<OficinaDetalhePage />}
+            />
             <Route path="oficinas-postos" element={<OficinasPostosSection />} />
             <Route path="cadastros" element={<CadastroClientesSection />} />
             <Route
@@ -260,6 +292,7 @@ export function AppRoutes() {
             }
           />
           <Route path="/login-operacional" element={<OperacionalLoginPage />} />
+          <Route path="/login-prefeitura" element={<PrefeituraLoginPage />} />
           <Route path="/checklist-login" element={<ChecklistLoginPage />} />
           <Route path="/ponto" element={<PontoPage />} />
           <Route
@@ -278,33 +311,33 @@ export function AppRoutes() {
               </RequireOperacionalAuth>
             }
           />
-          <Route path="/prefeitura" element={<PrefeituraPage />} />
-          <Route path="/prefeitura/:id" element={<PrefeituraPage />} />
+          <Route path="/prefeitura" element={<PrefeituraRoute />} />
+          <Route path="/prefeitura/:id" element={<PrefeituraRoute />} />
           <Route
             path="/prefeitura/:id/funcionarios/novo"
-            element={<PrefeituraPage />}
+            element={<PrefeituraRoute />}
           />
           <Route
             path="/prefeitura/:id/funcionarios/:funcId/editar"
-            element={<PrefeituraPage />}
+            element={<PrefeituraRoute />}
           />
           <Route
             path="/prefeitura/:id/funcionarios/:funcId/historico"
-            element={<PrefeituraPage />}
+            element={<PrefeituraRoute />}
           />
           <Route
             path="/prefeitura/:id/funcionarios/:funcId/historico/:dia"
-            element={<PrefeituraPage />}
+            element={<PrefeituraRoute />}
           />
           <Route
             path="/prefeitura/:id/equipamentos/novo"
-            element={<PrefeituraPage />}
+            element={<PrefeituraRoute />}
           />
           <Route
             path="/prefeitura/:id/equipamentos/:equipId/editar"
-            element={<PrefeituraPage />}
+            element={<PrefeituraRoute />}
           />
-          <Route path="/prefeitura/:id/:secao" element={<PrefeituraPage />} />
+          <Route path="/prefeitura/:id/:secao" element={<PrefeituraRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

@@ -7,6 +7,7 @@ import {
   INSUMOS_MOCK,
   OCORRENCIAS_MOCK,
   SINTOMAS_MOCK,
+  sintomasDeRelato,
 } from "./abrir-os-paineis-dados";
 import { insumosApi, type InsumoListItem } from "../../../lib/api/insumos";
 import { ocorrenciasApi, type OcorrenciaListItem } from "../../../lib/api/ocorrencias";
@@ -15,6 +16,8 @@ import { ApiError } from "../../../lib/api/client";
 interface AbrirOsPainelGeralConteudoProps {
   painel: PainelGeralOs;
   solicitacaoOsId?: string;
+  /** Descrição/relato da O.S. — usado na aba Sintomas. */
+  relatoOs?: string;
 }
 
 function fmtCodigoInsumo(r: InsumoListItem): string {
@@ -217,6 +220,7 @@ function OcorrenciasPainel({ solicitacaoOsId }: { solicitacaoOsId?: string }) {
 export function AbrirOsPainelGeralConteudo({
   painel,
   solicitacaoOsId,
+  relatoOs,
 }: AbrirOsPainelGeralConteudoProps) {
   if (painel === "insumos") {
     if (solicitacaoOsId) {
@@ -309,6 +313,9 @@ export function AbrirOsPainelGeralConteudo({
   }
 
   if (painel === "sintomas") {
+    const linhas =
+      relatoOs !== undefined ? sintomasDeRelato(relatoOs) : SINTOMAS_MOCK;
+
     return (
       <div className="aos-painel-table-scroll">
         <table className="aos-painel-table">
@@ -320,14 +327,14 @@ export function AbrirOsPainelGeralConteudo({
             </tr>
           </thead>
           <tbody>
-            {SINTOMAS_MOCK.length === 0 ? (
+            {linhas.length === 0 ? (
               <tr>
                 <td colSpan={3} className="aos-painel-empty">
                   Nenhum sintoma registrado nesta O.S.
                 </td>
               </tr>
             ) : (
-              SINTOMAS_MOCK.map((r) => (
+              linhas.map((r) => (
                 <tr key={r.cod}>
                   <td className="aos-painel-col-cod">{r.cod}</td>
                   <td>{r.descricao}</td>

@@ -9,6 +9,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { ApiError } from "../../../lib/api/client";
+import { Combobox } from "@/components/ui/combobox";
 import {
   creditoApi,
   filtrarHistoricoPorPeriodo,
@@ -149,6 +150,16 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
 
   const atalhosValor = opcoes?.suggestedAmounts ?? [200, 500, 1000, 2000, 5000];
 
+  const equipamentoOptions = useMemo(
+    () =>
+      (opcoes?.equipamentos ?? []).map((op) => ({
+        value: op.id,
+        label: op.label,
+        keywords: op.keywords?.length ? op.keywords : [op.id],
+      })),
+    [opcoes?.equipamentos],
+  );
+
   const podeExportar = !carregando && dados.historico.length > 0;
 
   const handleExportar = useCallback(() => {
@@ -172,7 +183,7 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
         tone: "err",
         text:
           alocacao === "equipamento"
-            ? "Informe a placa ou o chassi do equipamento."
+            ? "Selecione o equipamento (placa, chassi ou nome)."
             : "Selecione a frente de trabalho.",
       });
       return;
@@ -327,23 +338,16 @@ export function CreditoSection({ prefeituraId }: CreditoSectionProps) {
             {alocacao === "equipamento" ? (
               <>
                 <label htmlFor="crd-destino">Equipamento / placa / chassi</label>
-                <input
-                  id="crd-destino"
-                  type="text"
-                  list="crd-equip-list"
+                <Combobox
+                  className="crd-combobox-trigger"
                   value={destinoId}
-                  onChange={(ev) => setDestinoId(ev.target.value)}
-                  placeholder="Digite ou selecione placa/chassi…"
+                  onValueChange={setDestinoId}
                   disabled={carregando}
-                  autoComplete="off"
+                  placeholder="Digite ou selecione placa, chassi ou equipamento…"
+                  searchPlaceholder="Buscar por placa, chassi ou equipamento…"
+                  emptyText="Nenhum equipamento encontrado."
+                  options={equipamentoOptions}
                 />
-                <datalist id="crd-equip-list">
-                  {(opcoes?.equipamentos ?? []).map((op) => (
-                    <option key={op.id} value={op.id}>
-                      {op.label}
-                    </option>
-                  ))}
-                </datalist>
               </>
             ) : (
               <>

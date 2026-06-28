@@ -3,10 +3,15 @@ import { listarSolicitacoesOs } from "./criar-solicitacao-os";
 import { AbrirOsFormulario } from "./AbrirOsFormulario";
 import { AbrirOsLista } from "./AbrirOsLista";
 import { AbrirOsDetalhePage } from "./AbrirOsDetalhePage";
+import { AbrirOsAbaMaquinaParada } from "./AbrirOsAbaMaquinaParada";
 import type { FiltrosOsLista, SolicitacaoOS } from "./abrir-os-model";
+import {
+  filtrarMaquinasParadas,
+  maquinaParadaDeOs,
+} from "./abrir-os-model";
 import "./abrir-os.css";
 
-type TelaOs = "lista" | "formulario" | "detalhe";
+type TelaOs = "lista" | "formulario" | "detalhe" | "maquina-parada";
 
 const FILTROS_INICIAIS: FiltrosOsLista = {
   dataInicio: "",
@@ -49,10 +54,12 @@ export function AbrirOsSection({ prefeituraId }: { prefeituraId: string }) {
     void carregar();
   }, [carregar]);
 
-  function handleOsCriada() {
-    setTela("lista");
-    void carregar();
+  async function handleOsCriada(opts?: { irMaquinaParada?: boolean }) {
+    await carregar();
+    setTela(opts?.irMaquinaParada ? "maquina-parada" : "lista");
   }
+
+  const maquinasParadas = filtrarMaquinasParadas(rows).map(maquinaParadaDeOs);
 
   return (
     <section className="aos-page">
@@ -64,6 +71,8 @@ export function AbrirOsSection({ prefeituraId }: { prefeituraId: string }) {
           filtros={filtros}
           onFiltrosChange={setFiltros}
           onAbrirOs={() => setTela("formulario")}
+          onVerMaquinasParadas={() => setTela("maquina-parada")}
+          qtdMaquinasParadas={maquinasParadas.length}
           onVerDetalhes={(os) => {
             setOsDetalhe(os);
             setTela("detalhe");
@@ -75,6 +84,12 @@ export function AbrirOsSection({ prefeituraId }: { prefeituraId: string }) {
           onCancelar={() => setTela("lista")}
           onVoltarLista={() => setTela("lista")}
           onSalvo={handleOsCriada}
+        />
+      ) : tela === "maquina-parada" ? (
+        <AbrirOsAbaMaquinaParada
+          rows={maquinasParadas}
+          loading={loading}
+          onVoltar={() => setTela("lista")}
         />
       ) : osDetalhe ? (
         <AbrirOsDetalhePage
