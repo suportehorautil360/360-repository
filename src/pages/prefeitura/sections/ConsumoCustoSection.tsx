@@ -3,6 +3,7 @@ import {
   CalendarDays,
   ChevronDown,
   FileDown,
+  RefreshCw,
   TrendingUp,
 } from "lucide-react";
 import {
@@ -43,7 +44,7 @@ function chaveCache(
   inicio: string,
   fim: string,
 ): string {
-  return `${prefeituraId}|${inicio}|${fim}|v12`;
+  return `${prefeituraId}|${inicio}|${fim}|v13`;
 }
 
 const cacheConsumoCusto = new Map<string, ConsumoCustoTela>();
@@ -197,8 +198,10 @@ export function ConsumoCustoSection({
   );
   const [veiculos, setVeiculos] = useState<VeiculoConsumoCusto[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [cardAberto, setCardAberto] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
     if (!prefeituraId || !periodoInicio || !periodoFim) return;
@@ -210,13 +213,11 @@ export function ConsumoCustoSection({
       setPeriodoLabel(emCache.periodoLabel);
       setCalculo(emCache.calculo);
       setVeiculos(emCache.veiculos);
-      setErro(null);
-      setCarregando(false);
-      return;
     }
 
     let ativo = true;
-    setCarregando(true);
+    setAtualizando(Boolean(emCache));
+    setCarregando(!emCache);
     setErro(null);
 
     consumoCustoApi
@@ -231,9 +232,11 @@ export function ConsumoCustoSection({
       })
       .catch((e) => {
         if (!ativo) return;
-        setVeiculos([]);
-        setPeriodoLabel("");
-        setCalculo(CALCULO_CONSUMO_PADRAO);
+        if (!emCache) {
+          setVeiculos([]);
+          setPeriodoLabel("");
+          setCalculo(CALCULO_CONSUMO_PADRAO);
+        }
         setErro(
           e instanceof Error
             ? e.message
@@ -241,13 +244,28 @@ export function ConsumoCustoSection({
         );
       })
       .finally(() => {
-        if (ativo) setCarregando(false);
+        if (ativo) {
+          setCarregando(false);
+          setAtualizando(false);
+        }
       });
 
     return () => {
       ativo = false;
     };
-  }, [prefeituraId, periodoInicio, periodoFim]);
+  }, [prefeituraId, periodoInicio, periodoFim, refreshToken]);
+
+  useEffect(() => {
+    const recarregarAoVoltar = () => {
+      if (document.visibilityState === "visible") {
+        setRefreshToken((n) => n + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", recarregarAoVoltar);
+    return () => {
+      document.removeEventListener("visibilitychange", recarregarAoVoltar);
+    };
+  }, []);
 
   useEffect(() => {
     setCardAberto(null);
@@ -268,6 +286,10 @@ export function ConsumoCustoSection({
 
   const toggleCard = useCallback((id: string) => {
     setCardAberto((atual) => (atual === id ? null : id));
+  }, []);
+
+  const handleAtualizar = useCallback(() => {
+    setRefreshToken((n) => n + 1);
   }, []);
 
   return (
@@ -330,6 +352,21 @@ export function ConsumoCustoSection({
       <div className="ccu-toolbar">
         <button
           type="button"
+          className="ccu-btn-refresh"
+          onClick={handleAtualizar}
+          disabled={carregando || atualizando}
+          title="Buscar dados atualizados do servidor"
+        >
+          <RefreshCw
+            size={16}
+            strokeWidth={2.25}
+            className={atualizando ? "ccu-btn-refresh-icon--spin" : undefined}
+            aria-hidden
+          />
+          Atualizar
+        </button>
+        <button
+          type="button"
           className="ccu-btn-export"
           onClick={handleExportar}
           disabled={!podeExportar}
@@ -345,7 +382,7 @@ export function ConsumoCustoSection({
       </div>
 
       <div className="ccu-grid">
-        {carregando ? (
+        {carregando && veiculos.length === 0 ? (
           <p className="ccu-empty">Carregando dados dos veículos…</p>
         ) : veiculos.length === 0 ? (
           <p className="ccu-empty">
