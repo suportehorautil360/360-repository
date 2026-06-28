@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, FileText, Loader2, Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileText, Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,7 +51,6 @@ export function NotasFiscaisSection({
   const [erro, setErro] = useState(false);
   const [aba, setAba] = useState<Filtro>("todas");
   const [busca, setBusca] = useState("");
-  const [ocupadoId, setOcupadoId] = useState<string | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -74,20 +72,6 @@ export function NotasFiscaisSection({
       vivo = false;
     };
   }, [prefeituraId]);
-
-  async function decidir(id: string, status: NotaFiscalStatus) {
-    setOcupadoId(id);
-    try {
-      await notasFiscaisApi.atualizarStatus(id, status);
-      setRows((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, status } : n)),
-      );
-    } catch {
-      setErro(true);
-    } finally {
-      setOcupadoId(null);
-    }
-  }
 
   const totais = useMemo(() => {
     const total = rows.reduce((s, n) => s + (n.value || 0), 0);
@@ -117,13 +101,13 @@ export function NotasFiscaisSection({
           Notas Fiscais de Combustível
         </div>
         <div className="mt-1 text-sm text-slate-400">
-          PDFs enviados pelos postos para conferência e aprovação.
+          PDFs enviados pelos postos credenciados — consulta e visualização.
         </div>
       </header>
 
       {erro && (
         <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
-          Não foi possível concluir a operação. Tente novamente.
+          Não foi possível carregar as notas fiscais. Tente novamente.
         </div>
       )}
 
@@ -181,7 +165,6 @@ export function NotasFiscaisSection({
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>PDF</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -222,37 +205,6 @@ export function NotasFiscaisSection({
                         </a>
                       ) : (
                         <span className="text-slate-500">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {n.status === "pendente" ? (
-                        <div className="inline-flex gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            disabled={ocupadoId === n.id}
-                            onClick={() => decidir(n.id, "aprovada")}
-                            className="bg-emerald-600 text-white hover:bg-emerald-600/90"
-                          >
-                            {ocupadoId === n.id ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                              <Check className="size-4" />
-                            )}
-                            Aprovar
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={ocupadoId === n.id}
-                            onClick={() => decidir(n.id, "rejeitada")}
-                          >
-                            <X className="size-4" /> Rejeitar
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </TableCell>
                   </TableRow>
