@@ -44,7 +44,7 @@ function chaveCache(
   inicio: string,
   fim: string,
 ): string {
-  return `${prefeituraId}|${inicio}|${fim}|v13`;
+  return `${prefeituraId}|${inicio}|${fim}|v14`;
 }
 
 const cacheConsumoCusto = new Map<string, ConsumoCustoTela>();
