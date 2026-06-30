@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { MultiSelect } from "@/components/ui/multi-select";
 import {
   COMBUSTIVEL_OPTIONS,
@@ -431,6 +432,23 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
 
   const opts = (arr: string[]) => arr.map((v) => ({ value: v, label: v }));
 
+  const comboboxField = (
+    k: keyof FormState,
+    label: string,
+    options: { value: string; label: string }[],
+    req?: boolean,
+  ) => (
+    <Campo label={label} req={req} erro={erros[k]}>
+      <Combobox
+        inlineSearch
+        options={options}
+        value={String(form[k] ?? "")}
+        onValueChange={(v) => setCampo(k, v as never)}
+        className="border-white/15 bg-white/[0.04] text-slate-100"
+      />
+    </Campo>
+  );
+
   if (carregando) {
     return (
       <div className="ff">
@@ -480,9 +498,9 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
           {texto("marca", "Marca")}
           {texto("modelo", "Modelo")}
           {texto("cor", "Cor")}
-          {select("combustivel", "Combustível", opts(COMBUSTIVEL_OPTIONS))}
-          {select("tipo", "Tipo de veículo", opts(TIPO_OPTIONS))}
-          {select("tipoFrota", "Tipo de frota", opts(FROTA_OPTIONS))}
+          {comboboxField("combustivel", "Combustível", opts(COMBUSTIVEL_OPTIONS))}
+          {comboboxField("tipo", "Tipo de veículo", opts(TIPO_OPTIONS))}
+          {comboboxField("tipoFrota", "Tipo de frota", opts(FROTA_OPTIONS))}
           {texto("motorizacao", "Motorização")}
           {texto("anoFabricacao", "Ano de fabricação", {
             numeric: true,
