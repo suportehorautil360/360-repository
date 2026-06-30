@@ -1,8 +1,8 @@
 import * as React from "react";
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, ChevronsUpDownIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./popover";
 import {
   Command,
   CommandGroup,
@@ -30,6 +30,7 @@ export interface ComboboxProps {
   className?: string;
   /** Classe do popover (ex.: `z-[70]` quando dentro de um modal). */
   contentClassName?: string;
+  inlineSearch?: boolean;
 }
 
 /**
@@ -52,13 +53,12 @@ export function Combobox({
   disabled,
   className,
   contentClassName,
+  inlineSearch = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [busca, setBusca] = React.useState("");
   const selected = options.find((o) => o.value === value);
 
-  // Filtra manualmente (substring em label + keywords). O filtro nativo do
-  // cmdk usava o `value` do item (aqui um id/uuid), causando matches errados.
   const filtradas = React.useMemo(() => {
     const q = normalizar(busca.trim());
     if (!q) return options;
@@ -70,6 +70,85 @@ export function Combobox({
   function handleOpenChange(aberto: boolean) {
     setOpen(aberto);
     if (!aberto) setBusca("");
+  }
+
+  if (inlineSearch) {
+    return (
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverAnchor asChild>
+          <div
+            role="combobox"
+            aria-expanded={open}
+            onClick={() => { if (!open && !disabled) { setBusca(""); setOpen(true); } }}
+            className={cn(
+              "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm",
+              disabled && "cursor-not-allowed opacity-50",
+              className,
+            )}
+          >
+            {open ? (
+              <input
+                autoFocus
+                type="text"
+                style={{ border: "none", background: "transparent", padding: 0, outline: "none", boxShadow: "none", borderRadius: 0 }}
+                className="min-w-0 flex-1 cursor-text placeholder:opacity-60"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder={placeholder}
+                disabled={disabled}
+              />
+            ) : (
+              <span className={cn("min-w-0 flex-1 truncate", !selected && "opacity-60")}>
+                {selected ? selected.label : placeholder}
+              </span>
+            )}
+            <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+          </div>
+        </PopoverAnchor>
+        <PopoverContent
+          align="start"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className={cn(
+            "w-(--radix-popover-anchor-width) p-0",
+            contentClassName,
+          )}
+        >
+          <Command shouldFilter={false}>
+            <CommandList>
+              {filtradas.length === 0 ? (
+                <div className="text-muted-foreground py-6 text-center text-sm">
+                  {emptyText}
+                </div>
+              ) : (
+                <CommandGroup>
+                  {filtradas.map((o) => (
+                    <CommandItem
+                      key={o.value}
+                      value={o.value}
+                      onSelect={() => {
+                        onValueChange(o.value);
+                        setOpen(false);
+                        setBusca("");
+                      }}
+                    >
+                      <CheckIcon
+                        className={cn(
+                          "size-4 shrink-0",
+                          value === o.value ? "opacity-100" : "opacity-0",
+                        )}
+                      />
+                      <span className="truncate">{o.label}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
   }
 
   return (
