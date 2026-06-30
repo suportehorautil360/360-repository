@@ -11,6 +11,7 @@ import {
   type StatusEquipamento,
   type UnidadeRevisao,
 } from "./equipamentos/equipamentos-api";
+import { ImportarEquipamentosModal } from "./equipamentos/ImportarEquipamentosModal";
 
 interface EquipamentosSectionProps {
   prefeituraId: string;
@@ -98,6 +99,7 @@ export function EquipamentosSection({
   const [novaMedicao, setNovaMedicao] = useState("");
   const [revisando, setRevisando] = useState<EquipRow | null>(null);
   const [revForm, setRevForm] = useState<RevisaoFormState | null>(null);
+  const [importando, setImportando] = useState(false);
 
   const carregar = useCallback(async () => {
     if (!prefeituraId) return;
@@ -306,6 +308,13 @@ export function EquipamentosSection({
                 aria-label="Buscar equipamentos"
               />
               <button
+                className="pf-eq-secondary"
+                type="button"
+                onClick={() => setImportando(true)}
+              >
+                ↑ Importar Excel
+              </button>
+              <button
                 className="pf-eq-primary"
                 type="button"
                 onClick={() =>
@@ -481,6 +490,17 @@ export function EquipamentosSection({
           </form>
         </div>
       ) : null}
+
+      {importando && (
+        <ImportarEquipamentosModal
+          prefeituraId={prefeituraId}
+          onClose={() => setImportando(false)}
+          onImportado={() => {
+            void carregar();
+            setImportando(false);
+          }}
+        />
+      )}
 
       {revisando && revForm ? (
         <div className="pf-modal-overlay pf-eq-modal-overlay">
