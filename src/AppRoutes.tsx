@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { useLogin } from "./pages/login/hooks/use-login";
 import { useOperadorSession } from "./pages/checklist-controle/useOperadorSession";
 import { jaBateuHoje } from "./pages/checklist-controle/ponto-dia";
@@ -189,9 +189,35 @@ function RequireOperacionalAuth({
 
 function RequirePrefeituraAuth({ children }: { children: ReactNode }) {
   const { user } = useLogin();
+  const { id: idParam } = useParams<{ id?: string }>();
 
   if (!user) {
     return <Navigate to="/login-prefeitura" replace />;
+  }
+
+  if (user.type !== "prefeitura") {
+    return (
+      <Navigate
+        to={user.type === "admin" ? "/admin/dashboard" : "/login-prefeitura"}
+        replace
+      />
+    );
+  }
+
+  const municipioDaRota = idParam?.trim();
+  const municipioDoUsuario = user.prefeituraId?.trim();
+
+  if (
+    municipioDaRota &&
+    municipioDoUsuario &&
+    municipioDaRota !== municipioDoUsuario
+  ) {
+    return (
+      <Navigate
+        to={`/prefeitura/${municipioDoUsuario}/dashboard`}
+        replace
+      />
+    );
   }
 
   return <>{children}</>;

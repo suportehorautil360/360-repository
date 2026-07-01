@@ -93,4 +93,21 @@ describe("AppRoutes", () => {
     expect(await screen.findByText("Portal posto")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/");
   });
+
+  it("impede admin de acessar o painel da prefeitura", async () => {
+    useLogin.setState({
+      user: {
+        id: "u1",
+        usuario: "admin",
+        type: "admin",
+      },
+    });
+    window.history.pushState({}, "", "/prefeitura/pref-1/dashboard");
+
+    render(<AppRoutes />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/admin/dashboard");
+    });
+  });
 });

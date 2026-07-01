@@ -5,8 +5,10 @@ import {
 } from "../../../lib/api/clientes";
 import {
   parceirosApi,
+  type AtualizarParceiroPayload,
   type CriarParceiroLoginGeradoApi,
   type CriarParceiroPayload,
+  type ParceiroDetalheApi,
   type ParceirosOverviewApi,
   type TipoParceiroApi,
 } from "../../../lib/api/parceiros";
@@ -50,6 +52,12 @@ const LINHAS = [
   { emoji: "⬜", label: "Linha Branca" },
   { emoji: "🟦", label: "Linha Leve" },
 ];
+const SEGMENTOS = [
+  { emoji: "🚗", label: "Carro leve" },
+  { emoji: "🟨", label: "Máquinas linha amarela" },
+  { emoji: "🟩", label: "Tratores linha verde" },
+  { emoji: "🚛", label: "Caminhão linha branca" },
+];
 const CATEGORIAS = [
   { emoji: "⚙️", label: "Mecânica Geral" },
   { emoji: "⚡", label: "Autoelétrica / Injeção" },
@@ -79,6 +87,7 @@ interface ParceiroForm {
   combustiveis: string[];
   servicos: string[];
   linhasAtuacao: string[];
+  segmentosAtuacao: string[];
   categoriasServico: string[];
   especificacoes: string;
   condicaoPagamento: string;
@@ -100,6 +109,7 @@ const FORM_INICIAL: ParceiroForm = {
   combustiveis: [],
   servicos: [],
   linhasAtuacao: [],
+  segmentosAtuacao: [],
   categoriasServico: [],
   especificacoes: "",
   condicaoPagamento: CONDICOES[0],
@@ -121,6 +131,38 @@ function parseMoeda(s: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function formatLimiteInput(valor: number): string {
+  if (!valor) return "";
+  return valor.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function detalheToForm(d: ParceiroDetalheApi): ParceiroForm {
+  return {
+    tipo: d.tipo,
+    cnpj: d.cnpj,
+    telefonePrincipal: d.telefonePrincipal,
+    razaoSocial: d.razaoSocial,
+    nomeFantasia: d.nomeFantasia,
+    emailComercial: d.emailComercial,
+    cidadeUf: d.cidadeUf,
+    endereco: d.endereco,
+    bandeira: d.bandeira || BANDEIRAS[0],
+    combustiveis: d.combustiveis,
+    servicos: d.servicos,
+    linhasAtuacao: d.linhasAtuacao,
+    segmentosAtuacao: d.segmentosAtuacao,
+    categoriasServico: d.categoriasServico,
+    especificacoes: d.especificacoes,
+    condicaoPagamento: d.condicaoPagamento || CONDICOES[0],
+    limiteCredito: formatLimiteInput(d.limiteCredito),
+    descontoComercial: d.descontoComercial,
+    observacoesFaturamento: d.observacoesFaturamento,
+  };
+}
+
 interface ParceiroLinha {
   id: string;
   tipo: TipoParceiroApi;
@@ -136,12 +178,15 @@ export function CadastroParceiroSection({
   defaultPrefeituraId,
   hideLista = false,
   onSalvo,
+  editTarget,
 }: {
   onVoltar: () => void;
   defaultPrefeituraId?: string;
   hideLista?: boolean;
   onSalvo?: () => void;
+  editTarget?: { tipo: TipoParceiroApi; id: string };
 }) {
+  const emEdicao = Boolean(editTarget);
   const [aba, setAba] = useState<Aba>("dados");
   const [form, setForm] = useState<ParceiroForm>(FORM_INICIAL);
   const [dados, setDados] = useState<ParceirosOverviewApi>({
@@ -151,6 +196,8 @@ export function CadastroParceiroSection({
   const [clientes, setClientes] = useState<ClienteOverviewApi[]>([]);
   const [prefeituraId, setPrefeituraId] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [carregandoEdicao, setCarregandoEdicao] = useState(emEdicao);
+  const [erroEdicao, setErroEdicao] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const [msgTone, setMsgTone] = useState<"none" | "ok" | "err">("none");
   const [loginGerado, setLoginGerado] = useState<{
@@ -169,7 +216,12 @@ export function CadastroParceiroSection({
   }
 
   function toggle(
-    key: "combustiveis" | "servicos" | "linhasAtuacao" | "categoriasServico",
+    key:
+      | "combustiveis"
+      | "servicos"
+      | "linhasAtuacao"
+      | "segmentosAtuacao"
+      | "categoriasServico",
     value: string,
   ) {
     setForm((prev) => {
@@ -195,6 +247,7 @@ export function CadastroParceiroSection({
       .overview()
       .then((lista) => {
         setClientes(lista);
+        if (emEdicao) return;
         setPrefeituraId((cur) => {
           if (cur) return cur;
           if (defaultPrefeituraId) return defaultPrefeituraId;
@@ -202,7 +255,36 @@ export function CadastroParceiroSection({
         });
       })
       .catch(() => {});
-  }, [defaultPrefeituraId]);
+  }, [defaultPrefeituraId, emEdicao]);
+
+  useEffect(() => {
+    if (!editTarget) return;
+    let ativo = true;
+    setCarregandoEdicao(true);
+    setErroEdicao(null);
+    void parceirosApi
+      .obter(editTarget.tipo, editTarget.id)
+      .then((detalhe) => {
+        if (!ativo) return;
+        setForm(detalheToForm(detalhe));
+        setPrefeituraId(detalhe.prefeituraId);
+        setAba("dados");
+      })
+      .catch((err) => {
+        if (!ativo) return;
+        setErroEdicao(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar o parceiro.",
+        );
+      })
+      .finally(() => {
+        if (ativo) setCarregandoEdicao(false);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [editTarget]);
 
   const linhas: ParceiroLinha[] = useMemo(() => {
     const dePosto: ParceiroLinha[] = dados.postos.map((p) => ({
@@ -244,11 +326,14 @@ export function CadastroParceiroSection({
       setMsgTexto("err", "Marque ao menos uma linha de atuação.");
       return;
     }
+    if (form.tipo === "oficina" && form.segmentosAtuacao.length === 0) {
+      setAba("oficina");
+      setMsgTexto("err", "Marque ao menos um segmento de equipamento.");
+      return;
+    }
     setSalvando(true);
     try {
-      const payload: CriarParceiroPayload = {
-        tipo: form.tipo,
-        prefeituraId,
+      const payloadBase = {
         razaoSocial: form.razaoSocial.trim(),
         nomeFantasia: form.nomeFantasia.trim(),
         cnpj: form.cnpj.trim(),
@@ -260,6 +345,7 @@ export function CadastroParceiroSection({
         combustiveis: form.combustiveis,
         servicos: form.servicos,
         linhasAtuacao: form.linhasAtuacao,
+        segmentosAtuacao: form.segmentosAtuacao,
         categoriasServico: form.categoriasServico,
         especificacoes: form.especificacoes.trim(),
         condicaoPagamento: form.condicaoPagamento,
@@ -268,6 +354,27 @@ export function CadastroParceiroSection({
           : 0,
         descontoComercial: form.descontoComercial.trim(),
         observacoesFaturamento: form.observacoesFaturamento.trim(),
+      };
+
+      if (emEdicao && editTarget) {
+        await parceirosApi.atualizar(
+          editTarget.tipo,
+          editTarget.id,
+          payloadBase as AtualizarParceiroPayload,
+        );
+        setMsgTexto(
+          "ok",
+          `Parceiro "${form.razaoSocial.trim()}" atualizado com sucesso.`,
+        );
+        await carregar();
+        onSalvo?.();
+        return;
+      }
+
+      const payload: CriarParceiroPayload = {
+        tipo: form.tipo,
+        prefeituraId,
+        ...payloadBase,
       };
 
       const criado = await parceirosApi.criar(payload);
@@ -353,6 +460,29 @@ export function CadastroParceiroSection({
     setAba("dados");
   }, [aba, abasVisiveis]);
 
+  if (carregandoEdicao) {
+    return (
+      <>
+        <h2>Editar parceiro</h2>
+        <p className="topbar-user">Carregando dados do parceiro…</p>
+      </>
+    );
+  }
+
+  if (erroEdicao) {
+    return (
+      <>
+        <h2>Editar parceiro</h2>
+        <p className="admin-error">{erroEdicao}</p>
+        <div className="cad-actions">
+          <button type="button" className="btn btn-secondary" onClick={onVoltar}>
+            Voltar
+          </button>
+        </div>
+      </>
+    );
+  }
+
   if (loginGerado) {
     const destino = loginGerado.tipo === "posto" ? "posto" : "oficina";
     const entradaHint =
@@ -406,9 +536,11 @@ export function CadastroParceiroSection({
 
   return (
     <>
-      <h2>Cadastro do Parceiro</h2>
+      <h2>{emEdicao ? "Editar parceiro" : "Cadastro do Parceiro"}</h2>
       <p className="topbar-user" style={{ marginBottom: 16 }}>
-        Postos de combustível e oficinas mecânicas credenciados.
+        {emEdicao
+          ? "Altere os dados cadastrais, operacionais ou financeiros do parceiro."
+          : "Postos de combustível e oficinas mecânicas credenciados."}
       </p>
 
       <article className="card">
@@ -439,6 +571,7 @@ export function CadastroParceiroSection({
                   <Select
                     value={form.tipo}
                     onValueChange={(v) => update("tipo", v as TipoParceiroApi)}
+                    disabled={emEdicao}
                   >
                     <SelectTrigger id="pcTipo" className="admin-select">
                       <SelectValue />
@@ -475,7 +608,11 @@ export function CadastroParceiroSection({
                   Cliente vinculado{" "}
                   <span style={{ color: "#f87171" }}>*</span>
                 </label>
-                <Select value={prefeituraId} onValueChange={setPrefeituraId}>
+                <Select
+                  value={prefeituraId}
+                  onValueChange={setPrefeituraId}
+                  disabled={emEdicao}
+                >
                   <SelectTrigger id="pcCliente" className="admin-select">
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
@@ -624,6 +761,23 @@ export function CadastroParceiroSection({
                   </label>
                 ))}
               </div>
+              <div className="parc-sec-titulo">🎯 Segmentos de equipamento</div>
+              <p className="topbar-user" style={{ margin: "0 0 10px" }}>
+                Usado no sorteio da OS para convidar oficinas compatíveis com o
+                tipo de equipamento.
+              </p>
+              <div className="parc-check-grid">
+                {SEGMENTOS.map((s) => (
+                  <label key={s.label} className="parc-check">
+                    <input
+                      type="checkbox"
+                      checked={form.segmentosAtuacao.includes(s.label)}
+                      onChange={() => toggle("segmentosAtuacao", s.label)}
+                    />
+                    <span aria-hidden="true">{s.emoji}</span> {s.label}
+                  </label>
+                ))}
+              </div>
               <div className="parc-sec-titulo">🔧 Categorias de serviço</div>
               <div className="parc-check-grid">
                 {CATEGORIAS.map((c) => (
@@ -720,7 +874,11 @@ export function CadastroParceiroSection({
               Cancelar
             </button>
             <button className="btn btn-primary" type="submit" disabled={salvando}>
-              {salvando ? "Salvando..." : "Salvar Cadastro de Parceiro"}
+              {salvando
+                ? "Salvando..."
+                : emEdicao
+                  ? "Salvar alterações"
+                  : "Salvar Cadastro de Parceiro"}
             </button>
           </div>
           <div id="msgParceiro" className={msgClass} role="status">
