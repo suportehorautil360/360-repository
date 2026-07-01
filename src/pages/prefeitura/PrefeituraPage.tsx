@@ -160,14 +160,14 @@ export function PrefeituraPage() {
               {idParam || "o município solicitado"}.
             </p>
             <Link
-              to="/admin/dashboard"
+              to="/login-prefeitura"
               style={{
                 color: "var(--main-orange)",
                 display: "block",
                 marginTop: 12,
               }}
             >
-              ← Voltar ao Hub
+              ← Voltar ao login
             </Link>
           </div>
         </section>
@@ -176,7 +176,6 @@ export function PrefeituraPage() {
   }
 
   const labelMunicipio = prefeituraLabel(prefeituraId);
-  const ehOutroMunicipio = idParam && idParam !== user.prefeituraId;
   // Quando estamos numa rota dedicada de funcionário, o item ativo do menu
   // continua sendo "Funcionários".
   const secaoAtual =
@@ -343,20 +342,6 @@ export function PrefeituraPage() {
         />
 
         <main id="main">
-          <div className="app-topbar">
-            <Link className="hub-link" to="/admin/dashboard">
-              ← Hub Mestre
-            </Link>
-          </div>
-
-          {ehOutroMunicipio ? (
-            <div className="pf-hub-ctx-banner" role="status">
-              Você abriu o painel <strong>{labelMunicipio}</strong> a partir do
-              Hub Mestre. Sua sessão original é{" "}
-              {prefeituraLabel(user.prefeituraId ?? "")}.
-            </div>
-          ) : null}
-
           {renderSecao()}
         </main>
       </div>

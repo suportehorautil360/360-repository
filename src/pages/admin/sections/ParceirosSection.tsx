@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { KeyRound, Plus, Users } from "lucide-react";
+import { KeyRound, Pencil, Plus, Trash2, Users } from "lucide-react";
 import {
   clientesApi,
   type ClienteOverviewApi,
@@ -10,6 +10,7 @@ import {
   type OficinaParceiroApi,
   type ParceirosOverviewApi,
   type PostoParceiroApi,
+  type TipoParceiroApi,
 } from "../../../lib/api/parceiros";
 import {
   Select,
@@ -34,9 +35,15 @@ function StatusBadge({ ativo }: { ativo: boolean }) {
 function PostoRow({
   posto,
   onAbrir,
+  onEditar,
+  onExcluir,
+  excluindo,
 }: {
   posto: PostoParceiroApi;
   onAbrir: (posto: PostoParceiroApi) => void;
+  onEditar: (posto: PostoParceiroApi) => void;
+  onExcluir: (posto: PostoParceiroApi) => void;
+  excluindo: boolean;
 }) {
   const sub = [posto.cidadeUf, posto.bandeira].filter(Boolean).join(" · ");
   return (
@@ -49,7 +56,7 @@ function PostoRow({
         <div className="parc-row__nome">{posto.nome}</div>
         {sub ? <div className="parc-row__sub">{sub}</div> : null}
       </button>
-      <span className="parc-row__status">
+      <span className="parc-row__status parc-row__actions">
         <StatusBadge ativo={posto.ativo} />
         <button
           type="button"
@@ -59,6 +66,23 @@ function PostoRow({
           <KeyRound size={14} aria-hidden />
           Detalhes
         </button>
+        <button
+          type="button"
+          className="parc-row__btn"
+          onClick={() => onEditar(posto)}
+        >
+          <Pencil size={14} aria-hidden />
+          Editar
+        </button>
+        <button
+          type="button"
+          className="parc-row__btn parc-row__btn--danger"
+          onClick={() => onExcluir(posto)}
+          disabled={excluindo}
+        >
+          <Trash2 size={14} aria-hidden />
+          Excluir
+        </button>
       </span>
     </div>
   );
@@ -67,9 +91,15 @@ function PostoRow({
 function OficinaRow({
   oficina,
   onAbrir,
+  onEditar,
+  onExcluir,
+  excluindo,
 }: {
   oficina: OficinaParceiroApi;
   onAbrir: (oficina: OficinaParceiroApi) => void;
+  onEditar: (oficina: OficinaParceiroApi) => void;
+  onExcluir: (oficina: OficinaParceiroApi) => void;
+  excluindo: boolean;
 }) {
   const sub = oficina.cidadeUf || oficina.especialidade;
   return (
@@ -82,7 +112,7 @@ function OficinaRow({
         <div className="parc-row__nome">{oficina.nome}</div>
         {sub ? <div className="parc-row__sub">{sub}</div> : null}
       </button>
-      <span className="parc-row__status">
+      <span className="parc-row__status parc-row__actions">
         <StatusBadge ativo={oficina.ativo} />
         <button
           type="button"
@@ -92,6 +122,23 @@ function OficinaRow({
           <KeyRound size={14} aria-hidden />
           Detalhes
         </button>
+        <button
+          type="button"
+          className="parc-row__btn"
+          onClick={() => onEditar(oficina)}
+        >
+          <Pencil size={14} aria-hidden />
+          Editar
+        </button>
+        <button
+          type="button"
+          className="parc-row__btn parc-row__btn--danger"
+          onClick={() => onExcluir(oficina)}
+          disabled={excluindo}
+        >
+          <Trash2 size={14} aria-hidden />
+          Excluir
+        </button>
       </span>
     </div>
   );
@@ -100,7 +147,12 @@ function OficinaRow({
 export function ParceirosSection() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [modo, setModo] = useState<"lista" | "cadastro">("lista");
+  const [modo, setModo] = useState<"lista" | "formulario">("lista");
+  const [editTarget, setEditTarget] = useState<{
+    tipo: TipoParceiroApi;
+    id: string;
+  } | null>(null);
+  const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [clientes, setClientes] = useState<ClienteOverviewApi[]>([]);
   const [prefeituraId, setPrefeituraId] = useState(
     () => searchParams.get("prefeituraId") ?? "",
@@ -124,6 +176,42 @@ export function ParceirosSection() {
       ? `?prefeituraId=${encodeURIComponent(prefeituraId)}`
       : "";
     navigate(`/admin/parceiros/oficina/${encodeURIComponent(oficina.id)}${qs}`);
+  }
+
+  function abrirEdicao(tipo: TipoParceiroApi, id: string) {
+    setEditTarget({ tipo, id });
+    setModo("formulario");
+  }
+
+  async function excluirParceiro(
+    tipo: TipoParceiroApi,
+    id: string,
+    nome: string,
+  ) {
+    if (
+      !window.confirm(
+        `Excluir o parceiro "${nome}"? Esta ação não pode ser desfeita.`,
+      )
+    ) {
+      return;
+    }
+    setExcluindoId(id);
+    setErro(null);
+    try {
+      await parceirosApi.remover(tipo, id);
+      if (prefeituraId) await carregar(prefeituraId);
+    } catch (e) {
+      setErro(
+        e instanceof Error ? e.message : "Não foi possível excluir o parceiro.",
+      );
+    } finally {
+      setExcluindoId(null);
+    }
+  }
+
+  function voltarLista() {
+    setModo("lista");
+    setEditTarget(null);
   }
 
   const carregar = useCallback(async (clienteId: string) => {
@@ -172,15 +260,16 @@ export function ParceirosSection() {
   const clienteSel = clientes.find((c) => c.id === prefeituraId);
   const totalParceiros = dados.postos.length + dados.oficinas.length;
 
-  if (modo === "cadastro") {
+  if (modo === "formulario") {
     return (
       <section id="oficinas-postos" className="aba-conteudo ativa">
         <CadastroParceiroSection
-          onVoltar={() => setModo("lista")}
+          editTarget={editTarget ?? undefined}
+          onVoltar={voltarLista}
           defaultPrefeituraId={prefeituraId}
           hideLista
           onSalvo={() => {
-            setModo("lista");
+            voltarLista();
             if (prefeituraId) void carregar(prefeituraId);
           }}
         />
@@ -201,7 +290,10 @@ export function ParceirosSection() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => setModo("cadastro")}
+          onClick={() => {
+            setEditTarget(null);
+            setModo("formulario");
+          }}
           disabled={!prefeituraId}
         >
           <Plus size={16} aria-hidden style={{ marginRight: 6 }} />
@@ -272,7 +364,14 @@ export function ParceirosSection() {
             </div>
           ) : (
             dados.postos.map((p) => (
-              <PostoRow key={p.id} posto={p} onAbrir={abrirPosto} />
+              <PostoRow
+                key={p.id}
+                posto={p}
+                onAbrir={abrirPosto}
+                onEditar={() => abrirEdicao("posto", p.id)}
+                onExcluir={() => excluirParceiro("posto", p.id, p.nome)}
+                excluindo={excluindoId === p.id}
+              />
             ))
           )}
         </article>
@@ -296,7 +395,14 @@ export function ParceirosSection() {
             </div>
           ) : (
             dados.oficinas.map((o) => (
-              <OficinaRow key={o.id} oficina={o} onAbrir={abrirOficina} />
+              <OficinaRow
+                key={o.id}
+                oficina={o}
+                onAbrir={abrirOficina}
+                onEditar={() => abrirEdicao("oficina", o.id)}
+                onExcluir={() => excluirParceiro("oficina", o.id, o.nome)}
+                excluindo={excluindoId === o.id}
+              />
             ))
           )}
         </article>

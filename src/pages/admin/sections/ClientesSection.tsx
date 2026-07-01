@@ -81,9 +81,11 @@ export function ClientesSection() {
   }, [clientes, busca]);
 
   function abrirPainel(c: ClienteOverviewApi) {
-    navigate(
-      c.tipoCliente === "locacao" ? `/locacao/${c.id}` : `/prefeitura/${c.id}`,
-    );
+    if (c.tipoCliente !== "locacao") {
+      return;
+    }
+
+    navigate(`/locacao/${c.id}`);
   }
 
   return (
@@ -99,7 +101,8 @@ export function ClientesSection() {
         </button>
       </div>
       <p className="clientes-sub">
-        Visualize e acesse o painel de todos os clientes contratantes.
+        Visualize indicadores agregados dos clientes contratantes. O acesso ao
+        painel operacional fica restrito ao login de cada prefeitura.
       </p>
 
       <div className="card-grid hub-dashboard-metrics">
@@ -220,13 +223,15 @@ export function ClientesSection() {
                         >
                           Editar
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-primary hub-dash-btn"
-                          onClick={() => abrirPainel(c)}
-                        >
-                          Abrir painel
-                        </button>
+                        {c.tipoCliente === "locacao" ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary hub-dash-btn"
+                            onClick={() => abrirPainel(c)}
+                          >
+                            Abrir painel
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

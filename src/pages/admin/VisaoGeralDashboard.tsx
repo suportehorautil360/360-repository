@@ -3,12 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useHU360 } from "../../lib/hu360";
 import { useDashboardFirestore } from "./hooks/dashboard/use-dashboard";
 
-declare global {
-  interface Window {
-    hubAbrirPainelCliente?: (id: string) => void;
-  }
-}
-
 export type TipoCliente = "prefeitura" | "locadora";
 
 export interface ClienteLinha {
@@ -77,6 +71,7 @@ export function VisaoGeralDashboard({
   }, [reloadKey, clientesProp, prefeituras, prefeituraLabel, linhasFirestore]);
 
   const clientes = clientesProp ?? clientesHU360;
+  const temLocadora = clientes.some((c) => c.tipo === "locadora");
 
   const totais = useMemo(() => {
     return clientes.reduce(
@@ -91,21 +86,8 @@ export function VisaoGeralDashboard({
     );
   }, [clientes]);
 
-  function abrirPainelCliente(id: string) {
-    if (typeof window.hubAbrirPainelCliente === "function") {
-      window.hubAbrirPainelCliente(id);
-      return;
-    }
-    const actualCliente = clientes.find((c) => c.id === id);
-
-    if (actualCliente?.tipo === "prefeitura") {
-      navigate(`/prefeitura/${id}`);
-      return;
-    }
-    if (actualCliente?.tipo === "locadora") {
-      navigate(`/locacao/${id}`);
-      return;
-    }
+  function abrirPainelLocadora(id: string) {
+    navigate(`/locacao/${id}`);
   }
 
   const totalOsAberta = totais.cot + totais.os;
@@ -157,13 +139,16 @@ export function VisaoGeralDashboard({
                 <th>Custo acumulado</th>
                 <th>O.S. em cotação</th>
                 <th>O.S. NF / pagamento</th>
-                <th>Abrir painel</th>
+                {temLocadora ? <th>Abrir painel</th> : null}
               </tr>
             </thead>
             <tbody id="hub-tbody-visao-geral">
               {clientes.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="hub-dash-empty">
+                  <td
+                    colSpan={temLocadora ? 8 : 7}
+                    className="hub-dash-empty"
+                  >
                     {loading ? "Carregando…" : "Nenhum cliente carregado."}
                   </td>
                 </tr>
@@ -190,15 +175,21 @@ export function VisaoGeralDashboard({
                     <td className="hub-dash-num">
                       {c.tipo === "locadora" ? "—" : (c.nOs ?? 0)}
                     </td>
-                    <td className="hub-dash-action">
-                      <button
-                        type="button"
-                        className="btn btn-primary hub-dash-btn"
-                        onClick={() => abrirPainelCliente(c.id)}
-                      >
-                        Abrir painel
-                      </button>
-                    </td>
+                    {temLocadora ? (
+                      <td className="hub-dash-action">
+                        {c.tipo === "locadora" ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary hub-dash-btn"
+                            onClick={() => abrirPainelLocadora(c.id)}
+                          >
+                            Abrir painel
+                          </button>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    ) : null}
                   </tr>
                 ))
               )}

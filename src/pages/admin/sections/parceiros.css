@@ -326,6 +326,30 @@
   border-color: rgba(249, 115, 22, 0.55);
 }
 
+#oficinas-postos .parc-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+#oficinas-postos .parc-row__btn--danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+#oficinas-postos .parc-row__btn--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.55);
+}
+
+#oficinas-postos .parc-row__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .parc-drawer__form-note {
   margin: -4px 0 12px;
   font-size: 0.8rem;

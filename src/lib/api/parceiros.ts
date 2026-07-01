@@ -32,6 +32,37 @@ export interface ParceirosOverviewApi {
   oficinas: OficinaParceiroApi[];
 }
 
+export interface ParceiroDetalheApi {
+  id: string;
+  tipo: TipoParceiroApi;
+  prefeituraId: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  cnpj: string;
+  telefonePrincipal: string;
+  emailComercial: string;
+  cidadeUf: string;
+  endereco: string;
+  bandeira: string;
+  combustiveis: string[];
+  servicos: string[];
+  linhasAtuacao: string[];
+  segmentosAtuacao: string[];
+  categoriasServico: string[];
+  especificacoes: string;
+  condicaoPagamento: string;
+  limiteCredito: number;
+  descontoComercial: string;
+  observacoesFaturamento: string;
+  status: string;
+  ativo: boolean;
+}
+
+export type AtualizarParceiroPayload = Omit<
+  CriarParceiroPayload,
+  "tipo" | "prefeituraId"
+>;
+
 export interface CriarParceiroPayload {
   tipo: TipoParceiroApi;
   /** Cliente/município vinculado — enviado como prefeituraId ao backend. */
@@ -49,6 +80,7 @@ export interface CriarParceiroPayload {
   servicos?: string[];
   // oficina
   linhasAtuacao?: string[];
+  segmentosAtuacao?: string[];
   categoriasServico?: string[];
   especificacoes?: string;
   // financeiro
@@ -110,6 +142,27 @@ export const parceirosApi = {
       message: string;
     }>("/parceiros", payload);
     return r.data;
+  },
+
+  async obter(
+    tipo: TipoParceiroApi,
+    id: string,
+  ): Promise<ParceiroDetalheApi> {
+    const r = await api.get<{ data: ParceiroDetalheApi }>(
+      `/parceiros/${tipo}/${encodeURIComponent(id)}`,
+    );
+    return r.data;
+  },
+
+  async atualizar(
+    tipo: TipoParceiroApi,
+    id: string,
+    payload: AtualizarParceiroPayload,
+  ): Promise<void> {
+    await api.patch(
+      `/parceiros/${tipo}/${encodeURIComponent(id)}`,
+      payload,
+    );
   },
 
   async remover(tipo: TipoParceiroApi, id: string): Promise<void> {
