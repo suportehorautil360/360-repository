@@ -17,6 +17,7 @@ import {
   type SolicitacaoOrcamento,
 } from "./orcamentos-aprovacoes-model";
 import "./orcamentos-aprovacoes.css";
+import { OrcamentoItensModal } from "./OrcamentoItensModal";
 import { OrcamentoSolDetalheModal } from "./OrcamentoSolDetalheModal";
 
 export function OrcamentosAprovacoesSection({
@@ -97,7 +98,8 @@ export function OrcamentosAprovacoesSection({
       <div className="oap-wrap">
         <h1 className="oap-title">Orçamentos e Aprovações</h1>
         <p className="oap-subtitle">
-          Cada O.S. pode receber orçamentos de até 3 oficinas credenciadas.
+          Cada O.S. convida todas as oficinas credenciadas compatíveis com o
+          segmento e a linha do equipamento.
           Compare os valores e aprove o melhor — as demais propostas serão
           recusadas automaticamente.
         </p>
@@ -269,83 +271,35 @@ export function OrcamentosAprovacoesSection({
         ) : null}
       </AnimatePresence>
 
-      {modalOrdem ? (
-        <div
-          className="pf-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setModalOrdem(null)}
-        >
-          <div className="pf-modal-box" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="pf-modal-fechar"
-              onClick={() => setModalOrdem(null)}
-              aria-label="Fechar"
-            >
-              ×
-            </button>
-            <h2 className="pf-modal-titulo">
-              Orçamento — {modalOrdem.protocolo}
-            </h2>
-            <p className="pf-modal-sub">
-              Oficina: {modalOrdem.oficinaNome ?? modalOrdem.operador}{" "}
-              &nbsp;·&nbsp; Equipamento: {modalOrdem.equipamento}
-            </p>
-            <p className="pf-modal-meta">
-              <strong>Defeito:</strong> {modalOrdem.defeito}
-            </p>
-            <table className="pf-modal-tabela">
-              <thead>
-                <tr>
-                  <th>Item / Serviço</th>
-                  <th style={{ textAlign: "right" }}>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(modalOrdem.itens ?? []).map((it, i) => (
-                  <tr key={i}>
-                    <td>{it.descricao}</td>
-                    <td style={{ textAlign: "right" }}>
-                      {fmtBRL(it.valor)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="pf-modal-total">
-              Total: {fmtBRL(modalOrdem.valorTotal)}
-            </p>
-            {(() => {
-              const solCard = cards.find(
-                (c) => c.solicitacao.id === modalOrdem.solicitacaoOsId,
-              );
-              const sol = solCard?.solicitacao;
-              const podeAprovar =
-                sol && podeAprovarOrcamento(sol, modalOrdem);
-              if (!podeAprovar || !sol) return null;
-              return (
-                <div className="oap-modal-acoes">
-                  <button
-                    type="button"
-                    className="oap-btn oap-btn--aprovar"
-                    disabled={aprovando !== null}
-                    onClick={() => {
-                      void handleAprovar(modalOrdem, sol).then(() =>
-                        setModalOrdem(null),
-                      );
-                    }}
-                  >
-                    {aprovando === modalOrdem.id
-                      ? "Aprovando…"
-                      : "✓ Aprovar orçamento"}
-                  </button>
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {modalOrdem ? (
+          <OrcamentoItensModal
+            key={modalOrdem.id}
+            ordem={modalOrdem}
+            solicitacao={
+              cards.find((c) => c.solicitacao.id === modalOrdem.solicitacaoOsId)
+                ?.solicitacao ?? null
+            }
+            aprovando={aprovando === modalOrdem.id}
+            onFechar={() => setModalOrdem(null)}
+            onAprovar={
+              (() => {
+                const sol = cards.find(
+                  (c) => c.solicitacao.id === modalOrdem.solicitacaoOsId,
+                )?.solicitacao;
+                if (!sol || !podeAprovarOrcamento(sol, modalOrdem)) {
+                  return undefined;
+                }
+                return () => {
+                  void handleAprovar(modalOrdem, sol).then(() =>
+                    setModalOrdem(null),
+                  );
+                };
+              })()
+            }
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

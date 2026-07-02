@@ -38,6 +38,8 @@ export interface NovoEquip {
   marca: string;
   modelo: string;
   cor: string;
+  /** Linha operacional — direciona O.S. para oficinas (Amarela, Verde, Branca, Leve). */
+  linha: string;
   combustivel: string;
   tipo: string;
   tipoFrota: string;
@@ -71,7 +73,6 @@ export interface NovoEquip {
   inativarAposVigencia: boolean;
 }
 
-/** Opções dos selects do formulário. */
 export const TIPO_OPTIONS = [
   "Carro Leve",
   "Caminhões",
@@ -91,6 +92,63 @@ export const TIPO_OPTIONS = [
   "Trator",
   "Picador de Madeira",
 ];
+
+/** Linha operacional do equipamento (funil de direcionamento de O.S.). */
+export const LINHA_OPTIONS = [
+  "Linha Leve",
+  "Linha Branca",
+  "Linha Amarela",
+  "Linha Verde",
+] as const;
+
+export type LinhaEquipamento = (typeof LINHA_OPTIONS)[number];
+
+/** Sugere linha a partir do tipo de veículo. */
+export function inferLinhaFromTipo(tipo: string): LinhaEquipamento | "" {
+  const t = tipo.trim().toLowerCase();
+  if (!t) return "";
+
+  if (
+    t === "carro leve" ||
+    t === "ambulância" ||
+    t === "ambulancia" ||
+    t === "baú" ||
+    t === "bau"
+  ) {
+    return "Linha Leve";
+  }
+
+  if (
+    t.includes("caminh") ||
+    t === "munck" ||
+    t === "pipa" ||
+    t === "basculante" ||
+    t === "betoneira" ||
+    t === "comboio"
+  ) {
+    return "Linha Branca";
+  }
+
+  if (
+    t.includes("motoniveladora") ||
+    t.includes("escavadeira") ||
+    t.includes("retroescavadeira") ||
+    t.includes("carregadeira") ||
+    t.includes("compactador")
+  ) {
+    return "Linha Amarela";
+  }
+
+  if (t.includes("trator") || t.includes("picador")) {
+    return "Linha Verde";
+  }
+
+  return "";
+}
+
+function linhaCadastradaValida(valor: string): valor is LinhaEquipamento {
+  return LINHA_OPTIONS.includes(valor as LinhaEquipamento);
+}
 
 export const COMBUSTIVEL_OPTIONS = [
   "Diesel",
@@ -151,6 +209,22 @@ function asNumber(value: unknown): number {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+/** Converte texto de horímetro/KM ("6890,2", "6.890,2 h") em número ou null. */
+export function parseMedicaoTexto(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const limpo = value
+    .trim()
+    .replace(/\s*h\s*$/i, "")
+    .replace(/\s*km\s*$/i, "")
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .replace(/[^\d.]/g, "");
+  if (!limpo) return null;
+  const n = Number(limpo);
+  return Number.isFinite(n) ? n : null;
 }
 
 export function inferTipo(data: Record<string, unknown>): string {
@@ -289,7 +363,11 @@ export function normalizeEquip(
     modelo: asText(data.modelo) || asText(data.descricao),
     chassis: asText(data.chassis) || asText(data.placa) || asText(data.placaId),
     placa: asText(data.placa) || asText(data.placaId),
-    linha: asText(data.linha),
+    linha: linhaCadastradaValida(asText(data.linha))
+      ? asText(data.linha)
+      : inferLinhaFromTipo(tipo) ||
+        inferLinhaFromTipo(asText(data.linha)) ||
+        asText(data.linha),
     tipo,
     ano: asText(data.ano),
     obra: asText(data.obra),
@@ -338,7 +416,7 @@ function montarPayload(input: NovoEquip, prefeituraId: string) {
     cor: input.cor,
     combustivel: input.combustivel,
     tipo: input.tipo,
-    linha: input.tipo,
+    linha: input.linha.trim() || inferLinhaFromTipo(input.tipo),
     tipoFrota: input.tipoFrota,
     motorizacao: input.motorizacao,
     ano: input.anoFabricacao,
@@ -421,6 +499,21 @@ export const equipamentosApi = {
   /** Atualiza a leitura atual (medição). */
   async atualizarMedicao(id: string, medicaoAtual: number): Promise<void> {
     await api.post(`/equipamentos/update/${id}`, { medicaoAtual });
+  },
+
+  /**
+   * Sincroniza medição após checklist de campo — só avança se a leitura for
+   * válida e maior que a atual (validação no servidor).
+   */
+  async sincronizarMedicaoChecklist(
+    id: string,
+    leituraTexto: string,
+  ): Promise<boolean> {
+    const r = await api.post<{ data?: { atualizado?: boolean } }>(
+      `/equipamentos/sync-medicao/${id}`,
+      { leituraTexto },
+    );
+    return Boolean(r.data?.atualizado);
   },
 
   /** Alterna/define o status do equipamento. */

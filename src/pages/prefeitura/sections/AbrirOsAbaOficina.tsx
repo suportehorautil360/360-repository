@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { clientesApi } from "../../../lib/api/clientes";
 import { fmtClassificacao } from "./abrir-os-model";
-
-interface OficinaCredenciada {
-  id: string;
-  nome: string;
-  especialidade: string;
-}
+import type { EquipRow } from "./equipamentos/equipamentos-api";
+import {
+  filtrarOficinasElegiveis,
+  labelSegmento,
+  linhaDoEquipamento,
+  resolveSegmentoEquipamento,
+} from "./direcionamento-os";
 
 const BOXES_POR_LINHA: Record<string, string[]> = {
   amarela: ["Box Amarela 1", "Box Amarela 2", "Baia Amarela A"],
@@ -17,23 +18,12 @@ const BOXES_POR_LINHA: Record<string, string[]> = {
   pesada: ["Box Pesada 1", "Box Pesada 2"],
 };
 
-function normEsp(s: string): string {
-  return s
+function chaveLinha(linha: string): string {
+  const n = linha
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
-}
-
-function linhaCompat(equipLine: string, oficinaEsp: string): boolean {
-  const a = normEsp(equipLine);
-  const b = normEsp(oficinaEsp);
-  if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
-}
-
-function chaveLinha(linha: string): string {
-  const n = normEsp(linha);
   if (n.includes("amarela")) return "amarela";
   if (n.includes("verde")) return "verde";
   if (n.includes("branca")) return "branca";
@@ -44,18 +34,26 @@ function chaveLinha(linha: string): string {
 
 interface AbrirOsAbaOficinaProps {
   prefeituraId: string;
-  linhaEquipamento: string;
+  equipamento: EquipRow | null;
 }
 
 export function AbrirOsAbaOficina({
   prefeituraId,
-  linhaEquipamento,
+  equipamento,
 }: AbrirOsAbaOficinaProps) {
-  const [oficinas, setOficinas] = useState<OficinaCredenciada[]>([]);
+  const [oficinas, setOficinas] = useState<
+    Array<{
+      id: string;
+      nome: string;
+      especialidade: string;
+      segmentosAtuacao?: string[];
+    }>
+  >([]);
   const [carregando, setCarregando] = useState(false);
-  const [oficinaId, setOficinaId] = useState("");
   const [boxBaia, setBoxBaia] = useState("");
 
+  const linhaEquipamento = equipamento ? linhaDoEquipamento(equipamento) : "";
+  const segmento = equipamento ? resolveSegmentoEquipamento(equipamento) : "";
   const linhaFmt = linhaEquipamento.trim()
     ? fmtClassificacao(linhaEquipamento)
     : "";
@@ -75,6 +73,8 @@ export function AbrirOsAbaOficina({
               id: o.id,
               nome: o.nome,
               especialidade: o.especialidade,
+              linhasAtuacao: o.linhasAtuacao,
+              segmentosAtuacao: o.segmentosAtuacao,
             })),
         );
       })
@@ -89,28 +89,19 @@ export function AbrirOsAbaOficina({
     };
   }, [prefeituraId]);
 
-  const oficinasDaLinha = useMemo(() => {
-    if (!linhaEquipamento.trim()) return oficinas;
-    const matches = oficinas.filter((o) =>
-      linhaCompat(linhaEquipamento, o.especialidade),
+  const oficinasElegiveis = useMemo(() => {
+    if (!linhaEquipamento.trim()) return [];
+    return filtrarOficinasElegiveis(
+      oficinas,
+      linhaEquipamento,
+      segmento || undefined,
     );
-    return matches.length > 0 ? matches : oficinas;
-  }, [oficinas, linhaEquipamento]);
+  }, [oficinas, linhaEquipamento, segmento]);
 
   const boxes = useMemo(() => {
     const chave = chaveLinha(linhaEquipamento);
     return BOXES_POR_LINHA[chave] ?? BOXES_POR_LINHA.geral;
   }, [linhaEquipamento]);
-
-  useEffect(() => {
-    if (oficinasDaLinha.length === 0) {
-      setOficinaId("");
-      return;
-    }
-    if (!oficinasDaLinha.some((o) => o.id === oficinaId)) {
-      setOficinaId(oficinasDaLinha[0].id);
-    }
-  }, [oficinasDaLinha, oficinaId]);
 
   useEffect(() => {
     if (boxes.length === 0) {
@@ -128,12 +119,12 @@ export function AbrirOsAbaOficina({
         <span className="aos-oficina__title-icon" aria-hidden>
           🏭
         </span>
-        Direcionamento automático de oficina
+        Direcionamento de oficinas
       </h2>
 
       <div className="aos-oficina__grid">
         <div className="aos-field">
-          <label>Linha de equipamento</label>
+          <label>Linha do equipamento</label>
           <input
             type="text"
             readOnly
@@ -142,24 +133,13 @@ export function AbrirOsAbaOficina({
           />
         </div>
         <div className="aos-field">
-          <label>Oficina / equipe responsável</label>
-          <select
-            value={oficinaId}
-            onChange={(e) => setOficinaId(e.target.value)}
-            disabled={carregando || oficinasDaLinha.length === 0}
-          >
-            {carregando ? (
-              <option value="">Carregando…</option>
-            ) : oficinasDaLinha.length === 0 ? (
-              <option value="">Nenhuma oficina credenciada</option>
-            ) : (
-              oficinasDaLinha.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nome}
-                </option>
-              ))
-            )}
-          </select>
+          <label>Segmento identificado</label>
+          <input
+            type="text"
+            readOnly
+            value={equipamento ? labelSegmento(segmento) : ""}
+            placeholder="Selecione o bem na aba Geral"
+          />
         </div>
         <div className="aos-field">
           <label>Box / baia indicada</label>
@@ -181,15 +161,59 @@ export function AbrirOsAbaOficina({
         </div>
       </div>
 
+      <div className="aos-oficina__pool">
+        <div className="aos-oficina__pool-header">
+          <h3>Oficinas compatíveis</h3>
+          {!carregando && linhaEquipamento.trim() ? (
+            <span className="aos-oficina__pool-badge">
+              {oficinasElegiveis.length === 0
+                ? "Nenhuma"
+                : `${oficinasElegiveis.length} convite${oficinasElegiveis.length === 1 ? "" : "s"}`}
+            </span>
+          ) : null}
+        </div>
+
+        {carregando ? (
+          <p className="aos-oficina__pool-empty">Carregando oficinas…</p>
+        ) : !linhaEquipamento.trim() ? (
+          <p className="aos-oficina__pool-empty">
+            Selecione um equipamento na aba Geral para ver o funil de
+            direcionamento.
+          </p>
+        ) : oficinasElegiveis.length === 0 ? (
+          <p className="aos-oficina__pool-empty aos-oficina__pool-empty--warn">
+            Nenhuma oficina credenciada atende
+            {segmento ? ` o segmento "${segmento}"` : ""} e a linha "
+            {linhaFmt}". Revise o cadastro das oficinas ou a classificação do
+            equipamento antes de salvar.
+          </p>
+        ) : (
+          <ul className="aos-oficina__pool-list">
+            {oficinasElegiveis.map((o) => (
+              <li key={o.id} className="aos-oficina__pool-item">
+                <span className="aos-oficina__pool-nome">{o.nome}</span>
+                <span className="aos-oficina__pool-meta">
+                  {o.linhasAtuacao?.length
+                    ? o.linhasAtuacao.join(", ")
+                    : o.especialidade}
+                  {o.segmentosAtuacao?.length
+                    ? ` · ${o.segmentosAtuacao.join(", ")}`
+                    : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="aos-oficina__regra" role="note">
         <span className="aos-oficina__regra-icon" aria-hidden>
           💡
         </span>
         <p>
-          <strong>Regra de negócio:</strong> o fluxo direciona a O.S. com base no
-          cadastro estruturado do ativo (Linha Amarela, Verde, Branca ou Leve),
-          otimizando a distribuição de ordens para os respectivos líderes de
-          box. A seleção aqui é apenas informativa — o sorteio ocorre ao salvar.
+          <strong>Regra de negócio:</strong> ao salvar, o sistema convida
+          automaticamente <strong>todas as oficinas compatíveis</strong> (segmento
+          + linha) para enviar orçamento no pregão.
         </p>
       </div>
     </div>

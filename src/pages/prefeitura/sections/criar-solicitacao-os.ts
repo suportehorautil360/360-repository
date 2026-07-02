@@ -1,4 +1,11 @@
 import type { EquipRow } from "./equipamentos/equipamentos-api";
+import {
+  filtrarOficinasElegiveis,
+  linhaDoEquipamento,
+  normEsp,
+  especialidadeCompativel,
+  type OficinaDirecionamento,
+} from "./direcionamento-os";
 import type { FiltrosOsLista, SolicitacaoOS } from "./abrir-os-model";
 import {
   mensagemErroCriarOs as mensagemErroApi,
@@ -9,11 +16,7 @@ import {
 
 export type { WorkshopInvited };
 
-export interface OficinaAtiva {
-  id: string;
-  nome: string;
-  especialidade: string;
-}
+export interface OficinaAtiva extends OficinaDirecionamento {}
 
 export interface CriarSolicitacaoOsInput {
   prefeituraId: string;
@@ -39,20 +42,11 @@ export class CriarSolicitacaoOsError extends Error {
   }
 }
 
-export function normEsp(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-export function linhaCompat(equipLine: string, oficinaEsp: string): boolean {
-  const a = normEsp(equipLine);
-  const b = normEsp(oficinaEsp);
-  if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
-}
+export {
+  normEsp,
+  especialidadeCompativel as linhaCompat,
+  filtrarOficinasElegiveis,
+};
 
 function shuffle<T>(items: T[]): T[] {
   const copy = [...items];
@@ -63,20 +57,18 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
-/** Até 3 oficinas: match flexível por linha; fallback = todas ativas do município. (UI / testes) */
+/** Até `max` oficinas elegíveis; sem `max`, retorna todas (pregão / abrir OS). */
 export function selecionarOficinas(
   oficinas: OficinaAtiva[],
   linhaEquipamento: string,
-  max = 3,
+  max?: number,
+  segmento?: string,
 ): OficinaAtiva[] {
-  if (oficinas.length === 0) return [];
-
-  const linha = linhaEquipamento.trim();
-  const matches = linha
-    ? oficinas.filter((o) => linhaCompat(linha, o.especialidade))
-    : [];
-  const pool = matches.length > 0 ? matches : oficinas;
-  return shuffle(pool).slice(0, max);
+  const pool = filtrarOficinasElegiveis(oficinas, linhaEquipamento, segmento);
+  if (pool.length === 0) return [];
+  const ordenadas = shuffle(pool);
+  if (max == null || max <= 0) return ordenadas;
+  return ordenadas.slice(0, max);
 }
 
 export function formatHorimetroEquipamento(eq: EquipRow): string {
@@ -85,9 +77,7 @@ export function formatHorimetroEquipamento(eq: EquipRow): string {
   return `${eq.medicaoAtual.toLocaleString("pt-BR")} ${u}`;
 }
 
-export function linhaDoEquipamento(eq: EquipRow): string {
-  return (eq.linha || eq.tipo || "").trim();
-}
+export { linhaDoEquipamento };
 
 export async function criarSolicitacaoOs(
   input: CriarSolicitacaoOsInput,
@@ -130,6 +120,5 @@ export async function listarSolicitacoesOs(
 }
 
 export function mensagemErroCriarOs(err: unknown): string {
-  if (err instanceof CriarSolicitacaoOsError) return err.message;
   return mensagemErroApi(err);
 }

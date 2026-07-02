@@ -115,6 +115,7 @@ export interface OficinaCredenciadaApi {
   parceiroId?: string;
   cidadeUf?: string;
   linhasAtuacao?: string[];
+  segmentosAtuacao?: string[];
 }
 
 export const clientesApi = {

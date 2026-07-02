@@ -444,7 +444,7 @@ export function AbrirOsFormulario({
         ) : aba === "oficina" ? (
           <AbrirOsAbaOficina
             prefeituraId={prefeituraId}
-            linhaEquipamento={classificacao}
+            equipamento={equipSel}
           />
         ) : aba === "garantia" ? (
           <AbrirOsAbaGarantia

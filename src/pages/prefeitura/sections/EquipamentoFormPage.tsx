@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
@@ -18,6 +18,8 @@ import {
   equipamentosApi,
   FROTA_OPTIONS,
   STATUS_OPTIONS,
+  inferLinhaFromTipo,
+  LINHA_OPTIONS,
   TIPO_OPTIONS,
   UF_OPTIONS,
   unitForTipo,
@@ -48,6 +50,7 @@ interface FormState {
   marca: string;
   modelo: string;
   cor: string;
+  linha: string;
   combustivel: string;
   tipo: string;
   tipoFrota: string;
@@ -88,6 +91,7 @@ const FORM_VAZIO: FormState = {
   marca: "",
   modelo: "",
   cor: "",
+  linha: inferLinhaFromTipo(TIPO_OPTIONS[0]) || LINHA_OPTIONS[0],
   combustivel: COMBUSTIVEL_OPTIONS[0],
   tipo: TIPO_OPTIONS[0],
   tipoFrota: FROTA_OPTIONS[0],
@@ -149,6 +153,12 @@ function paraFormState(d: Record<string, unknown>): FormState {
     marca: asStr(d.marca),
     modelo: asStr(d.modelo) || asStr(d.descricao),
     cor: asStr(d.cor),
+    linha:
+      (LINHA_OPTIONS as readonly string[]).includes(asStr(d.linha))
+        ? asStr(d.linha)
+        : inferLinhaFromTipo(asStr(d.tipo)) ||
+          inferLinhaFromTipo(asStr(d.linha)) ||
+          LINHA_OPTIONS[0],
     combustivel: asStr(d.combustivel) || COMBUSTIVEL_OPTIONS[0],
     tipo: asStr(d.tipo) || TIPO_OPTIONS[0],
     tipoFrota: asStr(d.tipoFrota) || FROTA_OPTIONS[0],
@@ -193,6 +203,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
   const [carregando, setCarregando] = useState(modo === "editar");
   const [config, setConfig] = useState<Configuracao | null>(null);
   const [motoristas, setMotoristas] = useState<Funcionario[]>([]);
+  const tipoAnteriorRef = useRef(form.tipo);
 
   // Intervalos de revisão padrão da prefeitura (Configurações).
   useEffect(() => {
@@ -245,6 +256,24 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
     });
   }, [motoristas]);
 
+  useEffect(() => {
+    const sugerida = inferLinhaFromTipo(form.tipo);
+    const tipoAnterior = tipoAnteriorRef.current;
+    tipoAnteriorRef.current = form.tipo;
+    if (!sugerida || tipoAnterior === form.tipo) return;
+
+    setForm((prev) => {
+      const linhaSugeridaAnterior = inferLinhaFromTipo(tipoAnterior);
+      if (
+        !prev.linha.trim() ||
+        (linhaSugeridaAnterior && prev.linha === linhaSugeridaAnterior)
+      ) {
+        return prev.linha === sugerida ? prev : { ...prev, linha: sugerida };
+      }
+      return prev;
+    });
+  }, [form.tipo]);
+
   const ehLocada = form.tipoFrota.toLowerCase().includes("locad");
   const ehComboio = form.tipo.trim().toLowerCase() === "comboio";
 
@@ -292,6 +321,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
       "chassis",
       "numeroSerie",
       "medicaoAtual",
+      "linha",
     ];
     const novos: Record<string, string> = {};
     for (const campo of obrigatorios) {
@@ -326,6 +356,7 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
         marca: form.marca.trim(),
         modelo: form.modelo.trim(),
         cor: form.cor.trim(),
+        linha: form.linha.trim() || inferLinhaFromTipo(form.tipo),
         combustivel: form.combustivel,
         tipo,
         tipoFrota: form.tipoFrota,
@@ -497,6 +528,12 @@ export function EquipamentoFormPage({ prefeituraId, modo }: Props) {
         <div className="ff__grid">
           {texto("marca", "Marca")}
           {texto("modelo", "Modelo")}
+          {select(
+            "linha",
+            "Linha de equipamento",
+            opts([...LINHA_OPTIONS]),
+            true,
+          )}
           {texto("cor", "Cor")}
           {comboboxField("combustivel", "Combustível", opts(COMBUSTIVEL_OPTIONS))}
           {comboboxField("tipo", "Tipo de veículo", opts(TIPO_OPTIONS))}
