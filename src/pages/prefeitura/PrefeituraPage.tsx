@@ -335,6 +335,7 @@ export function PrefeituraPage() {
     <div className="prefeitura-root">
       <div id="appShell" className="pf-app-shell">
         <Sidebar
+          className="pf-sidebar"
           brand={PREFEITURA_BRAND}
           groups={navGroups}
           user={{ name: user.usuario, role: labelMunicipio }}
