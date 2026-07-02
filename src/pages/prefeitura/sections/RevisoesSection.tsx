@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { FileDown } from "lucide-react";
 import {
   isBloqueado,
   isVencido,
@@ -13,6 +14,7 @@ import {
 } from "./frota/types";
 import { RevisaoModal } from "./frota/RevisaoModal";
 import { useFrota } from "./frota/use-frota";
+import { baixarPlanilhaRevisoes } from "./revisoesExport";
 import "./revisoes.css";
 
 function formatLeitura(v: VeiculoFrota, valor: number): string {
@@ -60,6 +62,13 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
       total: rows.length,
     };
   }, [rows]);
+
+  const podeExportar = !frota.loading && resumo.emDiaRows.length > 0;
+
+  const handleExportar = useCallback(() => {
+    if (!podeExportar) return;
+    baixarPlanilhaRevisoes(resumo.emDiaRows, { prefeituraId });
+  }, [podeExportar, resumo.emDiaRows, prefeituraId]);
 
   return (
     <section className="rv-page">
@@ -188,13 +197,27 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
         </div>
       )}
 
-      <div className="rv-head rv-head--ok">
+      <div className="rv-head rv-head--ok rv-head--row">
         <h1 className="rv-title rv-title--ok">
           <span className="rv-title__icon" aria-hidden>
             ✓
           </span>
           Em dia
         </h1>
+        <button
+          type="button"
+          className="rv-btn-export"
+          onClick={handleExportar}
+          disabled={!podeExportar}
+          title={
+            podeExportar
+              ? "Exportar lista para planilha"
+              : "Nenhum equipamento para exportar"
+          }
+        >
+          <FileDown size={15} strokeWidth={2.25} aria-hidden />
+          Baixar planilha
+        </button>
       </div>
 
       {frota.loading ? (
