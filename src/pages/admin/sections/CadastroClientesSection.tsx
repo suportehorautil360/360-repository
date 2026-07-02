@@ -42,8 +42,10 @@ const STATUS_OPCOES: { value: string; label: string }[] = [
   { value: "encerrado", label: "Encerrado" },
 ];
 
+type Segmento = "orgao_publico" | "empresa_privada";
+
 interface FormState {
-  tipoCliente: TipoCliente;
+  segmento: Segmento;
   nome: string;
   uf: string;
   email: string;
@@ -73,7 +75,7 @@ interface FormState {
 }
 
 const FORM_INICIAL: FormState = {
-  tipoCliente: "prefeitura",
+  segmento: "orgao_publico",
   nome: "",
   uf: "",
   email: "",
@@ -105,7 +107,7 @@ const FORM_INICIAL: FormState = {
 function clienteParaForm(c: ClienteApi): FormState {
   const ct: Partial<ContratoClienteApi> = c.contrato ?? {};
   return {
-    tipoCliente: (c.tipoCliente ?? "prefeitura") as TipoCliente,
+    segmento: c.tipoCliente === "locacao" ? "empresa_privada" : "orgao_publico",
     nome: c.nome ?? "",
     uf: c.uf ?? "",
     email: ct.emailContratante ?? "",
@@ -149,7 +151,7 @@ export function CadastroClientesSection() {
   const [msg, setMsg] = useState("");
   const [msgTone, setMsgTone] = useState<"none" | "ok" | "err">("none");
 
-  const isLoc = form.tipoCliente === "locacao";
+  const isLoc = form.segmento === "empresa_privada";
 
   // Modo edição: carrega o cliente e pré-preenche o formulário.
   useEffect(() => {
@@ -179,7 +181,7 @@ export function CadastroClientesSection() {
     if (isLoc) {
       return (
         <>
-          <strong>Empresa de locação:</strong> contrato comercial,{" "}
+          <strong>Empresa privada:</strong> contrato comercial,{" "}
           <strong>sem</strong> bloco de licitação (pregão, edital, modalidade
           legal). Informe objeto, valores e contato corporativo.
         </>
@@ -187,7 +189,7 @@ export function CadastroClientesSection() {
     }
     return (
       <>
-        <strong>Prefeitura:</strong> obrigatório o instrumento público —
+        <strong>Órgão público:</strong> obrigatório o instrumento público —
         processo / edital quando couber e{" "}
         <strong>modalidade de contratação</strong> compatível com a Lei
         14.133/2021 (ou lei local). Vigência, objeto e fiscal no órgão
@@ -206,7 +208,7 @@ export function CadastroClientesSection() {
   }
 
   useEffect(() => {
-    if (form.tipoCliente === "locacao") {
+    if (isLoc) {
       setForm((p) => ({
         ...p,
         modalidade: "contrato_privado_locacao",
@@ -215,16 +217,17 @@ export function CadastroClientesSection() {
     } else if (form.modalidade === "contrato_privado_locacao") {
       setForm((p) => ({ ...p, modalidade: "pregao_eletronico" }));
     }
-  }, [form.tipoCliente]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form.segmento]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setMsgTexto("none", "");
     setLoading(true);
+    const tipoCliente: TipoCliente = isLoc ? "locacao" : "prefeitura";
     const payload = {
       nome: form.nome,
       uf: form.uf,
-      tipoCliente: form.tipoCliente,
+      tipoCliente,
       cnpj: form.cnpj.trim(),
       caepf: form.caepf.trim(),
       cidade: form.cidade.trim(),
@@ -264,7 +267,7 @@ export function CadastroClientesSection() {
           "ok",
           `Cliente cadastrado: ${form.nome.trim()} (${form.uf.toUpperCase()}). ID interno: ${id || "—"}.`,
         );
-        setForm({ ...FORM_INICIAL, tipoCliente: form.tipoCliente });
+        setForm({ ...FORM_INICIAL, segmento: form.segmento });
       }
     } catch (err) {
       setMsgTexto(
@@ -321,19 +324,19 @@ export function CadastroClientesSection() {
               <div>
                 <label htmlFor="cadastroTipoCliente">Segmento {REQ}</label>
                 <Select
-                  value={form.tipoCliente}
-                  onValueChange={(v) =>
-                    update("tipoCliente", v as TipoCliente)
-                  }
+                  value={form.segmento}
+                  onValueChange={(v) => update("segmento", v as Segmento)}
                 >
                   <SelectTrigger id="cadastroTipoCliente" className="admin-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="prefeitura">
-                      Prefeitura (município)
+                    <SelectItem value="orgao_publico">
+                      Órgão público
                     </SelectItem>
-                    <SelectItem value="locacao">Empresa de locação</SelectItem>
+                    <SelectItem value="empresa_privada">
+                      Empresa privada
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -342,7 +345,7 @@ export function CadastroClientesSection() {
             <div className="contrato-secao">
               <div className="contrato-secao-titulo">
                 {isLoc
-                  ? "Contratante (empresa de locação)"
+                  ? "Contratante (empresa privada)"
                   : "Contratante (poder público municipal)"}
               </div>
               <div className="row-2">
@@ -354,7 +357,7 @@ export function CadastroClientesSection() {
                     id="cadastroPrefNome"
                     required
                     placeholder={
-                      isLoc ? "Ex.: Frota Norte Locações Ltda" : "Ex.: Campo Grande"
+                      isLoc ? "Ex.: Frota Sul Transportes Ltda" : "Ex.: Campo Grande"
                     }
                     autoComplete="organization"
                     value={form.nome}
@@ -456,7 +459,7 @@ export function CadastroClientesSection() {
                   <input
                     id="ctrNumero"
                     required
-                    placeholder={isLoc ? "Ex.: LOC-FROTA-2026-018" : "Ex.: 045/2026"}
+                    placeholder={isLoc ? "Ex.: PRIV-FROTA-2026-018" : "Ex.: 045/2026"}
                     value={form.numero}
                     onChange={(e) => update("numero", e.target.value)}
                   />

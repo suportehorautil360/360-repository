@@ -278,6 +278,7 @@
 }
 
 .main-content {
+  position: relative;
   padding: 22px;
   min-width: 0;
   min-height: 0;
