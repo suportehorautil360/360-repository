@@ -201,7 +201,8 @@ export function OrcamentosSection({ prefeituraId }: OrcamentosSectionProps) {
           lineHeight: 1.5,
         }}
       >
-        Cada O.S. pode receber orçamentos de até 3 oficinas credenciadas.
+        Cada O.S. convida todas as oficinas credenciadas compatíveis com o
+        segmento e a linha do equipamento.
         Compare os valores e aprove o melhor — as demais propostas serão
         recusadas automaticamente.
       </p>

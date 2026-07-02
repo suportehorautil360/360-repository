@@ -867,6 +867,82 @@
   font-weight: 700;
 }
 
+.aos-oficina__pool {
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.aos-oficina__pool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.aos-oficina__pool-header h3 {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.aos-oficina__pool-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #fdba74;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.aos-oficina__pool-empty {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.aos-oficina__pool-empty--warn {
+  color: #fca5a5;
+}
+
+.aos-oficina__pool-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aos-oficina__pool-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 6px;
+  background: rgba(30, 41, 59, 0.55);
+}
+
+.aos-oficina__pool-nome {
+  color: #f8fafc;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.aos-oficina__pool-meta {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
 @media (max-width: 900px) {
   .aos-oficina__grid {
     grid-template-columns: 1fr;

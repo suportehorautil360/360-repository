@@ -12,7 +12,6 @@ export type AbaDetalheOs = "resumo" | PainelGeralOs | "garantia" | "maquina-para
 const ABAS_BASE: { id: AbaDetalheOs; label: string; icon?: "shield" }[] = [
   { id: "resumo", label: "Resumo" },
   { id: "insumos", label: "Insumos" },
-  { id: "etapas", label: "Etapas" },
   { id: "sintomas", label: "Sintomas" },
   { id: "ocorrencias", label: "Ocorrências" },
   { id: "maquina-parada", label: "Máq. parada" },
@@ -33,10 +32,7 @@ export function AbrirOsDetalheAbas({ os, resumo }: AbrirOsDetalheAbasProps) {
     : ABAS_BASE.filter((t) => t.id !== "maquina-parada");
 
   const painelAtual =
-    aba === "insumos" ||
-    aba === "etapas" ||
-    aba === "sintomas" ||
-    aba === "ocorrencias"
+    aba === "insumos" || aba === "sintomas" || aba === "ocorrencias"
       ? aba
       : null;
 

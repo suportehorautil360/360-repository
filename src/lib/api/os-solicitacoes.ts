@@ -197,9 +197,10 @@ export function mensagemErroCriarOs(err: unknown): string {
     }
 
     if (err.status === 422) {
-
+      if (err.message.includes("atende")) {
+        return err.message;
+      }
       return "Nenhuma oficina credenciada para este município.";
-
     }
 
   }

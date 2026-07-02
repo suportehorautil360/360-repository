@@ -15,6 +15,30 @@ interface QuoteItemApi {
   descricao?: string;
   value?: number;
   valor?: number;
+  category?: "part" | "service" | "travel";
+  code?: string;
+  codigo?: string;
+  brand?: string;
+  marca?: string;
+  quantity?: number;
+  quantidade?: number;
+  unitValue?: number;
+  valorUnitario?: number;
+  hourType?: string;
+  tipoHora?: string;
+  hours?: number;
+  horas?: number;
+  hourlyRate?: number;
+  valorHora?: number;
+  km?: number;
+  valuePerKm?: number;
+  valorPorKm?: number;
+  travelHours?: number;
+  horasViagem?: number;
+  travelHourlyRate?: number;
+  valorHoraViagem?: number;
+  fees?: number;
+  taxas?: number;
 }
 
 interface QuoteApi {
@@ -102,6 +126,19 @@ export function quoteApiParaOrdem(
     (it): ItemOrdemOrcamento => ({
       descricao: it.descricao ?? it.description ?? "",
       valor: it.valor ?? it.value ?? 0,
+      category: it.category,
+      codigo: it.codigo ?? it.code,
+      marca: it.marca ?? it.brand,
+      quantidade: it.quantidade ?? it.quantity,
+      valorUnitario: it.valorUnitario ?? it.unitValue,
+      tipoHora: it.tipoHora ?? it.hourType,
+      horas: it.horas ?? it.hours,
+      valorHora: it.valorHora ?? it.hourlyRate,
+      km: it.km,
+      valorPorKm: it.valorPorKm ?? it.valuePerKm,
+      horasViagem: it.horasViagem ?? it.travelHours,
+      valorHoraViagem: it.valorHoraViagem ?? it.travelHourlyRate,
+      taxas: it.taxas ?? it.fees,
     }),
   );
   const valorTotal =
@@ -119,6 +156,7 @@ export function quoteApiParaOrdem(
     defeito: q.defeito ?? q.defect ?? "",
     itens,
     valorTotal,
+    prazoDias: q.prazoDias,
     status: q.status,
     criadoEm: parseCriadoEm(q),
   };

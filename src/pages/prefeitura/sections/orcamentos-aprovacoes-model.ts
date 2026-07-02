@@ -14,9 +14,24 @@ export interface SolicitacaoOrcamento {
   criadoEm: { seconds: number } | null;
 }
 
+export type ItemOrdemCategoria = "part" | "service" | "travel";
+
 export interface ItemOrdemOrcamento {
   descricao: string;
   valor: number;
+  category?: ItemOrdemCategoria;
+  codigo?: string;
+  marca?: string;
+  quantidade?: number;
+  valorUnitario?: number;
+  tipoHora?: string;
+  horas?: number;
+  valorHora?: number;
+  km?: number;
+  valorPorKm?: number;
+  horasViagem?: number;
+  valorHoraViagem?: number;
+  taxas?: number;
 }
 
 export interface OrdemOrcamento {
@@ -30,6 +45,7 @@ export interface OrdemOrcamento {
   defeito: string;
   itens: ItemOrdemOrcamento[];
   valorTotal: number;
+  prazoDias?: number;
   status: string;
   criadoEm: { seconds: number } | null;
 }
@@ -41,9 +57,6 @@ function mockTs(iso: string): { seconds: number } {
 export function isMockRegistro(id: string): boolean {
   return id.startsWith("mock-");
 }
-
-/** Máximo de orçamentos por O.S. (oficinas convidadas na criação). */
-export const LIMITE_ORCAMENTOS_POR_OS = 3;
 
 export function fmtBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -302,13 +315,13 @@ export function ordensParaExibicao(
   return [...ordensReaisFiltradas, ...ordensMock];
 }
 
-/** Quantidade máxima de orçamentos exibida no card (regra: até 3 oficinas). */
+/** Fallback quando a API não informa o total convidado (legado). */
 export function totalConvidadas(sol: SolicitacaoOrcamento): number {
   return (
     sol.convidadas ??
     sol.oficinasIds?.length ??
     sol.oficinas?.length ??
-    LIMITE_ORCAMENTOS_POR_OS
+    0
   );
 }
 

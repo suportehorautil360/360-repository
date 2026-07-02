@@ -22,14 +22,18 @@ describe("normEsp / linhaCompat", () => {
 });
 
 describe("selecionarOficinas", () => {
-  it("limita a 3 oficinas compatíveis", () => {
-    const r = selecionarOficinas(oficinas, "Amarela", 3);
-    expect(r.length).toBe(3);
+  it("sem max retorna todas as compatíveis", () => {
+    const r = selecionarOficinas(oficinas, "Amarela");
+    expect(r.length).toBe(4);
     expect(r.every((o) => o.especialidade === "Amarela")).toBe(true);
   });
 
-  it("usa fallback quando linha não tem match", () => {
-    const r = selecionarOficinas(oficinas, "Verde", 3);
-    expect(r.length).toBeGreaterThan(0);
+  it("com max limita o pool", () => {
+    const r = selecionarOficinas(oficinas, "Amarela", 2);
+    expect(r.length).toBe(2);
+  });
+
+  it("retorna vazio quando linha não tem match", () => {
+    expect(selecionarOficinas(oficinas, "Verde", 3)).toEqual([]);
   });
 });

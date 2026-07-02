@@ -513,3 +513,297 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Modal Ver itens — tema escuro alinhado ao portal prefeitura */
+.oap-itens-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.oap-itens-modal {
+  width: min(920px, 100%);
+  max-height: min(92vh, 900px);
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(67, 112, 181, 0.45);
+  background: linear-gradient(180deg, #132b57 0%, #0f2347 100%);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6);
+}
+
+.oap-itens-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+.oap-itens-modal__titulo {
+  margin: 0;
+  color: var(--main-orange, #f97316);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.oap-itens-modal__subtitulo {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  color: var(--text-gray, #94a3b8);
+}
+
+.oap-itens-modal__fechar {
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.oap-itens-modal__fechar:hover {
+  color: #f8fbff;
+}
+
+.oap-itens-modal__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px 18px;
+}
+
+.oap-itens-modal__secao {
+  border: 1px solid rgba(67, 112, 181, 0.4);
+  border-radius: 10px;
+  background: rgba(8, 18, 40, 0.45);
+  padding: 16px 18px;
+}
+
+.oap-itens-modal__secao--resumo {
+  background: rgba(8, 18, 40, 0.55);
+}
+
+.oap-itens-modal__secao-titulo {
+  margin: 0;
+  color: #f8fbff;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.oap-itens-modal__secao-corpo {
+  margin-top: 14px;
+}
+
+.oap-itens-modal__secao-dica {
+  margin: 10px 0 0;
+  font-size: 0.72rem;
+  color: #7eb0e8;
+}
+
+.oap-itens-modal__resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 18px;
+  margin-top: 14px;
+}
+
+.oap-itens-modal__campo-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f97316;
+}
+
+.oap-itens-modal__campo-valor {
+  display: block;
+  color: #e6efff;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.oap-itens-modal__status-ordem {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: #9cc0ef;
+}
+
+.oap-itens-modal__vazio {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #7eb0e8;
+}
+
+.oap-itens-modal__tabela-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(67, 112, 181, 0.4);
+  border-radius: 8px;
+}
+
+.oap-itens-modal__tabela {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.oap-itens-modal__tabela thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f97316;
+  background: rgba(4, 12, 32, 0.85);
+  border-bottom: 1px solid rgba(249, 115, 22, 0.25);
+  white-space: nowrap;
+}
+
+.oap-itens-modal__tabela tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.1);
+  vertical-align: middle;
+  color: #dbeafe;
+}
+
+.oap-itens-modal__tabela tbody tr:hover td {
+  background: rgba(15, 35, 72, 0.35);
+}
+
+.oap-itens-modal__tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.oap-itens-modal__valor-leitura {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 8px;
+  background: rgba(4, 12, 32, 0.55);
+  color: #e6efff;
+  font-size: 0.82rem;
+}
+
+.oap-itens-modal__total-linha {
+  font-weight: 700;
+  color: #f8fbff;
+  white-space: nowrap;
+}
+
+.oap-itens-modal__desloc-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.oap-itens-modal__desloc-total {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.08);
+  color: #fde68a;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.oap-itens-modal__total-card {
+  margin-left: auto;
+  width: min(100%, 360px);
+  padding: 16px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(67, 112, 181, 0.5);
+  background: linear-gradient(180deg, rgba(15, 35, 72, 0.95) 0%, rgba(8, 18, 40, 0.98) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.oap-itens-modal__total-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.oap-itens-modal__total-linhas > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #9cc0ef;
+}
+
+.oap-itens-modal__total-linhas > div span:last-child {
+  color: #e6efff;
+  font-weight: 600;
+}
+
+.oap-itens-modal__total-final {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.oap-itens-modal__total-final span:first-child {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f97316;
+}
+
+.oap-itens-modal__total-final span:last-child {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f8fbff;
+}
+
+.oap-itens-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid rgba(96, 165, 250, 0.18);
+}
+
+@media (max-width: 760px) {
+  .oap-itens-modal__resumo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oap-itens-modal__desloc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oap-itens-modal__total-card {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .oap-itens-modal__resumo-grid {
+    grid-template-columns: 1fr;
+  }
+}

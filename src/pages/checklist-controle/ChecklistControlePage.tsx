@@ -49,6 +49,7 @@ import {
 import { PontosFolha } from "./PontosFolha";
 import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
 import { enviarWorkflowComFila } from "../../features/checklist/api/workflow-fila";
+import { enviarMedicaoComFila } from "../../features/checklist/api/medicao-fila";
 import { useWorkflowSync } from "./useWorkflowSync";
 import { usePrefetchEscopo } from "./usePrefetchEscopo";
 import { prefetchEscopoOperador } from "./prefetch-escopo";
@@ -1839,6 +1840,15 @@ export function ChecklistControlePage() {
       // Workflow NestJS dos itens "Não": online envia agora; offline/erro de
       // rede entra na fila local e reenvia quando a conexão voltar.
       await sincronizarRespostasPendentesWorkflow(id, answersDoc);
+      // Atualiza horímetro/KM do equipamento no cadastro (NestJS). Offline
+      // enfileira e reenvia quando a conexão voltar (useWorkflowSync).
+      void enviarMedicaoComFila(equipamentoAtual.id, horimetro.trim()).catch(
+        (e) =>
+          console.warn(
+            "[Checklist] Falha ao atualizar medição do equipamento:",
+            e,
+          ),
+      );
       if (ack === "sincronizado") {
         setCheckMsg("✅ Checklist salvo com sucesso!");
       } else {
