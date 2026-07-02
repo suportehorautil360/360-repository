@@ -3,6 +3,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { Shield } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "../../../lib/firebase/firebase";
+import { Combobox } from "@/components/ui/combobox";
 import {
   equipamentosApi,
   type EquipRow,
@@ -178,6 +179,18 @@ export function AbrirOsFormulario({
   const equipSel = useMemo(
     () => equipamentos.find((e) => e.id === equipamentoId) ?? null,
     [equipamentos, equipamentoId],
+  );
+
+  const equipamentoOptions = useMemo(
+    () =>
+      equipamentos.map((eq) => ({
+        value: eq.id,
+        label: `${eq.descricao}${eq.placa ? ` · ${eq.placa}` : ""}`,
+        keywords: [eq.placa, eq.chassis, eq.marca, eq.modelo, eq.linha, eq.tipo].filter(
+          Boolean,
+        ),
+      })),
+    [equipamentos],
   );
 
   const nomeBem = equipSel?.descricao ?? "";
@@ -360,21 +373,16 @@ export function AbrirOsFormulario({
                 Bem
                 <Req />
               </label>
-              <select
+              <Combobox
+                inlineSearch
+                options={equipamentoOptions}
                 value={equipamentoId}
-                onChange={(e) => setEquipamentoId(e.target.value)}
+                onValueChange={setEquipamentoId}
                 disabled={carregandoEquip}
-              >
-                <option value="">
-                  {carregandoEquip ? "Carregando…" : "Selecione…"}
-                </option>
-                {equipamentos.map((eq) => (
-                  <option key={eq.id} value={eq.id}>
-                    {eq.descricao}
-                    {eq.placa ? ` · ${eq.placa}` : ""}
-                  </option>
-                ))}
-              </select>
+                placeholder={carregandoEquip ? "Carregando…" : "Buscar equipamento…"}
+                emptyText="Nenhum equipamento encontrado."
+                className="aos-field__combobox"
+              />
             </div>
             <div className="aos-field aos-field--xs">
               <label>Horímetro (sensor)</label>
