@@ -889,11 +889,20 @@
   color: #fdba74;
 }
 
+.aos-mp__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .aos-mp__title {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 16px;
+  margin: 0;
   color: var(--main-orange, #f97316);
   font-size: 0.78rem;
   font-weight: 800;
@@ -902,7 +911,7 @@
 }
 
 .prefeitura-root #main h2.aos-mp__title {
-  margin: 0 0 16px;
+  margin: 0;
   color: var(--main-orange, #f97316);
   font-size: 0.78rem;
 }
@@ -910,6 +919,33 @@
 .aos-mp__title-icon {
   font-size: 1rem;
   line-height: 1;
+}
+
+.aos-mp__pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.aos-mp__pdf:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.aos-mp__pdf:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .aos-mp__cards {
