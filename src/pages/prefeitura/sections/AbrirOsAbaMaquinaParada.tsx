@@ -1,8 +1,9 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import {
   badgeOficinaCls,
   type MaquinaParadaRow,
 } from "./abrir-os-paineis-dados";
+import { baixarPDFTabela } from "../../../lib/export/pdf-tabela";
 
 interface AbrirOsAbaMaquinaParadaProps {
   rows: MaquinaParadaRow[];
@@ -27,6 +28,30 @@ export function AbrirOsAbaMaquinaParada({
     /aguardando|peça|peças|kit/i.test(r.motivo),
   ).length;
 
+  function gerarPdf() {
+    baixarPDFTabela(`maquinas-paradas-${new Date().toISOString().slice(0, 10)}`, {
+      titulo: "Painel de disponibilidade da frota (down-time)",
+      subtitulo: `${totalParados} equipamento${totalParados === 1 ? "" : "s"} parado${totalParados === 1 ? "" : "s"} · gerado em ${new Date().toLocaleDateString("pt-BR")}`,
+      colunas: [
+        "O.S.",
+        "Equipamento / modelo",
+        "Motivo técnico da parada",
+        "Dias parado",
+        "Horas totais",
+        "Oficina",
+      ],
+      linhas: rows.map((r) => [
+        r.os,
+        r.equipamento,
+        r.motivo,
+        `${r.diasParado} dias`,
+        `${r.horasTotais} hrs`,
+        r.oficina,
+      ]),
+      pesos: [1, 2, 2.4, 1, 1, 1.3],
+    });
+  }
+
   return (
     <div className="aos-mp">
       {onVoltar ? (
@@ -38,14 +63,25 @@ export function AbrirOsAbaMaquinaParada({
         </header>
       ) : null}
 
-      <h2 className="aos-mp__title">
-        <span className="aos-mp__title-icon" aria-hidden>
-          ⚠️
-        </span>
-        {compacto
-          ? "Máquina parada — esta O.S."
-          : "Painel de disponibilidade da frota (down-time)"}
-      </h2>
+      <div className="aos-mp__title-row">
+        <h2 className="aos-mp__title">
+          <span className="aos-mp__title-icon" aria-hidden>
+            ⚠️
+          </span>
+          {compacto
+            ? "Máquina parada — esta O.S."
+            : "Painel de disponibilidade da frota (down-time)"}
+        </h2>
+        <button
+          type="button"
+          className="aos-mp__pdf"
+          onClick={gerarPdf}
+          disabled={loading || rows.length === 0}
+        >
+          <Download size={14} aria-hidden="true" />
+          Gerar PDF
+        </button>
+      </div>
 
       {!compacto ? (
         <p className="aos-mp__hint">
