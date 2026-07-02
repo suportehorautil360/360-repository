@@ -1,4 +1,10 @@
-import type { NovoEquip, StatusEquipamento } from "./equipamentos-api";
+import {
+  inferLinhaFromTipo,
+  LINHA_OPTIONS,
+  type LinhaEquipamento,
+  type NovoEquip,
+  type StatusEquipamento,
+} from "./equipamentos-api";
 
 export interface EquipParsado {
   input: NovoEquip;
@@ -33,8 +39,11 @@ const ALIASES: Record<string, Campo> = {
   "ano modelo": "anoModelo",
   combustivel: "combustivel",
   "tipo combustivel": "combustivel",
-  linha: "centroCusto",
+  linha: "linha",
+  "linha equipamento": "linha",
+  "linha operacional": "linha",
   "centro custo": "centroCusto",
+  obra: "centroCusto",
   "medicao atual": "medicaoAtual",
   "km atual": "medicaoAtual",
   horimetro: "medicaoAtual",
@@ -53,6 +62,10 @@ function normalizaStatus(v: string): StatusEquipamento {
   return "ativo";
 }
 
+function linhaPlanilhaValida(valor: string): valor is LinhaEquipamento {
+  return LINHA_OPTIONS.includes(valor as LinhaEquipamento);
+}
+
 function emptyNovoEquip(): NovoEquip {
   return {
     placa: "",
@@ -63,6 +76,7 @@ function emptyNovoEquip(): NovoEquip {
     marca: "",
     modelo: "",
     cor: "",
+    linha: "",
     combustivel: "",
     tipo: "",
     tipoFrota: "",
@@ -132,17 +146,33 @@ export async function parsePlanilhaEquip(file: File): Promise<EquipParsado[]> {
     const linha = matriz[i] as unknown[];
     if (!linha || linha.every((c) => !String(c ?? "").trim())) continue;
 
+    const tipo = getString(linha, "tipo");
+    const linhaRaw = getString(linha, "linha");
+    const centroCustoRaw = getString(linha, "centroCusto");
+
+    // Planilhas antigas usavam a coluna "Linha" para centro de custo (ex.: "Obras").
+    let linhaEquip = linhaRaw;
+    let centroCusto = centroCustoRaw;
+    if (linhaRaw && !linhaPlanilhaValida(linhaRaw) && !centroCustoRaw) {
+      centroCusto = linhaRaw;
+      linhaEquip = "";
+    }
+    if (!linhaEquip) {
+      linhaEquip = inferLinhaFromTipo(tipo) || "";
+    }
+
     const input: NovoEquip = {
       ...emptyNovoEquip(),
       placa: getString(linha, "placa"),
       chassis: getString(linha, "chassis"),
       marca: getString(linha, "marca"),
       modelo: getString(linha, "modelo"),
-      tipo: getString(linha, "tipo"),
+      tipo,
+      linha: linhaEquip,
       anoFabricacao: getString(linha, "anoFabricacao"),
       anoModelo: getString(linha, "anoModelo"),
       combustivel: getString(linha, "combustivel"),
-      centroCusto: getString(linha, "centroCusto"),
+      centroCusto,
       medicaoAtual: getNum(linha, "medicaoAtual"),
       intervaloRevisao: getNum(linha, "intervaloRevisao"),
       status: normalizaStatus(getString(linha, "status") || "ativo"),
@@ -171,7 +201,8 @@ export const TEMPLATE_COLUNAS_EQUIP = [
   "Ano Fabricação",
   "Ano Modelo",
   "Combustível",
-  "Linha",
+  "Linha Equipamento",
+  "Centro Custo",
   "Medição Atual",
   "Intervalo Revisão",
   "Status",
@@ -187,6 +218,7 @@ export function baixarModeloCsvEquip(): void {
     "2020",
     "2021",
     "Diesel",
+    "Linha Branca",
     "Obras",
     "50000",
     "15000",
