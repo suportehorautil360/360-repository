@@ -44,7 +44,7 @@
 .prefeitura-root .auth-card {
   width: 100%;
   max-width: 460px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 16px;
   backdrop-filter: blur(8px);
@@ -119,7 +119,7 @@
 
 .prefeitura-root .hu-sidebar__brand {
   justify-content: center;
-  padding: 14px 12px;
+  padding: 8px 12px;
 }
 
 .prefeitura-root .hu-sidebar__brand-logo {
@@ -144,7 +144,7 @@
   flex-shrink: 0;
   background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
   padding-bottom: 16px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
   /* Prende no viewport com scroll interno — antes o menu empurrava a página. */
   position: sticky;
   top: 0;
@@ -189,7 +189,7 @@
 }
 
 .prefeitura-root .nav-item:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .prefeitura-root .nav-item.active {
@@ -379,7 +379,7 @@
 }
 
 .prefeitura-root .btn-outline:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ============== TABELAS ============== */
@@ -607,7 +607,7 @@
   padding: 10px 12px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .prefeitura-root .pf-checklist-secao h4 {
@@ -920,7 +920,7 @@
   font-weight: 900;
   font-size: 0.72rem;
   letter-spacing: 0.02em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .prefeitura-root .pf-eq-metrics {
@@ -1302,4 +1302,43 @@
     padding-left: 18px;
     padding-right: 18px;
   }
+}
+
+/* ---------- Sidebar da prefeitura: caixa de usuário (email) compacta ----------
+   Escopo restrito a .pf-sidebar para não afetar o sidebar do admin. */
+
+/* Largura menor libera espaço para o corpo (#main) à direita.
+   Só no desktop: abaixo de 980px o sidebar.css volta a 100% (empilhado). */
+@media (min-width: 981px) {
+  .hu-sidebar.pf-sidebar {
+    width: 210px;
+  }
+}
+
+.pf-sidebar .hu-sidebar__footer {
+  padding: 8px 12px;
+}
+
+.pf-sidebar .hu-sidebar__user {
+  gap: 8px;
+}
+
+.pf-sidebar .hu-sidebar__avatar {
+  width: 30px;
+  height: 30px;
+  font-size: 0.74rem;
+}
+
+.pf-sidebar .hu-sidebar__user-name {
+  font-size: 0.82rem;
+}
+
+.pf-sidebar .hu-sidebar__user-role {
+  font-size: 0.7rem;
+}
+
+.pf-sidebar .hu-sidebar__logout-icon {
+  width: 30px;
+  height: 30px;
+  font-size: 0.9rem;
 }
