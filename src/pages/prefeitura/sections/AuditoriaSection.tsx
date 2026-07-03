@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase/firebase";
+import {
+  checklistsRegistrosApi,
+  checklistRegistroParaAuditoriaRow,
+} from "../../../lib/api/checklists-registros";
 import {
   ListaChecklistHistoricoLocal,
   baixarChecklistPdfsEmPasta,
@@ -12,39 +14,6 @@ interface AuditoriaSectionProps {
 
 function normalizeChassis(s: string): string {
   return s.replace(/[\s\-_]/g, "").toUpperCase();
-}
-
-function firestoreDocToHistRow(
-  docId: string,
-  data: Record<string, unknown>,
-): Record<string, unknown> {
-  const respostasJson =
-    data.respostas &&
-    typeof data.respostas === "object" &&
-    !Array.isArray(data.respostas)
-      ? JSON.stringify(data.respostas)
-      : typeof data.respostas === "string"
-        ? data.respostas
-        : "{}";
-  return {
-    ID_Registro: data.id ?? docId,
-    Data_Hora: data.dataHoraIso ?? "",
-    Operador: data.operador ?? "",
-    Chassis: data.chassis ?? "",
-    Categoria: data.categoria ?? "",
-    Modelo: data.modelo ?? "",
-    Linha: data.linha ?? "",
-    Item_Verificado: `Checklist ${data.totalItens ?? "?"} itens`,
-    Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
-    Respostas_JSON: respostasJson,
-    Horimetro_Final: data.horimetro ?? "",
-    Assinatura_Operador: data.assinaturaOperador ?? "",
-    Pontuacao: data.pontuacao ?? 0,
-    ID_Cliente: data.idOperadorSession ?? "",
-    prefeituraId: data.prefeituraId ?? "",
-    Localizacao_GPS: data.localizacaoGps ?? null,
-    Obs: data.obs ?? null,
-  };
 }
 
 export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
@@ -64,20 +33,11 @@ export function AuditoriaSection({ prefeituraId }: AuditoriaSectionProps) {
       return;
     }
     setCarregando(true);
-    getDocs(
-      query(
-        collection(db, "checklistsRegistros"),
-        where("prefeituraId", "==", prefeituraId),
-      ),
-    )
-      .then((snap) => {
-        const fetched = snap.docs.map((d) =>
-          firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-        );
-        console.log("prefeituraId para auditoria:", snap?.docs);
-
-        fetched.sort((a, b) =>
-          String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
+    checklistsRegistrosApi
+      .listarPorPrefeitura(prefeituraId)
+      .then((lista) => {
+        const fetched = lista.map((doc) =>
+          checklistRegistroParaAuditoriaRow(doc),
         );
         setRows(fetched);
       })

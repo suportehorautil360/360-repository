@@ -195,6 +195,8 @@ export interface AbastecimentoListaApi {
   reading: string;
   meterPhoto?: string;
   local: string;
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt: string;
 }
 
@@ -211,6 +213,8 @@ export interface AbastecimentoTela {
   valor: number | null;
   leitura: string;
   local: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 /** Classifica posto vs comboio. Prioriza postoId até o back corrigir origin. */
@@ -235,6 +239,23 @@ function addDaysIso(iso: string, days: number): string {
   return `${yy}-${mm}-${dd}`;
 }
 
+function parseCoord(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** URL do Google Maps quando há coordenadas válidas. */
+export function urlMapsAbastecimento(
+  latitude?: number | null,
+  longitude?: number | null,
+): string | null {
+  const lat = parseCoord(latitude);
+  const lng = parseCoord(longitude);
+  if (lat === null || lng === null) return null;
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
+
 function normalizarItemLista(raw: unknown): AbastecimentoListaApi | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -255,6 +276,8 @@ function normalizarItemLista(raw: unknown): AbastecimentoListaApi | null {
     reading: asStr(r.reading ?? r.leitura ?? r.leituraLabel),
     meterPhoto: asStr(r.meterPhoto) || undefined,
     local: asStr(r.local),
+    latitude: parseCoord(r.latitude ?? r.lat),
+    longitude: parseCoord(r.longitude ?? r.lng ?? r.lon),
     createdAt: asStr(r.createdAt),
   };
 }
@@ -290,6 +313,8 @@ export function abastecimentoListaParaTela(
     valor: item.value,
     leitura: item.reading,
     local: item.local,
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
   };
 }
 

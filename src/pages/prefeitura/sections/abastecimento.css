@@ -299,6 +299,28 @@
   color: var(--text-gray);
 }
 
+.abs-badge-local--link {
+  text-decoration: none;
+  color: #93c5fd;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+  margin: -0.15rem -0.35rem;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.abs-badge-local--link:hover {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.12);
+  text-decoration: underline;
+}
+
+.abs-badge-local--link:focus-visible {
+  outline: 2px solid var(--main-orange, #f97316);
+  outline-offset: 2px;
+}
+
 .abs-table-empty {
   text-align: center;
   padding: 3rem !important;

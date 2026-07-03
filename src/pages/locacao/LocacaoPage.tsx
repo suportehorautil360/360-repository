@@ -18,6 +18,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
 import {
+  checklistsRegistrosApi,
+  checklistRegistroParaAuditoriaRow,
+  type ChecklistRegistroApi,
+} from "../../lib/api/checklists-registros";
+import {
   ListaChecklistHistoricoLocal,
   baixarChecklistPdfsEmPasta,
 } from "../../components/checklistHistorico/ChecklistHistoricoLista";
@@ -92,38 +97,6 @@ function checklistQrSintetico(row: ChecklistApiRow): ChecklistApp {
     observacoesCampo: row.observacoes || "",
     fotosResumo: "",
     assinaturaDigital: `Registro ID ${row.id} · horautil360`,
-  };
-}
-
-function firestoreDocToHistRow(
-  docId: string,
-  data: Record<string, unknown>,
-): Record<string, unknown> {
-  const respostasJson =
-    data.respostas &&
-    typeof data.respostas === "object" &&
-    !Array.isArray(data.respostas)
-      ? JSON.stringify(data.respostas)
-      : typeof data.respostas === "string"
-        ? data.respostas
-        : "{}";
-  return {
-    ID_Registro: data.id ?? docId,
-    Data_Hora: data.dataHoraIso ?? "",
-    Operador: data.operador ?? "",
-    Chassis: data.chassis ?? "",
-    Categoria: data.categoria ?? "",
-    Modelo: data.modelo ?? "",
-    Linha: data.linha ?? "",
-    Item_Verificado: `Checklist ${data.totalItens ?? "?"} itens`,
-    Status_Ok_Nao: `${data.totalSim ?? 0}/${data.totalItens ?? 0} OK`,
-    Respostas_JSON: respostasJson,
-    Horimetro_Final: data.horimetro ?? "",
-    Assinatura_Operador: data.assinaturaOperador ?? "",
-    Pontuacao: data.pontuacao ?? 0,
-    ID_Cliente: data.idOperadorSession ?? "",
-    prefeituraId: data.prefeituraId ?? "",
-    Obs: data.obs ?? null,
   };
 }
 
@@ -417,12 +390,7 @@ export function LocacaoPage() {
           where("prefeituraId", "==", prefeituraIdEff),
         ),
       ),
-      getDocs(
-        query(
-          collection(db, "checklistsRegistros"),
-          where("prefeituraId", "==", prefeituraIdEff),
-        ),
-      ),
+      checklistsRegistrosApi.resumoPainel(prefeituraIdEff, mesAtual),
       getDocs(
         query(
           collection(db, "emergenciasRegistros"),
@@ -431,36 +399,15 @@ export function LocacaoPage() {
         ),
       ),
     ])
-      .then(([snapEquip, snapChk, snapEmerg]) => {
+      .then(([snapEquip, resumo, snapEmerg]) => {
         setDashEquipCount(snapEquip.size);
         setDashManuCount(snapEmerg.size);
-        const chkRows = snapChk.docs.map(
-          (d) => d.data() as Record<string, unknown>,
-        );
-        setDashChecklistTotal(chkRows.length);
-        // Agrupamento por semana do mês atual
-        const semanas = [0, 0, 0, 0];
-        chkRows.forEach((r) => {
-          const dataStr = String(r.dataHoraIso ?? "");
-          if (!dataStr.startsWith(mesAtual)) return;
-          const dia = parseInt(dataStr.slice(8, 10), 10);
-          const sem = dia <= 7 ? 0 : dia <= 14 ? 1 : dia <= 21 ? 2 : 3;
-          semanas[sem]++;
-        });
-        // Top 5 operadores por quantidade de checklists
-        const opCount = new Map<string, number>();
-        chkRows.forEach((r) => {
-          const op = String(r.operador ?? "").trim();
-          if (op) opCount.set(op, (opCount.get(op) ?? 0) + 1);
-        });
-        const topOps: TopOperador[] = [...opCount.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([nome, count]) => ({
-            nome,
-            bemFeitos: count,
-            indice: `${count} insp.`,
-          }));
+        setDashChecklistTotal(resumo.totalGeral);
+        const topOps: TopOperador[] = resumo.topOperadores.map((op) => ({
+          nome: op.nome,
+          bemFeitos: op.total,
+          indice: `${op.total} insp.`,
+        }));
         const mesLabel = now.toLocaleString("pt-BR", {
           month: "long",
           year: "numeric",
@@ -469,7 +416,7 @@ export function LocacaoPage() {
           gastosLabels: [],
           gastosReais: [],
           checklistLabels: ["Sem 1", "Sem 2", "Sem 3", "Sem 4"],
-          checklistRecebidos: semanas,
+          checklistRecebidos: resumo.checklistsPorSemana,
           topOperadores: topOps,
           tituloPeriodo: `${mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)} — ${prefeituraLabel(prefeituraIdEff)}`,
         });
@@ -483,19 +430,10 @@ export function LocacaoPage() {
   useEffect(() => {
     if (secaoAtiva !== "auditoria" || !prefeituraIdEff) return;
     setAudCarregando(true);
-    getDocs(
-      query(
-        collection(db, "checklistsRegistros"),
-        where("prefeituraId", "==", prefeituraIdEff),
-      ),
-    )
-      .then((snap) => {
-        const rows = snap.docs.map((d) =>
-          firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-        );
-        rows.sort((a, b) =>
-          String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
-        );
+    checklistsRegistrosApi
+      .listarPorPrefeitura(prefeituraIdEff)
+      .then((lista) => {
+        const rows = lista.map((doc) => checklistRegistroParaAuditoriaRow(doc));
         setAudFirestoreRows(rows);
       })
       .catch((err) => {
@@ -536,30 +474,24 @@ export function LocacaoPage() {
   useEffect(() => {
     if (secaoAtiva !== "riscos" || !prefeituraIdEff) return;
     setRiscoCarregando(true);
-    getDocs(
-      query(
-        collection(db, "checklistsRegistros"),
-        where("prefeituraId", "==", prefeituraIdEff),
-      ),
-    )
-      .then((snap) => {
-        const rows: RiscoRow[] = snap.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          const totalSim = Number(data.totalSim ?? 0);
-          const totalItens = Number(data.totalItens ?? 0);
+    checklistsRegistrosApi
+      .listarPorPrefeitura(prefeituraIdEff)
+      .then((lista) => {
+        const rows: RiscoRow[] = lista.map((doc: ChecklistRegistroApi) => {
+          const totalSim = Number(doc.totalSim ?? 0);
+          const totalItens = Number(doc.totalItens ?? 0);
           const totalNao = Math.max(0, totalItens - totalSim);
           const nivel: RiscoRow["nivel"] =
             totalNao >= 2 ? "Alto" : totalNao === 1 ? "Médio" : "Baixo";
-          const itensNao = Array.isArray(data.itensNao) ? data.itensNao : [];
-          const primeiroNao = itensNao[0] as { titulo?: string } | undefined;
+          const primeiroNao = doc.itensNao[0];
           const { defeito, acaoSugerida } = primeiroNao?.titulo
             ? parseTituloItemNao(String(primeiroNao.titulo))
             : { defeito: "—", acaoSugerida: "—" };
           return {
-            id: d.id,
+            id: doc.id,
             nivel,
-            categoria: String(data.categoria ?? "—"),
-            operador: String(data.operador ?? "—"),
+            categoria: doc.categoria || "—",
+            operador: doc.operador || "—",
             defeito,
             acaoSugerida,
           };

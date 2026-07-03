@@ -117,6 +117,17 @@
   letter-spacing: 0.06em;
   color: #cbd5e1;
 }
+.pnl__card-sub {
+  margin: 4px 0 0;
+  font-size: 0.76rem;
+  color: #7f8da4;
+}
+.pnl__card--operadores {
+  min-height: 0;
+}
+.pnl__grafico-operadores {
+  min-height: 180px;
+}
 .pnl__badge {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
