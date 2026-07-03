@@ -35,6 +35,7 @@ const SELECT_TRIGGER_CLS =
 const CARGOS = [
   "Operador",
   "Motorista",
+  "Comboista",
   "Mecânico",
   "Supervisor",
   "Outro",
