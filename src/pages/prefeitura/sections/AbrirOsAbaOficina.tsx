@@ -9,29 +9,6 @@ import {
   resolveSegmentoEquipamento,
 } from "./direcionamento-os";
 
-const BOXES_POR_LINHA: Record<string, string[]> = {
-  amarela: ["Box Amarela 1", "Box Amarela 2", "Baia Amarela A"],
-  verde: ["Box Verde 1", "Box Verde 2"],
-  branca: ["Box Branca 1", "Box Branca 2"],
-  leve: ["Box Leve 1", "Box Leve 2"],
-  geral: ["Box Geral 1", "Box Geral 2"],
-  pesada: ["Box Pesada 1", "Box Pesada 2"],
-};
-
-function chaveLinha(linha: string): string {
-  const n = linha
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-  if (n.includes("amarela")) return "amarela";
-  if (n.includes("verde")) return "verde";
-  if (n.includes("branca")) return "branca";
-  if (n.includes("leve")) return "leve";
-  if (n.includes("pesada")) return "pesada";
-  return "geral";
-}
-
 interface AbrirOsAbaOficinaProps {
   prefeituraId: string;
   equipamento: EquipRow | null;
@@ -50,7 +27,6 @@ export function AbrirOsAbaOficina({
     }>
   >([]);
   const [carregando, setCarregando] = useState(false);
-  const [boxBaia, setBoxBaia] = useState("");
 
   const linhaEquipamento = equipamento ? linhaDoEquipamento(equipamento) : "";
   const segmento = equipamento ? resolveSegmentoEquipamento(equipamento) : "";
@@ -98,21 +74,6 @@ export function AbrirOsAbaOficina({
     );
   }, [oficinas, linhaEquipamento, segmento]);
 
-  const boxes = useMemo(() => {
-    const chave = chaveLinha(linhaEquipamento);
-    return BOXES_POR_LINHA[chave] ?? BOXES_POR_LINHA.geral;
-  }, [linhaEquipamento]);
-
-  useEffect(() => {
-    if (boxes.length === 0) {
-      setBoxBaia("");
-      return;
-    }
-    if (!boxes.includes(boxBaia)) {
-      setBoxBaia(boxes[0]);
-    }
-  }, [boxes, boxBaia]);
-
   return (
     <div className="aos-oficina">
       <h2 className="aos-oficina__title">
@@ -140,24 +101,6 @@ export function AbrirOsAbaOficina({
             value={equipamento ? labelSegmento(segmento) : ""}
             placeholder="Selecione o bem na aba Geral"
           />
-        </div>
-        <div className="aos-field">
-          <label>Box / baia indicada</label>
-          <select
-            value={boxBaia}
-            onChange={(e) => setBoxBaia(e.target.value)}
-            disabled={!linhaEquipamento.trim() || boxes.length === 0}
-          >
-            {boxes.length === 0 ? (
-              <option value="">—</option>
-            ) : (
-              boxes.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))
-            )}
-          </select>
         </div>
       </div>
 

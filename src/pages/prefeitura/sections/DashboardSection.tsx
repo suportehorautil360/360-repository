@@ -8,7 +8,12 @@ import {
   Banknote,
   HardHat,
   BarChart3,
+  Users,
 } from "lucide-react";
+import {
+  checklistsRegistrosApi,
+  type TopOperadorChecklistApi,
+} from "../../../lib/api/checklists-registros";
 import {
   equipamentosApi,
   isBloqueado,
@@ -23,10 +28,17 @@ import {
   type Abastecimento,
 } from "../../../lib/api/abastecimentos";
 import { categoriaDoTipo } from "../../../lib/api/configuracoes";
+import { topOperadoresParaGrafico } from "./painel-top-operadores";
 import "./painel.css";
 
 const GraficoBarras = lazy(() =>
   import("./PainelCharts").then((m) => ({ default: m.GraficoBarras })),
+);
+
+const GraficoBarrasHorizontais = lazy(() =>
+  import("./PainelCharts").then((m) => ({
+    default: m.GraficoBarrasHorizontais,
+  })),
 );
 
 const MESES = [
@@ -72,19 +84,28 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
   const navigate = useNavigate();
   const [equipamentos, setEquipamentos] = useState<EquipRow[]>([]);
   const [abastecimentos, setAbastecimentos] = useState<Abastecimento[]>([]);
+  const [topOperadores, setTopOperadores] = useState<TopOperadorChecklistApi[]>(
+    [],
+  );
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     let ativo = true;
     (async () => {
       setCarregando(true);
-      const [eqs, abs] = await Promise.all([
+      const agora = new Date();
+      const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}`;
+      const [eqs, abs, ranking] = await Promise.all([
         equipamentosApi.listar(prefeituraId).catch(() => []),
         abastecimentosApi.listar(prefeituraId).catch(() => []),
+        checklistsRegistrosApi
+          .topOperadores(prefeituraId, mesAtual)
+          .catch(() => ({ mes: mesAtual, operadores: [] })),
       ]);
       if (!ativo) return;
       setEquipamentos(eqs);
       setAbastecimentos(abs);
+      setTopOperadores(ranking.operadores);
       setCarregando(false);
     })();
     return () => {
@@ -186,6 +207,20 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
     };
   }, [equipamentos, abastecimentos]);
 
+  const topOperadoresGrafico = useMemo(
+    () => topOperadoresParaGrafico(topOperadores),
+    [topOperadores],
+  );
+
+  const periodoOperadores = useMemo(() => {
+    const agora = new Date();
+    const mesLabel = agora.toLocaleString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+    return `${mesLabel.charAt(0).toUpperCase()}${mesLabel.slice(1)}`;
+  }, []);
+
   function abrirEquipamento(eq: EquipRow) {
     navigate(`/prefeitura/${prefeituraId}/equipamentos/${eq.id}/editar`);
   }
@@ -233,6 +268,34 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
           <strong>{fmtBRL(m.totalGeral)}</strong>
         </article>
       </div>
+
+      <section className="pnl__card pnl__card--operadores">
+        <header className="pnl__card-head">
+          <div>
+            <h2>
+              <Users size={14} /> Top 5 operadores
+            </h2>
+            <p className="pnl__card-sub">
+              Ranking por checklists realizados — {periodoOperadores}
+            </p>
+          </div>
+        </header>
+        {topOperadoresGrafico.length === 0 ? (
+          <p className="pnl__vazio">
+            Nenhum checklist registrado para montar o ranking.
+          </p>
+        ) : (
+          <div className="pnl__grafico-operadores">
+            <Suspense fallback={<div className="pnl__grafico-ph" />}>
+              <GraficoBarrasHorizontais
+                dados={topOperadoresGrafico}
+                formato={(v) => `${v} insp.`}
+                altura={Math.max(180, topOperadoresGrafico.length * 48)}
+              />
+            </Suspense>
+          </div>
+        )}
+      </section>
 
       <div className="pnl__grid2">
         <section className="pnl__card">

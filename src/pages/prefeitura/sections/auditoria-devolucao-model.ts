@@ -272,3 +272,134 @@ export function filtrarPorOficina(
   return linhas.filter((r) => ids.has(r.osId));
 }
 
+export interface LinhaChdAuditoria {
+  id: string;
+  number: string;
+  osProtocolo: string;
+  solicitacaoOsId: string;
+  equipamento: string;
+  placa: string;
+  oficinaId: string;
+  oficinaNome: string;
+  dataIso: string;
+  horimetro: string;
+  qtdPecas: number;
+  qtdServicos: number;
+  status: ChdStatusAuditoria;
+}
+
+export type ChdStatusAuditoria =
+  | "enviado"
+  | "em_conferencia"
+  | "aceito"
+  | "contestado";
+
+const CHD_STATUS_LABEL: Record<string, string> = {
+  enviado: "Enviado",
+  em_conferencia: "Em conferência",
+  aceito: "Aceito",
+  contestado: "Contestado",
+};
+
+export function labelStatusChd(status: string): string {
+  return CHD_STATUS_LABEL[status] ?? status.replace(/_/g, " ");
+}
+
+function isoFromCreatedAt(createdAt: string): string {
+  if (!createdAt) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(createdAt);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${mo}-${da}`;
+}
+
+export function chdDocParaLinha(
+  doc: {
+    id: string;
+    number: string;
+    oficinaId: string;
+    solicitacaoOsId?: string | null;
+    identification?: {
+      os?: string;
+      date?: string;
+      brandModel?: string;
+      platePrefix?: string;
+      hourMeter?: string;
+    };
+    parts?: { items?: unknown[] };
+    services?: { items?: unknown[] };
+    status: string;
+    createdAt: string;
+  },
+  oficinasPorId: Map<string, string>,
+): LinhaChdAuditoria {
+  const id = doc.oficinaId?.trim() ?? "";
+  const dataIdent = doc.identification?.date?.trim() ?? "";
+  return {
+    id: doc.id,
+    number: doc.number?.trim() || doc.id,
+    osProtocolo: doc.identification?.os?.trim() || "—",
+    solicitacaoOsId: doc.solicitacaoOsId?.trim() ?? "",
+    equipamento: doc.identification?.brandModel?.trim() || "—",
+    placa: doc.identification?.platePrefix?.trim() || "—",
+    oficinaId: id,
+    oficinaNome: (id && oficinasPorId.get(id)) || id || "—",
+    dataIso: dataIdent || isoFromCreatedAt(doc.createdAt),
+    horimetro: doc.identification?.hourMeter?.trim() || "—",
+    qtdPecas: doc.parts?.items?.length ?? 0,
+    qtdServicos: doc.services?.items?.length ?? 0,
+    status: (doc.status as ChdStatusAuditoria) || "enviado",
+  };
+}
+
+export function filtrarLinhasChd(
+  linhas: LinhaChdAuditoria[],
+  filtros: FiltrosAuditoriaDevolucao,
+): LinhaChdAuditoria[] {
+  return linhas.filter((r) => {
+    if (filtros.dataInicio && r.dataIso && r.dataIso < filtros.dataInicio) {
+      return false;
+    }
+    if (filtros.dataFim && r.dataIso && r.dataIso > filtros.dataFim) {
+      return false;
+    }
+    if (
+      filtros.oficinaId &&
+      filtros.oficinaId !== "todas" &&
+      r.oficinaId !== filtros.oficinaId
+    ) {
+      return false;
+    }
+    if (
+      filtros.equipamento &&
+      filtros.equipamento !== "todos" &&
+      r.equipamento !== filtros.equipamento
+    ) {
+      return false;
+    }
+    return true;
+  });
+}
+
+export interface LinhaChdTela {
+  dataLabel: string;
+  statusLabel: string;
+  equipamentoLabel: string;
+}
+
+export function linhaChdParaTela(linha: LinhaChdAuditoria): LinhaChdTela {
+  const equipamentoLabel =
+    linha.placa !== "—"
+      ? `${linha.equipamento} · ${linha.placa}`
+      : linha.equipamento;
+  return {
+    dataLabel: fmtDataBr(linha.dataIso),
+    statusLabel: labelStatusChd(linha.status),
+    equipamentoLabel,
+  };
+}
+

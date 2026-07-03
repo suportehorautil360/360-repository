@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   abastecimentosApi,
+  urlMapsAbastecimento,
   type AbastecimentoTela,
 } from "../../../lib/api/abastecimentos";
 import type { DadosPrefeitura } from "../../../lib/hu360/types";
@@ -326,9 +327,37 @@ export function AbastecimentoSection({
                   </td>
                   <td className="abs-td-leitura">{item.leitura}</td>
                   <td>
-                    <span className="abs-badge-local">
-                      <span className="abs-local-icon">📍</span> {item.local}
-                    </span>
+                    {(() => {
+                      const mapsUrl = urlMapsAbastecimento(
+                        item.latitude,
+                        item.longitude,
+                      );
+                      const label = item.local?.trim() || "Ver no mapa";
+                      if (mapsUrl) {
+                        return (
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="abs-badge-local abs-badge-local--link"
+                            title="Abrir localização no Google Maps"
+                          >
+                            <span className="abs-local-icon" aria-hidden>
+                              📍
+                            </span>
+                            {label}
+                          </a>
+                        );
+                      }
+                      return (
+                        <span className="abs-badge-local">
+                          <span className="abs-local-icon" aria-hidden>
+                            📍
+                          </span>{" "}
+                          {item.local || "—"}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="abs-td-acoes">
                     <button

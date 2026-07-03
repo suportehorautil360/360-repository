@@ -14,6 +14,7 @@ import {
   abastecimentoListaParaTela,
   abastecimentosApi,
   fmtTotalAbastecimento,
+  urlMapsAbastecimento,
   type AbastecimentoListaApi,
 } from "./abastecimentos";
 
@@ -61,6 +62,29 @@ describe("abastecimentoListaParaTela", () => {
       origin: "Comboio",
     });
     expect(t.origemTipo).toBe("comboio");
+  });
+
+  it("repassa latitude e longitude para a tela", () => {
+    const t = abastecimentoListaParaTela({
+      ...apiItem,
+      latitude: -23.55,
+      longitude: -46.63,
+    });
+    expect(t.latitude).toBe(-23.55);
+    expect(t.longitude).toBe(-46.63);
+  });
+});
+
+describe("urlMapsAbastecimento", () => {
+  it("monta link do Google Maps com coordenadas", () => {
+    expect(urlMapsAbastecimento(-23.55, -46.63)).toBe(
+      "https://www.google.com/maps?q=-23.55,-46.63",
+    );
+  });
+
+  it("retorna null sem coordenadas", () => {
+    expect(urlMapsAbastecimento(null, -46)).toBeNull();
+    expect(urlMapsAbastecimento(undefined, undefined)).toBeNull();
   });
 });
 

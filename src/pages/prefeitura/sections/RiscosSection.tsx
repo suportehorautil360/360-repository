@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../../lib/firebase/firebase";
+import {
+  checklistsRegistrosApi,
+  type ChecklistRegistroApi,
+} from "../../../lib/api/checklists-registros";
 
 interface RiscosSectionProps {
   prefeituraId: string;
@@ -34,6 +36,29 @@ const ordemNivel: Record<RiscoRow["nivel"], number> = {
   Baixo: 2,
 };
 
+function mapRegistroParaRisco(
+  doc: ChecklistRegistroApi,
+): RiscoRow {
+  const totalSim = Number(doc.totalSim ?? 0);
+  const totalItens = Number(doc.totalItens ?? 0);
+  const totalNao = Math.max(0, totalItens - totalSim);
+  const nivel: RiscoRow["nivel"] =
+    totalNao >= 2 ? "Alto" : totalNao === 1 ? "Médio" : "Baixo";
+  const primeiroNao = doc.itensNao[0];
+  const { defeito, acaoSugerida } = primeiroNao?.titulo
+    ? parseTituloItemNao(String(primeiroNao.titulo))
+    : { defeito: "—", acaoSugerida: "—" };
+
+  return {
+    id: doc.id,
+    nivel,
+    categoria: doc.categoria || "—",
+    operador: doc.operador || "—",
+    defeito,
+    acaoSugerida,
+  };
+}
+
 export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
   const [rows, setRows] = useState<RiscoRow[]>([]);
   const [carregando, setCarregando] = useState(false);
@@ -42,34 +67,10 @@ export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
   useEffect(() => {
     if (!prefeituraId) return;
     setCarregando(true);
-    getDocs(
-      query(
-        collection(db, "checklistsRegistros"),
-        where("prefeituraId", "==", prefeituraId),
-      ),
-    )
-      .then((snap) => {
-        const fetched: RiscoRow[] = snap.docs.map((d) => {
-          const data = d.data() as Record<string, unknown>;
-          const totalSim = Number(data.totalSim ?? 0);
-          const totalItens = Number(data.totalItens ?? 0);
-          const totalNao = Math.max(0, totalItens - totalSim);
-          const nivel: RiscoRow["nivel"] =
-            totalNao >= 2 ? "Alto" : totalNao === 1 ? "Médio" : "Baixo";
-          const itensNao = Array.isArray(data.itensNao) ? data.itensNao : [];
-          const primeiroNao = itensNao[0] as { titulo?: string } | undefined;
-          const { defeito, acaoSugerida } = primeiroNao?.titulo
-            ? parseTituloItemNao(String(primeiroNao.titulo))
-            : { defeito: "—", acaoSugerida: "—" };
-          return {
-            id: d.id,
-            nivel,
-            categoria: String(data.categoria ?? "—"),
-            operador: String(data.operador ?? "—"),
-            defeito,
-            acaoSugerida,
-          };
-        });
+    checklistsRegistrosApi
+      .listarPorPrefeitura(prefeituraId)
+      .then((lista) => {
+        const fetched = lista.map(mapRegistroParaRisco);
         fetched.sort((a, b) => ordemNivel[a.nivel] - ordemNivel[b.nivel]);
         setRows(fetched);
       })

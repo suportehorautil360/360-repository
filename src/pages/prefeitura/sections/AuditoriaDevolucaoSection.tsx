@@ -1,22 +1,43 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "framer-motion";
+import {
+  ClipboardCheck,
+  Download,
+  Eye,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
 import { clientesApi } from "../../../lib/api/clientes";
+import {
+  checklistDevolucaoApi,
+  mensagemErroChd,
+} from "../../../lib/api/checklist-devolucao";
 import {
   mensagemErroAuditoriaDevolucao,
   osAuditoriaDevolucaoApi,
 } from "../../../lib/api/os-auditoria-devolucao";
 import {
-  STATUS_OS_OPCOES,
-  linhaAuditoriaParaTela,
-  type LinhaAuditoriaDevolucao,
+  chdDocParaLinha,
+  filtrarLinhasChd,
+  linhaChdParaTela,
+  type LinhaChdAuditoria,
 } from "./auditoria-devolucao-model";
-import { baixarPlanilhaAuditoriaDevolucao } from "./auditoriaDevolucaoExport";
-import { ObservacaoAuditoriaCell } from "./ObservacaoAuditoriaCell";
+import { ChdDetalheModal } from "./ChdDetalheModal";
+import { baixarChdPdf } from "../../../lib/chd/chd-pdf";
 import "./auditoria-devolucao.css";
+import "./chd-detalhe-modal.css";
 
 interface OficinaOpt {
   id: string;
   nome: string;
 }
+
+const FILTROS_PADRAO = {
+  dataInicio: "",
+  dataFim: "",
+  oficinaId: "todas",
+  equipamento: "todos",
+};
 
 export function AuditoriaDevolucaoSection({
   prefeituraId,
@@ -25,19 +46,21 @@ export function AuditoriaDevolucaoSection({
 }) {
   const [oficinas, setOficinas] = useState<OficinaOpt[]>([]);
   const [equipamentosOpts, setEquipamentosOpts] = useState<string[]>([]);
-  const [linhasPreview, setLinhasPreview] = useState<LinhaAuditoriaDevolucao[]>(
-    [],
-  );
+  const [chds, setChds] = useState<LinhaChdAuditoria[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
-  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [loadingChd, setLoadingChd] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
-  const [oficinaId, setOficinaId] = useState("todas");
-  const [equipamento, setEquipamento] = useState("todos");
-  const [statusOs, setStatusOs] = useState("aguardando_orcamento");
-  const [previewAtiva, setPreviewAtiva] = useState(false);
+  const [dataInicio, setDataInicio] = useState<string>(FILTROS_PADRAO.dataInicio);
+  const [dataFim, setDataFim] = useState<string>(FILTROS_PADRAO.dataFim);
+  const [oficinaId, setOficinaId] = useState<string>(FILTROS_PADRAO.oficinaId);
+  const [equipamento, setEquipamento] = useState<string>(FILTROS_PADRAO.equipamento);
+  const [chdDetalhe, setChdDetalhe] = useState<{
+    id: string;
+    number: string;
+    oficinaNome: string;
+  } | null>(null);
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
 
   const carregarMeta = useCallback(async () => {
     if (!prefeituraId) {
@@ -47,25 +70,50 @@ export function AuditoriaDevolucaoSection({
       return;
     }
     setLoadingMeta(true);
+    setLoadingChd(true);
     setErro(null);
     try {
-      const [oficinasLista, equipamentos] = await Promise.all([
+      const [oficinasLista, equipamentosOs] = await Promise.all([
         clientesApi.listarOficinasCredenciadas(prefeituraId),
-        osAuditoriaDevolucaoApi.listarEquipamentos(prefeituraId),
+        osAuditoriaDevolucaoApi.listarEquipamentos(prefeituraId).catch(
+          () => [] as string[],
+        ),
       ]);
-      setOficinas(
-        oficinasLista
-          .map((o) => ({
-            id: o.id,
-            nome: o.nome?.trim() || o.id,
-          }))
-          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+      const oficinasOrdenadas = oficinasLista
+        .map((o) => ({
+          id: o.id,
+          nome: o.nome?.trim() || o.id,
+        }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      setOficinas(oficinasOrdenadas);
+
+      const equipamentosChd = new Set(equipamentosOs);
+      try {
+        const oficinasPorId = new Map(
+          oficinasOrdenadas.map((o) => [o.id, o.nome]),
+        );
+        const chdDocs =
+          await checklistDevolucaoApi.listarPorPrefeitura(prefeituraId);
+        setChds(chdDocs.map((doc) => chdDocParaLinha(doc, oficinasPorId)));
+        for (const doc of chdDocs) {
+          const eq = doc.identification?.brandModel?.trim();
+          if (eq) equipamentosChd.add(eq);
+        }
+      } catch (err) {
+        setChds([]);
+        setErro(mensagemErroChd(err));
+      }
+
+      setEquipamentosOpts(
+        Array.from(equipamentosChd).sort((a, b) =>
+          a.localeCompare(b, "pt-BR"),
+        ),
       );
-      setEquipamentosOpts(equipamentos);
     } catch (err) {
       setErro(mensagemErroAuditoriaDevolucao(err));
     } finally {
       setLoadingMeta(false);
+      setLoadingChd(false);
     }
   }, [prefeituraId]);
 
@@ -73,216 +121,262 @@ export function AuditoriaDevolucaoSection({
     void carregarMeta();
   }, [carregarMeta]);
 
-  async function handlePreview() {
-    if (!prefeituraId) return;
-    setLoadingPreview(true);
+  function limparFiltros() {
+    setDataInicio(FILTROS_PADRAO.dataInicio);
+    setDataFim(FILTROS_PADRAO.dataFim);
+    setOficinaId(FILTROS_PADRAO.oficinaId);
+    setEquipamento(FILTROS_PADRAO.equipamento);
+  }
+
+  async function handleBaixarChdPdf(linha: LinhaChdAuditoria) {
+    if (pdfLoadingId) return;
+    setPdfLoadingId(linha.id);
     setErro(null);
     try {
-      const linhas = await osAuditoriaDevolucaoApi.listarLinhas(prefeituraId, {
-        startDate: dataInicio || undefined,
-        endDate: dataFim || undefined,
-        status: statusOs,
-        oficinaId,
-        equipamento,
-      });
-      setLinhasPreview(linhas);
-      setPreviewAtiva(true);
+      const doc = await checklistDevolucaoApi.obterPorId(linha.id);
+      baixarChdPdf(doc, { oficinaNome: linha.oficinaNome });
     } catch (err) {
-      setLinhasPreview([]);
-      setPreviewAtiva(true);
-      setErro(mensagemErroAuditoriaDevolucao(err));
+      setErro(mensagemErroChd(err));
     } finally {
-      setLoadingPreview(false);
+      setPdfLoadingId(null);
     }
   }
 
-  function handleDownload() {
-    if (linhasPreview.length === 0) return;
-    baixarPlanilhaAuditoriaDevolucao(linhasPreview, {
-      prefeituraId,
-      dataInicio,
-      dataFim,
-    });
-  }
+  const temFiltroAtivo =
+    dataInicio !== FILTROS_PADRAO.dataInicio ||
+    dataFim !== FILTROS_PADRAO.dataFim ||
+    oficinaId !== FILTROS_PADRAO.oficinaId ||
+    equipamento !== FILTROS_PADRAO.equipamento;
 
-  const busy = loadingMeta || loadingPreview;
+  const filtrosAtuais = {
+    dataInicio,
+    dataFim,
+    oficinaId,
+    equipamento,
+    statusOs: "todos",
+  };
+
+  const chdsFiltrados = useMemo(
+    () => filtrarLinhasChd(chds, filtrosAtuais),
+    [chds, dataInicio, dataFim, oficinaId, equipamento],
+  );
 
   return (
-    <section className="adev-page">
-      <div className="adev-wrap">
-        <h1 className="adev-title">Auditoria de Devolução</h1>
-        <p className="adev-subtitle">
-          Relatório via API do backend. Valor e oficina executora completos
-          quando a API de orçamentos estiver disponível; hoje lista as O.S. com
-          relato e oficinas convidadas.
-        </p>
+    <section className="adev">
+      <header className="adev-header">
+        <div className="adev-header__text">
+          <h1 className="adev-title">Auditoria de Devolução</h1>
+          <p className="adev-lead">
+            Consulte os checklists de devolução (CHD) vinculados às ordens de
+            serviço desta prefeitura, com filtros por período, oficina e
+            equipamento.
+          </p>
+        </div>
+        <div className="adev-stats" aria-live="polite">
+          <span className="adev-stat">
+            <strong>{chdsFiltrados.length}</strong>
+            CHD{chdsFiltrados.length === 1 ? "" : "s"}
+          </span>
+        </div>
+      </header>
 
-        {erro ? <div className="adev-erro">{erro}</div> : null}
+      {erro ? <div className="adev-erro">{erro}</div> : null}
 
-        <div className="adev-filtros">
-          <h2 className="adev-filtros__titulo">
-            <span aria-hidden>📋</span> Filtros e download de relatório
-          </h2>
-
-          <div className="adev-grid">
-            <div className="adev-field">
-              <label htmlFor="adev-data-inicio">Data inicial</label>
-              <input
-                id="adev-data-inicio"
-                type="date"
-                value={dataInicio}
-                onChange={(e) => {
-                  setDataInicio(e.target.value);
-                  setPreviewAtiva(false);
-                }}
-              />
-            </div>
-            <div className="adev-field">
-              <label htmlFor="adev-data-fim">Data final</label>
-              <input
-                id="adev-data-fim"
-                type="date"
-                value={dataFim}
-                onChange={(e) => {
-                  setDataFim(e.target.value);
-                  setPreviewAtiva(false);
-                }}
-              />
-            </div>
-            <div className="adev-field">
-              <label htmlFor="adev-oficina">Oficina</label>
-              <select
-                id="adev-oficina"
-                value={oficinaId}
-                onChange={(e) => {
-                  setOficinaId(e.target.value);
-                  setPreviewAtiva(false);
-                }}
-                disabled={loadingMeta}
-              >
-                <option value="todas">Todas as oficinas</option>
-                {oficinas.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="adev-field">
-              <label htmlFor="adev-equipamento">Equipamento</label>
-              <select
-                id="adev-equipamento"
-                value={equipamento}
-                onChange={(e) => {
-                  setEquipamento(e.target.value);
-                  setPreviewAtiva(false);
-                }}
-                disabled={loadingMeta}
-              >
-                <option value="todos">Todos os equipamentos</option>
-                {equipamentosOpts.map((eq) => (
-                  <option key={eq} value={eq}>
-                    {eq}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="adev-field">
-              <label htmlFor="adev-status">Status OS</label>
-              <select
-                id="adev-status"
-                value={statusOs}
-                onChange={(e) => {
-                  setStatusOs(e.target.value);
-                  setPreviewAtiva(false);
-                }}
-              >
-                {STATUS_OS_OPCOES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <div className="adev-toolbar">
+        <div className="adev-toolbar__filtros">
+          <div className="adev-periodo">
+            <span className="adev-periodo__label">Período</span>
+            <input
+              id="adev-data-inicio"
+              type="date"
+              className="adev-periodo__input"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              max={dataFim || undefined}
+              aria-label="Data inicial"
+            />
+            <span className="adev-periodo__sep">até</span>
+            <input
+              id="adev-data-fim"
+              type="date"
+              className="adev-periodo__input"
+              value={dataFim}
+              onChange={(e) => setDataFim(e.target.value)}
+              min={dataInicio || undefined}
+              aria-label="Data final"
+            />
           </div>
 
-          <div className="adev-acoes">
-            <button
-              type="button"
-              className="adev-btn adev-btn--preview"
-              onClick={() => void handlePreview()}
-              disabled={busy || !prefeituraId}
+          <div className="adev-select-wrap">
+            <label className="adev-select-wrap__label" htmlFor="adev-oficina">
+              Oficina
+            </label>
+            <select
+              id="adev-oficina"
+              className="adev-select"
+              value={oficinaId}
+              onChange={(e) => setOficinaId(e.target.value)}
+              disabled={loadingMeta}
             >
-              <span aria-hidden>🔍</span>{" "}
-              {loadingPreview ? "Carregando…" : "Pré-visualizar"}
-            </button>
-            <button
-              type="button"
-              className="adev-btn adev-btn--download"
-              onClick={handleDownload}
-              disabled={busy || linhasPreview.length === 0}
+              <option value="todas">Todas</option>
+              {oficinas.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="adev-select-wrap">
+            <label
+              className="adev-select-wrap__label"
+              htmlFor="adev-equipamento"
             >
-              <span aria-hidden>⬇</span> Baixar relatório
-            </button>
+              Equipamento
+            </label>
+            <select
+              id="adev-equipamento"
+              className="adev-select"
+              value={equipamento}
+              onChange={(e) => setEquipamento(e.target.value)}
+              disabled={loadingMeta}
+            >
+              <option value="todos">Todos</option>
+              {equipamentosOpts.map((eq) => (
+                <option key={eq} value={eq}>
+                  {eq}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {previewAtiva ? (
-          <div className="adev-preview">
-            <div className="adev-preview__head">Pré-visualização</div>
-            {loadingPreview ? (
-              <div className="adev-empty">Carregando registros…</div>
-            ) : linhasPreview.length === 0 ? (
-              <div className="adev-empty">
-                Nenhum registro encontrado com esses filtros.
-              </div>
-            ) : (
-              <div className="adev-table-scroll">
-                <table className="adev-table">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Tipo</th>
-                      <th>Destino</th>
-                      <th>Valor</th>
-                      <th>Responsável</th>
-                      <th>Obs.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {linhasPreview.map((r) => {
-                      const item = linhaAuditoriaParaTela(r);
-                      return (
-                        <tr key={r.osId}>
-                          <td>{item.dataLabel}</td>
-                          <td>
-                            <span
-                              className={`adev-status adev-status--${r.status}`}
-                            >
-                              {item.tipoLabel}
-                            </span>
-                          </td>
-                          <td>{item.destino}</td>
-                          <td className="adev-valor-positivo">
-                            {item.valorLabel}
-                          </td>
-                          <td>{item.responsavel}</td>
-                          <td className="adev-table__obs">
-                            <ObservacaoAuditoriaCell fmt={item.observacaoFmt} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <div className="adev-preview__foot">
-              {linhasPreview.length} registro(s) encontrado(s)
-            </div>
+        {temFiltroAtivo ? (
+          <div className="adev-toolbar__acoes">
+            <button
+              type="button"
+              className="adev-btn adev-btn--ghost"
+              onClick={limparFiltros}
+            >
+              <RotateCcw size={15} aria-hidden />
+              Limpar
+            </button>
           </div>
         ) : null}
       </div>
+
+      <div className="adev-panel">
+        <div className="adev-panel__head">
+          <ClipboardCheck size={18} aria-hidden className="adev-panel__icon" />
+          <div>
+            <h2 className="adev-panel__title">Checklists de devolução</h2>
+            <p className="adev-panel__sub">
+              CHDs vinculados às ordens de serviço desta prefeitura
+            </p>
+          </div>
+        </div>
+        {loadingChd ? (
+          <div className="adev-empty">Carregando checklists…</div>
+        ) : chdsFiltrados.length === 0 ? (
+          <div className="adev-empty">
+            Nenhum CHD encontrado com os filtros atuais.
+          </div>
+        ) : (
+          <div className="adev-table-scroll">
+            <table className="adev-table adev-table--chd">
+              <thead>
+                <tr>
+                  <th>Nº CHD</th>
+                  <th>O.S.</th>
+                  <th>Equipamento</th>
+                  <th>Oficina</th>
+                  <th>Data</th>
+                  <th>Horímetro</th>
+                  <th>Peças</th>
+                  <th>Serviços</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chdsFiltrados.map((r) => {
+                  const item = linhaChdParaTela(r);
+                  const pdfBusy = pdfLoadingId === r.id;
+                  return (
+                    <tr key={r.id}>
+                      <td className="adev-chd-num">{r.number}</td>
+                      <td>{r.osProtocolo}</td>
+                      <td>{item.equipamentoLabel}</td>
+                      <td>{r.oficinaNome}</td>
+                      <td>{item.dataLabel}</td>
+                      <td>{r.horimetro}</td>
+                      <td className="adev-chd-qtd">{r.qtdPecas}</td>
+                      <td className="adev-chd-qtd">{r.qtdServicos}</td>
+                      <td>
+                        <span
+                          className={`adev-badge adev-badge--chd-${r.status}`}
+                        >
+                          {item.statusLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="adev-chd-acoes">
+                          <button
+                            type="button"
+                            className="adev-chd-acao"
+                            onClick={() =>
+                              setChdDetalhe({
+                                id: r.id,
+                                number: r.number,
+                                oficinaNome: r.oficinaNome,
+                              })
+                            }
+                          >
+                            <Eye size={13} aria-hidden />
+                            Detalhes
+                          </button>
+                          <button
+                            type="button"
+                            className="adev-chd-acao adev-chd-acao--pdf"
+                            onClick={() => void handleBaixarChdPdf(r)}
+                            disabled={Boolean(pdfLoadingId)}
+                          >
+                            {pdfBusy ? (
+                              <Loader2
+                                size={13}
+                                className="chd-modal__spin"
+                                aria-hidden
+                              />
+                            ) : (
+                              <Download size={13} aria-hidden />
+                            )}
+                            PDF
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="adev-panel__foot">
+          {chdsFiltrados.length} exibido(s) · {chds.length} no total
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {chdDetalhe ? (
+          <ChdDetalheModal
+            key={chdDetalhe.id}
+            chdId={chdDetalhe.id}
+            chdNumero={chdDetalhe.number}
+            oficinaNome={chdDetalhe.oficinaNome}
+            onFechar={() => setChdDetalhe(null)}
+          />
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
