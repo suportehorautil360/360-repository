@@ -79,8 +79,8 @@ export const PREFEITURA_BRAND: SidebarBrand = {
       alt="Hora Útil 360"
       style={{
         display: "block",
-        width: "92%",
-        maxWidth: "240px",
+        width: "60%",
+        maxWidth: "150px",
         margin: "0 auto",
         borderRadius: "12px",
       }}

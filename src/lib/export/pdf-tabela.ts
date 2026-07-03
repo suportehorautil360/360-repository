@@ -67,22 +67,33 @@ export function gerarPDFTabela(opts: PdfTabela): jsPDF {
   }
 
   function linha(valores: (string | number)[], bold = false) {
-    if (y + ROW_H > PAGE_H - MARGIN) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    const linhasPorCelula = valores.map((cel, i) => {
+      const txt = cel === "" || cel == null ? "—" : String(cel);
+      return doc.splitTextToSize(txt, larguras[i] - 4) as string[];
+    });
+    const numLinhas = Math.max(1, ...linhasPorCelula.map((l) => l.length));
+    const alturaLinha = ROW_H * numLinhas;
+
+    if (y + alturaLinha > PAGE_H - MARGIN) {
       doc.addPage();
       y = MARGIN;
       cabecalho();
+      doc.setFontSize(8);
+      doc.setFont("helvetica", bold ? "bold" : "normal");
     }
+
     doc.setTextColor(30);
-    doc.setFontSize(8);
-    if (bold) doc.setFont("helvetica", "bold");
-    valores.forEach((cel, i) => {
-      const txt = cel === "" || cel == null ? "—" : String(cel);
-      doc.text(txt, x(i) + 2, y + 5);
+    linhasPorCelula.forEach((linhasCelula, i) => {
+      linhasCelula.forEach((txt, li) => {
+        doc.text(txt, x(i) + 2, y + 5 + li * ROW_H);
+      });
     });
-    if (bold) doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "normal");
     doc.setDrawColor(220);
-    doc.line(left, y + ROW_H, right, y + ROW_H);
-    y += ROW_H;
+    doc.line(left, y + alturaLinha, right, y + alturaLinha);
+    y += alturaLinha;
   }
 
   cabecalho();
