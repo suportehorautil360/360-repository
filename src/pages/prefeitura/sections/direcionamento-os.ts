@@ -134,13 +134,35 @@ const LINHA_PARA_SEGMENTO: Record<string, SegmentoOficina> = {
 
 export function segmentosEfetivosOficina(
   segmentosAtuacao: string[],
-  linhasAtuacao: string[],
+  linhasAtuacao: string[] = [],
 ): string[] {
   const cadastrados = segmentosAtuacao.filter(Boolean);
+  if (cadastrados.length > 0) {
+    return [...new Set(cadastrados)];
+  }
+
   const inferidos = linhasAtuacao
     .map((linha) => LINHA_PARA_SEGMENTO[norm(linha)] ?? "")
     .filter(Boolean);
-  return [...new Set([...cadastrados, ...inferidos])];
+  return [...new Set(inferidos)];
+}
+
+const SEGMENTO_PARA_LINHA: Record<SegmentoOficina, string> = {
+  "Carro leve": "Linha Leve",
+  "Máquinas linha amarela": "Linha Amarela",
+  "Tratores linha verde": "Linha Verde",
+  "Caminhão linha branca": "Linha Branca",
+};
+
+function segmentoParaLinhaEquipamento(segmento: string): string {
+  const alvo = norm(segmento);
+  if (!alvo) return "";
+
+  for (const [seg, linha] of Object.entries(SEGMENTO_PARA_LINHA)) {
+    if (norm(seg) === alvo) return linha;
+  }
+
+  return "";
 }
 
 function linhaAtuacaoParaEspecialidade(linha: string): string {
@@ -151,13 +173,21 @@ export function oficinaAtendeLinha(
   linhasAtuacao: string[],
   especialidade: string,
   linhaEquipamento: string,
+  segmentosAtuacao: string[] = [],
 ): boolean {
   const alvo = linhaEquipamento.trim();
   if (!alvo) return true;
 
   const linhas = linhasAtuacao.filter(Boolean);
-  if (linhas.length > 0) {
-    return linhas.some(
+  const linhasEfetivas =
+    linhas.length > 0
+      ? linhas
+      : segmentosAtuacao
+          .map((segmento) => segmentoParaLinhaEquipamento(segmento))
+          .filter(Boolean);
+
+  if (linhasEfetivas.length > 0) {
+    return linhasEfetivas.some(
       (linha) =>
         especialidadeCompativel(linha, alvo) ||
         especialidadeCompativel(linhaAtuacaoParaEspecialidade(linha), alvo),
@@ -203,6 +233,7 @@ export function filtrarOficinasElegiveis(
       oficina.linhasAtuacao ?? [],
       oficina.especialidade,
       linhaNorm,
+      oficina.segmentosAtuacao ?? [],
     ),
   );
 }

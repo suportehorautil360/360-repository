@@ -269,101 +269,103 @@ export function DashboardSection({ prefeituraId }: { prefeituraId: string }) {
         </article>
       </div>
 
-      <section className="pnl__card pnl__card--operadores">
-        <header className="pnl__card-head">
-          <div>
-            <h2>
-              <Users size={14} /> Top 5 operadores
-            </h2>
-            <p className="pnl__card-sub">
-              Ranking por checklists realizados — {periodoOperadores}
-            </p>
-          </div>
-        </header>
-        {topOperadoresGrafico.length === 0 ? (
-          <p className="pnl__vazio">
-            Nenhum checklist registrado para montar o ranking.
-          </p>
-        ) : (
-          <div className="pnl__grafico-operadores">
-            <Suspense fallback={<div className="pnl__grafico-ph" />}>
-              <GraficoBarrasHorizontais
-                dados={topOperadoresGrafico}
-                formato={(v) => `${v} insp.`}
-                altura={Math.max(180, topOperadoresGrafico.length * 48)}
-              />
-            </Suspense>
-          </div>
-        )}
-      </section>
-
       <div className="pnl__grid2">
-        <section className="pnl__card">
-          <header className="pnl__card-head">
-            <h2>⛽ Últimos abastecimentos</h2>
-          </header>
-          <div className="pnl__tab-wrap">
-            <table className="pnl__tabela">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Veículo</th>
-                  <th>Combustível</th>
-                  <th>Litros</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {m.ultimos.length === 0 ? (
+        <div className="pnl__col">
+          <section className="pnl__card">
+            <header className="pnl__card-head">
+              <h2>⛽ Últimos abastecimentos</h2>
+            </header>
+            <div className="pnl__tab-wrap">
+              <table className="pnl__tabela">
+                <thead>
                   <tr>
-                    <td colSpan={6} className="pnl__vazio">
-                      Nenhum abastecimento registrado.
-                    </td>
+                    <th>Data</th>
+                    <th>Veículo</th>
+                    <th>Combustível</th>
+                    <th>Litros</th>
+                    <th>Total</th>
+                    <th>Status</th>
                   </tr>
-                ) : (
-                  m.ultimos.map((a) => (
-                    <tr key={a.id}>
-                      <td>{a.data.split("-").reverse().join("/")}</td>
-                      <td>
-                        <span className="pnl__placa">
-                          {a.placa || a.veiculo || "—"}
-                        </span>
-                      </td>
-                      <td>{a.combustivel}</td>
-                      <td>{a.litros} L</td>
-                      <td
-                        className={
-                          totalAbastecimentoEhComboio(a)
-                            ? "pnl__total-comboio"
-                            : a.valor <= 0
-                              ? "pnl__total-sem-valor"
-                              : undefined
-                        }
-                        title={
-                          totalAbastecimentoEhComboio(a)
-                            ? "Abastecimento interno — sem cobrança em posto"
-                            : a.valor <= 0
-                              ? "Posto não registrou valor total neste abastecimento"
-                              : undefined
-                        }
-                      >
-                        {fmtTotalAbastecimento(a)}
-                      </td>
-                      <td>
-                        <span
-                          className={`pnl__st pnl__st--${a.status || "aprovado"}`}
-                        >
-                          {fmtStatus(a.status)}
-                        </span>
+                </thead>
+                <tbody>
+                  {m.ultimos.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="pnl__vazio">
+                        Nenhum abastecimento registrado.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                  ) : (
+                    m.ultimos.map((a) => (
+                      <tr key={a.id}>
+                        <td>{a.data.split("-").reverse().join("/")}</td>
+                        <td>
+                          <span className="pnl__placa">
+                            {a.placa || a.veiculo || "—"}
+                          </span>
+                        </td>
+                        <td>{a.combustivel}</td>
+                        <td>{a.litros} L</td>
+                        <td
+                          className={
+                            totalAbastecimentoEhComboio(a)
+                              ? "pnl__total-comboio"
+                              : a.valor <= 0
+                                ? "pnl__total-sem-valor"
+                                : undefined
+                          }
+                          title={
+                            totalAbastecimentoEhComboio(a)
+                              ? "Abastecimento interno — sem cobrança em posto"
+                              : a.valor <= 0
+                                ? "Posto não registrou valor total neste abastecimento"
+                                : undefined
+                          }
+                        >
+                          {fmtTotalAbastecimento(a)}
+                        </td>
+                        <td>
+                          <span
+                            className={`pnl__st pnl__st--${a.status || "aprovado"}`}
+                          >
+                            {fmtStatus(a.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="pnl__card pnl__card--operadores">
+            <header className="pnl__card-head">
+              <div>
+                <h2>
+                  <Users size={14} /> Top 5 operadores
+                </h2>
+                <p className="pnl__card-sub">
+                  Ranking por checklists realizados — {periodoOperadores}
+                </p>
+              </div>
+            </header>
+            {topOperadoresGrafico.length === 0 ? (
+              <p className="pnl__vazio">
+                Nenhum checklist registrado para montar o ranking.
+              </p>
+            ) : (
+              <div className="pnl__grafico-operadores">
+                <Suspense fallback={<div className="pnl__grafico-ph" />}>
+                  <GraficoBarrasHorizontais
+                    dados={topOperadoresGrafico}
+                    formato={(v) => `${v} insp.`}
+                    altura={Math.max(180, topOperadoresGrafico.length * 48)}
+                  />
+                </Suspense>
+              </div>
+            )}
+          </section>
+        </div>
 
         <div className="pnl__col">
           <section className="pnl__card">

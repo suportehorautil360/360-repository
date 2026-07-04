@@ -22,6 +22,12 @@ import {
   linhaChdParaTela,
   type LinhaChdAuditoria,
 } from "./auditoria-devolucao-model";
+import {
+  chdAuditoriaNaoVisto,
+  contarChdsAuditoriaNaoVistos,
+  marcarChdAuditoriaVisto,
+  sincronizarBaselineChdAuditoria,
+} from "../auditoria-devolucao-vistos";
 import { ChdDetalheModal } from "./ChdDetalheModal";
 import { baixarChdPdf } from "../../../lib/chd/chd-pdf";
 import "./auditoria-devolucao.css";
@@ -61,6 +67,40 @@ export function AuditoriaDevolucaoSection({
     oficinaNome: string;
   } | null>(null);
   const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
+  const [vistosTick, setVistosTick] = useState(0);
+
+  const chdIds = useMemo(() => chds.map((item) => item.id), [chds]);
+
+  const qtdNovos = useMemo(() => {
+    void vistosTick;
+    return contarChdsAuditoriaNaoVistos(prefeituraId, chdIds);
+  }, [prefeituraId, chdIds, vistosTick]);
+
+  useEffect(() => {
+    const onVistos = (event: Event) => {
+      const detail = (event as CustomEvent<{ prefeituraId?: string }>).detail;
+      if (detail?.prefeituraId && detail.prefeituraId !== prefeituraId) return;
+      setVistosTick((value) => value + 1);
+    };
+    window.addEventListener("hu360:chd-auditoria-vistos", onVistos);
+    return () => {
+      window.removeEventListener("hu360:chd-auditoria-vistos", onVistos);
+    };
+  }, [prefeituraId]);
+
+  function marcarComoVisto(chdId: string) {
+    marcarChdAuditoriaVisto(prefeituraId, chdId, chdIds);
+    setVistosTick((value) => value + 1);
+  }
+
+  function abrirDetalhe(linha: LinhaChdAuditoria) {
+    marcarComoVisto(linha.id);
+    setChdDetalhe({
+      id: linha.id,
+      number: linha.number,
+      oficinaNome: linha.oficinaNome,
+    });
+  }
 
   const carregarMeta = useCallback(async () => {
     if (!prefeituraId) {
@@ -95,6 +135,11 @@ export function AuditoriaDevolucaoSection({
         const chdDocs =
           await checklistDevolucaoApi.listarPorPrefeitura(prefeituraId);
         setChds(chdDocs.map((doc) => chdDocParaLinha(doc, oficinasPorId)));
+        sincronizarBaselineChdAuditoria(
+          prefeituraId,
+          chdDocs.map((doc) => doc.id),
+        );
+        setVistosTick((value) => value + 1);
         for (const doc of chdDocs) {
           const eq = doc.identification?.brandModel?.trim();
           if (eq) equipamentosChd.add(eq);
@@ -132,9 +177,10 @@ export function AuditoriaDevolucaoSection({
     if (pdfLoadingId) return;
     setPdfLoadingId(linha.id);
     setErro(null);
+    marcarComoVisto(linha.id);
     try {
       const doc = await checklistDevolucaoApi.obterPorId(linha.id);
-      baixarChdPdf(doc, { oficinaNome: linha.oficinaNome });
+      await baixarChdPdf(doc, { oficinaNome: linha.oficinaNome });
     } catch (err) {
       setErro(mensagemErroChd(err));
     } finally {
@@ -181,6 +227,18 @@ export function AuditoriaDevolucaoSection({
       </header>
 
       {erro ? <div className="adev-erro">{erro}</div> : null}
+
+      {qtdNovos > 0 ? (
+        <div className="adev-novos" role="status">
+          <span className="adev-novos__dot" aria-hidden />
+          <span>
+            <strong>{qtdNovos}</strong> checklist
+            {qtdNovos === 1 ? "" : "s"} de devolução{" "}
+            {qtdNovos === 1 ? "novo" : "novos"} — ainda não conferido
+            {qtdNovos === 1 ? "" : "s"}
+          </span>
+        </div>
+      ) : null}
 
       <div className="adev-toolbar">
         <div className="adev-toolbar__filtros">
@@ -302,9 +360,22 @@ export function AuditoriaDevolucaoSection({
                 {chdsFiltrados.map((r) => {
                   const item = linhaChdParaTela(r);
                   const pdfBusy = pdfLoadingId === r.id;
+                  const ehNovo = chdAuditoriaNaoVisto(prefeituraId, r.id, chdIds);
                   return (
-                    <tr key={r.id}>
-                      <td className="adev-chd-num">{r.number}</td>
+                    <tr
+                      key={r.id}
+                      className={ehNovo ? "adev-table-row--novo" : undefined}
+                    >
+                      <td className="adev-chd-num">
+                        <span className="adev-chd-num__wrap">
+                          {ehNovo ? (
+                            <span className="adev-novo-tag" title="Novo checklist">
+                              Novo
+                            </span>
+                          ) : null}
+                          {r.number}
+                        </span>
+                      </td>
                       <td>{r.osProtocolo}</td>
                       <td>{item.equipamentoLabel}</td>
                       <td>{r.oficinaNome}</td>
@@ -324,13 +395,7 @@ export function AuditoriaDevolucaoSection({
                           <button
                             type="button"
                             className="adev-chd-acao"
-                            onClick={() =>
-                              setChdDetalhe({
-                                id: r.id,
-                                number: r.number,
-                                oficinaNome: r.oficinaNome,
-                              })
-                            }
+                            onClick={() => abrirDetalhe(r)}
                           >
                             <Eye size={13} aria-hidden />
                             Detalhes

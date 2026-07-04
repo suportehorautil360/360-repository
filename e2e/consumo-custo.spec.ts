@@ -30,7 +30,7 @@ test.describe("Consumo / Custo (prefeitura)", () => {
     });
   });
 
-  test("renderiza cards com métricas da spec V2 vindas da API", async ({
+  test("renderiza tabela com métricas da spec V2 vindas da API", async ({
     page,
   }) => {
     await page.goto(rotaConsumoCusto());
@@ -42,44 +42,27 @@ test.describe("Consumo / Custo (prefeitura)", () => {
     await expect(page.getByText("Frota Teste E2E")).toBeVisible();
     await expect(page.getByText("Escavadeira E2E")).toBeVisible();
 
-    const cardFrota = page.locator(".ccu-card", {
-      has: page.getByText("Frota Teste E2E"),
-    });
-    const metricasFrota = cardFrota.locator(".ccu-card-metrics");
-    await expect(metricasFrota.getByText("0,15", { exact: true })).toBeVisible();
-    await expect(metricasFrota.getByText("MÉDIO L/KM")).toBeVisible();
-    await expect(metricasFrota.getByText("0,90", { exact: true })).toBeVisible();
-    await expect(metricasFrota.getByText("CUSTO /KM")).toBeVisible();
-    await expect(metricasFrota.getByText("269,55")).toBeVisible();
-
-    const cardCampo = page.locator(".ccu-card", {
-      has: page.getByText("Escavadeira E2E"),
-    });
-    const metricasCampo = cardCampo.locator(".ccu-card-metrics");
-    await expect(metricasCampo.getByText("43,75", { exact: true })).toBeVisible();
-    await expect(metricasCampo.getByText("MÉDIO L/H")).toBeVisible();
-    await expect(metricasCampo.getByText("350,000 L")).toBeVisible();
-    await expect(
-      metricasCampo.locator(".ccu-metric-valor--muted").first(),
-    ).toBeVisible();
+    const tabela = page.locator(".ccu-table").first();
+    await expect(tabela.getByText("0,15 L/km")).toBeVisible();
+    await expect(tabela.getByText("R$ 0,90/km")).toBeVisible();
+    await expect(tabela.getByText("350,000 L")).toBeVisible();
   });
 
-  test("expandir card exibe intervalo de consumo do backend", async ({
+  test("expandir linha exibe intervalo de consumo do backend", async ({
     page,
   }) => {
     await page.goto(rotaConsumoCusto());
 
-    const cardFrota = page.locator(".ccu-card", {
+    const linhaFrota = page.locator(".ccu-row--clicavel", {
       has: page.getByText("Frota Teste E2E"),
     });
 
-    await cardFrota
-      .getByRole("button", { name: /Expandir detalhes de Frota Teste E2E/i })
-      .click();
+    await linhaFrota.click();
 
-    await expect(cardFrota.getByText("0,15 L/km")).toBeVisible();
-    await expect(cardFrota.getByText("R$ 0,90/km")).toBeVisible();
-    await expect(cardFrota.getByText("300 km")).toBeVisible();
+    await expect(page.getByText("Histórico de intervalos")).toBeVisible();
+    await expect(page.getByText("0,15 L/km")).toBeVisible();
+    await expect(page.getByText("R$ 0,90/km")).toBeVisible();
+    await expect(page.getByText("300 km")).toBeVisible();
   });
 
   test("botão Atualizar dispara nova chamada à API", async ({ page }) => {

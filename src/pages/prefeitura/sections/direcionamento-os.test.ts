@@ -57,6 +57,22 @@ describe("filtrarOficinasElegiveis", () => {
     expect(result.map((o) => o.id)).toEqual(["2"]);
   });
 
+  it("deriva linha a partir do segmento quando linhas não cadastradas", () => {
+    const result = filtrarOficinasElegiveis(
+      [
+        {
+          id: "4",
+          nome: "D",
+          especialidade: "Amarela",
+          segmentosAtuacao: ["Máquinas linha amarela"],
+        },
+      ],
+      "Linha Amarela",
+      "Máquinas linha amarela",
+    );
+    expect(result.map((o) => o.id)).toEqual(["4"]);
+  });
+
   it("retorna vazio quando linha não combina", () => {
     expect(filtrarOficinasElegiveis(oficinas, "Linha Verde")).toEqual([]);
   });

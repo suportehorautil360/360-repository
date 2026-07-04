@@ -46,12 +46,6 @@ const SERVICOS_POSTO = [
   "Troca de óleo",
   "Atendimento 24h",
 ];
-const LINHAS = [
-  { emoji: "🟨", label: "Linha Amarela" },
-  { emoji: "🟩", label: "Linha Verde" },
-  { emoji: "⬜", label: "Linha Branca" },
-  { emoji: "🟦", label: "Linha Leve" },
-];
 const SEGMENTOS = [
   { emoji: "🚗", label: "Carro leve" },
   { emoji: "🟨", label: "Máquinas linha amarela" },
@@ -321,11 +315,6 @@ export function CadastroParceiroSection({
       setMsgTexto("err", "Selecione o cliente vinculado.");
       return;
     }
-    if (form.tipo === "oficina" && form.linhasAtuacao.length === 0) {
-      setAba("oficina");
-      setMsgTexto("err", "Marque ao menos uma linha de atuação.");
-      return;
-    }
     if (form.tipo === "oficina" && form.segmentosAtuacao.length === 0) {
       setAba("oficina");
       setMsgTexto("err", "Marque ao menos um segmento de equipamento.");
@@ -344,7 +333,6 @@ export function CadastroParceiroSection({
         bandeira: form.bandeira,
         combustiveis: form.combustiveis,
         servicos: form.servicos,
-        linhasAtuacao: form.linhasAtuacao,
         segmentosAtuacao: form.segmentosAtuacao,
         categoriasServico: form.categoriasServico,
         especificacoes: form.especificacoes.trim(),
@@ -748,24 +736,7 @@ export function CadastroParceiroSection({
 
           {aba === "oficina" && (
             <>
-              <div className="parc-sec-titulo">📁 Linhas de atuação</div>
-              <div className="parc-check-grid">
-                {LINHAS.map((l) => (
-                  <label key={l.label} className="parc-check">
-                    <input
-                      type="checkbox"
-                      checked={form.linhasAtuacao.includes(l.label)}
-                      onChange={() => toggle("linhasAtuacao", l.label)}
-                    />
-                    <span aria-hidden="true">{l.emoji}</span> {l.label}
-                  </label>
-                ))}
-              </div>
               <div className="parc-sec-titulo">🎯 Segmentos de equipamento</div>
-              <p className="topbar-user" style={{ margin: "0 0 10px" }}>
-                Usado no sorteio da OS para convidar oficinas compatíveis com o
-                tipo de equipamento.
-              </p>
               <div className="parc-check-grid">
                 {SEGMENTOS.map((s) => (
                   <label key={s.label} className="parc-check">

@@ -171,7 +171,12 @@ export function PrefeituraPage() {
   const { flags } = useResolvedFlags(prefeituraId);
   const pontoAtivo = flags.ponto;
   const abastecimentoAtivo = flags.abastecimento;
-  const badges = usePrefeituraBadges(prefeituraId, pontoAtivo, abastecimentoAtivo);
+  const manutencaoAtivo = flags.manutencao ?? true;
+  const badges = usePrefeituraBadges(
+    prefeituraId,
+    pontoAtivo,
+    manutencaoAtivo,
+  );
 
   const dados = useMemo(
     () => (prefeituraId ? obterDadosPrefeitura(prefeituraId) : null),
