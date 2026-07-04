@@ -427,7 +427,7 @@ export function ChdDetalheModal({
     if (!doc || baixandoPdf) return;
     setBaixandoPdf(true);
     try {
-      baixarChdPdf(doc, { oficinaNome });
+      await baixarChdPdf(doc, { oficinaNome });
     } finally {
       setBaixandoPdf(false);
     }

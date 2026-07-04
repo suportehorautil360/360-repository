@@ -7,6 +7,13 @@ import {
   labelStatusChdExport,
   secaoModuloChd,
 } from "./chd-checklist-labels";
+import {
+  carregarMapaImagensChd,
+  coletarUrlsFotosChd,
+  dimensaoImagemPdf,
+  formatImagemPdf,
+  type ImagemPdfCarregada,
+} from "./chd-pdf-images";
 
 const MARGIN = 14;
 const PAGE_W = 210;
@@ -213,10 +220,129 @@ function desenharRodape(doc: jsPDF, y: number, linhas: string[]): void {
   }
 }
 
-export function baixarChdPdf(
+function desenharFoto(
+  doc: jsPDF,
+  y: number,
+  rotulo: string,
+  img: ImagemPdfCarregada,
+  maxW = PAGE_W - MARGIN * 2,
+  maxH = 44,
+): number {
+  const { w, h } = dimensaoImagemPdf(img, maxW, maxH);
+  y = quebraPagina(doc, y, h + 10);
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(rotulo, MARGIN + 2, y);
+  y += 4;
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(MARGIN, y, w + 2, h + 2, 1.5, 1.5, "S");
+  doc.addImage(
+    img.dataUrl,
+    formatImagemPdf(img.dataUrl),
+    MARGIN + 1,
+    y + 1,
+    w,
+    h,
+  );
+  return y + h + 7;
+}
+
+function desenharFotoOuPlaceholder(
+  doc: jsPDF,
+  y: number,
+  rotulo: string,
+  url: string | undefined,
+  imagens: Map<string, ImagemPdfCarregada | null>,
+  maxW = PAGE_W - MARGIN * 2,
+  maxH = 44,
+): number {
+  const trimmed = url?.trim();
+  if (!trimmed) return y;
+
+  const img = imagens.get(trimmed);
+  if (img) {
+    return desenharFoto(doc, y, rotulo, img, maxW, maxH);
+  }
+
+  y = quebraPagina(doc, y, 10);
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(rotulo, MARGIN + 2, y);
+  y += 4;
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184);
+  doc.text("Foto indisponível para impressão.", MARGIN + 2, y);
+  return y + 8;
+}
+
+function desenharParFotosPeca(
+  doc: jsPDF,
+  y: number,
+  rotuloNova: string,
+  urlNova: string | undefined,
+  rotuloVelha: string,
+  urlVelha: string | undefined,
+  imagens: Map<string, ImagemPdfCarregada | null>,
+): number {
+  const nova = urlNova?.trim();
+  const velha = urlVelha?.trim();
+  if (!nova && !velha) return y;
+
+  const gap = 4;
+  const colW = (PAGE_W - MARGIN * 2 - gap) / 2;
+  const maxH = 40;
+
+  const imgNova = nova ? imagens.get(nova) : null;
+  const imgVelha = velha ? imagens.get(velha) : null;
+  const dimNova = imgNova ? dimensaoImagemPdf(imgNova, colW, maxH) : null;
+  const dimVelha = imgVelha ? dimensaoImagemPdf(imgVelha, colW, maxH) : null;
+  const blockH =
+    Math.max(dimNova?.h ?? (nova ? 8 : 0), dimVelha?.h ?? (velha ? 8 : 0)) + 8;
+
+  y = quebraPagina(doc, y, blockH);
+
+  const drawCol = (
+    x: number,
+    rotulo: string,
+    url: string | undefined,
+    img: ImagemPdfCarregada | null | undefined,
+    dim: { w: number; h: number } | null,
+  ) => {
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(rotulo, x, y);
+    const top = y + 4;
+    if (img && dim) {
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(x, top, dim.w + 1, dim.h + 1, 1, 1, "S");
+      doc.addImage(
+        img.dataUrl,
+        formatImagemPdf(img.dataUrl),
+        x + 0.5,
+        top + 0.5,
+        dim.w,
+        dim.h,
+      );
+      return;
+    }
+    if (url) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text("Indisponível", x, top + 4);
+    }
+  };
+
+  drawCol(MARGIN, rotuloNova, nova, imgNova ?? null, dimNova);
+  drawCol(MARGIN + colW + gap, rotuloVelha, velha, imgVelha ?? null, dimVelha);
+
+  return y + blockH + 2;
+}
+
+export async function baixarChdPdf(
   chd: ChdDocCompleto,
   opts?: { oficinaNome?: string },
-): void {
+): Promise<void> {
+  const imagens = await carregarMapaImagensChd(coletarUrlsFotosChd(chd));
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const id = chd.identification ?? {};
   let y = desenharCabecalho(doc, {
@@ -251,6 +377,13 @@ export function baixarChdPdf(
     y = desenharCabecalhoChecks(doc, y);
     for (const [key, item] of generalItems) {
       y = desenharLinhaCheck(doc, y, labelItemChd(key), item.status ?? "");
+      y = desenharFotoOuPlaceholder(
+        doc,
+        y,
+        `Foto — ${labelItemChd(key)}`,
+        item.photo,
+        imagens,
+      );
     }
   }
 
@@ -278,6 +411,15 @@ export function baixarChdPdf(
       y = desenharPar(doc, y, `Peça ${index + 1}`, v(part.description));
       y = desenharPar(doc, y, "Nº / marca", `${v(part.partNumber)} · ${v(part.brand)}`);
       y = desenharPar(doc, y, "Destino peça antiga", v(part.oldPartDestination));
+      y = desenharParFotosPeca(
+        doc,
+        y,
+        "Foto peça nova",
+        part.newPhoto,
+        "Foto peça substituída",
+        part.replacedPhoto,
+        imagens,
+      );
     });
   }
 

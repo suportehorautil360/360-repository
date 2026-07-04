@@ -349,6 +349,56 @@
   margin: 0.75rem 1.1rem 0;
 }
 
+.adev-novos {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(30, 64, 175, 0.18);
+  color: #bfdbfe;
+  font-size: 0.86rem;
+}
+
+.adev-novos__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.25);
+  flex-shrink: 0;
+}
+
+.adev-table-row--novo {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.adev-table-row--novo:hover td {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.adev-chd-num__wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.adev-novo-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.22);
+  color: #93c5fd;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .adev-badge {
   display: inline-block;
   padding: 0.15rem 0.55rem;

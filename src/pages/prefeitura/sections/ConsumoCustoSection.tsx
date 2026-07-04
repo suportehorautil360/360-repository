@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
   FileDown,
   RefreshCw,
-  TrendingUp,
+  Search,
 } from "lucide-react";
 import {
-  CALCULO_CONSUMO_PADRAO,
   consumoCustoApi,
   valorMetricaCard,
-  type ConsumoCustoCalculoTela,
   type ConsumoCustoTela,
   type VeiculoConsumoCusto,
 } from "../../../lib/api/consumoCusto";
@@ -44,146 +42,20 @@ function chaveCache(
   inicio: string,
   fim: string,
 ): string {
-  return `${prefeituraId}|${inicio}|${fim}|v14`;
+  return `${prefeituraId}|${inicio}|${fim}|v15`;
 }
 
 const cacheConsumoCusto = new Map<string, ConsumoCustoTela>();
 
-function CardVeiculo({
-  item,
-  aberto,
-  onToggle,
-}: {
-  item: VeiculoConsumoCusto;
-  aberto: boolean;
-  onToggle: () => void;
-}) {
-  const consumoExibicao = valorMetricaCard(
-    item.consumoValor,
-    item.consumoLabel,
-  );
-  const custoExibicao = valorMetricaCard(item.custoValor, item.custoLabel);
+function normBusca(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
-  return (
-    <article className={`ccu-card${aberto ? " ccu-card--aberto" : ""}`}>
-      <button
-        type="button"
-        className="ccu-card-toggle"
-        onClick={onToggle}
-        aria-expanded={aberto}
-        aria-label={
-          aberto
-            ? `Recolher detalhes de ${item.nome}`
-            : `Expandir detalhes de ${item.nome}`
-        }
-      >
-        <div className="ccu-card-titulo">
-          <strong>{item.nome}</strong>
-          <span>{item.subtitulo}</span>
-        </div>
-        <ChevronDown
-          className={`ccu-card-chevron${aberto ? " ccu-card-chevron--aberto" : ""}`}
-          size={16}
-          strokeWidth={2.25}
-          aria-hidden
-        />
-      </button>
-
-      <div className="ccu-card-metrics">
-        <div className="ccu-metric-box">
-          <span
-            className={`ccu-metric-valor${consumoExibicao === "—" ? " ccu-metric-valor--muted" : ""}`}
-          >
-            {consumoExibicao}
-          </span>
-          <span className="ccu-metric-label">{item.labelConsumo}</span>
-        </div>
-        <div className="ccu-metric-box">
-          <span
-            className={`ccu-metric-valor${custoExibicao === "—" ? " ccu-metric-valor--muted" : ""}`}
-          >
-            {custoExibicao}
-          </span>
-          <span className="ccu-metric-label">{item.labelCusto}</span>
-        </div>
-        <div className="ccu-metric-box">
-          <span
-            className={`ccu-metric-valor${item.valorTerceira === "—" ? " ccu-metric-valor--muted" : ""}`}
-          >
-            {item.valorTerceira}
-          </span>
-          <span className="ccu-metric-label">{item.labelTerceira}</span>
-        </div>
-      </div>
-
-      <div
-        className={`ccu-card-expand${aberto ? " ccu-card-expand--aberto" : ""}`}
-      >
-        <div className="ccu-card-expand-inner">
-          <div className="ccu-card-detalhe">
-            <div className="ccu-historico">
-              <h3 className="ccu-historico-titulo">
-                {item.intervalos.length > 0
-                  ? "Histórico de intervalos"
-                  : "Histórico de abastecimentos"}
-              </h3>
-
-              {item.intervalos.length > 0 ? (
-                <ul className="ccu-historico-lista">
-                  {item.intervalos.map((intervalo) => (
-                    <li key={intervalo.id} className="ccu-historico-row">
-                      <span className="ccu-historico-periodo">
-                        {intervalo.periodoLabel}
-                      </span>
-                      <span className="ccu-historico-duracao">
-                        {intervalo.duracaoLabel}
-                      </span>
-                      <span className="ccu-historico-consumo">
-                        {intervalo.consumoLabel}
-                      </span>
-                      <span
-                        className={`ccu-historico-custo${intervalo.custoLabel === "—" ? " ccu-historico-custo--muted" : ""}`}
-                      >
-                        {intervalo.custoLabel}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : item.abastecimentos.length > 0 ? (
-                <ul className="ccu-historico-lista">
-                  {item.abastecimentos.map((abastecimento) => (
-                    <li
-                      key={abastecimento.id}
-                      className="ccu-historico-row ccu-historico-row--abast"
-                    >
-                      <span className="ccu-historico-periodo">
-                        {abastecimento.dateTimeLabel}
-                      </span>
-                      <span className="ccu-historico-duracao">
-                        {abastecimento.leituraLabel}
-                      </span>
-                      <span className="ccu-historico-consumo">
-                        {abastecimento.litrosLabel}
-                      </span>
-                      <span
-                        className={`ccu-historico-custo${abastecimento.gastoLabel === "—" ? " ccu-historico-custo--muted" : ""}`}
-                      >
-                        {abastecimento.gastoLabel}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="ccu-historico-vazio">
-                  Sem abastecimentos no período.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
+function metricaExibicao(curto: string, label: string): string {
+  return valorMetricaCard(curto, label);
 }
 
 export function ConsumoCustoSection({
@@ -193,14 +65,12 @@ export function ConsumoCustoSection({
   const [periodoFim, setPeriodoFim] = useState(isoHoje);
   const [titulo, setTitulo] = useState("Consumo & Custo por Veículo");
   const [periodoLabel, setPeriodoLabel] = useState("");
-  const [calculo, setCalculo] = useState<ConsumoCustoCalculoTela>(
-    CALCULO_CONSUMO_PADRAO,
-  );
   const [veiculos, setVeiculos] = useState<VeiculoConsumoCusto[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [cardAberto, setCardAberto] = useState<string | null>(null);
+  const [linhaAberta, setLinhaAberta] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
@@ -211,7 +81,6 @@ export function ConsumoCustoSection({
     if (emCache) {
       setTitulo(emCache.titulo);
       setPeriodoLabel(emCache.periodoLabel);
-      setCalculo(emCache.calculo);
       setVeiculos(emCache.veiculos);
     }
 
@@ -227,7 +96,6 @@ export function ConsumoCustoSection({
         cacheConsumoCusto.set(chave, data);
         setTitulo(data.titulo);
         setPeriodoLabel(data.periodoLabel);
-        setCalculo(data.calculo);
         setVeiculos(data.veiculos);
       })
       .catch((e) => {
@@ -235,7 +103,6 @@ export function ConsumoCustoSection({
         if (!emCache) {
           setVeiculos([]);
           setPeriodoLabel("");
-          setCalculo(CALCULO_CONSUMO_PADRAO);
         }
         setErro(
           e instanceof Error
@@ -268,24 +135,51 @@ export function ConsumoCustoSection({
   }, []);
 
   useEffect(() => {
-    setCardAberto(null);
-  }, [periodoInicio, periodoFim]);
+    setLinhaAberta(null);
+  }, [periodoInicio, periodoFim, busca]);
 
   const periodoExibicao =
     periodoLabel || fmtPeriodoExibicao(periodoInicio, periodoFim);
-  const podeExportar = !carregando && veiculos.length > 0;
+
+  const veiculosFiltrados = useMemo(() => {
+    const q = normBusca(busca.trim());
+    if (!q) return veiculos;
+    return veiculos.filter((v) =>
+      normBusca(`${v.nome} ${v.placa} ${v.subtitulo} ${v.categoria} ${v.local}`).includes(q),
+    );
+  }, [veiculos, busca]);
+
+  const resumo = useMemo(() => {
+    const comCusto = veiculosFiltrados.filter((v) => v.custoLabel !== "—").length;
+    const comConsumo = veiculosFiltrados.filter((v) => v.consumoLabel !== "—").length;
+    return {
+      total: veiculosFiltrados.length,
+      comCusto,
+      comConsumo,
+    };
+  }, [veiculosFiltrados]);
+
+  const podeExportar = !carregando && veiculosFiltrados.length > 0;
 
   const handleExportar = useCallback(() => {
     if (!podeExportar) return;
-    baixarPlanilhaConsumoCusto(veiculos, {
+    baixarPlanilhaConsumoCusto(veiculosFiltrados, {
       prefeituraId,
       periodoInicio,
       periodoFim,
+      periodoLabel: periodoExibicao,
     });
-  }, [podeExportar, veiculos, prefeituraId, periodoInicio, periodoFim]);
+  }, [
+    podeExportar,
+    veiculosFiltrados,
+    prefeituraId,
+    periodoInicio,
+    periodoFim,
+    periodoExibicao,
+  ]);
 
-  const toggleCard = useCallback((id: string) => {
-    setCardAberto((atual) => (atual === id ? null : id));
+  const toggleLinha = useCallback((id: string) => {
+    setLinhaAberta((atual) => (atual === id ? null : id));
   }, []);
 
   const handleAtualizar = useCallback(() => {
@@ -293,8 +187,8 @@ export function ConsumoCustoSection({
   }, []);
 
   return (
-    <section className="pf-section">
-      <header className="pf-section-head ccu-header">
+    <section className="pf-section ccu-page">
+      <header className="ccu-header">
         <div className="ccu-header-text">
           <h1 className="pf-section-title">{titulo}</h1>
           <p className="ccu-periodo-label">
@@ -303,45 +197,65 @@ export function ConsumoCustoSection({
           </p>
         </div>
 
-        <div className="ccu-periodo">
-          <span className="ccu-periodo-field-label">Período</span>
-          <input
-            id="ccu-periodo-inicio"
-            type="date"
-            className="ccu-periodo-input"
-            value={periodoInicio}
-            onChange={(e) => setPeriodoInicio(e.target.value)}
-            aria-label="Data inicial do período"
-          />
-          <span className="ccu-periodo-sep" aria-hidden>
-            —
-          </span>
-          <input
-            id="ccu-periodo-fim"
-            type="date"
-            className="ccu-periodo-input"
-            value={periodoFim}
-            onChange={(e) => setPeriodoFim(e.target.value)}
-            aria-label="Data final do período"
-          />
+        <div className="ccu-header-actions">
+          <div className="ccu-periodo">
+            <span className="ccu-periodo-field-label">Período</span>
+            <input
+              id="ccu-periodo-inicio"
+              type="date"
+              className="ccu-periodo-input"
+              value={periodoInicio}
+              onChange={(e) => setPeriodoInicio(e.target.value)}
+              aria-label="Data inicial do período"
+            />
+            <span className="ccu-periodo-sep" aria-hidden>
+              —
+            </span>
+            <input
+              id="ccu-periodo-fim"
+              type="date"
+              className="ccu-periodo-input"
+              value={periodoFim}
+              onChange={(e) => setPeriodoFim(e.target.value)}
+              aria-label="Data final do período"
+            />
+          </div>
+
+          <div className="ccu-toolbar">
+            <button
+              type="button"
+              className="ccu-btn-refresh"
+              onClick={handleAtualizar}
+              disabled={carregando || atualizando}
+              title="Buscar dados atualizados do servidor"
+            >
+              <RefreshCw
+                size={16}
+                strokeWidth={2.25}
+                className={
+                  atualizando ? "ccu-btn-refresh-icon--spin" : undefined
+                }
+                aria-hidden
+              />
+              Atualizar
+            </button>
+            <button
+              type="button"
+              className="ccu-btn-export"
+              onClick={handleExportar}
+              disabled={!podeExportar}
+              title={
+                podeExportar
+                  ? "Exportar consumo e custo para Excel"
+                  : "Nenhum dado para exportar"
+              }
+            >
+              <FileDown size={16} strokeWidth={2.25} aria-hidden />
+              Exportar Excel
+            </button>
+          </div>
         </div>
       </header>
-
-      <aside className="ccu-info">
-        <div className="ccu-info-icon" aria-hidden>
-          <TrendingUp size={16} strokeWidth={2.25} />
-        </div>
-        <div className="ccu-info-body">
-          <strong>{calculo.titulo}</strong>
-          <p className="ccu-formula">{calculo.formulaConsumo}</p>
-          {calculo.formulaCusto ? (
-            <p>{calculo.formulaCusto}</p>
-          ) : null}
-          {calculo.observacao ? (
-            <p className="ccu-info-nota">{calculo.observacao}</p>
-          ) : null}
-        </div>
-      </aside>
 
       {erro ? (
         <p className="ccu-msg ccu-msg--erro" role="alert">
@@ -349,54 +263,241 @@ export function ConsumoCustoSection({
         </p>
       ) : null}
 
-      <div className="ccu-toolbar">
-        <button
-          type="button"
-          className="ccu-btn-refresh"
-          onClick={handleAtualizar}
-          disabled={carregando || atualizando}
-          title="Buscar dados atualizados do servidor"
-        >
-          <RefreshCw
-            size={16}
-            strokeWidth={2.25}
-            className={atualizando ? "ccu-btn-refresh-icon--spin" : undefined}
-            aria-hidden
-          />
-          Atualizar
-        </button>
-        <button
-          type="button"
-          className="ccu-btn-export"
-          onClick={handleExportar}
-          disabled={!podeExportar}
-          title={
-            podeExportar
-              ? "Exportar consumo e custo para planilha"
-              : "Nenhum dado para exportar"
-          }
-        >
-          <FileDown size={16} strokeWidth={2.25} aria-hidden />
-          Exportar consumo + custo
-        </button>
+      <div className="ccu-kpis">
+        <article className="ccu-kpi">
+          <span className="ccu-kpi-label">Veículos no período</span>
+          <strong>{resumo.total}</strong>
+        </article>
+        <article className="ccu-kpi">
+          <span className="ccu-kpi-label">Com consumo calculado</span>
+          <strong>{resumo.comConsumo}</strong>
+        </article>
+        <article className="ccu-kpi">
+          <span className="ccu-kpi-label">Com custo calculado</span>
+          <strong>{resumo.comCusto}</strong>
+        </article>
       </div>
 
-      <div className="ccu-grid">
+      <div className="ccu-table-panel">
+        <div className="ccu-table-toolbar">
+          <label className="ccu-busca">
+            <Search size={15} strokeWidth={2.25} aria-hidden />
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar veículo, placa ou categoria…"
+              aria-label="Buscar veículo"
+            />
+          </label>
+          <span className="ccu-table-count">
+            {veiculosFiltrados.length} de {veiculos.length} veículo
+            {veiculos.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
         {carregando && veiculos.length === 0 ? (
           <p className="ccu-empty">Carregando dados dos veículos…</p>
         ) : veiculos.length === 0 ? (
           <p className="ccu-empty">
             Nenhum abastecimento no período para calcular consumo e custo.
           </p>
+        ) : veiculosFiltrados.length === 0 ? (
+          <p className="ccu-empty">Nenhum veículo corresponde à busca.</p>
         ) : (
-          veiculos.map((item) => (
-            <CardVeiculo
-              key={item.id}
-              item={item}
-              aberto={cardAberto === item.id}
-              onToggle={() => toggleCard(item.id)}
-            />
-          ))
+          <div className="ccu-table-scroll">
+            <table className="ccu-table">
+              <thead>
+                <tr>
+                  <th className="ccu-col-expand" aria-label="Detalhes" />
+                  <th>Veículo</th>
+                  <th>Placa</th>
+                  <th>Categoria</th>
+                  <th>Local</th>
+                  <th className="ccu-num">Consumo médio</th>
+                  <th className="ccu-num">Custo unitário</th>
+                  <th className="ccu-num">Litros total</th>
+                  <th className="ccu-num">Gasto total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {veiculosFiltrados.map((item) => {
+                  const aberto = linhaAberta === item.id;
+                  const temDetalhe =
+                    item.intervalos.length > 0 || item.abastecimentos.length > 0;
+                  const consumo = metricaExibicao(
+                    item.consumoValor,
+                    item.consumoLabel,
+                  );
+                  const custo = metricaExibicao(item.custoValor, item.custoLabel);
+
+                  return (
+                    <Fragment key={item.id}>
+                      <tr
+                        className={`ccu-row${aberto ? " ccu-row--aberto" : ""}${temDetalhe ? " ccu-row--clicavel" : ""}`}
+                        onClick={
+                          temDetalhe
+                            ? () => toggleLinha(item.id)
+                            : undefined
+                        }
+                        onKeyDown={
+                          temDetalhe
+                            ? (e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  toggleLinha(item.id);
+                                }
+                              }
+                            : undefined
+                        }
+                        tabIndex={temDetalhe ? 0 : undefined}
+                        role={temDetalhe ? "button" : undefined}
+                        aria-expanded={temDetalhe ? aberto : undefined}
+                      >
+                        <td className="ccu-col-expand">
+                          {temDetalhe ? (
+                            <ChevronDown
+                              size={16}
+                              className={`ccu-row-chevron${aberto ? " ccu-row-chevron--aberto" : ""}`}
+                              aria-hidden
+                            />
+                          ) : null}
+                        </td>
+                        <td>
+                          <strong className="ccu-veiculo-nome">{item.nome}</strong>
+                          <span className="ccu-veiculo-sub">{item.subtitulo}</span>
+                        </td>
+                        <td>
+                          <span className="ccu-placa">
+                            {item.placa || "—"}
+                          </span>
+                        </td>
+                        <td>{item.categoria}</td>
+                        <td>{item.local}</td>
+                        <td className="ccu-num">
+                          <span
+                            className={
+                              consumo === "—" ? "ccu-valor--muted" : "ccu-valor"
+                            }
+                          >
+                            {consumo}
+                          </span>
+                          <small>{item.labelConsumo}</small>
+                        </td>
+                        <td className="ccu-num">
+                          <span
+                            className={
+                              custo === "—" ? "ccu-valor--muted" : "ccu-valor"
+                            }
+                          >
+                            {custo}
+                          </span>
+                          <small>{item.labelCusto}</small>
+                        </td>
+                        <td className="ccu-num">
+                          <span
+                            className={
+                              item.litrosLabel === "—"
+                                ? "ccu-valor--muted"
+                                : "ccu-valor"
+                            }
+                          >
+                            {item.litrosLabel}
+                          </span>
+                        </td>
+                        <td className="ccu-num">
+                          <span
+                            className={
+                              item.gastoLabel === "—"
+                                ? "ccu-valor--muted"
+                                : "ccu-valor ccu-valor--destaque"
+                            }
+                          >
+                            {item.gastoLabel}
+                          </span>
+                        </td>
+                      </tr>
+                      {aberto && temDetalhe ? (
+                        <tr className="ccu-row-detalhe">
+                          <td colSpan={9}>
+                            <div className="ccu-detalhe-wrap">
+                              {item.intervalos.length > 0 ? (
+                                <>
+                                  <h3 className="ccu-detalhe-titulo">
+                                    Histórico de intervalos
+                                  </h3>
+                                  <table className="ccu-table ccu-table--nested">
+                                    <thead>
+                                      <tr>
+                                        <th>Período</th>
+                                        <th>Distância / duração</th>
+                                        <th className="ccu-num">Consumo</th>
+                                        <th className="ccu-num">Custo</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.intervalos.map((intervalo) => (
+                                        <tr key={intervalo.id}>
+                                          <td>{intervalo.periodoLabel}</td>
+                                          <td>{intervalo.duracaoLabel}</td>
+                                          <td className="ccu-num ccu-valor--consumo">
+                                            {intervalo.consumoLabel}
+                                          </td>
+                                          <td
+                                            className={`ccu-num${intervalo.custoLabel === "—" ? " ccu-valor--muted" : ""}`}
+                                          >
+                                            {intervalo.custoLabel}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </>
+                              ) : null}
+
+                              {item.abastecimentos.length > 0 ? (
+                                <>
+                                  <h3 className="ccu-detalhe-titulo">
+                                    Abastecimentos no período
+                                  </h3>
+                                  <table className="ccu-table ccu-table--nested">
+                                    <thead>
+                                      <tr>
+                                        <th>Data / hora</th>
+                                        <th>Leitura</th>
+                                        <th className="ccu-num">Litros</th>
+                                        <th className="ccu-num">Gasto</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.abastecimentos.map((abast) => (
+                                        <tr key={abast.id}>
+                                          <td>{abast.dateTimeLabel}</td>
+                                          <td>{abast.leituraLabel}</td>
+                                          <td className="ccu-num ccu-valor--consumo">
+                                            {abast.litrosLabel}
+                                          </td>
+                                          <td
+                                            className={`ccu-num${abast.gastoLabel === "—" ? " ccu-valor--muted" : ""}`}
+                                          >
+                                            {abast.gastoLabel}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </section>

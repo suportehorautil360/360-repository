@@ -94,6 +94,8 @@ export interface PrefeituraNavBadges {
   pontosRh?: number;
   /** Veículos com revisão vencida. */
   revisoes?: number;
+  /** CHDs de devolução ainda não conferidos. */
+  auditoriaDevolucao?: number;
 }
 
 /** Monta os grupos da sidebar da prefeitura, com as rotas /prefeitura/:id/<slug>. */
@@ -192,6 +194,8 @@ export function prefeituraNav(
                 label: "Auditoria de Devolução",
                 to: to("auditoria-devolucao"),
                 icon: "📋",
+                badge: badges.auditoriaDevolucao,
+                badgeTone: "primary" as const,
               },
               {
                 label: "Orçamentos e Aprovações",
