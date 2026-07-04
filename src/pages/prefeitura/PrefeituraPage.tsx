@@ -38,10 +38,7 @@ import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
-import {
-  usePontoAtivo,
-  useAbastecimentoAtivo,
-} from "../../lib/api/feature-flags";
+import { useResolvedFlags } from "../../lib/api/feature-flags";
 import { usePrefeituraBadges } from "./usePrefeituraBadges";
 
 /** Placeholder das seções da referência que ainda não têm tela. */
@@ -56,6 +53,45 @@ function EmConstrucao({ titulo }: { titulo: string }) {
     </div>
   );
 }
+
+function SemAcesso({ titulo }: { titulo: string }) {
+  return (
+    <div>
+      <h1>{titulo}</h1>
+      <p style={{ color: "var(--text-gray)", maxWidth: "48rem" }}>
+        🔒 Esta funcionalidade não está habilitada para o seu município. Fale com
+        o administrador do Hora Útil 360 para liberá-la.
+      </p>
+    </div>
+  );
+}
+
+const SLUG_FLAG: Record<string, string> = {
+  "abastecimento-visao-geral": "abastecimento",
+  abastecimento: "abastecimento",
+  "consumo-custo": "abastecimento",
+  credito: "abastecimento",
+  lubrificacao: "abastecimento",
+  "cargas-comboio": "abastecimento",
+  postos: "abastecimento",
+  "notas-fiscais": "abastecimento",
+  equipamentos: "frota",
+  "frentes-trabalho": "frota",
+  alocacao: "frota",
+  "abrir-os": "manutencao",
+  "plano-preventivo": "manutencao",
+  revisoes: "manutencao",
+  preventiva: "manutencao",
+  "auditoria-devolucao": "manutencao",
+  orcamentos: "manutencao",
+  "notas-fiscais-oficinas": "manutencao",
+  funcionarios: "pessoas",
+  "pontos-rh": "ponto",
+  "solicitacoes-ponto": "ponto",
+  "auditoria-checklists": "qualidade",
+  riscos: "qualidade",
+  emergencia: "qualidade",
+};
 
 export function PrefeituraPage() {
   const {
@@ -132,8 +168,9 @@ export function PrefeituraPage() {
     ehPontoDia,
   ]);
 
-  const { ativo: pontoAtivo } = usePontoAtivo(prefeituraId);
-  const { ativo: abastecimentoAtivo } = useAbastecimentoAtivo(prefeituraId);
+  const { flags } = useResolvedFlags(prefeituraId);
+  const pontoAtivo = flags.ponto;
+  const abastecimentoAtivo = flags.abastecimento;
   const badges = usePrefeituraBadges(prefeituraId, pontoAtivo, abastecimentoAtivo);
 
   const dados = useMemo(
@@ -185,8 +222,7 @@ export function PrefeituraPage() {
         ? "equipamentos"
         : (secao ?? "dashboard");
   const navGroups = prefeituraNav(prefeituraId, {
-    pontoAtivo,
-    abastecimentoAtivo,
+    flags,
     badges,
   });
 
@@ -216,6 +252,10 @@ export function PrefeituraPage() {
         <FuncionarioFormPage prefeituraId={prefeituraId} modo={funcFormModo} />
       );
     }
+    const flagExigida = SLUG_FLAG[secaoAtual];
+    if (flagExigida && !flags[flagExigida]) {
+      return <SemAcesso titulo={SECAO_LABEL[secaoAtual] ?? "Sem acesso"} />;
+    }
     switch (secaoAtual) {
       case "dashboard":
         return <DashboardSection prefeituraId={prefeituraId} />;
@@ -233,10 +273,8 @@ export function PrefeituraPage() {
       case "credito":
         return <CreditoSection dados={dados!} prefeituraId={prefeituraId} />;
       case "abastecimento":
-        return abastecimentoAtivo ? (
+        return (
           <AbastecimentoSection dados={dados!} prefeituraId={prefeituraId} />
-        ) : (
-          <EmConstrucao titulo="Abastecimentos" />
         );
       case "lubrificacao":
         return (
@@ -249,11 +287,7 @@ export function PrefeituraPage() {
       case "postos":
         return <PostosSection dados={dados!} prefeituraId={prefeituraId} />;
       case "notas-fiscais":
-        return abastecimentoAtivo ? (
-          <NotasFiscaisSection prefeituraId={prefeituraId} />
-        ) : (
-          <EmConstrucao titulo="Notas Fiscais" />
-        );
+        return <NotasFiscaisSection prefeituraId={prefeituraId} />;
       case "frota":
         return <FrotaSection prefeituraId={prefeituraId} />;
       case "frentes-trabalho":
@@ -313,17 +347,9 @@ export function PrefeituraPage() {
           </div>
         );
       case "pontos-rh":
-        return pontoAtivo ? (
-          <PontosRhSection prefeituraId={prefeituraId} />
-        ) : (
-          <EmConstrucao titulo="Pontos (RH)" />
-        );
+        return <PontosRhSection prefeituraId={prefeituraId} />;
       case "solicitacoes-ponto":
-        return pontoAtivo ? (
-          <SolicitacoesPontoSection prefeituraId={prefeituraId} />
-        ) : (
-          <EmConstrucao titulo="Solicitações de Ponto" />
-        );
+        return <SolicitacoesPontoSection prefeituraId={prefeituraId} />;
       case "configuracoes":
         return <ConfiguracoesSection prefeituraId={prefeituraId} />;
       default:

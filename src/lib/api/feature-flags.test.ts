@@ -9,7 +9,12 @@ vi.mock("./client", () => ({
   },
 }));
 
-import { useFeatureFlag, useAbastecimentoAtivo } from "./feature-flags";
+import {
+  useFeatureFlag,
+  useAbastecimentoAtivo,
+  useResolvedFlags,
+  resolveFlags,
+} from "./feature-flags";
 
 beforeEach(() => {
   get.mockReset();
@@ -77,5 +82,50 @@ describe("useFeatureFlag", () => {
     await waitFor(() => expect(result.current.ativo).toBe(true));
     resolver({ data: { ponto: false } });
     await waitFor(() => expect(result.current.ativo).toBe(false));
+  });
+});
+
+describe("resolveFlags", () => {
+  it("grupos legados são true quando ausentes; opt-in são false", () => {
+    const r = resolveFlags({});
+    expect(r.frota).toBe(true);
+    expect(r.manutencao).toBe(true);
+    expect(r.pessoas).toBe(true);
+    expect(r.qualidade).toBe(true);
+    expect(r.ponto).toBe(false);
+    expect(r.abastecimento).toBe(false);
+  });
+
+  it("valor explícito vence o default (nos dois sentidos)", () => {
+    const r = resolveFlags({ manutencao: false, abastecimento: true });
+    expect(r.manutencao).toBe(false);
+    expect(r.abastecimento).toBe(true);
+    expect(r.frota).toBe(true);
+  });
+});
+
+describe("useResolvedFlags", () => {
+  it("resolve todas as flags com default após a API responder", async () => {
+    get.mockResolvedValue({ data: { manutencao: false } });
+    const { result } = renderHook(() => useResolvedFlags("pref-1"));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.flags.manutencao).toBe(false);
+    expect(result.current.flags.frota).toBe(true);
+    expect(result.current.flags.ponto).toBe(false);
+  });
+
+  it("API falhou sem cache → mantém os defaults", async () => {
+    get.mockRejectedValue(new Error("offline"));
+    const { result } = renderHook(() => useResolvedFlags("pref-1"));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.flags.frota).toBe(true);
+    expect(result.current.flags.abastecimento).toBe(false);
+  });
+
+  it("sem prefeituraId → defaults e não chama a API", async () => {
+    const { result } = renderHook(() => useResolvedFlags(undefined));
+    await waitFor(() => expect(result.current.carregando).toBe(false));
+    expect(result.current.flags.qualidade).toBe(true);
+    expect(get).not.toHaveBeenCalled();
   });
 });

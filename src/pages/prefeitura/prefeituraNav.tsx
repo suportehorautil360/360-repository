@@ -100,14 +100,18 @@ export interface PrefeituraNavBadges {
 export function prefeituraNav(
   prefeituraId: string,
   opts?: {
-    pontoAtivo?: boolean;
-    abastecimentoAtivo?: boolean;
+    flags?: Record<string, boolean>;
     badges?: PrefeituraNavBadges;
   },
 ): SidebarGroup[] {
   const to = (slug: string) => `/prefeitura/${prefeituraId}/${slug}`;
-  const pontoAtivo = opts?.pontoAtivo ?? false;
-  const abastecimentoAtivo = opts?.abastecimentoAtivo ?? false;
+  const flags = opts?.flags ?? {};
+  const pontoAtivo = flags.ponto ?? false;
+  const abastecimentoAtivo = flags.abastecimento ?? false;
+  const frotaAtivo = flags.frota ?? true;
+  const manutencaoAtivo = flags.manutencao ?? true;
+  const pessoasAtivo = flags.pessoas ?? true;
+  const qualidadeAtivo = flags.qualidade ?? true;
   const badges = opts?.badges ?? {};
 
   const grupos: SidebarGroup[] = [
@@ -140,95 +144,111 @@ export function prefeituraNav(
           },
         ]
       : []),
-    {
-      label: "Gestão de Frota",
-      items: [
-        // Equipamentos absorve o antigo "Frota" (mesma função).
-        { label: "Equipamentos", to: to("equipamentos"), icon: "🛠️" },
-        {
-          label: "Frentes de Trabalho",
-          to: to("frentes-trabalho"),
-          icon: "🏗️",
-        },
-        { label: "Alocação", to: to("alocacao"), icon: "📋" },
-      ],
-    },
-    {
-      label: "Manutenção",
-      items: [
-        {
-          label: "Abrir OS",
-          to: to("abrir-os"),
-          icon: "📄",
-        },
-        {
-          label: "Plano preventivo",
-          to: to("plano-preventivo"),
-          icon: "📅",
-        },
-        {
-          label: "Preventiva",
-          to: to("revisoes"),
-          icon: "🔧",
-          badge: badges.revisoes,
-          badgeTone: "warning" as const,
-        },
-        {
-          label: "Revisões",
-          to: to("preventiva"),
-          icon: "🛠️",
-        },
-        {
-          label: "Auditoria de Devolução",
-          to: to("auditoria-devolucao"),
-          icon: "📋",
-        },
-        {
-          label: "Orçamentos e Aprovações",
-          to: to("orcamentos"),
-          icon: "💰",
-        },
-        {
-          label: "Notas Fiscais",
-          to: to("notas-fiscais-oficinas"),
-          icon: "🧾",
-        },
-      ],
-    },
-    {
-      label: "Pessoas / RH",
-      items: [
-        { label: "Funcionários", to: to("funcionarios"), icon: "👷" },
-        ...(pontoAtivo
-          ? [
+    ...(frotaAtivo
+      ? [
+          {
+            label: "Gestão de Frota",
+            items: [
+              // Equipamentos absorve o antigo "Frota" (mesma função).
+              { label: "Equipamentos", to: to("equipamentos"), icon: "🛠️" },
               {
-                label: "Pontos (RH)",
-                to: to("pontos-rh"),
-                icon: "🕐",
-                badge: badges.pontosRh,
-                badgeTone: "danger" as const,
+                label: "Frentes de Trabalho",
+                to: to("frentes-trabalho"),
+                icon: "🏗️",
+              },
+              { label: "Alocação", to: to("alocacao"), icon: "📋" },
+            ],
+          },
+        ]
+      : []),
+    ...(manutencaoAtivo
+      ? [
+          {
+            label: "Manutenção",
+            items: [
+              {
+                label: "Abrir OS",
+                to: to("abrir-os"),
+                icon: "📄",
               },
               {
-                label: "Solicitações de Ponto",
-                to: to("solicitacoes-ponto"),
-                icon: "📨",
+                label: "Plano preventivo",
+                to: to("plano-preventivo"),
+                icon: "📅",
               },
-            ]
-          : []),
-      ],
-    },
-    {
-      label: "Qualidade e Segurança",
-      items: [
-        {
-          label: "Auditoria de Checklists",
-          to: to("auditoria-checklists"),
-          icon: "✅",
-        },
-        { label: "Triagem de Riscos", to: to("riscos"), icon: "⚠️" },
-        { label: "Emergência", to: to("emergencia"), icon: "🚨" },
-      ],
-    },
+              {
+                label: "Preventiva",
+                to: to("revisoes"),
+                icon: "🔧",
+                badge: badges.revisoes,
+                badgeTone: "warning" as const,
+              },
+              {
+                label: "Revisões",
+                to: to("preventiva"),
+                icon: "🛠️",
+              },
+              {
+                label: "Auditoria de Devolução",
+                to: to("auditoria-devolucao"),
+                icon: "📋",
+              },
+              {
+                label: "Orçamentos e Aprovações",
+                to: to("orcamentos"),
+                icon: "💰",
+              },
+              {
+                label: "Notas Fiscais",
+                to: to("notas-fiscais-oficinas"),
+                icon: "🧾",
+              },
+            ],
+          },
+        ]
+      : []),
+    ...(pessoasAtivo
+      ? [
+          {
+            label: "Pessoas / RH",
+            items: [
+              { label: "Funcionários", to: to("funcionarios"), icon: "👷" },
+              ...(pontoAtivo
+                ? [
+                    {
+                      label: "Pontos (RH)",
+                      to: to("pontos-rh"),
+                      icon: "🕐",
+                      badge: badges.pontosRh,
+                      badgeTone: "danger" as const,
+                    },
+                    {
+                      label: "Solicitações de Ponto",
+                      to: to("solicitacoes-ponto"),
+                      icon: "📨",
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ]
+      : []),
+    ...(qualidadeAtivo
+      ? [
+          {
+            label: "Qualidade e Segurança",
+            items: [
+              {
+                label: "Auditoria de Checklists",
+                to: to("auditoria-checklists"),
+                icon: "✅",
+              },
+              { label: "Triagem de Riscos", to: to("riscos"), icon: "⚠️" },
+              { label: "Emergência", to: to("emergencia"), icon: "🚨" },
+            ],
+          },
+        ]
+      : []),
     {
       label: "Sistema",
       items: [
