@@ -3,14 +3,11 @@ import { toast } from "sonner";
 import { useHU360 } from "../../../lib/hu360";
 import {
   featureFlagsApi,
+  FEATURE_FLAGS,
   type FeatureFlags,
 } from "../../../lib/api/feature-flags";
 
-/** Funcionalidades liberáveis por cliente (chave da flag + rótulo). */
-const FLAGS: { key: string; label: string }[] = [
-  { key: "ponto", label: "Ponto" },
-  { key: "abastecimento", label: "Abastecimento" },
-];
+const FLAGS = FEATURE_FLAGS;
 
 /** Linha de uma prefeitura com um toggle por funcionalidade. */
 function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
@@ -28,18 +25,19 @@ function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
     };
   }, [id]);
 
-  async function toggle(key: string, label: string) {
+  async function toggle(f: (typeof FLAGS)[number]) {
     if (flags === null) return;
-    const novo = !flags[key];
+    const atual = flags[f.key] ?? f.default;
+    const novo = !atual;
     setSalvando(true);
     try {
       // Relê antes de salvar pra não sobrescrever outras flags concorrentes.
       const atuais = await featureFlagsApi.obter(id);
-      const proximos = { ...atuais, [key]: novo };
+      const proximos = { ...atuais, [f.key]: novo };
       await featureFlagsApi.salvar(id, proximos);
       setFlags(proximos);
       toast.success(
-        `${label} ${novo ? "ativado" : "desativado"} para ${nome}.`,
+        `${f.label} ${novo ? "ativado" : "desativado"} para ${nome}.`,
       );
     } catch {
       toast.error("Não foi possível salvar. Tente novamente.");
@@ -54,7 +52,7 @@ function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
         {nome} <span style={{ color: "var(--muted)" }}>({uf})</span>
       </td>
       {FLAGS.map((f) => {
-        const valor = flags?.[f.key] ?? false;
+        const valor = flags?.[f.key] ?? f.default;
         return (
           <td key={f.key} style={{ textAlign: "right" }}>
             <label className="hu-switch">
@@ -62,7 +60,7 @@ function FlagRow({ id, nome, uf }: { id: string; nome: string; uf: string }) {
                 type="checkbox"
                 checked={valor}
                 disabled={flags === null || salvando}
-                onChange={() => void toggle(f.key, f.label)}
+                onChange={() => void toggle(f)}
               />
               <span className="hu-switch__track" aria-hidden="true">
                 <span className="hu-switch__thumb" />
