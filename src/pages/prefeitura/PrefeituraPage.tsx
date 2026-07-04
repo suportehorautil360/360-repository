@@ -170,7 +170,6 @@ export function PrefeituraPage() {
 
   const { flags } = useResolvedFlags(prefeituraId);
   const pontoAtivo = flags.ponto;
-  const abastecimentoAtivo = flags.abastecimento;
   const manutencaoAtivo = flags.manutencao ?? true;
   const badges = usePrefeituraBadges(
     prefeituraId,
