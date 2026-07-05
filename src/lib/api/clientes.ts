@@ -42,6 +42,16 @@ export interface CriarAcessoPayload {
   notificaWhatsapp?: boolean;
 }
 
+export interface AtualizarAcessoPayload {
+  nome?: string;
+  usuario?: string;
+  perfil?: PerfilAcessoApi;
+  email?: string;
+  whatsapp?: string;
+  notificaEmail?: boolean;
+  notificaWhatsapp?: boolean;
+}
+
 /** Contrato de prestação de serviços (cadastro e consulta). */
 export interface ContratoClienteApi {
   numero: string;
@@ -176,6 +186,31 @@ export const clientesApi = {
   /** Remove um acesso pelo id. */
   async removerAcesso(clienteId: string, acessoId: string): Promise<void> {
     await api.del(`/clientes/${clienteId}/acessos/${acessoId}`);
+  },
+
+  /** Atualiza dados de um acesso (sem senha). */
+  async atualizarAcesso(
+    clienteId: string,
+    acessoId: string,
+    payload: AtualizarAcessoPayload,
+  ): Promise<AcessoApi> {
+    const r = await api.post<{ data: AcessoApi; message: string }>(
+      `/clientes/${clienteId}/acessos/${acessoId}/update`,
+      payload,
+    );
+    return r.data;
+  },
+
+  /** Redefine a senha de um acesso. */
+  async resetarSenhaAcesso(
+    clienteId: string,
+    acessoId: string,
+    senha: string,
+  ): Promise<void> {
+    await api.post(
+      `/clientes/${clienteId}/acessos/${acessoId}/resetar-senha`,
+      { senha },
+    );
   },
 
   /** Oficinas credenciadas no município (GET — mesma fonte do POST /os/solicitacoes). */
