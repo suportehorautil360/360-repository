@@ -1,4 +1,4 @@
-import { FileText, Loader2, Trash2 } from "lucide-react";
+import { FileText, KeyRound, Loader2, Pencil, Trash2, X } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   clientesApi,
@@ -48,11 +48,18 @@ const FORM_INICIAL: AcessoForm = {
   notificaWhatsapp: true,
 };
 
-export function CadastroAcessosTab() {
+export function CadastroAcessosTab({
+  clienteIdInicial,
+}: {
+  clienteIdInicial?: string;
+}) {
   const [clientes, setClientes] = useState<ClienteOverviewApi[]>([]);
-  const [selId, setSelId] = useState("");
+  const [selId, setSelId] = useState(clienteIdInicial ?? "");
   const [acessos, setAcessos] = useState<AcessoApi[]>([]);
   const [form, setForm] = useState<AcessoForm>(FORM_INICIAL);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<AcessoForm>(FORM_INICIAL);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [loadingClientes, setLoadingClientes] = useState(true);
   const [loadingAcessos, setLoadingAcessos] = useState(false);
   const [erroAcessos, setErroAcessos] = useState<string | null>(null);
@@ -78,7 +85,7 @@ export function CadastroAcessosTab() {
         const lista = await clientesApi.overview();
         if (!ativo) return;
         setClientes(lista);
-        setSelId((cur) => cur || lista[0]?.id || "");
+        setSelId((cur) => cur || clienteIdInicial || lista[0]?.id || "");
       } catch {
         if (ativo) setMsgTexto("err", "Falha ao carregar clientes.");
       } finally {
@@ -88,7 +95,11 @@ export function CadastroAcessosTab() {
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [clienteIdInicial]);
+
+  useEffect(() => {
+    if (clienteIdInicial) setSelId(clienteIdInicial);
+  }, [clienteIdInicial]);
 
   useEffect(() => {
     if (!selId) {
@@ -167,10 +178,87 @@ export function CadastroAcessosTab() {
     try {
       await clientesApi.removerAcesso(selId, id);
       setAcessos((cur) => cur.filter((a) => a.id !== id));
+      if (editandoId === id) {
+        setEditandoId(null);
+      }
     } catch (err) {
       setMsgTexto(
         "err",
         err instanceof Error ? err.message : "Não foi possível remover.",
+      );
+    }
+  }
+
+  function iniciarEdicao(acesso: AcessoApi) {
+    setEditandoId(acesso.id);
+    setEditForm({
+      nome: acesso.nome,
+      email: acesso.email,
+      whatsapp: acesso.whatsapp,
+      usuario: acesso.usuario,
+      perfil: acesso.perfil === "admin" ? "admin" : "gestor",
+      senha: "",
+      notificaEmail: acesso.notificaEmail,
+      notificaWhatsapp: acesso.notificaWhatsapp,
+    });
+    setMsgTexto("none", "");
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null);
+    setEditForm(FORM_INICIAL);
+  }
+
+  function updateEdit<K extends keyof AcessoForm>(key: K, value: AcessoForm[K]) {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function salvarEdicao(e: FormEvent) {
+    e.preventDefault();
+    if (!selId || !editandoId) return;
+    setSalvandoEdicao(true);
+    setMsgTexto("none", "");
+    try {
+      const atualizado = await clientesApi.atualizarAcesso(selId, editandoId, {
+        nome: editForm.nome.trim(),
+        usuario: editForm.usuario.trim(),
+        perfil: editForm.perfil,
+        email: editForm.email.trim(),
+        whatsapp: editForm.whatsapp.trim(),
+        notificaEmail: editForm.notificaEmail,
+        notificaWhatsapp: editForm.notificaWhatsapp,
+      });
+      setAcessos((cur) =>
+        cur.map((a) => (a.id === editandoId ? atualizado : a)),
+      );
+      setMsgTexto("ok", `Acesso de ${atualizado.nome} atualizado.`);
+      cancelarEdicao();
+    } catch (err) {
+      setMsgTexto(
+        "err",
+        err instanceof Error ? err.message : "Não foi possível salvar.",
+      );
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  }
+
+  async function resetarSenha(id: string, nome: string) {
+    const nova = window.prompt(
+      `Nova senha para "${nome}" (mínimo 4 caracteres):`,
+    );
+    if (nova === null) return;
+    if (nova.trim().length < 4) {
+      setMsgTexto("err", "A senha deve ter no mínimo 4 caracteres.");
+      return;
+    }
+    try {
+      await clientesApi.resetarSenhaAcesso(selId, id, nova.trim());
+      setMsgTexto("ok", `Senha de ${nome} redefinida.`);
+    } catch (err) {
+      setMsgTexto(
+        "err",
+        err instanceof Error ? err.message : "Não foi possível redefinir.",
       );
     }
   }
@@ -200,36 +288,36 @@ export function CadastroAcessosTab() {
     }
   }
 
-  function celulaAcoes(removerAcesso?: { id: string; nome: string }) {
+  function acoesLinha(acesso: AcessoApi) {
     return (
       <td className="ac-acoes">
         <button
           type="button"
           className="ac-btn-acao"
-          disabled={!selId || baixandoContrato}
-          onClick={() => void baixarContrato()}
-          title={baixandoContrato ? "Gerando PDF…" : "Baixar contrato PDF"}
-          aria-label={
-            baixandoContrato ? "Gerando contrato PDF" : "Baixar contrato PDF"
-          }
+          onClick={() => iniciarEdicao(acesso)}
+          title={`Editar acesso de ${acesso.nome}`}
+          aria-label={`Editar acesso de ${acesso.nome}`}
         >
-          {baixandoContrato ? (
-            <Loader2 size={16} className="ac-btn-acao__spin" aria-hidden />
-          ) : (
-            <FileText size={16} aria-hidden />
-          )}
+          <Pencil size={16} aria-hidden />
         </button>
-        {removerAcesso ? (
-          <button
-            type="button"
-            className="ac-btn-acao ac-btn-acao--danger"
-            onClick={() => remover(removerAcesso.id, removerAcesso.nome)}
-            title={`Remover acesso de ${removerAcesso.nome}`}
-            aria-label={`Remover acesso de ${removerAcesso.nome}`}
-          >
-            <Trash2 size={16} aria-hidden />
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="ac-btn-acao"
+          onClick={() => void resetarSenha(acesso.id, acesso.nome)}
+          title={`Redefinir senha de ${acesso.nome}`}
+          aria-label={`Redefinir senha de ${acesso.nome}`}
+        >
+          <KeyRound size={16} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="ac-btn-acao ac-btn-acao--danger"
+          onClick={() => remover(acesso.id, acesso.nome)}
+          title={`Remover acesso de ${acesso.nome}`}
+          aria-label={`Remover acesso de ${acesso.nome}`}
+        >
+          <Trash2 size={16} aria-hidden />
+        </button>
       </td>
     );
   }
@@ -350,10 +438,12 @@ export function CadastroAcessosTab() {
           </Select>
         </div>
         <div>
-          <label htmlFor="acSenha">Senha inicial</label>
+          <label htmlFor="acSenha">Senha inicial {REQ}</label>
           <input
             id="acSenha"
             type="text"
+            required
+            minLength={4}
             placeholder="Mínimo 4 caracteres"
             value={form.senha}
             onChange={(e) => update("senha", e.target.value)}
@@ -397,7 +487,142 @@ export function CadastroAcessosTab() {
         Acessos de{" "}
         {selCliente ? `${selCliente.nome} (${selCliente.uf})` : "—"}{" "}
         <span className="ac-count">{acessos.length}</span>
+        <button
+          type="button"
+          className="ac-btn-acao"
+          style={{ marginLeft: 12, verticalAlign: "middle" }}
+          disabled={!selId || baixandoContrato}
+          onClick={() => void baixarContrato()}
+          title="Baixar contrato PDF"
+        >
+          {baixandoContrato ? (
+            <Loader2 size={16} className="ac-btn-acao__spin" aria-hidden />
+          ) : (
+            <FileText size={16} aria-hidden />
+          )}
+        </button>
       </h3>
+
+      {editandoId ? (
+        <div className="cad-banner" style={{ marginBottom: 12 }}>
+          <form onSubmit={salvarEdicao}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 10,
+              }}
+            >
+              <strong>Editar acesso</strong>
+              <button
+                type="button"
+                className="ac-btn-acao"
+                onClick={cancelarEdicao}
+                aria-label="Cancelar edição"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="row-2">
+              <div>
+                <label htmlFor="edNome">Nome completo {REQ}</label>
+                <input
+                  id="edNome"
+                  required
+                  value={editForm.nome}
+                  onChange={(e) => updateEdit("nome", e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="edEmail">E-mail {REQ}</label>
+                <input
+                  id="edEmail"
+                  type="email"
+                  required
+                  value={editForm.email}
+                  onChange={(e) => updateEdit("email", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="row-2" style={{ marginTop: 10 }}>
+              <div>
+                <label htmlFor="edWhatsapp">WhatsApp</label>
+                <input
+                  id="edWhatsapp"
+                  value={editForm.whatsapp}
+                  onChange={(e) => updateEdit("whatsapp", e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="edUsuario">Usuário de login {REQ}</label>
+                <input
+                  id="edUsuario"
+                  required
+                  value={editForm.usuario}
+                  onChange={(e) => updateEdit("usuario", e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="row-3" style={{ marginTop: 10 }}>
+              <div>
+                <label htmlFor="edPerfil">Perfil</label>
+                <Select
+                  value={editForm.perfil}
+                  onValueChange={(v) =>
+                    updateEdit("perfil", v as PerfilAcessoApi)
+                  }
+                >
+                  <SelectTrigger id="edPerfil" className="admin-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERFIS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <span className="ac-cap">Notificações</span>
+                <div className="ac-notif">
+                  <label className="ac-notif-opt">
+                    <input
+                      type="checkbox"
+                      checked={editForm.notificaEmail}
+                      onChange={(e) =>
+                        updateEdit("notificaEmail", e.target.checked)
+                      }
+                    />
+                    E-mail
+                  </label>
+                  <label className="ac-notif-opt">
+                    <input
+                      type="checkbox"
+                      checked={editForm.notificaWhatsapp}
+                      onChange={(e) =>
+                        updateEdit("notificaWhatsapp", e.target.checked)
+                      }
+                    />
+                    WhatsApp
+                  </label>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end" }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={salvandoEdicao}
+                >
+                  {salvandoEdicao ? "Salvando…" : "Salvar alterações"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      ) : null}
       <div className="hub-table-scroll">
         <table>
           <thead>
@@ -414,14 +639,13 @@ export function CadastroAcessosTab() {
           <tbody>
             {acessos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="topbar-user">
+                <td colSpan={7} className="topbar-user">
                   {loadingAcessos
                     ? "Carregando acessos…"
                     : erroAcessos
                       ? erroAcessos
                       : "Nenhum acesso cadastrado."}
                 </td>
-                {!loadingAcessos ? celulaAcoes() : <td />}
               </tr>
             ) : (
               acessos.map((a) => (
@@ -448,7 +672,7 @@ export function CadastroAcessosTab() {
                       {a.perfil === "admin" ? "Admin" : "Gestor"}
                     </span>
                   </td>
-                  {celulaAcoes({ id: a.id, nome: a.nome })}
+                  {acoesLinha(a)}
                 </tr>
               ))
             )}

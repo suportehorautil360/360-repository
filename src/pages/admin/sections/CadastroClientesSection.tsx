@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   clientesApi,
   type ClienteApi,
@@ -143,8 +143,11 @@ type Aba = "contrato" | "acessos";
 export function CadastroClientesSection() {
   const navigate = useNavigate();
   const { clienteId } = useParams<{ clienteId?: string }>();
+  const [searchParams] = useSearchParams();
   const ehEdicao = !!clienteId;
-  const [aba, setAba] = useState<Aba>("contrato");
+  const [aba, setAba] = useState<Aba>(
+    searchParams.get("aba") === "acessos" ? "acessos" : "contrato",
+  );
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [avancado, setAvancado] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -738,7 +741,7 @@ export function CadastroClientesSection() {
             </div>
           </form>
         ) : (
-          <CadastroAcessosTab />
+          <CadastroAcessosTab clienteIdInicial={clienteId} />
         )}
       </article>
     </section>

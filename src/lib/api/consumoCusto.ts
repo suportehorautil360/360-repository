@@ -61,6 +61,8 @@ export interface VeiculoConsumoCusto {
   placa: string;
   categoria: string;
   local: string;
+  /** true = máquina com horímetro (L/h); false = veículo rodoviário (L/km) */
+  porHora: boolean;
   labelConsumo: string;
   labelCusto: string;
   labelTerceira: string;
@@ -92,11 +94,11 @@ export interface ConsumoCustoTela {
 export const CALCULO_CONSUMO_PADRAO: ConsumoCustoCalculoTela = {
   titulo: "Como o consumo e o custo são calculados",
   formulaConsumo:
-    "Consumo = litros do abastecimento ÷ (leitura atual − leitura anterior)",
+    "Veículos: L/km = litros ÷ km rodados. Máquinas: L/h = litros ÷ horas de uso (horímetro).",
   formulaCusto:
     "Quando há preço por litro: gasto = litros × preço/l e custo unitário = consumo médio × preço/l.",
   observacao:
-    "Máquinas usam L/h (horímetro); carros e caminhões usam L/km. Em campo, o consumo usa os litros do reabastecimento que completa o tanque.",
+    "Máquinas (Linha Amarela / horímetro) exibem litros por hora. Carros e caminhões usam litros por km. Em campo, o consumo usa os litros do reabastecimento que completa o tanque.",
 };
 
 function labelOuTraco(v: string | null | undefined): string {
@@ -317,6 +319,7 @@ function veiculoBrutoParaTela(raw: unknown): VeiculoConsumoCusto | null {
     placa: titulo.placa,
     categoria: titulo.categoria,
     local: titulo.local,
+    porHora,
     labelConsumo: rotuloMetrica(
       consumoMedio,
       porHora ? "Médio L/h" : "Médio L/km",

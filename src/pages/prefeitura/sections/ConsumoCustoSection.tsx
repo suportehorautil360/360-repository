@@ -42,7 +42,7 @@ function chaveCache(
   inicio: string,
   fim: string,
 ): string {
-  return `${prefeituraId}|${inicio}|${fim}|v15`;
+  return `${prefeituraId}|${inicio}|${fim}|v16`;
 }
 
 const cacheConsumoCusto = new Map<string, ConsumoCustoTela>();
@@ -55,6 +55,7 @@ function normBusca(s: string): string {
 }
 
 function metricaExibicao(curto: string, label: string): string {
+  if (label.includes(" L/")) return label;
   return valorMetricaCard(curto, label);
 }
 
@@ -430,7 +431,11 @@ export function ConsumoCustoSection({
                                     <thead>
                                       <tr>
                                         <th>Período</th>
-                                        <th>Distância / duração</th>
+                                        <th>
+                                          {item.porHora
+                                            ? "Horas (intervalo)"
+                                            : "Distância / duração"}
+                                        </th>
                                         <th className="ccu-num">Consumo</th>
                                         <th className="ccu-num">Custo</th>
                                       </tr>

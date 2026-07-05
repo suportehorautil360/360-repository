@@ -219,6 +219,15 @@ export function ClientesSection() {
                         <button
                           type="button"
                           className="btn btn-secondary hub-dash-btn"
+                          onClick={() =>
+                            navigate(`/admin/cadastros/${c.id}?aba=acessos`)
+                          }
+                        >
+                          Acessos
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary hub-dash-btn"
                           onClick={() => navigate(`/admin/cadastros/${c.id}`)}
                         >
                           Editar
