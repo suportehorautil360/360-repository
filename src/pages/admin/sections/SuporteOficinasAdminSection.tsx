@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  suporteAdminApi,
-  notificarInboxSuporteAdminAtualizado,
+  suporteAdminOficinasApi,
+  notificarInboxSuporteOficinasAtualizado,
   type MensagemSuporte,
   type SuporteChannel,
-  type SuporteThread,
-} from "../../../lib/api/suporte-admin";
+  type SuporteThreadOficina,
+} from "../../../lib/api/suporte-admin-oficinas";
 import { parceirosApi } from "../../../lib/api/parceiros";
+import { useSuporteOficinaMensagensRealtime } from "../hooks/suporte/use-suporte-oficina-mensagens";
 import {
   BolhaMensagem,
   CanalChip,
@@ -22,10 +23,10 @@ import {
 
 type FiltroCanal = "todos" | SuporteChannel;
 
-const ORIGEM = "posto" as const;
+const ORIGEM = "oficina" as const;
 const cfg = SUPORTE_ORIGEM_CONFIG[ORIGEM];
 
-function prefixoPreview(sender: SuporteThread["lastSender"]): string {
+function prefixoPreview(sender: SuporteThreadOficina["lastSender"]): string {
   if (sender === "user") return cfg.remetenteAbrev;
   return "Hora Útil";
 }
@@ -36,7 +37,7 @@ function ThreadItem({
   ativo,
   onSelect,
 }: {
-  thread: SuporteThread;
+  thread: SuporteThreadOficina;
   nome: string;
   ativo: boolean;
   onSelect: () => void;
@@ -99,35 +100,52 @@ function ThreadItem({
   );
 }
 
-export function SuportePostosAdminSection({
+export function SuporteOficinasAdminSection({
   embedded = false,
 }: {
   embedded?: boolean;
 }) {
-  const [threads, setThreads] = useState<SuporteThread[]>([]);
-  const [postoNomes, setPostoNomes] = useState<Map<string, string>>(new Map());
-  const [selecionado, setSelecionado] = useState<SuporteThread | null>(null);
-  const [mensagens, setMensagens] = useState<MensagemSuporte[]>([]);
+  const [threads, setThreads] = useState<SuporteThreadOficina[]>([]);
+  const [oficinaNomes, setOficinaNomes] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [selecionado, setSelecionado] = useState<SuporteThreadOficina | null>(
+    null,
+  );
+  const [mensagensApi, setMensagensApi] = useState<MensagemSuporte[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [carregandoChat, setCarregandoChat] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState("");
   const [filtro, setFiltro] = useState<FiltroCanal>("todos");
+  const [realtimeAtivo] = useState(true);
   const fimRef = useRef<HTMLDivElement>(null);
 
-  const postoMap = postoNomes;
+  const { mensagens: mensagensRealtime, erroRealtime } =
+    useSuporteOficinaMensagensRealtime(
+      selecionado?.oficinaId ?? null,
+      selecionado?.channel ?? null,
+      realtimeAtivo && !carregandoChat,
+    );
+
+  const mensagens =
+    realtimeAtivo && mensagensRealtime && !erroRealtime
+      ? mensagensRealtime
+      : mensagensApi;
 
   const carregarInbox = useCallback(async () => {
     setCarregando(true);
     setErro("");
     try {
       const [inbox, overview] = await Promise.all([
-        suporteAdminApi.listarInbox(filtro === "todos" ? undefined : filtro),
+        suporteAdminOficinasApi.listarInbox(
+          filtro === "todos" ? undefined : filtro,
+        ),
         parceirosApi.overview().catch(() => ({ postos: [], oficinas: [] })),
       ]);
       setThreads(inbox);
-      setPostoNomes(new Map(overview.postos.map((p) => [p.id, p.nome])));
+      setOficinaNomes(new Map(overview.oficinas.map((o) => [o.id, o.nome])));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Não foi possível carregar.";
       setErro(
@@ -154,25 +172,28 @@ export function SuportePostosAdminSection({
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [carregarInbox]);
 
-  const abrirThread = useCallback(async (thread: SuporteThread) => {
+  const abrirThread = useCallback(async (thread: SuporteThreadOficina) => {
     setSelecionado(thread);
     setCarregandoChat(true);
     setErro("");
     try {
-      const msgs = await suporteAdminApi.listarMensagens(
-        thread.postoId,
+      const msgs = await suporteAdminOficinasApi.listarMensagens(
+        thread.oficinaId,
         thread.channel,
       );
-      setMensagens(msgs);
-      await suporteAdminApi.marcarLidasAdmin(thread.postoId, thread.channel);
+      setMensagensApi(msgs);
+      await suporteAdminOficinasApi.marcarLidasAdmin(
+        thread.oficinaId,
+        thread.channel,
+      );
       setThreads((prev) =>
         prev.map((t) =>
-          t.postoId === thread.postoId && t.channel === thread.channel
+          t.oficinaId === thread.oficinaId && t.channel === thread.channel
             ? { ...t, unreadUserCount: 0 }
             : t,
         ),
       );
-      notificarInboxSuporteAdminAtualizado();
+      notificarInboxSuporteOficinasAtualizado();
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Erro ao abrir conversa.");
     } finally {
@@ -190,16 +211,17 @@ export function SuportePostosAdminSection({
     setEnviando(true);
     setErro("");
     try {
-      const msg = await suporteAdminApi.responder(
-        selecionado.postoId,
+      const msg = await suporteAdminOficinasApi.responder(
+        selecionado.oficinaId,
         selecionado.channel,
         texto.trim(),
       );
-      setMensagens((prev) => [...prev, msg]);
+      setMensagensApi((prev) => [...prev, msg]);
       setTexto("");
       setThreads((prev) =>
         prev.map((t) =>
-          t.postoId === selecionado.postoId && t.channel === selecionado.channel
+          t.oficinaId === selecionado.oficinaId &&
+          t.channel === selecionado.channel
             ? {
                 ...t,
                 lastMessage: msg.text,
@@ -284,6 +306,13 @@ export function SuportePostosAdminSection({
         </div>
       ) : null}
 
+      {erroRealtime ? (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
+          Tempo real indisponível ({erroRealtime}). Usando carregamento por
+          evento — abra de novo ou use Atualizar lista.
+        </div>
+      ) : null}
+
       <Tabs
         value={filtro}
         onValueChange={(v) => setFiltro(v as FiltroCanal)}
@@ -313,13 +342,14 @@ export function SuportePostosAdminSection({
               <ul>
                 {threads.map((t) => {
                   const ativo =
-                    selecionado?.postoId === t.postoId &&
+                    selecionado?.oficinaId === t.oficinaId &&
                     selecionado.channel === t.channel;
                   const nome =
-                    postoMap.get(t.postoId) ?? `Posto ${t.postoId.slice(0, 8)}`;
+                    oficinaNomes.get(t.oficinaId) ??
+                    `Oficina ${t.oficinaId.slice(0, 8)}`;
                   return (
                     <ThreadItem
-                      key={`${t.postoId}:${t.channel}`}
+                      key={`${t.oficinaId}:${t.channel}`}
                       thread={t}
                       nome={nome}
                       ativo={ativo}
@@ -342,13 +372,18 @@ export function SuportePostosAdminSection({
               <div className="border-b border-white/10 bg-white/[0.02] px-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-white">
-                    {postoMap.get(selecionado.postoId) ??
-                      `Posto ${selecionado.postoId.slice(0, 8)}`}
+                    {oficinaNomes.get(selecionado.oficinaId) ??
+                      `Oficina ${selecionado.oficinaId.slice(0, 8)}`}
                   </p>
                   <OrigemBadge origem={ORIGEM} />
                 </div>
-                <div className="mt-1.5">
+                <div className="mt-1.5 flex items-center gap-2">
                   <CanalChip channel={selecionado.channel} />
+                  {realtimeAtivo && !erroRealtime ? (
+                    <span className="text-[0.6875rem] text-emerald-300">
+                      tempo real
+                    </span>
+                  ) : null}
                 </div>
               </div>
 

@@ -6,6 +6,7 @@ export type SuporteSender = "user" | "support";
 
 export interface MensagemSuporte {
   id: string;
+  oficinaId?: string;
   postoId?: string;
   channel: SuporteChannel;
   sender: SuporteSender;
