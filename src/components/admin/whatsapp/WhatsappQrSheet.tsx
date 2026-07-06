@@ -54,6 +54,10 @@ export function WhatsappQrSheet({
                 className="h-60 w-60 rounded-lg bg-white p-2"
               />
               <p className="text-sm text-slate-400">Expira em ~60 segundos</p>
+              <p className="text-xs text-slate-500">
+                No celular: WhatsApp → Aparelhos conectados → desconecte sessões
+                antigas antes de escanear.
+              </p>
               <p className="text-xs text-slate-500">Aguardando leitura…</p>
             </>
           ) : status === "conectando" || status === "aguardando_qr" ? (
