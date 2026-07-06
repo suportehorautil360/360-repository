@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { whatsappApi, type WhatsAppStatus } from "@/lib/api/whatsapp";
 import { useWhatsappOverview } from "@/components/admin/whatsapp/use-whatsapp-overview";
@@ -32,6 +32,34 @@ export function WhatsappSection() {
 
   const statusExibicao = sessaoConexao.status ?? data?.status;
   const qrExibicao = sessaoConexao.qrImagem ?? data?.qrImagem;
+
+  // Enquanto o QR está aberto, poll leve (/status) — não bate no Firestore como /overview.
+  useEffect(() => {
+    if (!sheetAberto) return;
+
+    let ativo = true;
+    const poll = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const s = await whatsappApi.status();
+        if (!ativo) return;
+        setSessaoConexao((prev) => ({
+          status: s.status,
+          qrImagem: s.qrImagem ?? prev.qrImagem,
+        }));
+      } catch (e) {
+        if (!ativo) return;
+        toast.error(e instanceof Error ? e.message : "Falha ao consultar status.");
+      }
+    };
+
+    void poll();
+    const id = window.setInterval(() => void poll(), 5000);
+    return () => {
+      ativo = false;
+      window.clearInterval(id);
+    };
+  }, [sheetAberto]);
 
   return (
     <section className="flex flex-col gap-6 pb-10">

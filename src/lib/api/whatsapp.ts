@@ -41,6 +41,10 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     } catch {
       /* sem corpo JSON */
     }
+    if (res.status === 401) {
+      message =
+        "Acesso admin negado — saia e entre no Hub com a senha administrativa (deve ser igual ao ADMIN_SECRET do back em produção).";
+    }
     throw new ApiError(res.status, message);
   }
   const json = (await res.json()) as { data: T };

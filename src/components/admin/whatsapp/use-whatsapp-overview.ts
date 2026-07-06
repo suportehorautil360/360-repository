@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { whatsappApi, type WhatsappOverview } from "@/lib/api/whatsapp";
 
-const INTERVALO_RAPIDO = 2500; // aguardando_qr / conectando
-const INTERVALO_LENTO = 20000; // conectado / desconectado
+const INTERVALO_RAPIDO = 5000; // aguardando_qr / conectando
+const INTERVALO_LENTO = 30000; // conectado / desconectado
 
 export interface UseWhatsappOverview {
   data: WhatsappOverview | null;
@@ -33,14 +33,21 @@ export function useWhatsappOverview(): UseWhatsappOverview {
     void recarregar();
   }, [recarregar]);
 
-  // Polling adaptativo conforme o status atual.
+  // Polling adaptativo — pausa com aba em segundo plano (economiza Firestore).
   useEffect(() => {
     const status = data?.status;
     const intervalo =
       status === "aguardando_qr" || status === "conectando"
         ? INTERVALO_RAPIDO
         : INTERVALO_LENTO;
-    timer.current = window.setInterval(() => void recarregar(), intervalo);
+
+    const tick = () => {
+      if (document.visibilityState === "visible") {
+        void recarregar();
+      }
+    };
+
+    timer.current = window.setInterval(tick, intervalo);
     return () => {
       if (timer.current) window.clearInterval(timer.current);
     };
