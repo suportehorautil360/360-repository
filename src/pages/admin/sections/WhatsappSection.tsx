@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { whatsappApi } from "@/lib/api/whatsapp";
+import { whatsappApi, type WhatsAppStatus } from "@/lib/api/whatsapp";
 import { useWhatsappOverview } from "@/components/admin/whatsapp/use-whatsapp-overview";
 import { WhatsappHubHeader } from "@/components/admin/whatsapp/WhatsappHubHeader";
 import { WhatsappStats } from "@/components/admin/whatsapp/WhatsappStats";
@@ -11,17 +11,27 @@ import { WhatsappQrSheet } from "@/components/admin/whatsapp/WhatsappQrSheet";
 export function WhatsappSection() {
   const { data, carregando, erro, recarregar } = useWhatsappOverview();
   const [sheetAberto, setSheetAberto] = useState(false);
+  const [sessaoConexao, setSessaoConexao] = useState<{
+    status?: WhatsAppStatus;
+    qrImagem?: string;
+  }>({});
 
   async function conectar() {
     setSheetAberto(true);
+    setSessaoConexao({ status: "conectando" });
     try {
-      await whatsappApi.conectar();
+      const resp = await whatsappApi.conectar();
+      setSessaoConexao(resp);
       await recarregar();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao conectar.");
+      setSessaoConexao({});
       setSheetAberto(false);
     }
   }
+
+  const statusExibicao = sessaoConexao.status ?? data?.status;
+  const qrExibicao = sessaoConexao.qrImagem ?? data?.qrImagem;
 
   return (
     <section className="flex flex-col gap-6 pb-10">
@@ -48,11 +58,15 @@ export function WhatsappSection() {
 
       <WhatsappQrSheet
         aberto={sheetAberto}
-        onAbertoChange={setSheetAberto}
-        status={data?.status}
-        qrImagem={data?.qrImagem}
+        onAbertoChange={(aberto) => {
+          setSheetAberto(aberto);
+          if (!aberto) setSessaoConexao({});
+        }}
+        status={statusExibicao}
+        qrImagem={qrExibicao}
         onConectado={() => {
           toast.success("WhatsApp conectado.");
+          setSessaoConexao({});
           void recarregar();
         }}
       />
