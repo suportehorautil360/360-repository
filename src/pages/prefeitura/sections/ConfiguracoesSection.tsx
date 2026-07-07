@@ -184,6 +184,16 @@ export function ConfiguracoesSection({ prefeituraId }: { prefeituraId: string })
       if (e.razaoSocial.trim()) payload.nome = e.razaoSocial.trim();
       if (e.estado.trim()) payload.uf = e.estado.trim();
       await clientesApi.atualizar(prefeituraId, payload);
+      // Mantém `configuracoes` alinhado — o back lia só esse doc nas emergências.
+      await configuracoesApi.salvar({
+        ...config,
+        empresa: {
+          ...config.empresa,
+          whatsappNumero: payload.whatsapp ?? config.empresa.whatsappNumero,
+          emailAlertas:
+            payload.contrato?.emailContratante ?? config.empresa.emailAlertas,
+        },
+      });
       toast.success("Dados da empresa salvos.");
       await carregar();
     } catch (err) {
