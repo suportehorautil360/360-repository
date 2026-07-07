@@ -24,6 +24,7 @@ export interface SidebarGroup {
   /** Título da seção (ex.: "PRINCIPAL"). Omitir para grupo sem rótulo. */
   label?: string;
   items: SidebarItem[];
+  locked?: boolean;
 }
 
 export interface SidebarBrand {

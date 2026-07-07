@@ -6,6 +6,7 @@ export interface DTOAddUsuario {
   email?: string;
   senha: string;
   perfil: "gestor" | "admin";
+  cargo?: string;
   prefeituraId: string;
   vinculo: VinculoUsuario;
   postoId?: string;
@@ -19,6 +20,7 @@ export interface UsuarioFirestore {
   email?: string;
   senha: string;
   perfil: string;
+  cargo?: string;
   type: string;
   vinculo: VinculoUsuario;
   prefeituraId: string;

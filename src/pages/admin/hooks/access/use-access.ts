@@ -61,6 +61,7 @@ export const useAccess = create<AcessoLoginProps>()(() => ({
       senha: senhaHash,
       mustChangePassword: true,
       perfil: data.perfil,
+      ...(data.cargo ? { cargo: data.cargo } : {}),
       type: data.vinculo,
       vinculo: data.vinculo,
       prefeituraId: data.prefeituraId,

@@ -10,6 +10,7 @@ import { useLogin } from "../../login/hooks/use-login";
 import { useAccess } from "../hooks/access/use-access";
 import { usePostos } from "../hooks/postos/use-postos";
 import { clientesApi } from "../../../lib/api/clientes";
+import { CARGOS } from "../../../lib/funcionarios/cargos";
 import type { UsuarioFirestore } from "../hooks/access/types";
 import type { PostoFirestore } from "../hooks/postos/types";
 import type { OficinaFirestore } from "../hooks/oficinas/types";
@@ -113,6 +114,7 @@ export function AcessosLoginsSection() {
   const [prefNome, setPrefNome] = useState("");
   const [prefLogin, setPrefLogin] = useState("");
   const [prefPerfil, setPrefPerfil] = useState<"gestor" | "admin">("gestor");
+  const [prefCargo, setPrefCargo] = useState(CARGOS[0]);
   const [prefSenha, setPrefSenha] = useState("");
 
   const [ofiNome, setOfiNome] = useState("");
@@ -237,6 +239,7 @@ export function AcessosLoginsSection() {
     usuario: string;
     senha: string;
     perfil: "gestor" | "admin";
+    cargo?: string;
     prefeituraId: string;
     vinculo: UsuarioFirestore["vinculo"];
     postoId?: string;
@@ -256,6 +259,7 @@ export function AcessosLoginsSection() {
       usuario,
       senha,
       perfil: opts.perfil,
+      ...(opts.cargo ? { cargo: opts.cargo } : {}),
       prefeituraId: opts.prefeituraId,
       vinculo: opts.vinculo,
       ...(opts.postoId ? { postoId: opts.postoId } : {}),
@@ -282,6 +286,7 @@ export function AcessosLoginsSection() {
       usuario: prefLogin,
       senha: prefSenha,
       perfil: prefPerfil,
+      cargo: prefCargo,
       prefeituraId: selMunPref,
       vinculo: "prefeitura",
       setMsg: setMsgPrefCb,
@@ -292,6 +297,7 @@ export function AcessosLoginsSection() {
       setPrefLogin("");
       setPrefSenha("");
       setPrefPerfil("gestor");
+      setPrefCargo(CARGOS[0]);
     }
   }
 
@@ -497,6 +503,22 @@ export function AcessosLoginsSection() {
               </select>
             </div>
             <div>
+              <label htmlFor="prefCargo">Cargo</label>
+              <select
+                id="prefCargo"
+                value={prefCargo}
+                onChange={(e) => setPrefCargo(e.target.value)}
+              >
+                {CARGOS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="row-2">
+            <div>
               <label htmlFor="prefSenha">Senha inicial</label>
               <input
                 id="prefSenha"
@@ -532,19 +554,20 @@ export function AcessosLoginsSection() {
                 <th>Login</th>
                 <th>Município</th>
                 <th>Perfil</th>
+                <th>Cargo</th>
                 <th>Ação</th>
               </tr>
             </thead>
             <tbody id="tabelaUsuariosPrefeitura">
               {loadingUsuarios ? (
                 <tr>
-                  <td colSpan={5} className="topbar-user">
+                  <td colSpan={6} className="topbar-user">
                     Carregando...
                   </td>
                 </tr>
               ) : usersPref.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="topbar-user">
+                  <td colSpan={6} className="topbar-user">
                     Nenhum usuário para este município.
                   </td>
                 </tr>
@@ -566,6 +589,7 @@ export function AcessosLoginsSection() {
                         {u.perfil}
                       </span>
                     </td>
+                    <td>{u.cargo ?? "—"}</td>
                     <td>
                       <button
                         type="button"

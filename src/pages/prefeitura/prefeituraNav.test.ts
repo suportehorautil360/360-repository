@@ -47,6 +47,11 @@ describe("prefeituraNav — gating dos accordions de grupo", () => {
     expect(labels).toContain("Sistema");
   });
 
+  it("sem acesso (undefined) nenhum grupo fica locked — legado", () => {
+    const grupos = prefeituraNav("pref-1");
+    expect(grupos.every((g) => !g.locked)).toBe(true);
+  });
+
   it("itens de ponto dependem de flags.ponto dentro de Pessoas/RH", () => {
     const semPonto = prefeituraNav("pref-1", { flags: { pessoas: true } });
     const grupoSem = semPonto.find((g) => g.label === "Pessoas / RH");
@@ -61,5 +66,40 @@ describe("prefeituraNav — gating dos accordions de grupo", () => {
     expect(
       grupoCom?.items.some((i) => i.to === "/prefeitura/pref-1/pontos-rh"),
     ).toBe(true);
+  });
+});
+
+describe("prefeituraNav — gating por cargo (locked, não remove)", () => {
+  it("gestor Motorista: Frota clicável; Manutenção e Pessoas locked", () => {
+    const grupos = prefeituraNav("pref-1", {
+      flags: { ponto: true },
+      acesso: { perfil: "gestor", cargo: "Motorista" },
+    });
+    const byLabel = (l: string) => grupos.find((g) => g.label === l);
+    // Todos continuam VISÍVEIS (não filtrados).
+    expect(byLabel("Gestão de Frota")?.locked).toBeFalsy();
+    expect(byLabel("Manutenção")?.locked).toBe(true);
+    expect(byLabel("Pessoas / RH")?.locked).toBe(true);
+    // Principal e Sistema nunca ficam locked.
+    expect(byLabel("Principal")?.locked).toBeFalsy();
+    expect(byLabel("Sistema")?.locked).toBeFalsy();
+  });
+
+  it("admin não bloqueia nenhum grupo", () => {
+    const grupos = prefeituraNav("pref-1", {
+      acesso: { perfil: "admin", cargo: "Operador" },
+    });
+    expect(grupos.every((g) => !g.locked)).toBe(true);
+  });
+
+  it('cargo "Outro" bloqueia os três grupos operacionais', () => {
+    const grupos = prefeituraNav("pref-1", {
+      flags: { ponto: true },
+      acesso: { perfil: "gestor", cargo: "Outro" },
+    });
+    const byLabel = (l: string) => grupos.find((g) => g.label === l);
+    expect(byLabel("Gestão de Frota")?.locked).toBe(true);
+    expect(byLabel("Manutenção")?.locked).toBe(true);
+    expect(byLabel("Pessoas / RH")?.locked).toBe(true);
   });
 });
