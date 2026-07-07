@@ -2,6 +2,7 @@ import type {
   SidebarBrand,
   SidebarGroup,
 } from "../../components/Sidebar/types";
+import { podeAcessarGrupo, type AcessoUsuario } from "./prefeituraAcesso";
 
 /** Slugs das seções com tela de verdade (o resto é placeholder "em construção"). */
 export const SECOES_REAIS = new Set([
@@ -104,6 +105,7 @@ export function prefeituraNav(
   opts?: {
     flags?: Record<string, boolean>;
     badges?: PrefeituraNavBadges;
+    acesso?: AcessoUsuario;
   },
 ): SidebarGroup[] {
   const to = (slug: string) => `/prefeitura/${prefeituraId}/${slug}`;
@@ -261,5 +263,10 @@ export function prefeituraNav(
     },
   ];
 
-  return grupos;
+  const acesso = opts?.acesso;
+  return grupos.map((g) =>
+    g.label && !podeAcessarGrupo(g.label, acesso)
+      ? { ...g, locked: true }
+      : g,
+  );
 }

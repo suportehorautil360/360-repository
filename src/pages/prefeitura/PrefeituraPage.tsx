@@ -36,6 +36,12 @@ import { PlanoPreventivoSection } from "./sections/PlanoPreventivoSection";
 import { AuditoriaDevolucaoSection } from "./sections/AuditoriaDevolucaoSection";
 import { EmergenciaTable } from "../../components/emergencia/EmergenciaTable";
 import { PREFEITURA_BRAND, SECAO_LABEL, prefeituraNav } from "./prefeituraNav";
+import {
+  GRUPO_FROTA,
+  GRUPO_MANUTENCAO,
+  GRUPO_PESSOAS,
+  podeAcessarGrupo,
+} from "./prefeituraAcesso";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
 import { useResolvedFlags } from "../../lib/api/feature-flags";
@@ -91,6 +97,22 @@ const SLUG_FLAG: Record<string, string> = {
   "auditoria-checklists": "qualidade",
   riscos: "qualidade",
   emergencia: "qualidade",
+};
+
+const SLUG_GRUPO: Record<string, string> = {
+  equipamentos: GRUPO_FROTA,
+  "frentes-trabalho": GRUPO_FROTA,
+  alocacao: GRUPO_FROTA,
+  "abrir-os": GRUPO_MANUTENCAO,
+  "plano-preventivo": GRUPO_MANUTENCAO,
+  revisoes: GRUPO_MANUTENCAO,
+  preventiva: GRUPO_MANUTENCAO,
+  "auditoria-devolucao": GRUPO_MANUTENCAO,
+  orcamentos: GRUPO_MANUTENCAO,
+  "notas-fiscais-oficinas": GRUPO_MANUTENCAO,
+  funcionarios: GRUPO_PESSOAS,
+  "pontos-rh": GRUPO_PESSOAS,
+  "solicitacoes-ponto": GRUPO_PESSOAS,
 };
 
 export function PrefeituraPage() {
@@ -225,9 +247,11 @@ export function PrefeituraPage() {
       : equipNovo || equipEditId
         ? "equipamentos"
         : (secao ?? "dashboard");
+  const acesso = { perfil: user.perfil, cargo: user.cargo };
   const navGroups = prefeituraNav(prefeituraId, {
     flags,
     badges,
+    acesso,
   });
 
   function renderSecao() {
@@ -258,6 +282,11 @@ export function PrefeituraPage() {
     }
     const flagExigida = SLUG_FLAG[secaoAtual];
     if (flagExigida && !flags[flagExigida]) {
+      return <SemAcesso titulo={SECAO_LABEL[secaoAtual] ?? "Sem acesso"} />;
+    }
+    
+    const grupoExigido = SLUG_GRUPO[secaoAtual];
+    if (grupoExigido && !podeAcessarGrupo(grupoExigido, acesso)) {
       return <SemAcesso titulo={SECAO_LABEL[secaoAtual] ?? "Sem acesso"} />;
     }
     switch (secaoAtual) {

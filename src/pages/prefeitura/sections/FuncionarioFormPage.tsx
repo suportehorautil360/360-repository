@@ -20,6 +20,7 @@ import {
   type FuncionarioTipo,
 } from "../../../lib/funcionarios/funcionarios";
 import { cpfValido, formatarCpf, limparCpf } from "../../../lib/funcionarios/cpf";
+import { CARGOS, CARGOS_PREDEF } from "../../../lib/funcionarios/cargos";
 import {
   Select,
   SelectContent,
@@ -32,17 +33,6 @@ import "./funcionario-form.css";
 const SELECT_TRIGGER_CLS =
   "w-full border-white/15 bg-white/[0.04] text-slate-100 data-[placeholder]:text-slate-400";
 
-const CARGOS = [
-  "Operador",
-  "Motorista",
-  "Comboista",
-  "Mecânico",
-  "Supervisor",
-  "Outro",
-];
-
-/** Cargos predefinidos (sem o "Outro", que abre digitação livre). */
-const CARGOS_PREDEF = CARGOS.filter((c) => c !== "Outro");
 
 type Modo = "novo" | "editar";
 

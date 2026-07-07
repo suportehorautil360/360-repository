@@ -109,12 +109,30 @@ export function Sidebar({
 
             return (
               <AccordionItem
-                className="hu-sidebar__group"
+                className={`hu-sidebar__group ${
+                  group.locked ? "is-locked" : ""
+                }`}
                 key={value}
                 value={value}
+                disabled={group.locked}
               >
-                <AccordionTrigger className="hu-sidebar__group-trigger">
+                <AccordionTrigger
+                  className="hu-sidebar__group-trigger"
+                  title={
+                    group.locked
+                      ? "Seu cargo não tem acesso a esta área"
+                      : undefined
+                  }
+                >
                   <span className="hu-sidebar__group-label">{group.label}</span>
+                  {group.locked && (
+                    <span
+                      className="hu-sidebar__group-lock"
+                      aria-hidden="true"
+                    >
+                      🔒
+                    </span>
+                  )}
                 </AccordionTrigger>
                 <AccordionContent className="hu-sidebar__group-content">
                   <div className="hu-sidebar__group-items">

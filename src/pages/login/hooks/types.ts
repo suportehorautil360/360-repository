@@ -7,6 +7,8 @@ export type User = {
   prefeituraId?: string;
   postoId?: string;
   officinaId?: string;
+  perfil?: string;
+  cargo?: string;
 };
 
 export interface LoginProps {

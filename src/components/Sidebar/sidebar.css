@@ -153,6 +153,21 @@
   color: var(--hu-sb-muted);
 }
 
+.hu-sidebar__group.is-locked .hu-sidebar__group-trigger {
+  cursor: not-allowed;
+}
+
+.hu-sidebar__group.is-locked .hu-sidebar__group-trigger:hover {
+  color: var(--hu-sb-muted);
+  text-decoration: none;
+}
+
+.hu-sidebar__group-lock {
+  margin-left: auto;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
 .hu-sidebar__group-content {
   padding: 0;
 }

@@ -47,6 +47,8 @@ export const useLogin = create<LoginProps>()(
               prefeituraId: rawDoc.prefeituraId,
               postoId: rawDoc.postoId,
               officinaId: (rawDoc as User & { officinaId?: string }).officinaId,
+              perfil: rawDoc.perfil,
+              cargo: rawDoc.cargo,
             }
           : undefined;
         set({ user: userData ?? null });
