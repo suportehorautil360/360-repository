@@ -83,9 +83,15 @@ export interface EventoWhats {
   status: StatusEventoWhats;
   timestamp: string;
 }
+export type WhatsAppIntegracao = "evolution" | "remote" | "baileys";
+
 export interface WhatsappOverview {
   status: WhatsAppStatus;
   qrImagem?: string;
+  /** Como a sessão é gerenciada (Evolution = pareamento no Manager). */
+  integracao: WhatsAppIntegracao;
+  /** URL do Manager Evolution (quando integracao === 'evolution'). */
+  evolutionManagerUrl?: string | null;
   sessao: WhatsappSessao;
   kpis: WhatsappKpis;
   eventos: EventoWhats[];
@@ -93,7 +99,8 @@ export interface WhatsappOverview {
 
 export const whatsappApi = {
   status: () => req<WhatsAppStatusResp>("GET", "/status"),
-  conectar: () => req<WhatsAppStatusResp>("POST", "/connect"),
+  conectar: (recriar = false) =>
+    req<WhatsAppStatusResp>("POST", "/connect", recriar ? { recriar: true } : {}),
   desconectar: () => req<unknown>("POST", "/logout"),
   enviarTeste: (numero: string) =>
     req<unknown>("POST", "/enviar-teste", { numero }),

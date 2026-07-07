@@ -16,6 +16,8 @@ export function WhatsappSection() {
     qrImagem?: string;
   }>({});
 
+  const modoEvolution = data?.integracao === "evolution";
+
   async function conectar() {
     setSheetAberto(true);
     setSessaoConexao({ status: "conectando" });
@@ -33,9 +35,9 @@ export function WhatsappSection() {
   const statusExibicao = sessaoConexao.status ?? data?.status;
   const qrExibicao = sessaoConexao.qrImagem ?? data?.qrImagem;
 
-  // Enquanto o QR está aberto, poll leve (/status) — não bate no Firestore como /overview.
+  // QR sheet só no modo Baileys/local — Evolution pareia no Manager.
   useEffect(() => {
-    if (!sheetAberto) return;
+    if (modoEvolution || !sheetAberto) return;
 
     let ativo = true;
     const poll = async () => {
@@ -59,11 +61,15 @@ export function WhatsappSection() {
       ativo = false;
       window.clearInterval(id);
     };
-  }, [sheetAberto]);
+  }, [sheetAberto, modoEvolution]);
 
   return (
     <section className="flex flex-col gap-6 pb-10">
-      <WhatsappHubHeader status={data?.status} carregando={carregando} />
+      <WhatsappHubHeader
+        status={data?.status}
+        carregando={carregando}
+        modoEvolution={modoEvolution}
+      />
 
       {erro && (
         <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
@@ -84,20 +90,22 @@ export function WhatsappSection() {
         <WhatsappStatusCard data={data} carregando={carregando} />
       </div>
 
-      <WhatsappQrSheet
-        aberto={sheetAberto}
-        onAbertoChange={(aberto) => {
-          setSheetAberto(aberto);
-          if (!aberto) setSessaoConexao({});
-        }}
-        status={statusExibicao}
-        qrImagem={qrExibicao}
-        onConectado={() => {
-          toast.success("WhatsApp conectado.");
-          setSessaoConexao({});
-          void recarregar();
-        }}
-      />
+      {!modoEvolution && (
+        <WhatsappQrSheet
+          aberto={sheetAberto}
+          onAbertoChange={(aberto) => {
+            setSheetAberto(aberto);
+            if (!aberto) setSessaoConexao({});
+          }}
+          status={statusExibicao}
+          qrImagem={qrExibicao}
+          onConectado={() => {
+            toast.success("WhatsApp conectado.");
+            setSessaoConexao({});
+            void recarregar();
+          }}
+        />
+      )}
     </section>
   );
 }

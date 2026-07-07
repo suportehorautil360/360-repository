@@ -17,6 +17,8 @@ import { WhatsappSection } from "./WhatsappSection";
 function ovConectado(): WhatsappOverview {
   return {
     status: "conectado",
+    integracao: "baileys",
+    evolutionManagerUrl: null,
     sessao: {
       numeroConectado: "5567999999999",
       nomeSessao: "Hora Útil 360",
@@ -57,6 +59,8 @@ describe("WhatsappSection", () => {
   it("mostra empty-state desconectado", async () => {
     overviewMock.mockResolvedValue({
       status: "desconectado",
+      integracao: "baileys",
+      evolutionManagerUrl: null,
       sessao: {
         numeroConectado: null, nomeSessao: null, conectadoDesde: null,
         ultimaAtividade: null, versaoSessao: null, ambiente: "dev",

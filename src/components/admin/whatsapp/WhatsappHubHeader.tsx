@@ -4,9 +4,11 @@ import { StatusBadge } from "./ui";
 export function WhatsappHubHeader({
   status,
   carregando,
+  modoEvolution = false,
 }: {
   status: WhatsAppStatus | undefined;
   carregando: boolean;
+  modoEvolution?: boolean;
 }) {
   const online = status === "conectado";
   return (
@@ -18,6 +20,12 @@ export function WhatsappHubHeader({
         <div className="mt-1 max-w-2xl text-sm text-slate-400">
           Canal central de comunicação responsável pelo envio de notificações,
           alertas e mensagens automáticas da plataforma.
+          {modoEvolution && (
+            <span className="mt-1 block text-sky-300/80">
+              Sessão gerenciada pela Evolution API — pareamento no painel
+              Evolution, não neste Hub.
+            </span>
+          )}
         </div>
       </div>
       {!carregando && (
