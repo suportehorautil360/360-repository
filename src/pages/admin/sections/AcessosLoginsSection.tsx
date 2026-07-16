@@ -11,6 +11,12 @@ import { useAccess } from "../hooks/access/use-access";
 import { usePostos } from "../hooks/postos/use-postos";
 import { clientesApi } from "../../../lib/api/clientes";
 import { CARGOS } from "../../../lib/funcionarios/cargos";
+import {
+  vinculoLocacao,
+  vinculoOficina,
+  vinculoPosto,
+  vinculoPrefeitura,
+} from "../../../lib/usuarios/vinculo";
 import type { UsuarioFirestore } from "../hooks/access/types";
 import type { PostoFirestore } from "../hooks/postos/types";
 import type { OficinaFirestore } from "../hooks/oficinas/types";
@@ -32,23 +38,6 @@ function clienteEhLocacaoAtivo(p: Prefeitura | undefined): boolean {
   if (p.tipoCliente !== "locacao") return false;
   const st = p.contrato?.status || "ativo";
   return st === "ativo";
-}
-
-function vinculoPrefeitura(u: UsuarioFirestore): boolean {
-  const v = u.vinculo || "prefeitura";
-  return v !== "oficina" && v !== "posto" && v !== "locacao";
-}
-
-function vinculoOficina(u: UsuarioFirestore): boolean {
-  return u.vinculo === "oficina";
-}
-
-function vinculoPosto(u: UsuarioFirestore): boolean {
-  return u.vinculo === "posto";
-}
-
-function vinculoLocacao(u: UsuarioFirestore): boolean {
-  return u.vinculo === "locacao";
 }
 
 type MsgTone = "none" | "ok" | "err" | "warn";

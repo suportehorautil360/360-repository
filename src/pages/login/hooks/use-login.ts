@@ -25,7 +25,13 @@ export const useLogin = create<LoginProps>()(
         );
         let querySnapshot: Record<string, unknown>[];
         try {
-          querySnapshot = (await getDocs(q)).docs.map((doc) => doc.data());
+          // `id` DEPOIS do spread: o doc id vence o campo `id` legado
+          // (randomUUID) gravado dentro do doc. Mesmo cuidado do
+          // `listarUsuarios` — os dois precisam falar do mesmo id.
+          querySnapshot = (await getDocs(q)).docs.map((d) => ({
+            ...d.data(),
+            id: d.id,
+          }));
         } catch {
           // Offline e o usuário ainda não está no cache do Firestore: a query
           // não tem como ser resolvida. Mensagem clara em vez de "inválido".
@@ -77,6 +83,11 @@ export const useLogin = create<LoginProps>()(
     }),
     {
       name: "login-store",
+      // v1: `user.id` passou a ser o doc id do Firestore (antes era o campo
+      // `id` legado do doc). Sessões da v0 carregam o id antigo e não casariam
+      // com nada que referencie usuários — sem migração possível, o persist
+      // descarta e o usuário loga de novo uma vez.
+      version: 1,
     },
   ),
 );

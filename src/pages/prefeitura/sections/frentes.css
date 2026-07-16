@@ -364,6 +364,11 @@
   text-transform: uppercase;
   color: #7d92ba;
 }
+.ft-field__hint {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #f0b849;
+}
 .ft-field-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

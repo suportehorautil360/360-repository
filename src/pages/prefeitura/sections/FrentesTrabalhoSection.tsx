@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Combobox } from "@/components/ui/combobox";
+import { useLogin } from "../../login/hooks/use-login";
 import {
   frentesApi,
   formatDataBR,
   formatCustoBR,
+  mensagemErroSalvarFrente,
   type Frente,
   type FrenteStatus,
   type NovaFrenteInput,
 } from "./frentes/frentes-api";
+import { podeVerFrente } from "./frentes/frentes-acesso";
 import { NovaFrenteModal } from "./frentes/NovaFrenteModal";
 import { equipamentosApi, type EquipRow } from "./equipamentos/equipamentos-api";
 import { iconeTipo } from "./equipamentos/icone";
@@ -26,6 +29,7 @@ export function FrentesTrabalhoSection({
 }: {
   prefeituraId: string;
 }) {
+  const { user } = useLogin();
   const [frentes, setFrentes] = useState<Frente[]>([]);
   const [equipamentos, setEquipamentos] = useState<EquipRow[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -42,10 +46,14 @@ export function FrentesTrabalhoSection({
     return m;
   }, [equipamentos]);
 
-  // Só equipamentos sem alocação podem ser alocados (evita duplicar).
   const equipamentosDisponiveis = useMemo(
     () => montarAlocacoes(frentes, equipamentos).disponiveis,
     [frentes, equipamentos],
+  );
+
+  const frentesVisiveis = useMemo(
+    () => frentes.filter((f) => podeVerFrente(f, user ?? undefined)),
+    [frentes, user],
   );
 
   const carregar = useCallback(async () => {
@@ -90,12 +98,8 @@ export function FrentesTrabalhoSection({
       }
       setModal(null);
       await carregar();
-    } catch {
-      toast.error(
-        emEdicao
-          ? "Não foi possível atualizar a frente de trabalho."
-          : "Não foi possível criar a frente de trabalho.",
-      );
+    } catch (err) {
+      toast.error(mensagemErroSalvarFrente(err, !!emEdicao));
     }
   }
 
@@ -196,9 +200,14 @@ export function FrentesTrabalhoSection({
           Nenhuma frente de trabalho cadastrada. Clique em “+ Nova Frente de
           Trabalho” para começar.
         </p>
+      ) : frentesVisiveis.length === 0 ? (
+        <p className="ft-empty">
+          Nenhuma frente de trabalho sob sua responsabilidade. Fale com o
+          administrador para ser designado a uma frente.
+        </p>
       ) : (
         <div className="ft-list">
-          {frentes.map((f) => {
+          {frentesVisiveis.map((f) => {
             const draft = rascunho[f.id] ?? { vehicleId: "", funcao: "" };
             return (
               <article key={f.id} className="ft-card">
@@ -313,6 +322,7 @@ export function FrentesTrabalhoSection({
       {modal && (
         <NovaFrenteModal
           frente={modal.frente}
+          prefeituraId={prefeituraId}
           onFechar={() => setModal(null)}
           onSalvar={handleSalvar}
         />

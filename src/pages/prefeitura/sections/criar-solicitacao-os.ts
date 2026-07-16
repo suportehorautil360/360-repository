@@ -16,7 +16,8 @@ import {
 
 export type { WorkshopInvited };
 
-export interface OficinaAtiva extends OficinaDirecionamento {}
+/** Alias local — mantém o nome do domínio sem redeclarar os campos. */
+export type OficinaAtiva = OficinaDirecionamento;
 
 export interface CriarSolicitacaoOsInput {
   prefeituraId: string;

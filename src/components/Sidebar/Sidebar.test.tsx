@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import type { SidebarGroup } from "./types";
@@ -35,28 +36,62 @@ function renderSidebar(extra?: Parameters<typeof Sidebar>[0]) {
   );
 }
 
+/**
+ * Os grupos nascem fechados (`defaultValue={[]}` no Accordion) e o Radix
+ * desmonta o conteúdo fechado — então os itens só existem no DOM depois de
+ * expandir.
+ */
+function abrirGrupo(label: string) {
+  return userEvent.setup().click(screen.getByRole("button", { name: label }));
+}
+
 describe("Sidebar", () => {
-  it("renderiza a marca, os rótulos de grupo e os itens", () => {
+  it("renderiza a marca e os rótulos de grupo", () => {
     renderSidebar();
     expect(screen.getByText("HORA ÚTIL 360")).toBeInTheDocument();
     expect(screen.getByText("Principal")).toBeInTheDocument();
     expect(screen.getByText("Manutenção")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Dashboard/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Revisões/ })).toBeInTheDocument();
   });
 
-  it("aponta os itens para a rota correta", () => {
+  it("os itens do grupo só aparecem depois de expandir", async () => {
     renderSidebar();
+    expect(screen.queryByRole("link", { name: /Dashboard/ })).toBeNull();
+
+    await abrirGrupo("Principal");
+    expect(screen.getByRole("link", { name: /Dashboard/ })).toBeInTheDocument();
+  });
+
+  it("aponta os itens para a rota correta", async () => {
+    renderSidebar();
+    await abrirGrupo("Principal");
     expect(screen.getByRole("link", { name: /Dashboard/ })).toHaveAttribute(
       "href",
       "/admin/dashboard",
     );
   });
 
-  it("mostra os badges de contagem", () => {
+  it("mostra os badges de contagem", async () => {
     renderSidebar();
+    await abrirGrupo("Principal");
+    await abrirGrupo("Manutenção");
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("6")).toBeInTheDocument();
+  });
+
+  it("grupo bloqueado não abre e sinaliza o motivo", async () => {
+    renderSidebar({
+      brand: { title: "HORA ÚTIL 360" },
+      groups: [{ ...groups[1], locked: true }],
+    });
+    const trigger = screen.getByRole("button", { name: "Manutenção" });
+    expect(trigger).toBeDisabled();
+    expect(trigger).toHaveAttribute(
+      "title",
+      "Seu cargo não tem acesso a esta área",
+    );
+
+    await abrirGrupo("Manutenção");
+    expect(screen.queryByRole("link", { name: /Revisões/ })).toBeNull();
   });
 
   it("renderiza o rodapé de usuário (avatar, nome, papel) quando há user", () => {

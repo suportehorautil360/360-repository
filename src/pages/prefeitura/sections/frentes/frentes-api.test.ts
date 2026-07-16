@@ -20,6 +20,7 @@ import {
   formatDataBR,
   frentesApi,
   isoParaDateInput,
+  mensagemErroSalvarFrente,
 } from "./frentes-api";
 import { ApiError } from "../../../../lib/api/client";
 
@@ -29,6 +30,7 @@ const frenteRaw = {
   prefeituraId: "pref1",
   address: "São Carlos, SP",
   responsible: "Carlos Mendes",
+  responsibleId: "user-1",
   status: "active",
   cost: 2120,
   startDate: "2026-01-10T00:00:00.000Z",
@@ -62,6 +64,8 @@ describe("frentesApi.listar", () => {
     expect(f.nome).toBe("Rodovia SP-310 — Trecho 4");
     expect(f.status).toBe("Ativa");
     expect(f.custo).toBe(2120);
+    expect(f.responsavel).toBe("Carlos Mendes");
+    expect(f.responsavelId).toBe("user-1");
     expect(f.equipamentos).toHaveLength(1);
     expect(f.equipamentos[0]).toMatchObject({
       allocationId: "al1",
@@ -86,6 +90,15 @@ describe("frentesApi.listar", () => {
     expect(byNome.b).toBe("Concluída");
   });
 
+  it("frente legada sem responsibleId vira responsavelId vazio", async () => {
+    const semResponsavel: Record<string, unknown> = { ...frenteRaw };
+    delete semResponsavel.responsibleId;
+    getMock.mockResolvedValue({ data: [semResponsavel], message: "ok" });
+    const [f] = await frentesApi.listar("pref1");
+    expect(f.responsavelId).toBe("");
+    expect(f.responsavel).toBe("Carlos Mendes");
+  });
+
   it("trata 404 como lista vazia", async () => {
     getMock.mockRejectedValue(new ApiError(404, "não encontrado"));
     await expect(frentesApi.listar("pref1")).resolves.toEqual([]);
@@ -105,6 +118,7 @@ describe("frentesApi.criar", () => {
         nome: "Obra X",
         endereco: "Rua 1",
         responsavel: "Maria",
+        responsavelId: "user-9",
         telefone: "11988887777",
         email: "frente@x.com",
         status: "Ativa",
@@ -123,6 +137,7 @@ describe("frentesApi.criar", () => {
       prefeituraId: "pref1",
       address: "Rua 1",
       responsible: "Maria",
+      responsibleId: "user-9",
       // O telefone informado sem DDI é normalizado para E.164.
       telefone: "+5511988887777",
       email: "frente@x.com",
@@ -141,6 +156,7 @@ describe("frentesApi.criar", () => {
         nome: "Obra X",
         endereco: "Rua 1",
         responsavel: "Maria",
+        responsavelId: "user-9",
         telefone: "",
         email: "",
         status: "Ativa",
@@ -162,6 +178,7 @@ describe("frentesApi.atualizar", () => {
       nome: "Novo nome",
       endereco: "Rua 2",
       responsavel: "João",
+      responsavelId: "user-7",
       telefone: "",
       email: "",
       status: "Pausada",
@@ -177,6 +194,28 @@ describe("frentesApi.atualizar", () => {
       cost: 999,
     });
   });
+
+  // Se o PATCH do backend for replace, omitir o campo apagaria o responsável.
+  it("reenvia o responsável no update", async () => {
+    patchMock.mockResolvedValue({});
+    await frentesApi.atualizar("wf1", {
+      nome: "Novo nome",
+      endereco: "Rua 2",
+      responsavel: "João",
+      responsavelId: "user-7",
+      telefone: "",
+      email: "",
+      status: "Ativa",
+      custo: 0,
+      inicio: "2026-02-01",
+      fim: "",
+    });
+    const [, body] = patchMock.mock.calls[0];
+    expect(body).toMatchObject({
+      responsible: "João",
+      responsibleId: "user-7",
+    });
+  });
 });
 
 describe("frentesApi.alocar / desalocar", () => {
@@ -188,6 +227,7 @@ describe("frentesApi.alocar / desalocar", () => {
         nome: "Obra X",
         endereco: "",
         responsavel: "",
+        responsavelId: "",
         telefone: "",
         email: "",
         status: "Ativa",
@@ -224,6 +264,7 @@ describe("frentesApi.alocar / desalocar", () => {
         nome: "Obra X",
         endereco: "",
         responsavel: "",
+        responsavelId: "",
         telefone: "",
         email: "",
         status: "Ativa",
@@ -247,6 +288,36 @@ describe("frentesApi.alocar / desalocar", () => {
     delMock.mockResolvedValue(undefined);
     await frentesApi.desalocar("al1");
     expect(delMock).toHaveBeenCalledWith("/allocation/al1");
+  });
+});
+
+describe("mensagemErroSalvarFrente", () => {
+  it("mostra o motivo que o backend deu no 400", () => {
+    const err = new ApiError(
+      400,
+      "O responsável precisa ser um usuário desta prefeitura.",
+    );
+    expect(mensagemErroSalvarFrente(err, false)).toBe(
+      "O responsável precisa ser um usuário desta prefeitura.",
+    );
+  });
+
+  it("cai na genérica quando não é 400", () => {
+    expect(mensagemErroSalvarFrente(new ApiError(500, "boom"), false)).toBe(
+      "Não foi possível criar a frente de trabalho.",
+    );
+  });
+
+  it("distingue criar de editar na genérica", () => {
+    const err = new ApiError(500, "boom");
+    expect(mensagemErroSalvarFrente(err, true)).toContain("atualizar");
+    expect(mensagemErroSalvarFrente(err, false)).toContain("criar");
+  });
+
+  it("erro de rede (não ApiError) cai na genérica", () => {
+    expect(mensagemErroSalvarFrente(new TypeError("offline"), true)).toBe(
+      "Não foi possível atualizar a frente de trabalho.",
+    );
   });
 });
 

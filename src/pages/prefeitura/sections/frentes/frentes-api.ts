@@ -33,6 +33,7 @@ export interface Frente {
   nome: string;
   endereco: string;
   responsavel: string;
+  responsavelId: string;
   /** Telefone (WhatsApp) da frente, em E.164. "" quando não cadastrado. */
   telefone: string;
   /** Email da frente (responsável). "" quando não cadastrado. */
@@ -50,6 +51,7 @@ export interface NovaFrenteInput {
   nome: string;
   endereco: string;
   responsavel: string;
+  responsavelId: string;
   /** Telefone (WhatsApp) em E.164, ou "" quando não informado. */
   telefone: string;
   /** Email da frente (responsável), ou "" quando não informado. */
@@ -116,6 +118,7 @@ function normalizeFrente(
     nome: asText(data.name) || "Frente de trabalho",
     endereco: asText(data.address),
     responsavel: asText(data.responsible),
+    responsavelId: asText(data.responsibleId),
     telefone: asText(data.telefone),
     email: asText(data.email),
     status: normalizeStatus(data.status),
@@ -129,6 +132,18 @@ function normalizeFrente(
 
 function ordenar(lista: Frente[]): Frente[] {
   return [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+export function mensagemErroSalvarFrente(
+  err: unknown,
+  editando: boolean,
+): string {
+  if (err instanceof ApiError && err.status === 400) {
+    return err.message;
+  }
+  return editando
+    ? "Não foi possível atualizar a frente de trabalho."
+    : "Não foi possível criar a frente de trabalho.";
 }
 
 export const frentesApi = {
@@ -152,6 +167,7 @@ export const frentesApi = {
       prefeituraId,
       address: input.endereco.trim(),
       responsible: input.responsavel.trim(),
+      responsibleId: input.responsavelId,
       telefone: toE164(input.telefone) ?? "",
       email: input.email.trim(),
       equipaments: [],
@@ -168,6 +184,7 @@ export const frentesApi = {
       name: input.nome.trim(),
       address: input.endereco.trim(),
       responsible: input.responsavel.trim(),
+      responsibleId: input.responsavelId,
       telefone: toE164(input.telefone) ?? "",
       email: input.email.trim(),
       status: input.status,

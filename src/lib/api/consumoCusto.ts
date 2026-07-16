@@ -298,7 +298,7 @@ function veiculoBrutoParaTela(raw: unknown): VeiculoConsumoCusto | null {
       ? item.intervalos
       : [];
 
-  let intervalos = intervalosBrutos
+  const intervalos = intervalosBrutos
     .map((iv, index) => normalizarIntervalo(iv, index, equipmentId))
     .filter((iv): iv is IntervaloHistorico => iv != null);
 

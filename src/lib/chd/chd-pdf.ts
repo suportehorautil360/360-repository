@@ -71,7 +71,7 @@ function desenharCabecalho(
     doc.text(`O.S. ${opts.os}`, PAGE_W - MARGIN, 20, { align: "right" });
   }
 
-  let y = 44;
+  const y = 44;
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(MARGIN, y, PAGE_W - MARGIN * 2, 14, 2, 2, "F");
   doc.setDrawColor(226, 232, 240);
