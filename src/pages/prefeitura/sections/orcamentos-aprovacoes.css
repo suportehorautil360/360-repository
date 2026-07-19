@@ -1,30 +1,47 @@
 .oap-page {
   color: #e8ecf6;
+  font-size: 0.8rem;
 }
 
 .oap-wrap {
   border-top: 2px solid var(--main-orange, #f97316);
-  padding-top: 14px;
+  padding-top: 10px;
 }
 
 .oap-title {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: #f8fbff;
-  font-size: 1.02rem;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
+.oap-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.oap-title-row .oap-title {
+  margin: 0;
+}
+
 .prefeitura-root #main h1.oap-title {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: #f8fbff;
-  font-size: 1.02rem;
+  font-size: 0.9rem;
+}
+
+.prefeitura-root #main .oap-title-row h1.oap-title {
+  margin: 0;
 }
 
 .oap-subtitle {
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   max-width: 52rem;
-  font-size: 0.82rem;
-  line-height: 1.5;
+  font-size: 0.72rem;
+  line-height: 1.4;
   color: #9cc0ef;
 }
 
@@ -32,17 +49,17 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .oap-btn-reload {
   border: none;
-  border-radius: 8px;
-  padding: 9px 14px;
+  border-radius: 6px;
+  padding: 6px 10px;
   background: linear-gradient(180deg, #ff981a, var(--main-orange, #f97316));
   color: #fff;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -59,69 +76,69 @@
 }
 
 .oap-toolbar__count {
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   color: #7eb0e8;
 }
 
 .oap-erro {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(248, 113, 113, 0.35);
   background: rgba(127, 29, 29, 0.25);
   color: #fecaca;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
 .oap-loading,
 .oap-empty-page {
-  padding: 28px 16px;
+  padding: 18px 12px;
   text-align: center;
   color: #7eb0e8;
-  font-size: 0.86rem;
+  font-size: 0.76rem;
   background: rgba(8, 20, 48, 0.55);
   border: 1px solid rgba(96, 165, 250, 0.18);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .oap-cards {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .oap-card {
   background: linear-gradient(180deg, #132b57 0%, #11264b 100%);
   border: 1px solid rgba(67, 112, 181, 0.45);
-  border-radius: 10px;
-  padding: 14px 16px 16px;
+  border-radius: 8px;
+  padding: 10px 12px 12px;
 }
 
 .oap-card__head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .oap-card__titulo {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 0 0 6px;
-  font-size: 0.95rem;
+  gap: 6px;
+  margin: 0 0 4px;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #f8fbff;
 }
 
 .oap-card__meta {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #9cc0ef;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .oap-card__meta strong {
@@ -134,16 +151,16 @@
 
 .oap-card__resumo {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   color: #c7ddfc;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .oap-card__aside {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -158,21 +175,21 @@
 }
 
 .oap-card__relato {
-  margin: 6px 0 0;
-  font-size: 0.78rem;
+  margin: 4px 0 0;
+  font-size: 0.68rem;
   color: #7eb0e8;
 }
 
 .oap-card__contador {
   text-align: right;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   color: #9cc0ef;
   flex-shrink: 0;
 }
 
 .oap-card__contador strong {
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   color: #86efac;
 }
 
@@ -181,19 +198,19 @@
 }
 
 .oap-card__pronto {
-  margin-top: 4px;
-  font-size: 0.72rem;
+  margin-top: 2px;
+  font-size: 0.64rem;
   color: #86efac;
   font-weight: 700;
 }
 
 .oap-badge {
   display: inline-block;
-  padding: 3px 9px;
-  border-radius: 6px;
-  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.56rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -227,10 +244,10 @@
 }
 
 .oap-msg {
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 0.82rem;
+  margin-bottom: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
@@ -248,30 +265,30 @@
 
 .oap-empty-card {
   margin: 0;
-  padding: 12px 0 4px;
+  padding: 8px 0 2px;
   color: #7eb0e8;
-  font-size: 0.82rem;
+  font-size: 0.72rem;
 }
 
 .oap-table-scroll {
   overflow-x: auto;
   border: 1px solid rgba(67, 112, 181, 0.4);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .oap-table {
   width: 100%;
-  min-width: 880px;
+  min-width: 760px;
   border-collapse: collapse;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .oap-table thead th {
-  padding: 10px 12px;
+  padding: 6px 8px;
   text-align: left;
-  font-size: 0.58rem;
+  font-size: 0.54rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #f97316;
   background: rgba(4, 12, 32, 0.85);
@@ -280,7 +297,7 @@
 }
 
 .oap-table tbody td {
-  padding: 10px 12px;
+  padding: 6px 8px;
   border-bottom: 1px solid rgba(96, 165, 250, 0.1);
   color: #dbeafe;
   vertical-align: middle;
@@ -305,9 +322,9 @@
 
 .oap-ordem {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 0.6rem;
   font-weight: 700;
 }
 
@@ -341,13 +358,13 @@
 .oap-acoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .oap-btn {
-  border-radius: 7px;
-  padding: 6px 10px;
-  font-size: 0.65rem;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -387,6 +404,7 @@
   padding-top: 12px;
   border-top: 1px solid rgba(96, 165, 250, 0.15);
 }
+
 
 /* Modal de detalhes da O.S. (card) */
 .oap-modal-backdrop {

@@ -1987,23 +1987,27 @@ export function ChecklistControlePage() {
     respostasFinais: typeof answers,
   ) {
     if (!equipamentoAtual || !nomeOperadorChecklist.trim()) return;
-    const itensNao = itensFiltrados
-      .map((item) => ({
-        item,
-        key: String(item["Nº"]),
-        resposta: respostasFinais[String(item["Nº"])],
-      }))
-      .filter(
-        (
-          row,
-        ): row is {
-          item: ItemChecklist;
-          key: string;
-          resposta: { v: "nao"; foto: string; problema: string };
-        } =>
-          row.resposta?.v === "nao" && checklistRespostaCompleta(row.resposta),
-      );
-    if (itensNao.length === 0) return;
+
+    // Envia todas as respostas (Sim/Não/N/A) para o run Nest — a triagem
+    // (/risk-triage) conta "Não" de verdade. Antes só ia "Não", e checklist
+    // 100% Sim nunca gerava run.
+    const respostasCompletas = itensFiltrados
+      .map((item) => {
+        const key = String(item["Nº"]);
+        const resposta = respostasFinais[key];
+        if (!checklistRespostaCompleta(resposta) || !resposta) return null;
+        return {
+          questionId: key,
+          questionLabel: checklistItemTitulo(item),
+          value: resposta,
+          problemDescription:
+            resposta.v === "nao" ? resposta.problema : undefined,
+          photoUrls:
+            resposta.v === "nao" && resposta.foto ? [resposta.foto] : [],
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row != null);
+    if (respostasCompletas.length === 0) return;
 
     const categoria =
       definicaoAtual?.categoria ??
@@ -2025,13 +2029,7 @@ export function ChecklistControlePage() {
         operadorNome: nomeOperadorChecklist.trim(),
         categoria,
       },
-      respostas: itensNao.map((row) => ({
-        questionId: row.key,
-        questionLabel: checklistItemTitulo(row.item),
-        value: row.resposta,
-        problemDescription: row.resposta.problema,
-        photoUrls: row.resposta.foto ? [row.resposta.foto] : [],
-      })),
+      respostas: respostasCompletas,
     });
     if (sincronizado) setEmergTick((t) => t + 1);
   }

@@ -49,6 +49,8 @@ export interface SidebarProps {
   user?: SidebarUser;
   /** Ação de logout — renderiza o botão de sair no rodapé quando definida. */
   onLogout?: () => void;
+  /** Ações no topo (ex.: sino/drawer de notificações). */
+  topActions?: ReactNode;
   /** Classe extra no <aside>. */
   className?: string;
 }

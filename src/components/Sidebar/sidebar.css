@@ -9,11 +9,12 @@
   --hu-sb-warning: var(--warning, #f59e0b);
   --hu-sb-text: var(--text, #e8ecf6);
   --hu-sb-muted: var(--muted, #93a4c6);
-  --hu-sb-border: var(--border, rgba(255, 255, 255, 0.14));
+  /* Linhas (direita, brand, footer) um pouco mais marcadas */
+  --hu-sb-border: rgba(255, 255, 255, 0.28);
 
   display: flex;
   flex-direction: column;
-  width: 290px;
+  width: 260px;
   /* Preenche a altura da coluna do app-shell (que e fixa em 100dvh).
      Em caso de conteúdo maior que a viewport, a barra lateral inteira rola. */
   height: 100%;
@@ -24,6 +25,7 @@
   border-right: 1px solid var(--hu-sb-border);
   color: var(--hu-sb-text);
   box-sizing: border-box;
+  font-size: 0.8rem;
 }
 
 .hu-sidebar *,
@@ -36,8 +38,8 @@
 .hu-sidebar__brand {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px 18px;
+  gap: 10px;
+  padding: 14px 12px;
   border-bottom: 1px solid var(--hu-sb-border);
   background: rgba(255, 255, 255, 0.02);
 }
@@ -45,8 +47,8 @@
 .hu-sidebar__brand-logo {
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
   color: var(--hu-sb-secondary);
 }
@@ -62,10 +64,19 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
+}
+
+.hu-sidebar__brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .hu-sidebar__brand-title {
-  font-size: 1.18rem;
+  font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   line-height: 1.1;
@@ -80,13 +91,13 @@
 }
 
 .hu-sidebar__brand-subtitle {
-  margin-top: 6px;
-  font-size: 0.66rem;
+  margin-top: 4px;
+  font-size: 0.58rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--hu-sb-muted);
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 /* ---------- Navegação ---------- */
@@ -95,14 +106,14 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 14px 12px 18px;
+  padding: 10px 8px 12px;
   scrollbar-width: thin;
   scrollbar-color: rgba(147, 164, 198, 0.32) transparent;
   scrollbar-gutter: stable;
 }
 
 .hu-sidebar__nav::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .hu-sidebar__nav::-webkit-scrollbar-thumb {
@@ -117,7 +128,7 @@
 .hu-sidebar__accordion {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .hu-sidebar__group {
@@ -130,7 +141,7 @@
 
 .hu-sidebar__group-trigger {
   width: 100%;
-  padding: 0 8px 8px;
+  padding: 0 6px 6px;
   border: 0;
   background: transparent;
   appearance: none;
@@ -151,6 +162,8 @@
 
 .hu-sidebar__group-trigger svg {
   color: var(--hu-sb-muted);
+  width: 14px;
+  height: 14px;
 }
 
 .hu-sidebar__group.is-locked .hu-sidebar__group-trigger {
@@ -164,7 +177,7 @@
 
 .hu-sidebar__group-lock {
   margin-left: auto;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   line-height: 1;
 }
 
@@ -179,9 +192,9 @@
 
 .hu-sidebar__group-label {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: inherit;
 }
@@ -189,14 +202,14 @@
 .hu-sidebar__item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 10px;
-  margin-bottom: 4px;
-  border-radius: 12px;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 2px;
+  border-radius: 8px;
   border-left: 3px solid transparent;
   color: var(--hu-sb-muted);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   transition:
     background 0.2s ease,
     color 0.2s ease,
@@ -227,12 +240,12 @@
 .hu-sidebar__icon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   flex-shrink: 0;
-  font-size: 1.05rem;
+  font-size: 0.88rem;
   line-height: 1;
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--hu-sb-muted);
   transition:
     background 0.2s ease,
@@ -259,13 +272,13 @@
 /* ---------- Badge ---------- */
 .hu-sidebar__badge {
   flex-shrink: 0;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #fff;
 }
@@ -282,20 +295,20 @@
 
 /* ---------- Rodapé ---------- */
 .hu-sidebar__footer {
-  padding: 14px 16px;
+  padding: 10px 12px;
   border-top: 1px solid var(--hu-sb-border);
 }
 
 .hu-sidebar__logout {
   width: 100%;
-  min-height: 40px;
+  min-height: 34px;
   border-radius: 8px;
   border: 1px solid var(--hu-sb-border);
   background: transparent;
   color: var(--hu-sb-muted);
   cursor: pointer;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 700;
   transition:
     background 0.2s ease,
@@ -310,17 +323,17 @@
 .hu-sidebar__user {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .hu-sidebar__avatar {
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   flex: none;
   border-radius: 50%;
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   color: #0c0f14;
   background: var(--hu-sb-primary, #f97316);
 }
@@ -331,26 +344,26 @@
   flex: 1;
 }
 .hu-sidebar__user-name {
-  font-size: 0.92rem;
+  font-size: 0.78rem;
   color: var(--hu-sb-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .hu-sidebar__user-role {
-  font-size: 0.76rem;
+  font-size: 0.66rem;
   color: var(--hu-sb-muted);
 }
 .hu-sidebar__logout-icon {
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   border: 1px solid var(--hu-sb-border);
   background: transparent;
   color: var(--hu-sb-muted);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 .hu-sidebar__logout-icon:hover {
   background: rgba(239, 68, 68, 0.16);

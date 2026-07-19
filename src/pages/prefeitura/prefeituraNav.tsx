@@ -97,6 +97,8 @@ export interface PrefeituraNavBadges {
   revisoes?: number;
   /** CHDs de devolução ainda não conferidos. */
   auditoriaDevolucao?: number;
+  /** Orçamentos recebidos ainda não lidos. */
+  orcamentos?: number;
 }
 
 /** Monta os grupos da sidebar da prefeitura, com as rotas /prefeitura/:id/<slug>. */
@@ -203,6 +205,8 @@ export function prefeituraNav(
                 label: "Orçamentos e Aprovações",
                 to: to("orcamentos"),
                 icon: "💰",
+                badge: badges.orcamentos,
+                badgeTone: "primary" as const,
               },
               {
                 label: "Notas Fiscais",

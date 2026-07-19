@@ -55,6 +55,7 @@ export function Sidebar({
   groups,
   user,
   onLogout,
+  topActions,
   className,
 }: SidebarProps) {
   const hasBrandText =
@@ -80,6 +81,9 @@ export function Sidebar({
               </span>
             )}
           </div>
+        )}
+        {topActions != null && (
+          <div className="hu-sidebar__brand-actions">{topActions}</div>
         )}
       </div>
 

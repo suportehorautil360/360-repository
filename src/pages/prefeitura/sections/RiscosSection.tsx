@@ -1,83 +1,62 @@
 import { useEffect, useState } from "react";
+import { checklistsRegistrosApi } from "../../../lib/api/checklists-registros";
+import { riskTriageApi } from "../../../lib/api/risk-triage";
 import {
-  checklistsRegistrosApi,
-  type ChecklistRegistroApi,
-} from "../../../lib/api/checklists-registros";
+  mapRegistroParaRisco,
+  mapRiskTriageParaUi,
+  ordenarRiscosPorNivel,
+  type RiscoUiRow,
+} from "../../../lib/api/risco-from-checklist";
 
 interface RiscosSectionProps {
   prefeituraId: string;
 }
 
-interface RiscoRow {
-  id: string;
-  nivel: "Alto" | "Médio" | "Baixo";
-  categoria: string;
-  operador: string;
-  defeito: string;
-  acaoSugerida: string;
-}
-
-function parseTituloItemNao(titulo: string): {
-  defeito: string;
-  acaoSugerida: string;
-} {
-  const cleaned = titulo.replace(/^(Sim\/N[ãa]o|N[ãa]o|Sim):\s*/i, "");
-  const idx = cleaned.indexOf(": ");
-  if (idx === -1) return { defeito: cleaned.trim(), acaoSugerida: "—" };
-  return {
-    defeito: cleaned.slice(0, idx).trim(),
-    acaoSugerida: cleaned.slice(idx + 2).trim(),
-  };
-}
-
-const ordemNivel: Record<RiscoRow["nivel"], number> = {
-  Alto: 0,
-  Médio: 1,
-  Baixo: 2,
-};
-
-function mapRegistroParaRisco(
-  doc: ChecklistRegistroApi,
-): RiscoRow {
-  const totalSim = Number(doc.totalSim ?? 0);
-  const totalItens = Number(doc.totalItens ?? 0);
-  const totalNao = Math.max(0, totalItens - totalSim);
-  const nivel: RiscoRow["nivel"] =
-    totalNao >= 2 ? "Alto" : totalNao === 1 ? "Médio" : "Baixo";
-  const primeiroNao = doc.itensNao[0];
-  const { defeito, acaoSugerida } = primeiroNao?.titulo
-    ? parseTituloItemNao(String(primeiroNao.titulo))
-    : { defeito: "—", acaoSugerida: "—" };
-
-  return {
-    id: doc.id,
-    nivel,
-    categoria: doc.categoria || "—",
-    operador: doc.operador || "—",
-    defeito,
-    acaoSugerida,
-  };
-}
-
 export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
-  const [rows, setRows] = useState<RiscoRow[]>([]);
+  const [rows, setRows] = useState<RiscoUiRow[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     if (!prefeituraId) return;
+    let cancelled = false;
     setCarregando(true);
-    checklistsRegistrosApi
-      .listarPorPrefeitura(prefeituraId)
-      .then((lista) => {
-        const fetched = lista.map(mapRegistroParaRisco);
-        fetched.sort((a, b) => ordemNivel[a.nivel] - ordemNivel[b.nivel]);
-        setRows(fetched);
-      })
-      .catch((err) => {
+
+    (async () => {
+      try {
+        // Fonte oficial: runs/answers classificados no Nest.
+        const triage = await riskTriageApi.listarPorPrefeitura(prefeituraId);
+        if (cancelled) return;
+        if (triage.length > 0) {
+          setRows(
+            ordenarRiscosPorNivel(triage.map(mapRiskTriageParaUi)),
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn(
+          "[Riscos] /risk-triage indisponível; fallback checklistsRegistros:",
+          err,
+        );
+      }
+
+      try {
+        // Fallback: registros legados do PWA, com contagem real de "Não".
+        const lista =
+          await checklistsRegistrosApi.listarPorPrefeitura(prefeituraId);
+        if (cancelled) return;
+        setRows(ordenarRiscosPorNivel(lista.map(mapRegistroParaRisco)));
+      } catch (err) {
         console.error("[Riscos] Erro ao carregar:", err);
-      })
-      .finally(() => setCarregando(false));
+        if (!cancelled) setRows([]);
+      }
+    })().finally(() => {
+      if (!cancelled) setCarregando(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [prefeituraId, tick]);
 
   return (

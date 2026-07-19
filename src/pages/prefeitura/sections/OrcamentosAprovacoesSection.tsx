@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import {
   osOrcamentosAprovacoesApi,
@@ -6,6 +7,7 @@ import {
   mensagemErroListarOrcamentos,
   type OsComOrcamentosCard,
 } from "../../../lib/api/os-orcamentos-aprovacoes";
+import { DrawerNotificacoes } from "../../../components/Notificacoes/DrawerNotificacoes";
 import {
   fmtBRL,
   podeAprovarOrcamento,
@@ -25,6 +27,7 @@ export function OrcamentosAprovacoesSection({
 }: {
   prefeituraId: string;
 }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cards, setCards] = useState<OsComOrcamentosCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -62,6 +65,25 @@ export function OrcamentosAprovacoesSection({
     void carregar();
   }, [carregar]);
 
+  // Abre o modal do orçamento indicado na URL (?orcamento=id) após carregar.
+  useEffect(() => {
+    if (loading) return;
+    const orcamentoId = searchParams.get("orcamento")?.trim();
+    if (!orcamentoId) return;
+
+    const encontrada = cards
+      .flatMap((card) => card.ordens)
+      .find((ord) => ord.id === orcamentoId);
+
+    if (encontrada) {
+      setModalOrdem(encontrada);
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete("orcamento");
+    setSearchParams(next, { replace: true });
+  }, [loading, cards, searchParams, setSearchParams]);
+
   async function handleAprovar(ord: OrdemOrcamento, sol: SolicitacaoOrcamento) {
     if (!podeAprovarOrcamento(sol, ord)) return;
 
@@ -96,7 +118,10 @@ export function OrcamentosAprovacoesSection({
   return (
     <section className="oap-page">
       <div className="oap-wrap">
-        <h1 className="oap-title">Orçamentos e Aprovações</h1>
+        <div className="oap-title-row">
+          <h1 className="oap-title">Orçamentos e Aprovações</h1>
+          <DrawerNotificacoes prefeituraId={prefeituraId} variant="escuro" />
+        </div>
         <p className="oap-subtitle">
           Cada O.S. convida todas as oficinas credenciadas compatíveis com o
           segmento e a linha do equipamento.

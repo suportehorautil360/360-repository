@@ -4,6 +4,8 @@ import { api } from "./client";
 
 export interface ChecklistRegistroItemNaoApi {
   titulo?: string;
+  problema?: string;
+  numero?: string;
 }
 
 export interface ChecklistRegistroApi {
@@ -16,6 +18,10 @@ export interface ChecklistRegistroApi {
   linha: string;
   totalItens: number;
   totalSim: number;
+  /** Contagem real de "Não" (quando a API expõe). */
+  totalNao?: number;
+  totalNa?: number;
+  totalAplicaveis?: number;
   pontuacao: number;
   horimetro: string;
   assinaturaOperador: string;

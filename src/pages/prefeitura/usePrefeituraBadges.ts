@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { checklistDevolucaoApi } from "../../lib/api/checklist-devolucao";
+import { notificacoesApi } from "../../lib/api/notificacoes";
+import { EVENTO_NOTIFICACOES } from "../../components/Notificacoes/DrawerNotificacoes";
 import { frotaApi } from "./sections/frota/frota-api";
 import { isVencido } from "./sections/frota/types";
 import { pontosApi } from "../../lib/api/pontos";
@@ -9,7 +11,8 @@ import type { PrefeituraNavBadges } from "./prefeituraNav";
 /**
  * Contagens dinâmicas para os badges da sidebar da prefeitura:
  * Revisões = veículos da frota vencidos; Pontos (RH) = batidas pendentes;
- * Auditoria de Devolução = CHDs novos ainda não conferidos.
+ * Auditoria de Devolução = CHDs novos ainda não conferidos;
+ * Orçamentos = notificações de orçamento não lidas.
  * Retorna `undefined` quando zero (para não exibir badge "0").
  */
 export function usePrefeituraBadges(
@@ -22,12 +25,14 @@ export function usePrefeituraBadges(
   const [auditoriaDevolucao, setAuditoriaDevolucao] = useState<
     number | undefined
   >(undefined);
+  const [orcamentos, setOrcamentos] = useState<number | undefined>(undefined);
 
   const carregarBadges = useCallback(() => {
     if (!prefeituraId) {
       setRevisoes(undefined);
       setPontosRh(undefined);
       setAuditoriaDevolucao(undefined);
+      setOrcamentos(undefined);
       return;
     }
 
@@ -64,8 +69,22 @@ export function usePrefeituraBadges(
         .catch(() => {
           setAuditoriaDevolucao(undefined);
         });
+
+      notificacoesApi
+        .listar("rh", prefeituraId)
+        .then((lista) => {
+          const n = lista.filter(
+            (notif) =>
+              !notif.lida && notif.referenciaTipo === "orcamento",
+          ).length;
+          setOrcamentos(n > 0 ? n : undefined);
+        })
+        .catch(() => {
+          setOrcamentos(undefined);
+        });
     } else {
       setAuditoriaDevolucao(undefined);
+      setOrcamentos(undefined);
     }
   }, [prefeituraId, pontoAtivo, manutencaoAtivo]);
 
@@ -84,6 +103,12 @@ export function usePrefeituraBadges(
       carregarBadges();
     };
 
+    const onNotificacoesAtualizadas = (event: Event) => {
+      const detail = (event as CustomEvent<{ prefeituraId?: string }>).detail;
+      if (detail?.prefeituraId && detail.prefeituraId !== prefeituraId) return;
+      carregarBadges();
+    };
+
     window.addEventListener(
       "hu360:frota-revisao-atualizada",
       onRevisaoAtualizada,
@@ -92,6 +117,9 @@ export function usePrefeituraBadges(
       "hu360:chd-auditoria-vistos",
       onChdVistosAtualizado,
     );
+    window.addEventListener(EVENTO_NOTIFICACOES, onNotificacoesAtualizadas);
+
+    const pollId = setInterval(carregarBadges, 60_000);
 
     return () => {
       window.removeEventListener(
@@ -102,8 +130,13 @@ export function usePrefeituraBadges(
         "hu360:chd-auditoria-vistos",
         onChdVistosAtualizado,
       );
+      window.removeEventListener(
+        EVENTO_NOTIFICACOES,
+        onNotificacoesAtualizadas,
+      );
+      clearInterval(pollId);
     };
   }, [carregarBadges, prefeituraId]);
 
-  return { revisoes, pontosRh, auditoriaDevolucao };
+  return { revisoes, pontosRh, auditoriaDevolucao, orcamentos };
 }

@@ -1,35 +1,37 @@
-/* Tela de Frota — cards de veículos. Herda as variáveis de .admin-root. */
+/* Tela de Frota — cards de veículos (densidade compacta). */
 
 .frota-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .frota-toolbar__count {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   margin: 2px 0 0;
 }
 
 .frota-search {
   position: relative;
-  max-width: 340px;
+  max-width: 300px;
   flex: 1;
 }
 
 .frota-search input {
   width: 100%;
   margin: 0;
+  font-size: 0.76rem;
+  padding: 6px 10px;
 }
 
 .frota-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .frota-card {
@@ -37,14 +39,13 @@
   background: var(--bg-2, #121b30);
   border: 1px solid var(--border);
   border-left: 3px solid var(--border);
-  border-radius: var(--radius, 16px);
-  padding: 16px;
+  border-radius: 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-/* Estados: vencido+bloqueado (vermelho), liberado (azul), no prazo (verde) */
 .frota-card.is-bloqueado {
   border-color: rgba(239, 68, 68, 0.5);
   border-left-color: var(--danger, #ef4444);
@@ -58,62 +59,62 @@
 
 .frota-card__lock {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  font-size: 0.95rem;
+  top: 10px;
+  right: 10px;
+  font-size: 0.8rem;
   opacity: 0.8;
 }
 
 .frota-card__head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding-right: 24px;
+  gap: 8px;
+  padding-right: 20px;
 }
 
 .frota-card__avatar {
-  width: 44px;
-  height: 44px;
+  width: 34px;
+  height: 34px;
   flex: none;
-  border-radius: 12px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  font-size: 1.3rem;
+  font-size: 1rem;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border);
 }
 
 .frota-card__title {
-  font-size: 1.05rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
 }
 
 .frota-card__sub {
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .frota-card__meta {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 12px;
+  gap: 6px 8px;
 }
 
 .frota-meta__label {
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .frota-meta__value {
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .frota-meta__value.is-danger {
@@ -124,16 +125,16 @@
 }
 
 .frota-card__obra {
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   color: var(--text);
 }
 .frota-card__obra .frota-meta__label {
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .frota-card__actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-top: 2px;
 }
 
@@ -142,13 +143,12 @@
   width: auto;
 }
 
-/* Botões self-contained — não dependem do .btn do painel (admin/prefeitura). */
 .frota-btn {
   border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 8px 14px;
+  border-radius: 7px;
+  padding: 5px 10px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   cursor: pointer;
   transition: 0.2s ease;
   background: rgba(255, 255, 255, 0.06);
@@ -179,7 +179,7 @@
   color: #fca5a5;
   border: 1px solid rgba(248, 113, 113, 0.35);
   background: transparent;
-  padding: 8px 12px;
+  padding: 5px 8px;
 }
 .frota-btn-del:hover {
   background: rgba(248, 113, 113, 0.12);
@@ -188,43 +188,43 @@
 .frota-empty {
   text-align: center;
   color: var(--muted);
-  padding: 48px 16px;
+  padding: 28px 12px;
   border: 1px dashed var(--border);
-  border-radius: var(--radius, 16px);
-  margin-top: 16px;
+  border-radius: 10px;
+  margin-top: 12px;
+  font-size: 0.76rem;
 }
 
-/* Modal simples (cadastro / atualizar leitura) */
 .frota-modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(5, 9, 18, 0.7);
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: 14px;
   z-index: 50;
 }
 
 .frota-modal {
   background: var(--bg-2, #121b30);
   border: 1px solid var(--border);
-  border-radius: var(--radius, 16px);
-  padding: 20px;
-  width: min(460px, 100%);
+  border-radius: 12px;
+  padding: 14px;
+  width: min(440px, 100%);
   max-height: 90vh;
   overflow-y: auto;
 }
 
 .frota-modal h3 {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   color: var(--text);
-  font-size: 1.05rem;
+  font-size: 0.9rem;
 }
 
 .frota-modal__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 8px;
 }
 .frota-modal__grid .full {
   grid-column: 1 / -1;
@@ -233,8 +233,8 @@
 .frota-modal__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
+  gap: 6px;
+  margin-top: 12px;
 }
 .frota-modal__footer .frota-btn {
   margin: 0;
@@ -242,33 +242,32 @@
 }
 
 .frota-modal__msg {
-  min-height: 20px;
-  font-size: 0.85rem;
+  min-height: 18px;
+  font-size: 0.72rem;
   color: #fca5a5;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-/* Modal de liberar / registrar revisão */
 .frota-modal--rev {
-  width: min(640px, 100%);
+  width: min(600px, 100%);
 }
 
 .frota-rev__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .frota-rev__head h3 {
-  font-size: 1.15rem;
+  font-size: 0.9rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 .frota-rev__veic {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.72rem;
 }
 .frota-rev__veic strong {
   color: var(--primary, #f97316);
@@ -277,7 +276,7 @@
   background: transparent;
   border: none;
   color: var(--muted);
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
   line-height: 1;
   padding: 4px;
@@ -288,36 +287,36 @@
 
 .frota-rev__alerta {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-start;
   border: 1px solid rgba(239, 68, 68, 0.4);
   background: rgba(239, 68, 68, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 18px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
 }
 .frota-rev__alerta strong {
   display: block;
   color: var(--danger, #ef4444);
   text-transform: uppercase;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   letter-spacing: 0.03em;
 }
 .frota-rev__alerta p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--text);
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: 0.76rem;
+  line-height: 1.35;
 }
 
 .frota-rev__aviso {
   border: 1px solid rgba(245, 158, 11, 0.4);
   background: rgba(245, 158, 11, 0.08);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-top: 16px;
-  font-size: 0.88rem;
-  line-height: 1.45;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 12px;
+  font-size: 0.72rem;
+  line-height: 1.4;
   color: var(--text);
 }
 .frota-rev__aviso strong {

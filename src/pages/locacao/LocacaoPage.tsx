@@ -20,8 +20,13 @@ import { db } from "../../lib/firebase/firebase";
 import {
   checklistsRegistrosApi,
   checklistRegistroParaAuditoriaRow,
-  type ChecklistRegistroApi,
 } from "../../lib/api/checklists-registros";
+import { riskTriageApi } from "../../lib/api/risk-triage";
+import {
+  mapRegistroParaRisco,
+  mapRiskTriageParaUi,
+  ordenarRiscosPorNivel,
+} from "../../lib/api/risco-from-checklist";
 import {
   ListaChecklistHistoricoLocal,
   baixarChecklistPdfsEmPasta,
@@ -316,19 +321,6 @@ export function LocacaoPage() {
     acaoSugerida: string;
   }
 
-  function parseTituloItemNao(titulo: string): {
-    defeito: string;
-    acaoSugerida: string;
-  } {
-    // Remove prefixo de resposta caso existente: "Sim/Não: ", "Não: ", "Sim: "
-    const cleaned = titulo.replace(/^(Sim\/N[ãa]o|N[ãa]o|Sim):\s*/i, "");
-    const idx = cleaned.indexOf(": ");
-    if (idx === -1) return { defeito: cleaned.trim(), acaoSugerida: "—" };
-    return {
-      defeito: cleaned.slice(0, idx).trim(),
-      acaoSugerida: cleaned.slice(idx + 2).trim(),
-    };
-  }
   const [riscoFirestoreRows, setRiscoFirestoreRows] = useState<RiscoRow[]>([]);
   const [riscoCarregando, setRiscoCarregando] = useState(false);
   const [riscoTick, setRiscoTick] = useState(0);
@@ -473,41 +465,44 @@ export function LocacaoPage() {
 
   useEffect(() => {
     if (secaoAtiva !== "riscos" || !prefeituraIdEff) return;
+    let cancelled = false;
     setRiscoCarregando(true);
-    checklistsRegistrosApi
-      .listarPorPrefeitura(prefeituraIdEff)
-      .then((lista) => {
-        const rows: RiscoRow[] = lista.map((doc: ChecklistRegistroApi) => {
-          const totalSim = Number(doc.totalSim ?? 0);
-          const totalItens = Number(doc.totalItens ?? 0);
-          const totalNao = Math.max(0, totalItens - totalSim);
-          const nivel: RiscoRow["nivel"] =
-            totalNao >= 2 ? "Alto" : totalNao === 1 ? "Médio" : "Baixo";
-          const primeiroNao = doc.itensNao[0];
-          const { defeito, acaoSugerida } = primeiroNao?.titulo
-            ? parseTituloItemNao(String(primeiroNao.titulo))
-            : { defeito: "—", acaoSugerida: "—" };
-          return {
-            id: doc.id,
-            nivel,
-            categoria: doc.categoria || "—",
-            operador: doc.operador || "—",
-            defeito,
-            acaoSugerida,
-          };
-        });
-        const ordemNivel: Record<RiscoRow["nivel"], number> = {
-          Alto: 0,
-          Médio: 1,
-          Baixo: 2,
-        };
-        rows.sort((a, b) => ordemNivel[a.nivel] - ordemNivel[b.nivel]);
-        setRiscoFirestoreRows(rows);
-      })
-      .catch((err) => {
+
+    (async () => {
+      try {
+        const triage = await riskTriageApi.listarPorPrefeitura(prefeituraIdEff);
+        if (cancelled) return;
+        if (triage.length > 0) {
+          setRiscoFirestoreRows(
+            ordenarRiscosPorNivel(triage.map(mapRiskTriageParaUi)),
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn(
+          "[Loc Riscos] /risk-triage indisponível; fallback checklistsRegistros:",
+          err,
+        );
+      }
+
+      try {
+        const lista =
+          await checklistsRegistrosApi.listarPorPrefeitura(prefeituraIdEff);
+        if (cancelled) return;
+        setRiscoFirestoreRows(
+          ordenarRiscosPorNivel(lista.map(mapRegistroParaRisco)),
+        );
+      } catch (err) {
         console.error("[Loc Riscos] Erro ao carregar riscos:", err);
-      })
-      .finally(() => setRiscoCarregando(false));
+        if (!cancelled) setRiscoFirestoreRows([]);
+      }
+    })().finally(() => {
+      if (!cancelled) setRiscoCarregando(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [secaoAtiva, prefeituraIdEff, riscoTick]);
 
   useEffect(() => {
