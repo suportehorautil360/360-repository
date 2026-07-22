@@ -3,6 +3,7 @@ import type { ChecklistRegistroApi } from "./checklists-registros";
 import {
   contarNaoDoRegistro,
   mapRegistroParaRisco,
+  mapRiskTriageParaUi,
 } from "./risco-from-checklist";
 
 function baseDoc(
@@ -61,9 +62,55 @@ describe("contarNaoDoRegistro / mapRegistroParaRisco", () => {
     expect(mapRegistroParaRisco(alto).nivel).toBe("Alto");
   });
 
+  it("item impeditivo reprovado vai para triagem como Alto", () => {
+    const doc = baseDoc({
+      itensNao: [
+        {
+          titulo: "Freios",
+          problema: "sem pressão",
+          impeditivo: true,
+        },
+      ],
+    });
+    const row = mapRegistroParaRisco(doc);
+    expect(row.nivel).toBe("Alto");
+    expect(row.defeito).toBe("sem pressão");
+    expect(row.acaoSugerida).toMatch(/emergência/i);
+  });
+
   it("usa totalNao quando itensNao veio vazio", () => {
     const doc = baseDoc({ totalNao: 2, itensNao: [] });
     expect(contarNaoDoRegistro(doc)).toBe(2);
     expect(mapRegistroParaRisco(doc).nivel).toBe("Alto");
+  });
+
+  it("leva tipo e chassi do registro legado para a UI", () => {
+    const row = mapRegistroParaRisco(
+      baseDoc({
+        categoria: "Escavadeira",
+        modelo: "CAT 320",
+        chassis: "CH-123",
+      }),
+    );
+    expect(row.categoria).toBe("CAT 320");
+    expect(row.tipoEquipamento).toBe("Escavadeira");
+    expect(row.chassis).toBe("CH-123");
+  });
+
+  it("leva tipo e chassi da triagem oficial para a UI", () => {
+    const row = mapRiskTriageParaUi(
+      {
+        risco: "alto",
+        nomeEquipamento: "CAT 320",
+        tipoEquipamento: "Escavadeira",
+        chassis: "CH-456",
+        defeito: "Freio",
+        nomeOperador: "João",
+        acaoSugerida: "Bloquear",
+      },
+      0,
+    );
+    expect(row.tipoEquipamento).toBe("Escavadeira");
+    expect(row.chassis).toBe("CH-456");
   });
 });

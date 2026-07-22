@@ -7,6 +7,8 @@ export type RiskTriageNivelApi = "alto" | "medio" | "baixo";
 export interface RiskTriageRowApi {
   risco: RiskTriageNivelApi;
   nomeEquipamento: string;
+  tipoEquipamento: string;
+  chassis: string;
   defeito: string;
   nomeOperador: string;
   acaoSugerida: string;

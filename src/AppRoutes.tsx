@@ -91,6 +91,11 @@ const FuncionalidadesSection = lazy(() =>
     default: m.FuncionalidadesSection,
   })),
 );
+const CargosPermissaoSection = lazy(() =>
+  import("./pages/admin/sections/CargosPermissaoSection").then((m) => ({
+    default: m.CargosPermissaoSection,
+  })),
+);
 const AdminPortalOficinaPage = lazy(() =>
   import("./pages/admin/sections/AdminPortalOficinaPage").then((m) => ({
     default: m.AdminPortalOficinaPage,
@@ -272,6 +277,10 @@ export function AppRoutes() {
             <Route
               path="funcionalidades"
               element={<FuncionalidadesSection />}
+            />
+            <Route
+              path="cargos-permissao"
+              element={<CargosPermissaoSection />}
             />
             <Route path="whatsapp" element={<WhatsappSection />} />
             <Route path="suporte" element={<SuporteAdminSection />} />

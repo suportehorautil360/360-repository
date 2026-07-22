@@ -11,6 +11,7 @@ import { useAccess } from "../hooks/access/use-access";
 import { usePostos } from "../hooks/postos/use-postos";
 import { clientesApi } from "../../../lib/api/clientes";
 import { CARGOS } from "../../../lib/funcionarios/cargos";
+import { gruposLiberadosDoCargo } from "../../../lib/acesso/cargos-permissao";
 import {
   vinculoLocacao,
   vinculoOficina,
@@ -504,6 +505,13 @@ export function AcessosLoginsSection() {
                   </option>
                 ))}
               </select>
+              <p
+                className="topbar-user"
+                style={{ margin: "6px 0 0", fontSize: "0.78rem" }}
+              >
+                Libera (padrão):{" "}
+                {gruposLiberadosDoCargo(prefCargo).join(", ") || "nenhum grupo"}
+              </p>
             </div>
           </div>
           <div className="row-2">

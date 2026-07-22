@@ -61,6 +61,12 @@ export const ADMIN_NAV: SidebarGroup[] = [
         id: "nav-hub-funcionalidades",
       },
       {
+        label: "Cargos e acessos",
+        to: "/admin/cargos-permissao",
+        icon: "🔐",
+        id: "nav-hub-cargos-permissao",
+      },
+      {
         label: "Conexão WhatsApp",
         to: "/admin/whatsapp",
         icon: "💬",

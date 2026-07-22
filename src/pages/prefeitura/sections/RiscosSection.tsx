@@ -72,7 +72,8 @@ export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
       >
         Registros priorizados por <strong>nível de risco</strong> com base nos
         checklists recebidos. Risco calculado pela quantidade de respostas{" "}
-        <strong>Não</strong> por inspeção.
+        <strong>Não</strong> por inspeção; item <strong>impeditivo</strong>{" "}
+        reprovado entra como risco <strong>Alto</strong> (além da emergência).
       </p>
       <div style={{ marginBottom: 12 }}>
         <button
@@ -91,6 +92,7 @@ export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
             <tr>
               <th>Risco</th>
               <th>Equipamento</th>
+              <th>Chassi</th>
               <th>Defeito</th>
               <th>Operador</th>
               <th>Ação sugerida</th>
@@ -99,13 +101,13 @@ export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
           <tbody id="pf-tbody-riscos">
             {carregando ? (
               <tr>
-                <td colSpan={5} style={{ color: "var(--text-gray)" }}>
+                <td colSpan={6} style={{ color: "var(--text-gray)" }}>
                   Carregando...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ color: "var(--text-gray)" }}>
+                <td colSpan={6} style={{ color: "var(--text-gray)" }}>
                   Nenhum registro encontrado.
                 </td>
               </tr>
@@ -127,7 +129,13 @@ export function RiscosSection({ prefeituraId }: RiscosSectionProps) {
                       {row.nivel}
                     </span>
                   </td>
-                  <td>{row.categoria}</td>
+                  <td>
+                    <strong style={{ display: "block" }}>{row.categoria}</strong>
+                    <small style={{ color: "var(--text-gray)" }}>
+                      Tipo: {row.tipoEquipamento}
+                    </small>
+                  </td>
+                  <td>{row.chassis}</td>
                   <td>{row.defeito}</td>
                   <td>{row.operador}</td>
                   <td>{row.acaoSugerida}</td>

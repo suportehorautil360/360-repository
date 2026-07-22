@@ -1661,6 +1661,8 @@ export function ChecklistControlePage() {
           numero: num,
           titulo,
           problema: resposta?.v === "nao" ? resposta.problema : "",
+          // Impeditivo reprovado → triagem de risco classifica como Alto.
+          impeditivo: itemImpeditivo(it),
         };
       });
     const id = crypto.randomUUID();
@@ -1996,6 +1998,7 @@ export function ChecklistControlePage() {
         const key = String(item["Nº"]);
         const resposta = respostasFinais[key];
         if (!checklistRespostaCompleta(resposta) || !resposta) return null;
+        const impeditivo = itemImpeditivo(item);
         return {
           questionId: key,
           questionLabel: checklistItemTitulo(item),
@@ -2004,6 +2007,9 @@ export function ChecklistControlePage() {
             resposta.v === "nao" ? resposta.problema : undefined,
           photoUrls:
             resposta.v === "nao" && resposta.foto ? [resposta.foto] : [],
+          // Item impeditivo "Não" → backend marca risco Alto na triagem
+          // (além de abrir emergência no fluxo do PWA).
+          impeditivo: resposta.v === "nao" ? impeditivo : false,
         };
       })
       .filter((row): row is NonNullable<typeof row> => row != null);

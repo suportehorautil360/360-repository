@@ -1,9 +1,9 @@
 export const CARGOS = [
-  "Operador",
+  "Operador de Manutenção",
   "Motorista",
   "Comboista",
   "Mecânico",
-  "Supervisor",
+  "Supervisor de RH",
   "Outro",
 ];
 

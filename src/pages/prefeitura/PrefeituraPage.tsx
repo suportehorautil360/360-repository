@@ -41,7 +41,8 @@ import {
   GRUPO_MANUTENCAO,
   GRUPO_PESSOAS,
   podeAcessarGrupo,
-} from "./prefeituraAcesso";
+  useCargosPermissao,
+} from "../../lib/acesso/cargos-permissao";
 import "./prefeitura.css";
 import { useLogin } from "../login/hooks/use-login";
 import { useResolvedFlags } from "../../lib/api/feature-flags";
@@ -191,6 +192,7 @@ export function PrefeituraPage() {
   ]);
 
   const { flags } = useResolvedFlags(prefeituraId);
+  const { porCargo } = useCargosPermissao(prefeituraId);
   const pontoAtivo = flags.ponto;
   const manutencaoAtivo = flags.manutencao ?? true;
   const badges = usePrefeituraBadges(
@@ -252,6 +254,7 @@ export function PrefeituraPage() {
     flags,
     badges,
     acesso,
+    porCargo,
   });
 
   function renderSecao() {
@@ -286,7 +289,7 @@ export function PrefeituraPage() {
     }
     
     const grupoExigido = SLUG_GRUPO[secaoAtual];
-    if (grupoExigido && !podeAcessarGrupo(grupoExigido, acesso)) {
+    if (grupoExigido && !podeAcessarGrupo(grupoExigido, acesso, porCargo)) {
       return <SemAcesso titulo={SECAO_LABEL[secaoAtual] ?? "Sem acesso"} />;
     }
     switch (secaoAtual) {

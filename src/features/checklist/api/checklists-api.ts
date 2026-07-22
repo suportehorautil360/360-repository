@@ -42,6 +42,8 @@ export interface ResponderChecklistInput {
   value: unknown;
   problemDescription?: string;
   photoUrls?: string[];
+  /** Item impeditivo reprovado — triagem trata como risco alto. */
+  impeditivo?: boolean;
   actions?: ChecklistRuleAction[];
 }
 
