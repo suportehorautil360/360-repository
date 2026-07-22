@@ -3,6 +3,8 @@ import {
   isBloqueado,
   isVencido,
   maintenanceUnitDe,
+  progressoIntervaloExibicao,
+  progressoIntervaloRevisao,
   revisaoEm,
   revisaoRestante,
   textoLeitura,
@@ -73,6 +75,29 @@ describe("limite e restante de revisão", () => {
     const v = veiculo({ medicaoAtual: 100, status: "bloqueado" });
     expect(isVencido(v)).toBe(false);
     expect(isBloqueado(v)).toBe(true);
+  });
+
+  it("progresso usa o intervalo desde a última revisão (não a leitura absoluta)", () => {
+    const v = veiculo({
+      tipo: "maquina",
+      ultimaRevisao: 837123,
+      intervaloRevisao: 500,
+      medicaoAtual: 837550,
+    });
+    // 427 h de 500 → 85%; ainda restam 73 h — não é 100%.
+    expect(progressoIntervaloRevisao(v)).toBe(85);
+    expect(progressoIntervaloExibicao(v)).toBe(85);
+    expect(revisaoRestante(v)).toBe(73);
+  });
+
+  it("progresso de exibição satura em 100% quando vencida", () => {
+    const v = veiculo({
+      ultimaRevisao: 0,
+      intervaloRevisao: 500,
+      medicaoAtual: 800,
+    });
+    expect(progressoIntervaloRevisao(v)).toBe(160);
+    expect(progressoIntervaloExibicao(v)).toBe(100);
   });
 });
 

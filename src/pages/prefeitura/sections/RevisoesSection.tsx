@@ -3,6 +3,8 @@ import { FileDown } from "lucide-react";
 import {
   isBloqueado,
   isVencido,
+  progressoIntervaloExibicao,
+  progressoIntervaloRevisao,
   revisaoRestante,
   rotuloLeitura,
   revisaoEm,
@@ -47,18 +49,18 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
 
   const resumo = useMemo(() => {
     const bloqueados = rows.filter((v) => isBloqueado(v));
-    const proximos = rows.filter((v) => {
-      if (isBloqueado(v)) return false;
-      const limite = revisaoEm(v);
-      if (limite <= 0) return false;
-      return Math.round((v.medicaoAtual / limite) * 100) >= 90;
-    });
-    const emDia = rows.filter((v) => !isBloqueado(v) && !proximos.includes(v));
+    // Não bloqueados (inclui ≥90% / “próximos”) — vão para a tabela.
+    const tabela = rows.filter((v) => !isBloqueado(v));
+    const proximos = tabela.filter(
+      (v) =>
+        v.intervaloRevisao > 0 && progressoIntervaloRevisao(v) >= 90,
+    );
+    const emDia = tabela.length - proximos.length;
     return {
       bloqueados,
-      emDiaRows: emDia,
+      emDiaRows: tabela,
       proximos: proximos.length,
-      emDia: emDia.length,
+      emDia,
       total: rows.length,
     };
   }, [rows]);
@@ -113,12 +115,9 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
           {resumo.bloqueados.map((v) => {
             const un = unidadeDe(v.tipo);
             const excesso = Math.max(v.medicaoAtual - revisaoEm(v), 0);
-            const limite = revisaoEm(v);
-            const uso =
-              limite > 0 ? Math.round((v.medicaoAtual / limite) * 100) : 0;
             const usoCard = isVencido(v)
               ? 100
-              : Math.max(Math.min(uso, 100), 0);
+              : progressoIntervaloExibicao(v);
             return (
               <article key={v.id} className="rv-blocked-card">
                 <header className="rv-blocked-card__head">
@@ -239,17 +238,7 @@ export function RevisoesSection({ prefeituraId }: { prefeituraId: string }) {
             </thead>
             <tbody>
               {resumo.emDiaRows.map((v) => {
-                const limite = revisaoEm(v);
-                const progresso =
-                  limite > 0
-                    ? Math.max(
-                        Math.min(
-                          Math.round((v.medicaoAtual / limite) * 100),
-                          100,
-                        ),
-                        0,
-                      )
-                    : 0;
+                const progresso = progressoIntervaloExibicao(v);
                 return (
                   <tr key={`ok-${v.id}`}>
                     <td>

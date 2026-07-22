@@ -83,6 +83,23 @@ export function revisaoRestante(v: VeiculoFrota): number {
   return revisaoEm(v) - v.medicaoAtual;
 }
 
+/**
+ * % do intervalo consumido desde a última revisão.
+ * Ex.: última 1.000, intervalo 500, atual 1.427 → 85%.
+ * Pode passar de 100 quando vencida.
+ */
+export function progressoIntervaloRevisao(v: VeiculoFrota): number {
+  if (v.intervaloRevisao <= 0) return 0;
+  return Math.round(
+    ((v.medicaoAtual - v.ultimaRevisao) / v.intervaloRevisao) * 100,
+  );
+}
+
+/** Progresso para barra/UI, limitado a 0–100. */
+export function progressoIntervaloExibicao(v: VeiculoFrota): number {
+  return Math.max(Math.min(progressoIntervaloRevisao(v), 100), 0);
+}
+
 export function isVencido(v: VeiculoFrota): boolean {
   return revisaoRestante(v) <= 0;
 }
