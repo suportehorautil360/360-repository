@@ -146,7 +146,7 @@ function useLoginForm(
       senha === ADMIN_LOGIN_PASSWORD
     ) {
       setAdminAuthenticated(senha);
-      navigate("/admin", { replace: true });
+      navigate("/admin/dashboard", { replace: true });
       return;
     }
 

@@ -9,6 +9,9 @@ vi.mock("./portal/PostoPortalProvider", () => ({
 vi.mock("./pages/admin/AdminPage", () => ({
   AdminPage: () => <div>Admin shell</div>,
 }));
+vi.mock("./pages/admin/AdminLoginPage", () => ({
+  AdminLoginPage: () => <div>Login admin</div>,
+}));
 vi.mock("./pages/admin/sections/DashboardSection", () => ({
   DashboardSection: () => <div>Dashboard admin</div>,
 }));
@@ -85,13 +88,42 @@ describe("AppRoutes", () => {
     expect(await screen.findByText("Admin shell")).toBeInTheDocument();
   });
 
-  it("mantém o portal na raiz quando não há sessão admin", async () => {
+  it("redireciona a raiz para o login da prefeitura sem sessão", async () => {
     window.history.pushState({}, "", "/");
 
     render(<AppRoutes />);
 
-    expect(await screen.findByText("Portal posto")).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/");
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/login-prefeitura");
+    });
+    expect(await screen.findByText("Login prefeitura")).toBeInTheDocument();
+  });
+
+  it("expõe o login do admin em /login-admin", async () => {
+    window.history.pushState({}, "", "/login-admin");
+
+    render(<AppRoutes />);
+
+    expect(await screen.findByText("Login admin")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/login-admin");
+  });
+
+  it("redireciona prefeitura logada da raiz para o dashboard", async () => {
+    useLogin.setState({
+      user: {
+        id: "u2",
+        usuario: "pref",
+        type: "prefeitura",
+        prefeituraId: "pref-1",
+      },
+    });
+    window.history.pushState({}, "", "/");
+
+    render(<AppRoutes />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/prefeitura/pref-1/dashboard");
+    });
   });
 
   it("impede admin de acessar o painel da prefeitura", async () => {

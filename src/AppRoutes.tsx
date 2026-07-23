@@ -16,6 +16,11 @@ const PostoPortalProvider = lazy(() =>
 const AdminPage = lazy(() =>
   import("./pages/admin/AdminPage").then((m) => ({ default: m.AdminPage })),
 );
+const AdminLoginPage = lazy(() =>
+  import("./pages/admin/AdminLoginPage").then((m) => ({
+    default: m.AdminLoginPage,
+  })),
+);
 const DashboardSection = lazy(() =>
   import("./pages/admin/sections/DashboardSection").then((m) => ({
     default: m.DashboardSection,
@@ -243,7 +248,17 @@ function RootRoute() {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  return <PostoPortalProvider />;
+  if (user?.type === "prefeitura" && user.prefeituraId) {
+    return (
+      <Navigate
+        to={`/prefeitura/${user.prefeituraId}/dashboard`}
+        replace
+      />
+    );
+  }
+
+  // Rota principal: login da prefeitura (admin fica em /login-admin).
+  return <Navigate to="/login-prefeitura" replace />;
 }
 
 /**
@@ -269,6 +284,8 @@ export function AppRoutes() {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
           <Route path="/" element={<RootRoute />} />
+          <Route path="/login-admin" element={<AdminLoginPage />} />
+          <Route path="/portal" element={<PostoPortalProvider />} />
           <Route path="/admin" element={<AdminPage />}>
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardSection />} />
