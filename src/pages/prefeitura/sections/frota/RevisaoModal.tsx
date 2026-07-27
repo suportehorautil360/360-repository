@@ -91,7 +91,7 @@ export function RevisaoModal({
       >
         <div className="frota-rev__head">
           <div>
-            <h3 style={{ margin: 0 }}>🔒 Liberar bloqueio de revisão</h3>
+            <h3>🔒 Liberar bloqueio de revisão</h3>
             <p className="frota-rev__veic">
               Veículo: <strong>{veiculo.placa}</strong> — {veiculo.nome}
             </p>
@@ -115,13 +115,14 @@ export function RevisaoModal({
         </div>
 
         <form
+          className="frota-rev__form"
           onSubmit={(e) => {
             e.preventDefault();
             void handleConfirmar();
           }}
         >
           <div className="frota-modal__grid">
-            <div>
+            <div className="frota-rev__field">
               <label htmlFor="rev-data">Data da revisão realizada</label>
               <input
                 id="rev-data"
@@ -130,7 +131,7 @@ export function RevisaoModal({
                 onChange={(e) => setData(e.target.value)}
               />
             </div>
-            <div>
+            <div className="frota-rev__field">
               <label htmlFor="rev-hod">
                 Hodômetro / horas na revisão ({unidade})
               </label>
@@ -147,7 +148,7 @@ export function RevisaoModal({
                 }
               />
             </div>
-            <div className="full">
+            <div className="frota-rev__field full">
               <label htmlFor="rev-oficina">Oficina / responsável</label>
               <input
                 id="rev-oficina"
@@ -157,7 +158,7 @@ export function RevisaoModal({
                 onChange={(e) => setOficina(e.target.value)}
               />
             </div>
-            <div className="full">
+            <div className="frota-rev__field full">
               <label htmlFor="rev-serv">Serviços realizados</label>
               <textarea
                 id="rev-serv"
@@ -167,7 +168,7 @@ export function RevisaoModal({
                 onChange={(e) => setServicos(e.target.value)}
               />
             </div>
-            <div>
+            <div className="frota-rev__field">
               <label htmlFor="rev-custo">Custo da revisão (R$)</label>
               <input
                 id="rev-custo"
@@ -180,7 +181,7 @@ export function RevisaoModal({
                 }
               />
             </div>
-            <div>
+            <div className="frota-rev__field">
               <label htmlFor="rev-nf">Nota fiscal</label>
               <input
                 id="rev-nf"

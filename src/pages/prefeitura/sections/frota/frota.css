@@ -209,7 +209,7 @@
   background: var(--bg-2, #121b30);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px;
+  padding: 16px 18px;
   width: min(440px, 100%);
   max-height: 90vh;
   overflow-y: auto;
@@ -224,32 +224,82 @@
 .frota-modal__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 12px 14px;
+  align-items: start;
 }
+
+.frota-modal__grid > * {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
 .frota-modal__grid .full {
   grid-column: 1 / -1;
+}
+
+.frota-modal__grid label {
+  display: block;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted, #94a3b8);
+}
+
+.frota-modal__grid input,
+.frota-modal__grid select,
+.frota-modal__grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text, #e2e8f0);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.frota-modal__grid input:focus,
+.frota-modal__grid select:focus,
+.frota-modal__grid textarea:focus {
+  outline: none;
+  border-color: rgba(249, 115, 22, 0.55);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+}
+
+.frota-modal__grid textarea {
+  min-height: 88px;
+  resize: vertical;
+  font-family: inherit;
 }
 
 .frota-modal__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 .frota-modal__footer .frota-btn {
   margin: 0;
   width: auto;
+  padding: 8px 14px;
+  font-size: 0.78rem;
 }
 
 .frota-modal__msg {
   min-height: 18px;
   font-size: 0.72rem;
   color: #fca5a5;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .frota-modal--rev {
-  width: min(600px, 100%);
+  width: min(640px, 100%);
 }
 
 .frota-rev__head {
@@ -257,17 +307,17 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .frota-rev__head h3 {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 .frota-rev__veic {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
 }
 .frota-rev__veic strong {
   color: var(--primary, #f97316);
@@ -280,9 +330,11 @@
   cursor: pointer;
   line-height: 1;
   padding: 4px;
+  border-radius: 6px;
 }
 .frota-rev__close:hover {
   color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .frota-rev__alerta {
@@ -293,7 +345,7 @@
   background: rgba(239, 68, 68, 0.08);
   border-radius: 8px;
   padding: 10px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 .frota-rev__alerta strong {
   display: block;
@@ -313,10 +365,10 @@
   border: 1px solid rgba(245, 158, 11, 0.4);
   background: rgba(245, 158, 11, 0.08);
   border-radius: 8px;
-  padding: 8px 10px;
-  margin-top: 12px;
-  font-size: 0.72rem;
-  line-height: 1.4;
+  padding: 10px 12px;
+  margin-top: 14px;
+  font-size: 0.74rem;
+  line-height: 1.45;
   color: var(--text);
 }
 .frota-rev__aviso strong {
@@ -331,4 +383,18 @@
 .frota-btn-confirmar:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+@media (max-width: 560px) {
+  .frota-modal__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .frota-modal__footer {
+    flex-direction: column-reverse;
+  }
+
+  .frota-modal__footer .frota-btn {
+    width: 100%;
+  }
 }
