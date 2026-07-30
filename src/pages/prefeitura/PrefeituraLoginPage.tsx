@@ -65,8 +65,8 @@ export function PrefeituraLoginPage() {
         <div className="pf-login-card">
           <div className="pf-login-brand">
             <img src="/logo.png" alt="Hora Útil" />
-            <h1 id="prefeitura-login-title">Portal da Prefeitura</h1>
-            <p>Acesse com seu usuário para entrar no painel municipal.</p>
+            <h1 id="prefeitura-login-title">Bem vindo ao Portal do parceiro</h1>
+            <p>Acesse com seu usuário para entrar no painel.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="pf-login-form">

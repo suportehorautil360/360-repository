@@ -19,6 +19,7 @@ describe("adminSession", () => {
     vi.setSystemTime(new Date("2026-05-24T12:00:00Z"));
 
     setAdminAuthenticated();
+  
 
     expect(sessionStorage.getItem(ADMIN_SESSION_KEY)).toBe("1");
     expect(isAdminAuthenticated()).toBe(true);
