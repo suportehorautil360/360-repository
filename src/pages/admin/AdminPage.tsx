@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { isAdminAuthenticated } from "../../admin/adminSession";
-import { getAdminSecret } from "../../lib/api/admin-secret";
 import { useHU360Auth } from "../../lib/hu360";
 import { AdminLayout } from "./AdminLayout";
 import { useLogin } from "../login/hooks/use-login";
@@ -16,9 +15,10 @@ export function AdminPage() {
   const auth = useHU360Auth();
   const { user } = useLogin();
 
-  const hasAdminSecret = Boolean(getAdminSecret());
+  // Login comum: usuário admin do Firestore (ou sessão do hub) libera o painel.
+  // O ADMIN_SECRET (env/sessão) segue sendo usado só nas chamadas ao back.
   const sessionAuthenticated =
-    (isAdminAuthenticated() || user?.type === "admin") && hasAdminSecret;
+    user?.type === "admin" || isAdminAuthenticated();
 
   useEffect(() => {
     if (!sessionAuthenticated) return;

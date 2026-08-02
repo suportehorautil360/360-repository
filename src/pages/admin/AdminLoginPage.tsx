@@ -3,64 +3,76 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   isAdminAuthenticated,
   setAdminAuthenticated,
-  verifyAdminSecret,
 } from "../../admin/adminSession";
-import {
-  getAdminSecret,
-  verifyAdminSecretWithBackend,
-} from "../../lib/api/admin-secret";
+import { getAdminSecret } from "../../lib/api/admin-secret";
 import { useHU360Auth } from "../../lib/hu360";
 import logoUrl from "../../assets/logo.jpeg";
 import "./admin.css";
 import { useLogin } from "../login/hooks/use-login";
 
-/** Usuário do seed HU360 que recebe a sessão quando o admin entra via env. */
+/** Usuário do seed HU360 que recebe a sessão quando o admin entra. */
 const ADMIN_USUARIO_HU360 = "admin";
 
+/**
+ * Login comum do admin: usuário + senha (Firestore), igual aos outros portais.
+ * A senha administrativa (ADMIN_SECRET) deixa de ser a tela de entrada.
+ */
 export function AdminLoginPage() {
   const auth = useHU360Auth();
   const navigate = useNavigate();
-  const { user } = useLogin();
+  const { user, handleLogin } = useLogin();
+
+  const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [validando, setValidando] = useState(false);
 
-  const hasAdminSecret = Boolean(getAdminSecret());
-  const sessionAuthenticated =
-    (isAdminAuthenticated() || user?.type === "admin") && hasAdminSecret;
+  const jaAutenticado = user?.type === "admin" || isAdminAuthenticated();
 
   useEffect(() => {
-    if (!sessionAuthenticated) return;
+    if (!jaAutenticado) return;
     if (auth.loading) return;
     if (auth.user) return;
     auth.loginPorUsuario(ADMIN_USUARIO_HU360, { persist: false });
-  }, [sessionAuthenticated, auth.loading, auth.user, auth]);
+  }, [jaAutenticado, auth.loading, auth.user, auth]);
 
-  if (sessionAuthenticated) {
+  if (jaAutenticado) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  async function handleLogin(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setErro("");
-    if (!senha.trim()) {
-      setErro("Informe a senha administrativa.");
+
+    const loginUsuario = usuario.trim();
+    if (!loginUsuario || !senha) {
+      setErro("Preencha usuário e senha.");
       return;
     }
+
     setValidando(true);
     try {
-      const okLocal = verifyAdminSecret(senha);
-      const ok = okLocal || (await verifyAdminSecretWithBackend(senha));
-      if (!ok) {
-        setErro("Senha administrativa incorreta.");
+      // navigate no-op: decidimos o destino depois de validar o type
+      const result = await handleLogin(loginUsuario, senha, (() => {}) as never);
+      if (result?.error) {
+        setErro(result.error);
         return;
       }
-      setAdminAuthenticated(senha);
+
+      const logado = useLogin.getState().user;
+      if (!logado || logado.type !== "admin") {
+        useLogin.setState({ user: null });
+        setErro("Acesso apenas para administradores.");
+        return;
+      }
+
+      const secret = getAdminSecret();
+      setAdminAuthenticated(secret || undefined);
       auth.loginPorUsuario(ADMIN_USUARIO_HU360, { persist: false });
       setSenha("");
       navigate("/admin/dashboard", { replace: true });
     } catch {
-      setErro("Não foi possível validar a senha. Tente novamente.");
+      setErro("Não foi possível entrar. Tente novamente.");
     } finally {
       setValidando(false);
     }
@@ -84,20 +96,34 @@ export function AdminLoginPage() {
             Painel administrativo
           </h1>
           <p className="admin-lead">
-            {user?.type === "admin"
-              ? "Confirme a senha administrativa para acessar integrações com o servidor (suporte dos postos, WhatsApp, etc.)."
-              : "Área restrita. Informe a senha administrativa (mesmo valor de ADMIN_SECRET no servidor)."}
+            Entre com usuário e senha de administrador para acessar o hub.
           </p>
-          <form onSubmit={(e) => void handleLogin(e)} className="admin-form">
-            <label htmlFor="admin-senha">Senha administrativa</label>
+          <form onSubmit={(e) => void handleSubmit(e)} className="admin-form">
+            <label htmlFor="admin-usuario">Usuário</label>
+            <input
+              id="admin-usuario"
+              name="usuario"
+              autoComplete="username"
+              value={usuario}
+              onChange={(ev) => {
+                setUsuario(ev.target.value);
+                setErro("");
+              }}
+              placeholder="Digite seu usuário"
+              disabled={validando}
+            />
+            <label htmlFor="admin-senha">Senha</label>
             <input
               id="admin-senha"
               name="senha"
               type="password"
               autoComplete="current-password"
               value={senha}
-              onChange={(ev) => setSenha(ev.target.value)}
-              placeholder="Senha de acesso"
+              onChange={(ev) => {
+                setSenha(ev.target.value);
+                setErro("");
+              }}
+              placeholder="Digite sua senha"
               disabled={validando}
             />
             {erro ? (
@@ -106,7 +132,7 @@ export function AdminLoginPage() {
               </p>
             ) : null}
             <button type="submit" className="admin-submit" disabled={validando}>
-              {validando ? "Validando…" : "Entrar"}
+              {validando ? "Autenticando…" : "Entrar"}
             </button>
           </form>
         </div>
