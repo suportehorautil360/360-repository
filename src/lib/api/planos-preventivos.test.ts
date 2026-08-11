@@ -16,7 +16,7 @@ vi.mock("./client", async (orig) => {
 
 import { planosPreventivosApi } from "./planos-preventivos";
 import { ApiError } from "./client";
-import { clonarMatrizPadrao } from "../../pages/prefeitura/sections/plano-preventivo-model";
+import { clonarPlanoPadrao } from "../../pages/prefeitura/sections/plano-preventivo-model";
 
 describe("planosPreventivosApi", () => {
   it("obter retorna null em 404", async () => {
@@ -24,22 +24,21 @@ describe("planosPreventivosApi", () => {
     await expect(planosPreventivosApi.obter("pref-1")).resolves.toBeNull();
   });
 
-  it("salvar envia ciclos e linhas", async () => {
-    const matriz = clonarMatrizPadrao();
+  it("salvar envia categorias com matrizes", async () => {
+    const plano = clonarPlanoPadrao();
     putMock.mockResolvedValue({
-      data: { prefeituraId: "pref-1", ...matriz },
+      data: { prefeituraId: "pref-1", ...plano },
     });
-    await planosPreventivosApi.salvar("pref-1", matriz);
+    await planosPreventivosApi.salvar("pref-1", plano);
     expect(putMock).toHaveBeenCalledWith("/planos-preventivos/pref-1", {
-      ciclos: matriz.ciclos,
-      linhas: matriz.linhas,
+      categorias: plano.categorias,
     });
   });
 
   it("restaurarPadrao chama POST", async () => {
-    const matriz = clonarMatrizPadrao();
+    const plano = clonarPlanoPadrao();
     postMock.mockResolvedValue({
-      data: { prefeituraId: "pref-1", ...matriz },
+      data: { prefeituraId: "pref-1", ...plano },
     });
     await planosPreventivosApi.restaurarPadrao("pref-1");
     expect(postMock).toHaveBeenCalledWith(
