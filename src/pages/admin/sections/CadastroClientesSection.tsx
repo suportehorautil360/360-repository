@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   clientesApi,
   type ClienteApi,
@@ -8,6 +8,7 @@ import {
 import { formatarCnpj } from "../../../lib/funcionarios/cnpj";
 import type { TipoCliente } from "../../../lib/hu360";
 import { CadastroAcessosTab } from "./CadastroAcessosTab";
+import { CadastroConfigTab } from "./CadastroConfigTab";
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const MODALIDADES: { value: string; label: string }[] = [
   { value: "pregao_eletronico", label: "Pregão eletrônico" },
@@ -138,16 +140,10 @@ function clienteParaForm(c: ClienteApi): FormState {
 
 const REQ = <span style={{ color: "#f87171" }}>*</span>;
 
-type Aba = "contrato" | "acessos";
-
 export function CadastroClientesSection() {
   const navigate = useNavigate();
   const { clienteId } = useParams<{ clienteId?: string }>();
-  const [searchParams] = useSearchParams();
   const ehEdicao = !!clienteId;
-  const [aba, setAba] = useState<Aba>(
-    searchParams.get("aba") === "acessos" ? "acessos" : "contrato",
-  );
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [avancado, setAvancado] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -297,28 +293,18 @@ export function CadastroClientesSection() {
       </p>
 
       <article className="card">
-        <div className="cad-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={aba === "contrato"}
-            className={`cad-tab ${aba === "contrato" ? "is-active" : ""}`}
-            onClick={() => setAba("contrato")}
-          >
-            📁 Dados do contrato
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={aba === "acessos"}
-            className={`cad-tab ${aba === "acessos" ? "is-active" : ""}`}
-            onClick={() => setAba("acessos")}
-          >
-            🔐 Acessos e logins
-          </button>
-        </div>
+        <Tabs defaultValue="dados" className="w-full">
+          <TabsList>
+            <TabsTrigger value="dados">Dados &amp; Contrato</TabsTrigger>
+            <TabsTrigger value="acessos" disabled={!clienteId}>
+              Acessos
+            </TabsTrigger>
+            <TabsTrigger value="config" disabled={!clienteId}>
+              Configurações
+            </TabsTrigger>
+          </TabsList>
 
-        {aba === "contrato" ? (
+          <TabsContent value="dados">
           <form id="formPrefeituraContrato" onSubmit={handleSubmit}>
             <div className="cad-banner">{introTexto}</div>
 
@@ -740,9 +726,16 @@ export function CadastroClientesSection() {
               {msg}
             </div>
           </form>
-        ) : (
-          <CadastroAcessosTab clienteIdInicial={clienteId} />
-        )}
+          </TabsContent>
+
+          <TabsContent value="acessos">
+            {clienteId && <CadastroAcessosTab clienteIdInicial={clienteId} />}
+          </TabsContent>
+
+          <TabsContent value="config">
+            {clienteId && <CadastroConfigTab clienteId={clienteId} />}
+          </TabsContent>
+        </Tabs>
       </article>
     </section>
   );
