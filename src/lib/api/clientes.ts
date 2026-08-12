@@ -102,6 +102,7 @@ export interface ClienteApi {
   whatsapp?: string;
   criadoEm?: string;
   contrato?: ContratoClienteApi;
+  checklistLogin?: { cpfSenha: boolean; chassi: boolean };
 }
 
 /** Atualização parcial — qualquer subconjunto dos campos do cliente/empresa. */
@@ -239,6 +240,17 @@ export const clientesApi = {
   ): Promise<void> {
     await api.del(
       `/clientes/${encodeURIComponent(prefeituraId)}/parceiros/${encodeURIComponent(parceiroId)}/descredenciar`,
+    );
+  },
+
+  /** Atualiza a configuração de checklist login (cpf/senha e chassi). */
+  async atualizarChecklistLoginConfig(
+    clienteId: string,
+    config: { cpfSenha: boolean; chassi: boolean },
+  ): Promise<void> {
+    await api.patch<void>(
+      `/clientes/${clienteId}/checklist-login-config`,
+      config,
     );
   },
 };
