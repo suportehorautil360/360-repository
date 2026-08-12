@@ -63,6 +63,7 @@ export function ChecklistLoginPage() {
         funcionarioId: f.id,
         cpf: f.cpf,
         tipo: f.tipo,
+        modoLogin: "cpf-senha",
       };
       setSession(sess);
       navigate("/checklist-controle", { replace: true });

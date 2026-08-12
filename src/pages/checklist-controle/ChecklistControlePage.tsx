@@ -239,6 +239,7 @@ function resolveSessionForUsuario(usuario: string): OperadorSession | null {
         idMaquina: loc.ID_Maquina,
         idCliente: loc.ID_Cliente,
         empresa: loc.Nome_Empresa,
+        modoLogin: "cpf-senha",
       };
     }
   }
@@ -1391,6 +1392,7 @@ export function ChecklistControlePage() {
           idMaquina: loc.ID_Maquina,
           idCliente: loc.ID_Cliente,
           empresa: loc.Nome_Empresa,
+          modoLogin: "cpf-senha",
         };
       }
     }

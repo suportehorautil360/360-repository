@@ -16,6 +16,10 @@ export type OperadorSession = {
    */
   idMaquina?: string;
   chassis?: string;
+  /** Modo de autenticação: CPF+senha ou chassi. */
+  modoLogin: "cpf-senha" | "chassi";
+  /** Nome informado pelo usuário no login por chassi. */
+  nomeInformado?: string;
 };
 
 function isValidSession(s: unknown): s is OperadorSession {
@@ -57,7 +61,12 @@ function read(): OperadorSession | null {
         Date.now() < Date.parse(parsed.expiraEm) &&
         isValidSession(parsed.session)
       ) {
-        return parsed.session;
+        const session = parsed.session;
+        // Retrocompat: sessões legadas (sem modoLogin) → default 'cpf-senha'
+        if (!session.modoLogin) {
+          session.modoLogin = "cpf-senha";
+        }
+        return session;
       }
       limpar();
       return null;
@@ -67,8 +76,13 @@ function read(): OperadorSession | null {
     if (legado) {
       const parsed: unknown = JSON.parse(legado);
       if (isValidSession(parsed)) {
-        write(parsed);
-        return parsed;
+        const session = parsed as OperadorSession;
+        // Retrocompat: sessões legadas → default 'cpf-senha'
+        if (!session.modoLogin) {
+          session.modoLogin = "cpf-senha";
+        }
+        write(session);
+        return session;
       }
       limpar();
     }
