@@ -51,4 +51,19 @@ describe("montarOperadorAssinatura", () => {
     const out = montarOperadorAssinatura(session, "Maria Souza");
     expect((out as { nome: string }).nome).toBe("Maria Souza");
   });
+
+  it("nomeDigitado vazio cai no fallback (nomeInformado)", () => {
+    const out = montarOperadorAssinatura(
+      { modoLogin: "cpf-senha", nome: "Maria", idCliente: "e", empresa: "E", funcionarioId: "f1", nomeInformado: "Prefiro Ana" },
+      ""
+    );
+    expect((out as any).nome).toBe("Prefiro Ana");
+  });
+
+  it("nomeInformado prevalece sobre nome quando sem nomeDigitado", () => {
+    const out = montarOperadorAssinatura(
+      { modoLogin: "cpf-senha", nome: "Maria", idCliente: "e", empresa: "E", funcionarioId: "f1", nomeInformado: "Meu Apelido" }
+    );
+    expect((out as any).nome).toBe("Meu Apelido");
+  });
 });
