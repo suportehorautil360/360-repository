@@ -78,6 +78,72 @@ describe("funcionariosApi.autenticar", () => {
   });
 });
 
+describe("autenticarPorChassi", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it("online → 200 → ok com dados", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        empresaId: "e1",
+        empresaNome: "E1",
+        idMaquina: "m1",
+        chassi: "ABC",
+      }),
+    } as Response);
+    const r = await funcionariosApi.autenticarPorChassi("abc");
+    if (!r.ok) throw new Error("esperava ok");
+    expect(r.empresaId).toBe("e1");
+  });
+
+  it("online → 404 → nao-encontrado", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    } as Response);
+    const r = await funcionariosApi.autenticarPorChassi("XYZ");
+    expect(r).toEqual({ ok: false, motivo: "nao-encontrado" });
+  });
+
+  it("online → 409 → conflito", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({}),
+    } as Response);
+    const r = await funcionariosApi.autenticarPorChassi("DUP");
+    expect(r).toEqual({ ok: false, motivo: "conflito" });
+  });
+
+  it("offline + cache hit → ok", async () => {
+    const { provisionarChassisEmpresa: prov } = await import(
+      "../../pages/checklist-controle/chassis-offline"
+    );
+    prov({
+      empresaId: "e2",
+      empresaNome: "E2",
+      chassis: ["CACHED"],
+      expiraEm: new Date(Date.now() + 1000).toISOString(),
+    });
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const r = await funcionariosApi.autenticarPorChassi("CACHED");
+    if (!r.ok) throw new Error("esperava ok offline");
+    expect(r.empresaId).toBe("e2");
+    expect(r.idMaquina).toBe(""); // offline não sabe idMaquina
+  });
+
+  it("offline + cache miss → sem-conexao", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const r = await funcionariosApi.autenticarPorChassi("NADA");
+    expect(r).toEqual({ ok: false, motivo: "sem-conexao" });
+  });
+});
+
 describe("funcionariosApi.listarCredenciaisOffline", () => {
   it("traz funcionario + senhaHash dos ativos com senha; ignora sem hash e inativos", async () => {
     getDocsMock.mockResolvedValue(

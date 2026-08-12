@@ -12,6 +12,10 @@ import { db } from "../firebase/firebase";
 import { api, ApiError } from "../api/client";
 import { hashSenha } from "../../utils/hashSenha";
 import { limparCpf } from "./cpf";
+import {
+  resolverChassiOffline,
+  provisionarChassisEmpresa,
+} from "../../pages/checklist-controle/chassis-offline";
 
 const COLECAO = "operadores";
 
@@ -296,5 +300,75 @@ export const funcionariosApi = {
       funcionarios,
     });
     return r.data;
+  },
+
+  /**
+   * Autentica uma máquina/operador pelo chassi do veículo.
+   *
+   * Online: chama `POST /checklist/resolver-chassi` e, em best-effort,
+   * provisiona o cache local com `GET /checklist/chassis-empresa/:id`.
+   *
+   * Offline: usa o cache local provisionado previamente.
+   *
+   * Retorna discriminated union `{ ok: true, ... }` | `{ ok: false, motivo }`.
+   */
+  async autenticarPorChassi(
+    chassiInput: string,
+  ): Promise<
+    | { ok: true; empresaId: string; empresaNome: string; idMaquina: string; chassi: string }
+    | { ok: false; motivo: "nao-encontrado" | "nao-habilita" | "conflito" | "sem-conexao" | "erro" }
+  > {
+    const chassi = (chassiInput ?? "").toString().toUpperCase().replace(/\s+/g, "");
+    if (!chassi) return { ok: false, motivo: "nao-encontrado" };
+
+    const online = typeof navigator === "undefined" ? true : navigator.onLine;
+
+    if (online) {
+      try {
+        const r = await api.post<{
+          empresaId: string;
+          empresaNome: string;
+          idMaquina: string;
+          chassi: string;
+        }>("/checklist/resolver-chassi", { chassi });
+
+        // Provisiona cache offline — best-effort; falha não impede o login.
+        try {
+          const lista = await api.get<{ chassis: string[]; expiraEm: string }>(
+            `/checklist/chassis-empresa/${r.empresaId}`,
+          );
+          provisionarChassisEmpresa({
+            empresaId: r.empresaId,
+            empresaNome: r.empresaNome,
+            chassis: lista.chassis,
+            expiraEm: lista.expiraEm,
+          });
+        } catch {
+          /* segue sem cache — login continua válido */
+        }
+
+        return { ok: true, ...r };
+      } catch (e: unknown) {
+        if (e instanceof ApiError) {
+          if (e.status === 404) return { ok: false, motivo: "nao-encontrado" };
+          if (e.status === 409) return { ok: false, motivo: "conflito" };
+          if (e.status === 422) return { ok: false, motivo: "nao-habilita" };
+        }
+        return { ok: false, motivo: "erro" };
+      }
+    }
+
+    // Offline: resolve pelo cache local.
+    const off = resolverChassiOffline(chassi);
+    if (off) {
+      return {
+        ok: true,
+        empresaId: off.empresaId,
+        empresaNome: off.empresaNome,
+        idMaquina: "",
+        chassi,
+      };
+    }
+    return { ok: false, motivo: "sem-conexao" };
   },
 };
