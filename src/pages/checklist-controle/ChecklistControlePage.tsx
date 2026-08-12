@@ -21,6 +21,7 @@ import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
+import { montarOperadorAssinatura } from "./assinatura";
 import { carregarFrotaOperador } from "./frota-operador";
 import {
   comprimirAteOrcamento,
@@ -1736,6 +1737,7 @@ export function ChecklistControlePage() {
             `${equipamentoAtual.tipo} ${equipamentoAtual.linha}`,
           ),
         operador: nomeOperadorChecklist.trim(),
+        operadorAssinatura: montarOperadorAssinatura(session, nomeOperadorChecklist.trim()),
         idOperadorSession: session.idCliente,
         funcionarioId: session.funcionarioId ?? "",
         funcionarioCpf: session.cpf ?? "",
@@ -1912,6 +1914,7 @@ export function ChecklistControlePage() {
             idMaquina: equipamentoAtual.id,
             modelo: equipamentoAtual.label,
             operador: emergPayload.operadorNome,
+            operadorAssinatura: montarOperadorAssinatura(session, emergPayload.operadorNome),
             statusAtendimento: "ABERTO",
             qtdFotos: fotosImped.length,
             criadoEm: serverTimestamp(),
@@ -2149,6 +2152,7 @@ export function ChecklistControlePage() {
             ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
             : "",
           operador: payload.operadorNome,
+          operadorAssinatura: montarOperadorAssinatura(session, payload.operadorNome),
           statusAtendimento: "ABERTO",
           qtdFotos: fotos.length,
           criadoEm: serverTimestamp(),
