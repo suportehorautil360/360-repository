@@ -35,7 +35,7 @@ export function NomeOperadorDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onCancelar(); }}>
-      <DialogContent showCloseButton>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Como podemos te chamar?</DialogTitle>
           <p className="text-sm text-muted-foreground">
