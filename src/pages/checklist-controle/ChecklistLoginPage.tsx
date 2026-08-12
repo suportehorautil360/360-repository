@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getDoc, doc as firestoreDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase/firebase";
@@ -11,6 +11,7 @@ import {
   removerCredencialOffline,
   salvarCredencialOffline,
 } from "./credenciais-offline";
+import { NomeOperadorDialog } from "./NomeOperadorDialog";
 import "../login/login.css";
 
 const MOTIVO_MSG: Record<string, string> = {
@@ -20,19 +21,49 @@ const MOTIVO_MSG: Record<string, string> = {
   inativo: "Acesso inativo. Procure o gestor da prefeitura.",
 };
 
+const MOTIVO_CHASSI: Record<string, string> = {
+  "nao-encontrado": "Chassi não encontrado. Confirme o número com o gestor.",
+  conflito: "Chassi vinculado a mais de uma empresa. Contate o suporte.",
+  "nao-habilita": "Esse chassi não permite login direto. Use CPF/Login.",
+  "sem-conexao":
+    "Sem conexão. Esse aparelho não conhece esse chassi — conecte à internet ou peça pra alguém logar online primeiro.",
+  erro: "Não foi possível validar o chassi. Tente novamente.",
+};
+
+const LAST_MODO_KEY = "hu360-checklist-login-modo";
+
+type Modo = "cpf" | "chassi";
+
 export function ChecklistLoginPage() {
   const navigate = useNavigate();
   const { setSession } = useOperadorSession();
 
-  // Identificador pode ser CPF (11 dígitos) OU login gerado (primeiroNome+3 últimos do CPF).
+  const [modo, setModo] = useState<Modo>(() => {
+    if (typeof localStorage === "undefined") return "cpf";
+    return localStorage.getItem(LAST_MODO_KEY) === "chassi" ? "chassi" : "cpf";
+  });
+  useEffect(() => {
+    localStorage.setItem(LAST_MODO_KEY, modo);
+  }, [modo]);
+
+  // --- CPF / Senha (fluxo original preservado) ---
   const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
 
-  /** Detecta CPF: se a entrada tem ≥ 11 dígitos, formata como CPF. Senão, deixa cru. */
   const ehCpf = limparCpf(identificador).length === 11;
   const valorExibido = ehCpf ? formatarCpf(identificador) : identificador;
+
+  // --- Chassi ---
+  const [chassi, setChassi] = useState("");
+  const [loadingChassi, setLoadingChassi] = useState(false);
+  const [erroChassi, setErroChassi] = useState("");
+  const [resolvido, setResolvido] = useState<
+    | null
+    | { empresaId: string; empresaNome: string; idMaquina: string; chassi: string }
+  >(null);
+  const [modalNomeAberto, setModalNomeAberto] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,13 +80,16 @@ export function ChecklistLoginPage() {
     setErro("");
     setLoading(true);
 
-    function entrar(f: {
-      nome: string;
-      prefeituraId: string;
-      id: string;
-      cpf?: string;
-      tipo?: OperadorSession["tipo"];
-    }, empresaNome: string) {
+    function entrar(
+      f: {
+        nome: string;
+        prefeituraId: string;
+        id: string;
+        cpf?: string;
+        tipo?: OperadorSession["tipo"];
+      },
+      empresaNome: string,
+    ) {
       const sess: OperadorSession = {
         nome: f.nome,
         idCliente: f.prefeituraId,
@@ -139,6 +173,70 @@ export function ChecklistLoginPage() {
     }
   }
 
+  async function handleSubmitChassi(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const c = chassi.trim();
+    if (!c) {
+      setErroChassi("Digite o chassi da máquina.");
+      return;
+    }
+    setErroChassi("");
+    setLoadingChassi(true);
+    try {
+      const r = await funcionariosApi.autenticarPorChassi(c);
+      if (!r.ok) {
+        setErroChassi(MOTIVO_CHASSI[r.motivo] ?? "Não foi possível validar o chassi.");
+        return;
+      }
+      setResolvido({
+        empresaId: r.empresaId,
+        empresaNome: r.empresaNome,
+        idMaquina: r.idMaquina,
+        chassi: r.chassi,
+      });
+      setModalNomeAberto(true);
+    } finally {
+      setLoadingChassi(false);
+    }
+  }
+
+  function onConfirmarNome(nome: string) {
+    if (!resolvido) return;
+    const sess: OperadorSession = {
+      nome,
+      idCliente: resolvido.empresaId,
+      empresa: resolvido.empresaNome,
+      idMaquina: resolvido.idMaquina,
+      chassis: resolvido.chassi,
+      modoLogin: "chassi",
+      nomeInformado: nome,
+    };
+    setSession(sess);
+    setModalNomeAberto(false);
+    navigate("/checklist-controle", { replace: true });
+  }
+
+  const toggleWrap: React.CSSProperties = {
+    display: "flex",
+    gap: 4,
+    marginBottom: 16,
+    background: "rgba(255,255,255,0.06)",
+    borderRadius: 8,
+    padding: 3,
+  };
+  const toggleBtn = (ativo: boolean): React.CSSProperties => ({
+    flex: 1,
+    padding: "8px 12px",
+    borderRadius: 6,
+    border: "none",
+    background: ativo ? "var(--primary)" : "transparent",
+    color: ativo ? "#1a1205" : "inherit",
+    cursor: "pointer",
+    fontWeight: ativo ? 600 : 400,
+    fontSize: "0.9rem",
+    transition: "background 120ms ease",
+  });
+
   return (
     <section className="auth-screen" aria-labelledby="checklist-login-title">
       <div className="auth-card">
@@ -146,49 +244,112 @@ export function ChecklistLoginPage() {
           Controle Checklist
         </h1>
         <p className="auth-subtitle">
-          Entre com seu CPF ou login + senha para acessar o controle.
+          {modo === "cpf"
+            ? "Entre com seu CPF ou login + senha para acessar o controle."
+            : "Digite o chassi da máquina para acessar o controle."}
         </p>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <label htmlFor="checklist-id">CPF ou Login</label>
-          <input
-            id="checklist-id"
-            inputMode={ehCpf ? "numeric" : "text"}
-            autoComplete="username"
-            placeholder="CPF (000.000.000-00) ou login (joao123)"
-            value={valorExibido}
-            onChange={(e) => {
-              setIdentificador(e.target.value);
-              setErro("");
-            }}
-          />
-          <label htmlFor="checklist-senha">Senha</label>
-          <input
-            id="checklist-senha"
-            type="password"
-            autoComplete="current-password"
-            placeholder="Sua senha"
-            value={senha}
-            onChange={(e) => {
-              setSenha(e.target.value);
-              setErro("");
-            }}
-          />
-          {erro && (
-            <span
-              style={{
-                color: "var(--danger, #ef4444)",
-                fontSize: "0.82rem",
-                marginTop: "-6px",
-              }}
-            >
-              {erro}
-            </span>
-          )}
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? "Verificando..." : "Entrar"}
+        <div style={toggleWrap} role="tablist" aria-label="Modo de login">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={modo === "cpf"}
+            onClick={() => setModo("cpf")}
+            style={toggleBtn(modo === "cpf")}
+          >
+            CPF / Login
           </button>
-        </form>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={modo === "chassi"}
+            onClick={() => setModo("chassi")}
+            style={toggleBtn(modo === "chassi")}
+          >
+            Chassi
+          </button>
+        </div>
+
+        {modo === "cpf" ? (
+          <form onSubmit={handleSubmit} className="auth-form">
+            <label htmlFor="checklist-id">CPF ou Login</label>
+            <input
+              id="checklist-id"
+              inputMode={ehCpf ? "numeric" : "text"}
+              autoComplete="username"
+              placeholder="CPF (000.000.000-00) ou login (joao123)"
+              value={valorExibido}
+              onChange={(e) => {
+                setIdentificador(e.target.value);
+                setErro("");
+              }}
+            />
+            <label htmlFor="checklist-senha">Senha</label>
+            <input
+              id="checklist-senha"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Sua senha"
+              value={senha}
+              onChange={(e) => {
+                setSenha(e.target.value);
+                setErro("");
+              }}
+            />
+            {erro && (
+              <span
+                style={{
+                  color: "var(--danger, #ef4444)",
+                  fontSize: "0.82rem",
+                  marginTop: "-6px",
+                }}
+              >
+                {erro}
+              </span>
+            )}
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? "Verificando..." : "Entrar"}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmitChassi} className="auth-form">
+            <label htmlFor="checklist-chassi">Chassi da máquina</label>
+            <input
+              id="checklist-chassi"
+              autoComplete="off"
+              placeholder="Ex.: 9BWZZZ377VT004251"
+              value={chassi}
+              onChange={(e) => {
+                setChassi(e.target.value.toUpperCase().replace(/\s+/g, ""));
+                setErroChassi("");
+              }}
+            />
+            {erroChassi && (
+              <span
+                style={{
+                  color: "var(--danger, #ef4444)",
+                  fontSize: "0.82rem",
+                  marginTop: "-6px",
+                }}
+              >
+                {erroChassi}
+              </span>
+            )}
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={loadingChassi}
+            >
+              {loadingChassi ? "Verificando..." : "Entrar"}
+            </button>
+          </form>
+        )}
+
+        <NomeOperadorDialog
+          open={modalNomeAberto}
+          onConfirmar={onConfirmarNome}
+          onCancelar={() => setModalNomeAberto(false)}
+        />
       </div>
     </section>
   );
