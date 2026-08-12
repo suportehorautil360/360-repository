@@ -11,7 +11,6 @@
  */
 
 const KEY = 'hu360-chassis-offline';
-const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type EmpresaChassis = {
   empresaId: string;

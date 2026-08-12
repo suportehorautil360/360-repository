@@ -57,13 +57,13 @@ describe("montarOperadorAssinatura", () => {
       { modoLogin: "cpf-senha", nome: "Maria", idCliente: "e", empresa: "E", funcionarioId: "f1", nomeInformado: "Prefiro Ana" },
       ""
     );
-    expect((out as any).nome).toBe("Prefiro Ana");
+    expect(out).toHaveProperty("nome", "Prefiro Ana");
   });
 
   it("nomeInformado prevalece sobre nome quando sem nomeDigitado", () => {
     const out = montarOperadorAssinatura(
       { modoLogin: "cpf-senha", nome: "Maria", idCliente: "e", empresa: "E", funcionarioId: "f1", nomeInformado: "Meu Apelido" }
     );
-    expect((out as any).nome).toBe("Meu Apelido");
+    expect(out).toHaveProperty("nome", "Meu Apelido");
   });
 });

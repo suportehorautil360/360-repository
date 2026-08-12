@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { provisionarChassisEmpresa, resolverChassiOffline, removerChassisEmpresa, limparExpirados } from './chassis-offline';
 
-const KEY = 'hu360-chassis-offline';
-
 beforeEach(() => { localStorage.clear(); });
 
 describe('chassis-offline', () => {
