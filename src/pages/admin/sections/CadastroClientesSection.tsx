@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   clientesApi,
   type ClienteApi,
@@ -142,8 +142,10 @@ const REQ = <span style={{ color: "#f87171" }}>*</span>;
 
 export function CadastroClientesSection() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { clienteId } = useParams<{ clienteId?: string }>();
   const ehEdicao = !!clienteId;
+  const defaultTab = (location.state as { aba?: string } | null)?.aba ?? 'dados';
   const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const [avancado, setAvancado] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -293,7 +295,7 @@ export function CadastroClientesSection() {
       </p>
 
       <article className="card">
-        <Tabs defaultValue="dados" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList>
             <TabsTrigger value="dados">Dados &amp; Contrato</TabsTrigger>
             <TabsTrigger value="acessos" disabled={!clienteId}>
