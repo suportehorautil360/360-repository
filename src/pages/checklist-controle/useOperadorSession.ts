@@ -61,12 +61,11 @@ function read(): OperadorSession | null {
         Date.now() < Date.parse(parsed.expiraEm) &&
         isValidSession(parsed.session)
       ) {
-        const session = parsed.session;
         // Retrocompat: sessões legadas (sem modoLogin) → default 'cpf-senha'
-        if (!session.modoLogin) {
-          session.modoLogin = "cpf-senha";
-        }
-        return session;
+        return {
+          ...parsed.session,
+          modoLogin: parsed.session.modoLogin ?? "cpf-senha",
+        };
       }
       limpar();
       return null;
@@ -76,11 +75,11 @@ function read(): OperadorSession | null {
     if (legado) {
       const parsed: unknown = JSON.parse(legado);
       if (isValidSession(parsed)) {
-        const session = parsed as OperadorSession;
         // Retrocompat: sessões legadas → default 'cpf-senha'
-        if (!session.modoLogin) {
-          session.modoLogin = "cpf-senha";
-        }
+        const session: OperadorSession = {
+          ...(parsed as OperadorSession),
+          modoLogin: (parsed as OperadorSession).modoLogin ?? "cpf-senha",
+        };
         write(session);
         return session;
       }
