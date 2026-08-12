@@ -219,7 +219,6 @@ export function ChecklistLoginPage() {
         setErroChassi(
           MOTIVO_CHASSI[r.motivo] ?? "Não foi possível validar o chassi.",
         );
-        setLoadingChassi(false);
         return;
       }
       setResolvido({
@@ -327,7 +326,7 @@ export function ChecklistLoginPage() {
                         </label>
                         <Input
                           id="checklist-chassi"
-                          placeholder="Ex.: 9BWZZZ377VT004251"
+                          placeholder="9BWZZZ377VT004251"
                           autoComplete="off"
                           autoCapitalize="characters"
                           value={chassi.toUpperCase()}
