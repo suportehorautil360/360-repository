@@ -85,19 +85,38 @@ describe("autenticarPorChassi", () => {
   });
 
   it("online → 200 → ok com dados", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        empresaId: "e1",
-        empresaNome: "E1",
-        idMaquina: "m1",
-        chassi: "ABC",
-      }),
-    } as Response);
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          empresaId: "e1",
+          empresaNome: "E1",
+          idMaquina: "m1",
+          chassi: "ABC",
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          chassis: ["ABC"],
+          expiraEm: new Date(Date.now() + 3600_000).toISOString(),
+        }),
+      } as Response);
     const r = await funcionariosApi.autenticarPorChassi("abc");
     if (!r.ok) throw new Error("esperava ok");
     expect(r.empresaId).toBe("e1");
+    // Verifica que o cache foi populado corretamente
+    const cacheRaw = localStorage.getItem("hu360-chassis-offline");
+    if (!cacheRaw) throw new Error("cache não foi provisionado");
+    const cacheArray = JSON.parse(cacheRaw);
+    expect(Array.isArray(cacheArray)).toBe(true);
+    const empresa = cacheArray.find((e: { empresaId: string }) => e.empresaId === "e1");
+    expect(empresa).toBeDefined();
+    if (empresa) {
+      expect(empresa.chassis).toContain("ABC");
+    }
   });
 
   it("online → 404 → nao-encontrado", async () => {
