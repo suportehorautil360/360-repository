@@ -1,10 +1,13 @@
 /**
- * Plano preventivo (matriz ciclos × linhas) — /planos-preventivos (back-360).
+ * Plano preventivo — categorias com matriz própria — /planos-preventivos
  */
-import type { MatrizPreventiva } from "../../pages/prefeitura/sections/plano-preventivo-model";
+import {
+  normalizarPlano,
+  type PlanoPreventivo,
+} from "../../pages/prefeitura/sections/plano-preventivo-model";
 import { ApiError, api } from "./client";
 
-export interface PlanoPreventivoApi extends MatrizPreventiva {
+export interface PlanoPreventivoApi extends PlanoPreventivo {
   prefeituraId: string;
   atualizadoEm?: string;
 }
@@ -14,18 +17,18 @@ interface RespPlano {
   message: string;
 }
 
-function toMatriz(data: PlanoPreventivoApi): MatrizPreventiva {
-  return { ciclos: data.ciclos, linhas: data.linhas };
+function toPlano(data: PlanoPreventivoApi): PlanoPreventivo {
+  return normalizarPlano(data);
 }
 
 export const planosPreventivosApi = {
-  /** Carrega matriz salva. null se 404 (usar seed local). */
-  async obter(prefeituraId: string): Promise<MatrizPreventiva | null> {
+  /** Carrega plano. null se 404 (usar seed local). */
+  async obter(prefeituraId: string): Promise<PlanoPreventivo | null> {
     try {
       const r = await api.get<RespPlano>(
         `/planos-preventivos/${encodeURIComponent(prefeituraId)}`,
       );
-      return toMatriz(r.data);
+      return toPlano(r.data);
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) return null;
       throw e;
@@ -34,19 +37,20 @@ export const planosPreventivosApi = {
 
   async salvar(
     prefeituraId: string,
-    matriz: MatrizPreventiva,
-  ): Promise<MatrizPreventiva> {
+    plano: PlanoPreventivo,
+  ): Promise<PlanoPreventivo> {
+    const payload = normalizarPlano(plano);
     const r = await api.put<RespPlano>(
       `/planos-preventivos/${encodeURIComponent(prefeituraId)}`,
-      { ciclos: matriz.ciclos, linhas: matriz.linhas },
+      { categorias: payload.categorias },
     );
-    return toMatriz(r.data);
+    return toPlano(r.data);
   },
 
-  async restaurarPadrao(prefeituraId: string): Promise<MatrizPreventiva> {
+  async restaurarPadrao(prefeituraId: string): Promise<PlanoPreventivo> {
     const r = await api.post<RespPlano>(
       `/planos-preventivos/${encodeURIComponent(prefeituraId)}/restaurar-padrao`,
     );
-    return toMatriz(r.data);
+    return toPlano(r.data);
   },
 };
