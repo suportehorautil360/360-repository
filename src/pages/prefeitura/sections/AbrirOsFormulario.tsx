@@ -25,10 +25,10 @@ import {
 
 import { planosPreventivosApi } from "../../../lib/api/planos-preventivos";
 import {
-  clonarMatrizPadrao,
+  clonarPlanoPadrao,
   labelCiclo,
   montarRelatoPreventivo,
-  type MatrizPreventiva,
+  type PlanoPreventivo,
 } from "./plano-preventivo-model";
 
 const TIPOS_OS = [
@@ -79,8 +79,9 @@ export function AbrirOsFormulario({
   const [dataAgendamento, setDataAgendamento] = useState(hojeISO);
   const [tipoOs, setTipoOs] = useState("C");
   const [cicloId, setCicloId] = useState("");
-  const [matrizPreventiva, setMatrizPreventiva] = useState<MatrizPreventiva>(
-    clonarMatrizPadrao,
+  const [categoriaPlanoId, setCategoriaPlanoId] = useState("");
+  const [planoPreventivo, setPlanoPreventivo] = useState<PlanoPreventivo>(
+    clonarPlanoPadrao,
   );
   const [carregandoCiclos, setCarregandoCiclos] = useState(false);
   const [equipamentoId, setEquipamentoId] = useState("");
@@ -120,7 +121,9 @@ export function AbrirOsFormulario({
 
   useEffect(() => {
     if (!prefeituraId) {
-      setMatrizPreventiva(clonarMatrizPadrao());
+      const p = clonarPlanoPadrao();
+      setPlanoPreventivo(p);
+      setCategoriaPlanoId(p.categorias[0]?.id ?? "");
       return;
     }
 
@@ -131,11 +134,15 @@ export function AbrirOsFormulario({
       .obter(prefeituraId)
       .then((salva) => {
         if (!vivo) return;
-        setMatrizPreventiva(salva ?? clonarMatrizPadrao());
+        const p = salva ?? clonarPlanoPadrao();
+        setPlanoPreventivo(p);
+        setCategoriaPlanoId(p.categorias[0]?.id ?? "");
       })
       .catch(() => {
         if (!vivo) return;
-        setMatrizPreventiva(clonarMatrizPadrao());
+        const p = clonarPlanoPadrao();
+        setPlanoPreventivo(p);
+        setCategoriaPlanoId(p.categorias[0]?.id ?? "");
       })
       .finally(() => {
         if (vivo) setCarregandoCiclos(false);
@@ -146,10 +153,16 @@ export function AbrirOsFormulario({
     };
   }, [prefeituraId]);
 
+  const categoriaPlanoAtiva = useMemo(
+    () =>
+      planoPreventivo.categorias.find((c) => c.id === categoriaPlanoId) ?? null,
+    [planoPreventivo.categorias, categoriaPlanoId],
+  );
+
   useEffect(() => {
-    if (tipoOs !== "V" || !cicloId) return;
-    setRelato(montarRelatoPreventivo(matrizPreventiva, cicloId));
-  }, [matrizPreventiva, tipoOs, cicloId]);
+    if (tipoOs !== "V" || !cicloId || !categoriaPlanoAtiva) return;
+    setRelato(montarRelatoPreventivo(categoriaPlanoAtiva, cicloId));
+  }, [categoriaPlanoAtiva, tipoOs, cicloId]);
 
   useEffect(() => {
     if (!prefeituraId) return;
@@ -207,9 +220,19 @@ export function AbrirOsFormulario({
     }
   }
 
+  function handleCategoriaPlanoChange(id: string) {
+    setCategoriaPlanoId(id);
+    setCicloId("");
+    setRelato("");
+  }
+
   function handleCicloChange(id: string) {
     setCicloId(id);
-    setRelato(id ? montarRelatoPreventivo(matrizPreventiva, id) : "");
+    if (id && categoriaPlanoAtiva) {
+      setRelato(montarRelatoPreventivo(categoriaPlanoAtiva, id));
+    } else {
+      setRelato("");
+    }
   }
 
   async function handleSalvar() {
@@ -225,6 +248,10 @@ export function AbrirOsFormulario({
     }
     if (!relato.trim()) {
       setErroSalvar("Informe o relato do problema.");
+      return;
+    }
+    if (isPreventiva && !categoriaPlanoId) {
+      setErroSalvar("Selecione a categoria do plano preventivo.");
       return;
     }
     if (isPreventiva && !cicloId) {
@@ -347,26 +374,54 @@ export function AbrirOsFormulario({
               </select>
             </div>
             {isPreventiva ? (
-              <div className="aos-field aos-field--md aos-field--ciclo-preventiva">
-                <label>
-                  Ciclo da preventiva (do plano de manutenção)
-                  <Req />
-                </label>
-                <select
-                  value={cicloId}
-                  onChange={(e) => handleCicloChange(e.target.value)}
-                  disabled={carregandoCiclos}
-                >
-                  <option value="">
-                    {carregandoCiclos ? "Carregando…" : "Selecione o ciclo…"}
-                  </option>
-                  {matrizPreventiva.ciclos.map((c, idx) => (
-                    <option key={c.id} value={c.id}>
-                      {labelCiclo(c, idx)}
+              <>
+                <div className="aos-field aos-field--md aos-field--ciclo-preventiva">
+                  <label>
+                    Categoria do plano
+                    <Req />
+                  </label>
+                  <select
+                    value={categoriaPlanoId}
+                    onChange={(e) => handleCategoriaPlanoChange(e.target.value)}
+                    disabled={carregandoCiclos}
+                  >
+                    <option value="">
+                      {carregandoCiclos
+                        ? "Carregando…"
+                        : "Selecione a categoria…"}
                     </option>
-                  ))}
-                </select>
-              </div>
+                    {planoPreventivo.categorias.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="aos-field aos-field--md aos-field--ciclo-preventiva">
+                  <label>
+                    Ciclo da preventiva
+                    <Req />
+                  </label>
+                  <select
+                    value={cicloId}
+                    onChange={(e) => handleCicloChange(e.target.value)}
+                    disabled={carregandoCiclos || !categoriaPlanoAtiva}
+                  >
+                    <option value="">
+                      {!categoriaPlanoAtiva
+                        ? "Escolha a categoria primeiro…"
+                        : carregandoCiclos
+                          ? "Carregando…"
+                          : "Selecione o ciclo…"}
+                    </option>
+                    {(categoriaPlanoAtiva?.ciclos ?? []).map((c, idx) => (
+                      <option key={c.id} value={c.id}>
+                        {labelCiclo(c, idx)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             ) : null}
             <div className="aos-field aos-field--md">
               <label>
