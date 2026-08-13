@@ -17,6 +17,7 @@ const SESSAO: OperadorSession = {
   funcionarioId: "f1",
   cpf: "39053344705",
   tipo: "operador",
+  modoLogin: "cpf-senha",
 };
 
 beforeEach(() => {
@@ -84,5 +85,43 @@ describe("useOperadorSession", () => {
     localStorage.setItem(KEY, "{lixo");
     const { result } = renderHook(() => useOperadorSession());
     expect(result.current.session).toBeNull();
+  });
+
+  it("sessão legada (sem modoLogin) → default cpf-senha na leitura", () => {
+    // Simula uma sessão antiga sem o campo modoLogin
+    const sessaoLegada = {
+      nome: "X",
+      idCliente: "e1",
+      empresa: "E",
+      funcionarioId: "f1",
+    };
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        expiraEm: new Date(Date.now() + 1000).toISOString(),
+        session: sessaoLegada,
+      })
+    );
+    const { result } = renderHook(() => useOperadorSession());
+    expect(result.current.session?.modoLogin).toBe("cpf-senha");
+  });
+
+  it("grava modoLogin=chassi + nomeInformado", () => {
+    const { result } = renderHook(() => useOperadorSession());
+    const sessaoChassiBuscada: OperadorSession = {
+      nome: "Anon",
+      idCliente: "e1",
+      empresa: "E",
+      idMaquina: "m1",
+      chassis: "ABC",
+      modoLogin: "chassi",
+      nomeInformado: "João",
+    };
+    act(() => {
+      result.current.setSession(sessaoChassiBuscada);
+    });
+    const stored = JSON.parse(localStorage.getItem(KEY)!);
+    expect(stored.session.modoLogin).toBe("chassi");
+    expect(stored.session.nomeInformado).toBe("João");
   });
 });

@@ -9,6 +9,7 @@ function sess(p: Partial<OperadorSession>): OperadorSession {
     empresa: "",
     funcionarioId: "func-edmar",
     tipo: "operador",
+    modoLogin: "cpf-senha",
     ...p,
   };
 }
