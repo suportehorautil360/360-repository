@@ -3,6 +3,7 @@ import { clearAdminSession } from "../../admin/adminSession";
 import { useLogin } from "../login/hooks/use-login";
 import { Sidebar } from "../../components/Sidebar/Sidebar";
 import { ADMIN_BRAND, ADMIN_NAV } from "./adminNav";
+import "./admin.css";
 
 export function AdminLayout() {
   const { logout } = useLogin();
