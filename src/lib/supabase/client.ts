@@ -31,15 +31,18 @@ let _client: SupabaseClient | null = null;
  */
 export function getSupabase(): SupabaseClient {
   if (_client) return _client;
+  // Nada de headers globais custom aqui: a Edge Function `login-operador` só
+  // permite `authorization, x-client-info, apikey, content-type` no CORS
+  // Access-Control-Allow-Headers. Um `x-client` custom sobrevive ao request
+  // direto (curl), mas o browser bloqueia no preflight — motivo do CORS error
+  // reportado em prod. `x-client-info` que o supabase-js já envia serve pra
+  // telemetria.
   _client = createClient(SUPABASE_URL ?? "", SUPABASE_ANON_KEY ?? "", {
     auth: {
       storageKey: "hu360-supabase-auth",
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: false,
-    },
-    global: {
-      headers: { "x-client": "pwa-checklist" },
     },
   });
   return _client;
