@@ -3,6 +3,9 @@
  * consumida pelo operador (checklist) e pelo RH (portal da prefeitura).
  */
 import { api } from "./client";
+import { getCurrentCompanyId } from "../supabase/session";
+import { listarPontosSupabase } from "../supabase/pwa-reads";
+import { baterPontoSupabase } from "../supabase/pwa-writes";
 
 export type TipoPonto = "entrada" | "almoco" | "volta" | "saida";
 
@@ -95,6 +98,12 @@ export const pontosApi = {
     input: BaterPontoInput,
     idempotencyKey?: string,
   ): Promise<PontoRegistro> {
+    if (await getCurrentCompanyId()) {
+      // A RPC exige uma chave de idempotência do lado servidor. Se o caller
+      // não passou (raro), geramos aqui — sem essa chave o reenvio duplica.
+      const key = idempotencyKey ?? crypto.randomUUID();
+      return baterPontoSupabase(input, key);
+    }
     const r = await api.post<RespostaCriar>(
       "/time-records",
       input,
@@ -106,6 +115,7 @@ export const pontosApi = {
   },
 
   async listar(prefeituraId: string): Promise<PontoRegistro[]> {
+    if (await getCurrentCompanyId()) return listarPontosSupabase(prefeituraId);
     const r = await api.get<RespostaLista>(`/time-records/${prefeituraId}`);
     return r.data;
   },

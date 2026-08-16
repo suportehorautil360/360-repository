@@ -12,6 +12,8 @@
  * a coleção `equipamentos` direto, sem filtro garantido).
  */
 import { equipamentosApi } from "../prefeitura/sections/equipamentos/equipamentos-api";
+import { getCurrentCompanyId } from "../../lib/supabase/session";
+import { listarFrotaSupabase } from "../../lib/supabase/pwa-reads";
 
 export type EquipFrota = {
   id: string;
@@ -56,6 +58,11 @@ export async function carregarFrotaOperador(
 ): Promise<EquipFrota[]> {
   if (!prefeituraId) return [];
   try {
+    if (await getCurrentCompanyId()) {
+      const frota = await listarFrotaSupabase(prefeituraId);
+      salvarCache(prefeituraId, frota);
+      return frota;
+    }
     const rows = await equipamentosApi.listar(prefeituraId);
     const frota: EquipFrota[] = rows.map((r) => ({
       id: r.id,

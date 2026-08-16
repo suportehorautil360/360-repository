@@ -1,5 +1,9 @@
-/** API da escala (jornada) por prefeitura — módulo `escala` do back-360-. */
+/** API da escala (jornada). Detecta sessão Supabase automaticamente:
+ *  - PWA operador (com JWT) → Supabase direto (RLS filtra empresa)
+ *  - Portal admin/RH (sem sessão Supabase) → NestJS legado */
 import { api } from "./client";
+import { getCurrentCompanyId } from "../supabase/session";
+import { obterEscalaSupabase } from "../supabase/pwa-reads";
 
 export interface Escala {
   prefeituraId: string;
@@ -15,6 +19,7 @@ export interface Escala {
 
 export const escalaApi = {
   async obter(prefeituraId: string): Promise<Escala | null> {
+    if (await getCurrentCompanyId()) return obterEscalaSupabase(prefeituraId);
     const r = await api.get<{ data: Escala | null }>(`/escala/${prefeituraId}`);
     return r.data;
   },

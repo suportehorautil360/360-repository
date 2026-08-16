@@ -1,9 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getDoc, doc as firestoreDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase/firebase";
 import { funcionariosApi } from "../../lib/funcionarios/funcionarios";
 import { formatarCpf, limparCpf } from "../../lib/funcionarios/cpf";
+import { autenticarViaSupabase } from "../../lib/supabase/checklist-login-adapter";
 import type { OperadorSession } from "./useOperadorSession";
 import { useOperadorSession } from "./useOperadorSession";
 import {
@@ -113,7 +112,7 @@ export function ChecklistLoginPage() {
     }
 
     try {
-      const r = await funcionariosApi.autenticar(ident, senha);
+      const r = await autenticarViaSupabase(ident, senha);
       if (!r.ok) {
         // Offline, a consulta pode resolver "vazia" pelo cache do Firestore
         // — antes de negar, tenta a credencial offline. Se também não der,
@@ -138,19 +137,11 @@ export function ChecklistLoginPage() {
 
       const f = r.funcionario;
 
-      // Nome legível da prefeitura (fallback no próprio id).
-      let empresaNome = f.prefeituraId || "Prefeitura";
-      if (f.prefeituraId) {
-        try {
-          const cli = await getDoc(
-            firestoreDoc(db, "clientes", f.prefeituraId),
-          );
-          const nome = cli.exists() ? String(cli.data().nome ?? "").trim() : "";
-          if (nome) empresaNome = nome;
-        } catch {
-          /* usa fallback */
-        }
-      }
+      // Nome legível da prefeitura vem no mesmo round-trip do login-operador.
+      const empresaNome =
+        (r as { companyName?: string | null }).companyName ??
+        f.prefeituraId ??
+        "Prefeitura";
 
       // Guarda a credencial para os próximos logins sem rede (best-effort).
       try {

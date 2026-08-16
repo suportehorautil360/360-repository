@@ -3,6 +3,9 @@
  * back-360-). Um único recurso atende incluir / cancelar / abono / mensagem.
  */
 import { api } from "./client";
+import { getCurrentCompanyId } from "../supabase/session";
+import { listarSolicitacoesSupabase } from "../supabase/pwa-reads";
+import { criarSolicitacaoSupabase } from "../supabase/pwa-writes";
 
 export const TIPOS_SOLICITACAO = [
   "incluir",
@@ -60,11 +63,13 @@ interface RespAvaliar {
 
 export const solicitacoesPontoApi = {
   async criar(input: CriarSolicitacaoInput): Promise<SolicitacaoPonto> {
+    if (await getCurrentCompanyId()) return criarSolicitacaoSupabase(input);
     const r = await api.post<RespCriar>("/solicitacoes-ponto", input);
     return r.data;
   },
 
   async listar(prefeituraId: string): Promise<SolicitacaoPonto[]> {
+    if (await getCurrentCompanyId()) return listarSolicitacoesSupabase(prefeituraId);
     const r = await api.get<RespLista>(`/solicitacoes-ponto/${prefeituraId}`);
     return r.data;
   },

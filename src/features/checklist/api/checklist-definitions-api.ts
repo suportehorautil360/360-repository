@@ -1,4 +1,6 @@
 import { api } from "../../../lib/api/client";
+import { getCurrentCompanyId } from "../../../lib/supabase/session";
+import { listarDefinicoesSupabase } from "../../../lib/supabase/pwa-reads";
 
 export type ChecklistItemSeveridade = "impeditivo" | "normal";
 
@@ -43,6 +45,11 @@ interface RespOne {
  */
 export const checklistDefinitionsApi = {
   async listar(somenteAtivas = false): Promise<ChecklistDefinition[]> {
+    // Supabase path serve `somenteAtivas=true` (consumo do PWA) quando há
+    // sessão. O portal do RH (sem sessão) continua no NestJS pra edição.
+    if (somenteAtivas && (await getCurrentCompanyId())) {
+      return listarDefinicoesSupabase();
+    }
     const qs = somenteAtivas ? "?ativo=true" : "";
     const r = await api.get<RespList>(`/checklist-definitions${qs}`);
     return r.data;
