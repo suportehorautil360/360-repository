@@ -18,6 +18,15 @@ const MOTIVO_MSG: Record<string, string> = {
   "sem-senha": "Funcionário sem senha cadastrada. Procure o gestor.",
   "senha-invalida": "Identificador ou senha incorretos.",
   inativo: "Acesso inativo. Procure o gestor da prefeitura.",
+  "multi-empresa": "Cadastro em mais de uma empresa. Escolha abaixo.",
+};
+
+type OpcaoEmpresa = {
+  companyId: string;
+  companyLegacyId: string | null;
+  companyName: string | null;
+  operatorId: string;
+  nome: string;
 };
 
 const MOTIVO_CHASSI: Record<string, string> = {
@@ -50,6 +59,11 @@ export function ChecklistLoginPage() {
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
+  // Quando o mesmo CPF/login existe em mais de uma empresa, guardamos as
+  // opções aqui pra renderizar um mini-dialog de escolha (fluxo v4 da Edge).
+  const [opcoesEmpresa, setOpcoesEmpresa] = useState<OpcaoEmpresa[] | null>(
+    null,
+  );
 
   const ehCpf = limparCpf(identificador).length === 11;
   const valorExibido = ehCpf ? formatarCpf(identificador) : identificador;
@@ -75,7 +89,19 @@ export function ChecklistLoginPage() {
       setErro("Informe a senha.");
       return;
     }
+    await tentarLogin(ident, senha, undefined);
+  }
 
+  async function escolherEmpresa(opcao: OpcaoEmpresa) {
+    setOpcoesEmpresa(null);
+    await tentarLogin(identificador.trim(), senha, opcao.companyId);
+  }
+
+  async function tentarLogin(
+    ident: string,
+    senhaAtual: string,
+    companyId: string | undefined,
+  ) {
     setErro("");
     setLoading(true);
 
@@ -105,15 +131,21 @@ export function ChecklistLoginPage() {
     // Sem rede, a credencial guardada no aparelho (último login online,
     // válida por 7 dias) permite entrar offline.
     async function tentarOffline(): Promise<boolean> {
-      const off = await autenticarOffline(ident, senha).catch(() => null);
+      const off = await autenticarOffline(ident, senhaAtual).catch(() => null);
       if (!off) return false;
       entrar(off.funcionario, off.empresa);
       return true;
     }
 
     try {
-      const r = await autenticarViaSupabase(ident, senha);
+      const r = await autenticarViaSupabase(ident, senhaAtual, companyId);
       if (!r.ok) {
+        // Multi-empresa: mostra seletor sem gastar tentativa de erro.
+        if (r.motivo === "multi-empresa" && r.opcoes) {
+          setOpcoesEmpresa(r.opcoes as OpcaoEmpresa[]);
+          setLoading(false);
+          return;
+        }
         // Offline, a consulta pode resolver "vazia" pelo cache do Firestore
         // — antes de negar, tenta a credencial offline. Se também não der,
         // a mensagem explica a regra do offline (dizer "não encontrado"
@@ -145,7 +177,7 @@ export function ChecklistLoginPage() {
 
       // Guarda a credencial para os próximos logins sem rede (best-effort).
       try {
-        await salvarCredencialOffline({ funcionario: f, empresa: empresaNome, senha });
+        await salvarCredencialOffline({ funcionario: f, empresa: empresaNome, senha: senhaAtual });
       } catch {
         /* sem espaço — login offline fica indisponível, login normal segue */
       }
@@ -341,6 +373,102 @@ export function ChecklistLoginPage() {
           onConfirmar={onConfirmarNome}
           onCancelar={() => setModalNomeAberto(false)}
         />
+
+        {opcoesEmpresa ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="escolher-empresa-title"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: 16,
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setOpcoesEmpresa(null);
+            }}
+          >
+            <div
+              style={{
+                background: "var(--surface, #1a1b26)",
+                borderRadius: 12,
+                padding: 24,
+                maxWidth: 420,
+                width: "100%",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
+            >
+              <h2
+                id="escolher-empresa-title"
+                style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}
+              >
+                Escolha a empresa
+              </h2>
+              <p
+                style={{
+                  margin: "6px 0 16px",
+                  fontSize: "0.85rem",
+                  opacity: 0.75,
+                }}
+              >
+                Seu CPF ou login está cadastrado em mais de uma empresa.
+                Selecione qual você quer acessar agora.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {opcoesEmpresa.map((op) => (
+                  <button
+                    key={op.companyId}
+                    type="button"
+                    onClick={() => escolherEmpresa(op)}
+                    disabled={loading}
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.04)",
+                      color: "inherit",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      textAlign: "left",
+                      fontSize: "0.95rem",
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>
+                      {op.companyName ?? "Empresa"}
+                    </div>
+                    <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>
+                      Perfil: {op.nome}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpcoesEmpresa(null)}
+                disabled={loading}
+                style={{
+                  marginTop: 16,
+                  padding: "10px 14px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "transparent",
+                  color: "inherit",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  opacity: 0.7,
+                  width: "100%",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
