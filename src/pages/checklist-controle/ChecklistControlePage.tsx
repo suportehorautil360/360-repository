@@ -8,16 +8,7 @@ import {
   useState,
 } from "react";
 import { Link } from "react-router-dom";
-import {
-  addDoc,
-  collection,
-  getDocs,
-  query,
-  serverTimestamp,
-  where,
-} from "firebase/firestore";
 import { ListaChecklistHistoricoLocal } from "../../components/checklistHistorico/ChecklistHistoricoLista";
-import { db } from "../../lib/firebase/firebase";
 import seedData from "../../data/hu360OperadorSeed.json";
 import "./checklist-controle.css";
 import { type OperadorSession, useOperadorSession } from "./useOperadorSession";
@@ -49,6 +40,14 @@ import {
 } from "@/components/ui/dialog";
 import { PontosFolha } from "./PontosFolha";
 import { uploadChecklistFotos } from "../../features/checklist/api/uploads-api";
+import {
+  listarChecklistsSupabase,
+  listarEmergenciasSupabase,
+} from "../../lib/supabase/pwa-reads";
+import {
+  salvarChecklistSupabase,
+  salvarEmergenciaSupabase,
+} from "../../lib/supabase/pwa-writes";
 import { enviarWorkflowComFila } from "../../features/checklist/api/workflow-fila";
 import { enviarMedicaoComFila } from "../../features/checklist/api/medicao-fila";
 import { useWorkflowSync } from "./useWorkflowSync";
@@ -345,43 +344,6 @@ function parseRespostasChecklist(row: Record<string, unknown>): {
     }
   }
   return { total: 0, sim: 0 };
-}
-
-/** Mapeia um documento do Firestore (checklistsRegistros) para o formato legado usado pelo componente de lista. */
-function firestoreDocToHistRow(
-  docId: string,
-  data: Record<string, unknown>,
-): Record<string, unknown> {
-  const respostasJson =
-    data.respostas &&
-    typeof data.respostas === "object" &&
-    !Array.isArray(data.respostas)
-      ? JSON.stringify(data.respostas)
-      : typeof data.respostas === "string"
-        ? data.respostas
-        : "{}";
-  return {
-    ID_Registro: data.id ?? docId,
-    Data_Hora: data.dataHoraIso ?? "",
-    Operador: data.operador ?? "",
-    Chassis: data.chassis ?? "",
-    Categoria: data.categoria ?? "",
-    Modelo: data.modelo ?? "",
-    Linha: data.linha ?? "",
-    Item_Verificado: `Checklist ${data.totalItens ?? "?"} itens`,
-    Status_Ok_Nao:
-      typeof data.totalNa === "number" && data.totalNa > 0
-        ? `${data.totalSim ?? 0}/${data.totalAplicaveis ?? data.totalItens ?? 0} OK · ${data.totalNa} N/A`
-        : `${data.totalSim ?? 0}/${data.totalAplicaveis ?? data.totalItens ?? 0} OK`,
-    Respostas_JSON: respostasJson,
-    Horimetro_Final: data.horimetro ?? "",
-    Assinatura_Operador: data.assinaturaOperador ?? "",
-    Pontuacao: data.pontuacao ?? 0,
-    ID_Cliente: data.idOperadorSession ?? "",
-    prefeituraId: data.prefeituraId ?? "",
-    Localizacao_GPS: data.localizacaoGps ?? null,
-    Obs: data.obs ?? null,
-  };
 }
 
 function Hu360NavIcon({
@@ -1085,29 +1047,20 @@ export function ChecklistControlePage() {
     }
     setCarregandoChecklistsHoje(true);
     const today = startOfLocalDayIso(new Date());
-    getDocs(
-      query(
-        collection(db, "checklistsRegistros"),
-        where("idOperadorSession", "==", session.idCliente),
-      ),
-    )
-      .then((snap) => {
-        const rows = snap.docs
-          .filter((d) =>
-            registroDoOperador(d.data() as Record<string, unknown>, session),
-          )
-          .map((d) =>
-            firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-          )
-          .filter((r) => isSameLocalDay(String(r.Data_Hora ?? ""), today));
-        rows.sort((a, b) =>
+    listarChecklistsSupabase()
+      .then((rows) => rows.filter((r) => registroDoOperador(r, session)))
+      .then((rows) => {
+        const doDia = rows.filter((r) =>
+          isSameLocalDay(String(r.Data_Hora ?? ""), today),
+        );
+        doDia.sort((a, b) =>
           String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
         );
-        setChecklistsFirestoreHoje(rows);
+        setChecklistsFirestoreHoje(doDia);
       })
       .catch((err) => {
         console.error(
-          "[Checklist] Erro ao carregar checklists do Firestore:",
+          "[Checklist] Erro ao carregar checklists do banco:",
           err,
         );
       })
@@ -1117,20 +1070,9 @@ export function ChecklistControlePage() {
   useEffect(() => {
     if (aba !== "auditoria" || !session) return;
     setCarregandoAuditoria(true);
-    getDocs(
-      query(
-        collection(db, "checklistsRegistros"),
-        where("idOperadorSession", "==", session.idCliente),
-      ),
-    )
-      .then((snap) => {
-        const rows = snap.docs
-          .filter((d) =>
-            registroDoOperador(d.data() as Record<string, unknown>, session),
-          )
-          .map((d) =>
-            firestoreDocToHistRow(d.id, d.data() as Record<string, unknown>),
-          );
+    listarChecklistsSupabase()
+      .then((rows) => rows.filter((r) => registroDoOperador(r, session)))
+      .then((rows) => {
         rows.sort((a, b) =>
           String(b.Data_Hora ?? "").localeCompare(String(a.Data_Hora ?? "")),
         );
@@ -1145,21 +1087,9 @@ export function ChecklistControlePage() {
   useEffect(() => {
     if (aba !== "emergencia" || !session) return;
     setCarregandoEmerg(true);
-    getDocs(
-      query(
-        collection(db, "emergenciasRegistros"),
-        where("idOperadorSession", "==", session.idCliente),
-      ),
-    )
-      .then((snap) => {
-        const rows: Record<string, unknown>[] = snap.docs
-          .filter((d) =>
-            registroDoOperador(d.data() as Record<string, unknown>, session),
-          )
-          .map((d) => ({
-            ...(d.data() as Record<string, unknown>),
-            _docId: d.id,
-          }));
+    listarEmergenciasSupabase()
+      .then((rows) => rows.filter((r) => registroDoOperador(r, session)))
+      .then((rows) => {
         rows.sort((a, b) =>
           String(b["dataHoraIso"] ?? "").localeCompare(
             String(a["dataHoraIso"] ?? ""),
@@ -1754,7 +1684,6 @@ export function ChecklistControlePage() {
         pontuacao: pontos,
         respostas: answersDoc,
         obs: obsChecklist || null,
-        criadoEm: serverTimestamp(),
         dataHoraIso: dataHora,
       });
       // Online, tira as fotos do doc subindo para o Supabase Storage via
@@ -1836,7 +1765,7 @@ export function ChecklistControlePage() {
       // sincronização"). A escrita confirmada remove a pendência — mesmo que
       // demore horas com o app aberto.
       marcarPendente(id, "checklist");
-      const escrita = addDoc(collection(db, "checklistsRegistros"), payload);
+      const escrita = salvarChecklistSupabase(payload);
       escrita.then(
         () => removerPendente(id),
         (e) =>
@@ -1905,19 +1834,22 @@ export function ChecklistControlePage() {
           // local do Firestore e sincroniza sozinha.
           const emergId = crypto.randomUUID();
           marcarPendente(emergId, "emergencia");
-          const escritaEmerg = addDoc(collection(db, "emergenciasRegistros"), {
+          const escritaEmerg = salvarEmergenciaSupabase({
             id: emergId,
-            ...emergPayload,
-            idOperadorSession: session.idCliente,
-            funcionarioId: session.funcionarioId ?? "",
-            funcionarioCpf: session.cpf ?? "",
+            source: "checklist_auto",
+            severity: "blocking",
+            chassis: emergPayload.chassis,
+            equipamentoLegacyId: equipamentoAtual.id,
             idMaquina: equipamentoAtual.id,
             modelo: equipamentoAtual.label,
-            operador: emergPayload.operadorNome,
-            operadorAssinatura: montarOperadorAssinatura(session, emergPayload.operadorNome),
-            statusAtendimento: "ABERTO",
-            qtdFotos: fotosImped.length,
-            criadoEm: serverTimestamp(),
+            operadorNome: emergPayload.operadorNome,
+            operadorLegacyId: session.funcionarioId ?? undefined,
+            operadorCpf: session.cpf ?? undefined,
+            tipoFalha: emergPayload.tipoFalha,
+            descricao: emergPayload.descricao,
+            localizacaoGps: emergPayload.localizacaoGps,
+            fotos: fotosImped,
+            checklistLegacyId: id,
             dataHoraIso: dataHora,
           });
           escritaEmerg.then(
@@ -2133,40 +2065,34 @@ export function ChecklistControlePage() {
         fotos,
       };
       try {
-        await emergenciasApi.criar(payload);
-        setEmergMsg("✅ Emergência registrada e enviada ao servidor.");
-      } catch {
-        // Backend indisponível/offline → grava no Firestore (fila offline do
-        // SDK). Offline a escrita só confirma com o servidor, então NÃO a
-        // aguardamos até o ack (senão "Salvando..." trava); marcamos pendente
-        // e a confirmação remove o badge.
         marcarPendente(id, "emergencia");
-        const escrita = addDoc(collection(db, "emergenciasRegistros"), {
+        await salvarEmergenciaSupabase({
           id,
-          ...payload,
-          idOperadorSession: session.idCliente,
-          funcionarioId: session.funcionarioId ?? "",
-          funcionarioCpf: session.cpf ?? "",
+          source: "manual",
+          severity: "critical",
+          chassis: payload.chassis,
+          equipamentoLegacyId: mid,
           idMaquina: mid,
           modelo: maquinaDaSessao
             ? `${String(maquinaDaSessao.Marca ?? "")} ${String(maquinaDaSessao.Modelo ?? "")}`.trim()
             : "",
-          operador: payload.operadorNome,
-          operadorAssinatura: montarOperadorAssinatura(session, payload.operadorNome),
-          statusAtendimento: "ABERTO",
-          qtdFotos: fotos.length,
-          criadoEm: serverTimestamp(),
+          operadorNome: payload.operadorNome,
+          operadorLegacyId: session.funcionarioId ?? undefined,
+          operadorCpf: session.cpf ?? undefined,
+          tipoFalha: payload.tipoFalha,
+          descricao: payload.descricao,
+          localizacaoGps: payload.localizacaoGps,
+          fotos,
           dataHoraIso: dataHora,
         });
-        escrita.then(
-          () => removerPendente(id),
-          (e) => console.error("[Emerg] Sincronização com o servidor falhou:", e),
-        );
-        const ack = await esperarAckComTimeout(escrita, navigator.onLine, 15_000);
+        removerPendente(id);
+        setEmergMsg("✅ Emergência registrada e enviada ao servidor.");
+      } catch (err) {
+        console.error("[Emerg] Sincronização com o servidor falhou:", err);
         setEmergMsg(
-          ack === "sincronizado"
-            ? "✅ Emergência registrada e enviada ao servidor."
-            : "📴 Sem internet: emergência salva no aparelho. Sincroniza sozinho quando a conexão voltar.",
+          navigator.onLine
+            ? "⚠️ Falha ao enviar emergência. Tente novamente."
+            : "📴 Sem internet: tente novamente com conexão.",
         );
       }
       setEmergTick((t) => t + 1);

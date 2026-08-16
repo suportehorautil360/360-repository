@@ -1,5 +1,8 @@
-/** Configurações da empresa por prefeitura — módulo `configuracoes` do back-360-. */
+/** Configurações da empresa por prefeitura. Detecta sessão Supabase
+ *  automaticamente — PWA usa Supabase; portal admin usa NestJS legado. */
 import { api } from "./client";
+import { getCurrentCompanyId } from "../supabase/session";
+import { obterConfiguracaoSupabase } from "../supabase/pwa-reads";
 
 export type UnidadeIntervalo = "km" | "horas";
 
@@ -163,6 +166,7 @@ export function categoriaDoTipo(tipo: string): CategoriaIntervalo {
 
 export const configuracoesApi = {
   async obter(prefeituraId: string): Promise<Configuracao> {
+    if (await getCurrentCompanyId()) return obterConfiguracaoSupabase(prefeituraId);
     const r = await api.get<{ data: unknown }>(
       `/configuracoes/${prefeituraId}`,
     );
