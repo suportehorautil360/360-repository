@@ -34,7 +34,13 @@ export type LoginResult =
       status: number;
       error: string;
       /** Quando status=409 — o cliente escolhe qual empresa e reenvia com companyId. */
-      opcoes?: Array<{ companyId: string; operatorId: string; nome: string }>;
+      opcoes?: Array<{
+        companyId: string;
+        companyLegacyId: string | null;
+        companyName: string | null;
+        operatorId: string;
+        nome: string;
+      }>;
     };
 
 /**
@@ -42,7 +48,10 @@ export type LoginResult =
  * (cache local Dexie) é responsabilidade da camada acima (`credenciais-offline.ts`).
  */
 export async function loginOperadorSupabase(input: {
-  cpf: string;
+  /** CPF (11 dígitos) ou loginGerado. A Edge Function v4 aceita ambos. */
+  cpf?: string;
+  login?: string;
+  identificador?: string;
   senha: string;
   companyId?: string;
 }): Promise<LoginResult> {

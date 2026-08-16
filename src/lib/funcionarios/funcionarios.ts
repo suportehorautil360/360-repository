@@ -153,7 +153,21 @@ export type AutenticacaoResultado =
   | { ok: true; funcionario: Funcionario }
   | {
       ok: false;
-      motivo: "nao-encontrado" | "sem-senha" | "senha-invalida" | "inativo";
+      motivo:
+        | "nao-encontrado"
+        | "sem-senha"
+        | "senha-invalida"
+        | "inativo"
+        | "multi-empresa";
+      /** Presente quando `motivo === "multi-empresa"`: opções de empresa
+       *  que o usuário precisa escolher pra reenviar o login com companyId. */
+      opcoes?: Array<{
+        companyId: string;
+        companyLegacyId: string | null;
+        companyName: string | null;
+        operatorId: string;
+        nome: string;
+      }>;
     };
 
 /** Resultado da importação em massa. */

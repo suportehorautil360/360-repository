@@ -1,8 +1,9 @@
 /**
  * Adapter: mantém o mesmo shape (`AutenticacaoResultado`, `Funcionario`) que o
  * `funcionariosApi.autenticar` do legado usava, mas por trás chama a Edge
- * Function `login-operador` do Supabase. O restante do fluxo (cache offline,
- * navegação, salvar credencial) continua idêntico.
+ * Function `login-operador` (v4) do Supabase. Aceita CPF OU loginGerado.
+ *
+ * Cache offline, navegação e save de credencial continuam iguais.
  */
 import type {
   AutenticacaoResultado,
@@ -30,21 +31,29 @@ function toFuncionario(op: OperadorSessao): Funcionario {
 /**
  * Wrapper com a mesma assinatura de `funcionariosApi.autenticar`. Devolve o
  * `AutenticacaoResultado` já mapeado. Também exporta o `companyName` via
- * side-channel pra evitar um segundo round-trip pra buscar o nome da empresa.
+ * side-channel pra evitar um segundo round-trip.
+ *
+ * `identificador` pode ser CPF (11 dígitos) ou `loginGerado` (ex: "vinicius814").
+ * A Edge Function v4 resolve os dois formatos.
+ *
+ * `companyId` opcional: quando o mesmo CPF/login está cadastrado em >1 empresa,
+ * o primeiro login retorna `motivo: "multi-empresa"` + `opcoes`; o segundo
+ * envio deve passar o `companyId` escolhido pra concluir a autenticação.
  */
 export async function autenticarViaSupabase(
   identificador: string,
   senha: string,
+  companyId?: string,
 ): Promise<AutenticacaoResultado & { companyName?: string | null }> {
-  // A Edge Function só aceita CPF (11 dígitos). Se o identificador vier como
-  // loginGerado (nome+3 últimos), rejeita — o PWA sempre pode ter os dois
-  // fluxos, mas o operador sempre tem o CPF disponível. Deixamos claro pra UI.
-  const cpfLimpo = (identificador || "").replace(/\D+/g, "");
-  if (cpfLimpo.length !== 11) {
-    return { ok: false, motivo: "nao-encontrado" };
-  }
+  const raw = (identificador || "").trim();
+  if (!raw) return { ok: false, motivo: "nao-encontrado" };
 
-  const r = await loginOperadorSupabase({ cpf: cpfLimpo, senha });
+  const r = await loginOperadorSupabase({
+    identificador: raw,
+    senha,
+    companyId,
+  });
+
   if (r.ok) {
     return {
       ok: true,
@@ -53,11 +62,16 @@ export async function autenticarViaSupabase(
     };
   }
 
-  // Mapeia status HTTP → motivo do legado.
+  // 409 — CPF/login cadastrado em mais de uma empresa. Devolve `opcoes` pra UI
+  // renderizar o seletor de empresa; ao escolher, chama de novo passando companyId.
+  if (r.status === 409 && r.opcoes) {
+    return { ok: false, motivo: "multi-empresa", opcoes: r.opcoes };
+  }
+
   if (r.status === 401) return { ok: false, motivo: "senha-invalida" };
   if (r.status === 429) {
-    // Não temos motivo específico no legado — cai em "senha-invalida" pra UI
-    // exibir a mensagem que a própria Edge Function retorna no throw.
+    // Sem motivo próprio no legado — a UI mostra a mensagem que a Edge Function
+    // retornou via throw. `senha-invalida` é a aproximação mais próxima.
     return { ok: false, motivo: "senha-invalida" };
   }
   return { ok: false, motivo: "nao-encontrado" };
